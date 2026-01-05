@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Grid3x3, List, Search, Filter, ArrowLeft } from 'lucide-react';
+import { Plus, Grid3x3, List, Search, Filter, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -7,20 +7,42 @@ import CharacterCard from '../components/CharacterCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '@/components/ui/Modal';
 import CharacterForm from '../components/CharacterForm';
+import type { Character } from '@/types';
 
 type AddModalView = 'options' | 'manual' | 'enka' | 'good';
 
 export default function RosterPage() {
-  const { characters, isLoading, createCharacter } = useCharacters();
+  const { characters, isLoading, createCharacter, updateCharacter, deleteCharacter } = useCharacters();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalView, setAddModalView] = useState<AddModalView>('options');
   const [showFilters, setShowFilters] = useState(false);
+  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [deletingCharacter, setDeletingCharacter] = useState<Character | null>(null);
 
   const handleCloseModal = () => {
     setShowAddModal(false);
     setAddModalView('options');
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingCharacter(null);
+  };
+
+  const handleEdit = (character: Character) => {
+    setEditingCharacter(character);
+  };
+
+  const handleDelete = (character: Character) => {
+    setDeletingCharacter(character);
+  };
+
+  const confirmDelete = async () => {
+    if (deletingCharacter) {
+      await deleteCharacter(deletingCharacter.id);
+      setDeletingCharacter(null);
+    }
   };
 
   // Filter characters based on search
@@ -131,6 +153,8 @@ export default function RosterPage() {
                   key={character.id}
                   character={character}
                   onClick={() => console.log('View character:', character.id)}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -229,6 +253,66 @@ export default function RosterPage() {
               Back to options
             </Button>
             <p className="text-slate-400">GOOD format import coming soon...</p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit Character Modal */}
+      <Modal
+        isOpen={editingCharacter !== null}
+        onClose={handleCloseEditModal}
+        title="Edit Character"
+        size="lg"
+      >
+        {editingCharacter && (
+          <CharacterForm
+            initialData={editingCharacter}
+            onSubmit={async (data) => {
+              await updateCharacter(editingCharacter.id, data);
+              handleCloseEditModal();
+            }}
+            onCancel={handleCloseEditModal}
+          />
+        )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deletingCharacter !== null}
+        onClose={() => setDeletingCharacter(null)}
+        title="Delete Character"
+        size="sm"
+      >
+        {deletingCharacter && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-900/20 rounded-lg">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-slate-200 font-medium mb-1">
+                  Are you sure you want to delete {deletingCharacter.key}?
+                </p>
+                <p className="text-sm text-slate-400">
+                  This action cannot be undone. All character data including talents, weapon, and artifacts will be permanently removed.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-700">
+              <Button
+                variant="ghost"
+                onClick={() => setDeletingCharacter(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={confirmDelete}
+              >
+                Delete Character
+              </Button>
+            </div>
           </div>
         )}
       </Modal>

@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react';
+import { Star, Pencil, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character } from '@/types';
@@ -6,9 +6,11 @@ import type { Character } from '@/types';
 interface CharacterCardProps {
   character: Character;
   onClick?: () => void;
+  onEdit?: (character: Character) => void;
+  onDelete?: (character: Character) => void;
 }
 
-export default function CharacterCard({ character, onClick }: CharacterCardProps) {
+export default function CharacterCard({ character, onClick, onEdit, onDelete }: CharacterCardProps) {
   const priorityColors = {
     main: 'border-primary-500',
     secondary: 'border-blue-500',
@@ -25,13 +27,41 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
 
   return (
     <Card
-      className={`cursor-pointer hover:border-primary-500 transition-colors border-2 ${priorityColors[character.priority]}`}
+      className={`group cursor-pointer hover:border-primary-500 transition-colors border-2 ${priorityColors[character.priority]} relative`}
       onClick={onClick}
     >
+      {/* Action Buttons */}
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        {onEdit && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(character);
+            }}
+            className="p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
+            title="Edit character"
+          >
+            <Pencil className="w-3.5 h-3.5 text-slate-200" />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(character);
+            }}
+            className="p-1.5 bg-red-700 hover:bg-red-600 rounded-md transition-colors"
+            title="Delete character"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-white" />
+          </button>
+        )}
+      </div>
+
       <div className="p-4">
         {/* Character Name & Level */}
         <div className="flex items-start justify-between mb-3">
-          <div>
+          <div className="flex-1 pr-2">
             <h3 className="font-semibold text-slate-100 mb-1">
               {character.key}
             </h3>
