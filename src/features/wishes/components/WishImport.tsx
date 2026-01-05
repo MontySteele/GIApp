@@ -1,6 +1,10 @@
 import { useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
+
+// Check if running in Tauri
+const isTauri = '__TAURI__' in window;
 
 interface WishImportProps {
   onImportComplete: (wishes: WishHistoryItem[]) => void;
@@ -96,6 +100,22 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       newSelection.add(banner);
     }
     setSelectedBanners(newSelection);
+  };
+
+  // Auto-extract wish URL from game logs (Tauri only)
+  const handleAutoExtract = async () => {
+    if (!isTauri) {
+      setUrlError('Auto-extract is only available in the desktop app version.');
+      return;
+    }
+
+    try {
+      setUrlError('');
+      const extractedUrl = await invoke<string>('extract_wish_url');
+      setUrl(extractedUrl);
+    } catch (error) {
+      setUrlError(error as string);
+    }
   };
 
   // Copy script to clipboard
@@ -221,8 +241,35 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     setImportSummary(null);
 
     try {
-      const baseUrl = new URL(url);
-      const allWishes: WishHistoryItem[] = [];
+      let allWishes: WishHistoryItem[];
+
+      // Use Tauri invoke if running in desktop app
+      if (isTauri) {
+        setCurrentBanner('Fetching wish history...');
+        const selectedBannersList = Array.from(selectedBanners);
+        allWishes = await invoke<WishHistoryItem[]>('fetch_wish_history', {
+          url,
+          selectedBanners: selectedBannersList,
+        });
+      } else {
+        // Fallback to browser fetch (will hit CORS)
+        const baseUrl = new URL(url);
+        allWishes = [];
+        const bannersToFetch: Array<[BannerType, string]> = [
+          ['character', '301'],
+          ['weapon', '302'],
+          ['standard', '200'],
+          ['chronicled', '500'],
+        ].filter(([bannerType]) => selectedBanners.has(bannerType as BannerType)) as Array<[BannerType, string]>;
+
+        for (const [bannerType, gachaType] of bannersToFetch) {
+          setCurrentBanner(`Fetching ${BANNER_NAMES[bannerType]} banner...`);
+          const wishes = await fetchBannerHistory(baseUrl, gachaType);
+          allWishes.push(...wishes);
+        }
+      }
+
+      // Calculate summary
       const summary: Record<BannerType, number> = {
         character: 0,
         weapon: 0,
@@ -230,19 +277,10 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         chronicled: 0,
       };
 
-      // Fetch selected banners
-      const bannersToFetch: Array<[BannerType, string]> = [
-        ['character', '301'],
-        ['weapon', '302'],
-        ['standard', '200'],
-        ['chronicled', '500'],
-      ].filter(([bannerType]) => selectedBanners.has(bannerType as BannerType)) as Array<[BannerType, string]>;
-
-      for (const [bannerType, gachaType] of bannersToFetch) {
-        setCurrentBanner(`Fetching ${BANNER_NAMES[bannerType]} banner...`);
-        const wishes = await fetchBannerHistory(baseUrl, gachaType);
-        allWishes.push(...wishes);
-        summary[bannerType] = wishes.length;
+      for (const wish of allWishes) {
+        if (wish.banner in summary) {
+          summary[wish.banner as BannerType]++;
+        }
       }
 
       setImportSummary(summary);
@@ -251,8 +289,8 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     } catch (error) {
       let errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
-      // Detect CORS errors
-      if (error instanceof TypeError && errorMessage.includes('Failed to fetch')) {
+      // Detect CORS errors (browser only)
+      if (!isTauri && error instanceof TypeError && errorMessage.includes('Failed to fetch')) {
         errorMessage = 'CORS_ERROR';
       }
 
@@ -348,7 +386,22 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
       {/* URL Input */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Step 2: Paste Your Wish History URL</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Step 2: Get Your Wish History URL</h3>
+          {isTauri && (
+            <button
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+              onClick={handleAutoExtract}
+            >
+              Auto-Extract from Game Logs
+            </button>
+          )}
+        </div>
+        {isTauri && (
+          <p className="text-sm text-blue-600 dark:text-blue-400 mb-3">
+            Desktop app detected! Click "Auto-Extract" to automatically find the URL from your Genshin Impact game logs, or paste manually below.
+          </p>
+        )}
         <div className="space-y-2">
           <label htmlFor="wish-url" className="block text-sm font-medium">
             Wish History URL
