@@ -8,10 +8,6 @@
     --foreground: 210 40% 98%;
   }
 
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-slate-950 text-slate-50 antialiased;
   }
