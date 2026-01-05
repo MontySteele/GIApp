@@ -19,7 +19,7 @@ export const INCOME_WITH_EVENTS = 200; // Realistic active player
 export const GACHA_RULES: Record<string, GachaRules> = {
   character: {
     version: '5.0+',
-    softPityStart: 74,
+    softPityStart: 73, // Pull 74 is first soft pity (pity = 73)
     hardPity: 90,
     baseRate: 0.006,
     softPityRateIncrease: 0.06,
@@ -28,7 +28,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
   },
   weapon: {
     version: '5.0+',
-    softPityStart: 63,
+    softPityStart: 62, // Pull 63 is first soft pity (pity = 62)
     hardPity: 77,
     baseRate: 0.007,
     softPityRateIncrease: 0.07,
@@ -38,7 +38,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
   },
   standard: {
     version: '1.0+',
-    softPityStart: 74,
+    softPityStart: 73, // Pull 74 is first soft pity (pity = 73)
     hardPity: 90,
     baseRate: 0.006,
     softPityRateIncrease: 0.06,
@@ -46,7 +46,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
   },
   chronicled: {
     version: '4.5+',
-    softPityStart: 74,
+    softPityStart: 73, // Pull 74 is first soft pity (pity = 73)
     hardPity: 90,
     baseRate: 0.006,
     softPityRateIncrease: 0.06,

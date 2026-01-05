@@ -275,7 +275,11 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
  * Fetch character data from Enka.network
  */
 export async function fetchEnkaData(uid: string): Promise<EnkaResponse> {
-  const response = await fetch(`https://enka.network/api/uid/${uid}`);
+  // Use CORS proxy to bypass browser CORS restrictions
+  // Alternative: https://corsproxy.io/?
+  const corsProxy = 'https://api.allorigins.win/raw?url=';
+  const enkaUrl = encodeURIComponent(`https://enka.network/api/uid/${uid}`);
+  const response = await fetch(`${corsProxy}${enkaUrl}`);
 
   if (!response.ok) {
     if (response.status === 404) {
