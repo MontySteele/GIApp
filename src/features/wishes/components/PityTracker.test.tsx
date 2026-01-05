@@ -102,11 +102,11 @@ describe('PityTracker', () => {
       expect(progressBar).toHaveAttribute('aria-valuemax', '90');
     });
 
-    it('should use 80 pity for weapon banner', () => {
+    it('should use 77 pity for weapon banner', () => {
       render(<PityTracker pityState={mockPityState} bannerType="weapon" />);
 
       const progressBar = screen.getByRole('progressbar', { name: /5.*star/i });
-      expect(progressBar).toHaveAttribute('aria-valuemax', '80');
+      expect(progressBar).toHaveAttribute('aria-valuemax', '77');
     });
 
     it('should use 90 pity for standard banner', () => {

@@ -70,7 +70,7 @@ describe('Wish Analyzer', () => {
     it('should clear guaranteed flag when winning featured', () => {
       const history: WishHistoryItem[] = [
         { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'character', isFeatured: true },
-        { id: '2', name: 'Diluc', rarity: 5, itemType: 'character', time: '2024-01-02', banner: 'character', isFeatured: false },
+        { id: '2', name: 'Cool Steel', rarity: 3, itemType: 'weapon', time: '2024-01-02', banner: 'character' },
       ];
       const pityState = calculatePityState(history, 'character');
 
@@ -155,7 +155,7 @@ describe('Wish Analyzer', () => {
       ];
       const stats = calculateStatistics(history, 'character');
 
-      expect(stats.averageFiveStarPity).toBe(70); // (80 + 60) / 2 = 70
+      expect(stats.averageFiveStarPity).toBe(71); // (81 + 61) / 2 = 71 (pity includes the 5-star itself)
     });
 
     it('should calculate 50/50 win rate', () => {
