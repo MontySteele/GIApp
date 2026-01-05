@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Calculator as CalcIcon, Target, TrendingUp } from 'lucide-react';
 import SingleTargetCalculator from '../components/SingleTargetCalculator';
+import { MultiTargetCalculator } from '../components/MultiTargetCalculator';
+import { ReverseCalculator } from '../components/ReverseCalculator';
 
 type TabType = 'single' | 'multi' | 'reverse';
 
@@ -46,18 +48,8 @@ export default function CalculatorPage() {
 
       {/* Tab Content */}
       {activeTab === 'single' && <SingleTargetCalculator />}
-
-      {activeTab === 'multi' && (
-        <div className="text-center py-16">
-          <p className="text-slate-400">Multi-target planner coming soon...</p>
-        </div>
-      )}
-
-      {activeTab === 'reverse' && (
-        <div className="text-center py-16">
-          <p className="text-slate-400">Reverse calculator coming soon...</p>
-        </div>
-      )}
+      {activeTab === 'multi' && <MultiTargetCalculator />}
+      {activeTab === 'reverse' && <ReverseCalculator />}
     </div>
   );
 }
