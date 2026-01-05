@@ -1,6 +1,8 @@
 // Artifact Set Name Mappings
 // Maps setKey IDs to readable names
+// Includes both game IDs and Enka.Network text map hashes
 export const ARTIFACT_SET_NAMES: Record<string, string> = {
+  // Game IDs (from game files)
   // Mondstadt
   '14001': 'Gladiator\'s Finale',
   '14002': 'Wanderer\'s Troupe',
@@ -43,11 +45,88 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   '15030': 'Song of Days Past',
   '15031': 'Nighttime Whispers in the Echoing Woods',
 
-  // Natlan (if applicable)
+  // Natlan
   '15032': 'Fragment of Harmonic Whimsy',
   '15033': 'Unfinished Reverie',
   '15034': 'Scroll of the Hero of Cinder City',
   '15035': 'Obsidian Codex',
+
+  // Enka.Network Text Map Hashes (from setNameTextMapHash)
+  // These are the actual hash IDs used by Enka
+  '2051947378': 'Gladiator\'s Finale',
+  '1024188507': 'Wanderer\'s Troupe',
+  '3024287978': 'Noblesse Oblige',
+  '3336292330': 'Bloodstained Chivalry',
+  '4145306051': 'Maiden Beloved',
+  '3041123219': 'Viridescent Venerer',
+  '464239252': 'Crimson Witch of Flames',
+  '1074991850': 'Lavawalker',
+  '2381195739': 'Thundering Fury',
+  '1813191794': 'Thundersoother',
+  '1978456313': 'Blizzard Strayer',
+  '2550611210': 'Heart of Depth',
+  '3113112362': 'Archaic Petra',
+  '2365306298': 'Retracing Bolide',
+  '4054530851': 'Pale Flame',
+  '2883883603': 'Tenacity of the Millelith',
+  '4144069251': 'Shimenawa\'s Reminiscence',
+  '2512309395': 'Emblem of Severed Fate',
+  '1558036915': 'Husk of Opulent Dreams',
+  '1024664819': 'Ocean-Hued Clam',
+  '2538235059': 'Vermillion Hereafter',
+  '4020789283': 'Echoes of an Offering',
+  '1937844530': 'Deepwood Memories',
+  '52218259': 'Gilded Dreams',
+  '572447378': 'Desert Pavilion Chronicle',
+  '1087031355': 'Flower of Paradise Lost',
+  '2206398859': 'Nymph\'s Dream',
+  '3073024899': 'Vourukasha\'s Glow',
+  '2422508786': 'Marechaussee Hunter',
+  '2276480763': 'Golden Troupe',
+  '1515064307': 'Song of Days Past',
+  '4161025135': 'Nighttime Whispers in the Echoing Woods',
+  '4233298586': 'Fragment of Harmonic Whimsy',
+  '1978422363': 'Unfinished Reverie',
+  '3199794867': 'Scroll of the Hero of Cinder City',
+  '2309458426': 'Obsidian Codex',
+
+  // Also support direct string names (for test data and GOOD format)
+  'Gladiator\'s Finale': 'Gladiator\'s Finale',
+  'Wanderer\'s Troupe': 'Wanderer\'s Troupe',
+  'Noblesse Oblige': 'Noblesse Oblige',
+  'Bloodstained Chivalry': 'Bloodstained Chivalry',
+  'Maiden Beloved': 'Maiden Beloved',
+  'Viridescent Venerer': 'Viridescent Venerer',
+  'Crimson Witch of Flames': 'Crimson Witch of Flames',
+  'Lavawalker': 'Lavawalker',
+  'Thundering Fury': 'Thundering Fury',
+  'Thundersoother': 'Thundersoother',
+  'Blizzard Strayer': 'Blizzard Strayer',
+  'Heart of Depth': 'Heart of Depth',
+  'Archaic Petra': 'Archaic Petra',
+  'Retracing Bolide': 'Retracing Bolide',
+  'Pale Flame': 'Pale Flame',
+  'Tenacity of the Millelith': 'Tenacity of the Millelith',
+  'Shimenawa\'s Reminiscence': 'Shimenawa\'s Reminiscence',
+  'Emblem of Severed Fate': 'Emblem of Severed Fate',
+  'Husk of Opulent Dreams': 'Husk of Opulent Dreams',
+  'Ocean-Hued Clam': 'Ocean-Hued Clam',
+  'Vermillion Hereafter': 'Vermillion Hereafter',
+  'Echoes of an Offering': 'Echoes of an Offering',
+  'Deepwood Memories': 'Deepwood Memories',
+  'Gilded Dreams': 'Gilded Dreams',
+  'Desert Pavilion Chronicle': 'Desert Pavilion Chronicle',
+  'Flower of Paradise Lost': 'Flower of Paradise Lost',
+  'Nymph\'s Dream': 'Nymph\'s Dream',
+  'Vourukasha\'s Glow': 'Vourukasha\'s Glow',
+  'Marechaussee Hunter': 'Marechaussee Hunter',
+  'Golden Troupe': 'Golden Troupe',
+  'Song of Days Past': 'Song of Days Past',
+  'Nighttime Whispers in the Echoing Woods': 'Nighttime Whispers in the Echoing Woods',
+  'Fragment of Harmonic Whimsy': 'Fragment of Harmonic Whimsy',
+  'Unfinished Reverie': 'Unfinished Reverie',
+  'Scroll of the Hero of Cinder City': 'Scroll of the Hero of Cinder City',
+  'Obsidian Codex': 'Obsidian Codex',
 };
 
 // Stat Key to Display Name Mapping
