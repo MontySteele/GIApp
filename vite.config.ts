@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     VitePWA({
@@ -39,5 +39,17 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
-  }
-})
+  },
+  // Vite server configuration for Tauri
+  server: {
+    port: 5173,
+    strictPort: true,
+    host: true, // Listen on all addresses, including LAN and localhost
+    watch: {
+      // 3. tell vite to ignore watching `src-tauri`
+      ignored: ['**/src-tauri/**']
+    }
+  },
+  // Clear screen only in dev mode
+  clearScreen: false
+}))
