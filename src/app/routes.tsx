@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Layout from './Layout';
 import RosterPage from '@/features/roster/pages/RosterPage';
+import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
 import WishesPage from '@/features/wishes/pages/WishesPage';
 import LedgerPage from '@/features/ledger/pages/LedgerPage';
 import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
@@ -20,6 +21,10 @@ export const router = createBrowserRouter([
       {
         path: 'roster',
         element: <RosterPage />,
+      },
+      {
+        path: 'roster/:id',
+        element: <CharacterDetailPage />,
       },
       {
         path: 'wishes',

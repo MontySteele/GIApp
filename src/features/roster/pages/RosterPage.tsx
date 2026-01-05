@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Grid3x3, List, Search, Filter, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Grid3x3, List, Search, Filter, ArrowLeft, AlertTriangle, Download } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -7,11 +8,16 @@ import CharacterCard from '../components/CharacterCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '@/components/ui/Modal';
 import CharacterForm from '../components/CharacterForm';
+import GOODImport from '../components/GOODImport';
+import GOODExport from '../components/GOODExport';
+import EnkaImport from '../components/EnkaImport';
 import type { Character } from '@/types';
 
 type AddModalView = 'options' | 'manual' | 'enka' | 'good';
+type ExportModalView = null | 'good';
 
 export default function RosterPage() {
+  const navigate = useNavigate();
   const { characters, isLoading, createCharacter, updateCharacter, deleteCharacter } = useCharacters();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,6 +26,7 @@ export default function RosterPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [deletingCharacter, setDeletingCharacter] = useState<Character | null>(null);
+  const [exportModalView, setExportModalView] = useState<ExportModalView>(null);
 
   const handleCloseModal = () => {
     setShowAddModal(false);
@@ -69,6 +76,12 @@ export default function RosterPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {characters.length > 0 && (
+            <Button variant="ghost" onClick={() => setExportModalView('good')}>
+              <Download className="w-4 h-4" />
+              Export
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4" />
             Add Character
@@ -152,7 +165,7 @@ export default function RosterPage() {
                 <CharacterCard
                   key={character.id}
                   character={character}
-                  onClick={() => console.log('View character:', character.id)}
+                  onClick={() => navigate(`/roster/${character.id}`)}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -237,7 +250,10 @@ export default function RosterPage() {
               <ArrowLeft className="w-4 h-4" />
               Back to options
             </Button>
-            <p className="text-slate-400">Enka.network import coming soon...</p>
+            <EnkaImport
+              onSuccess={handleCloseModal}
+              onCancel={handleCloseModal}
+            />
           </div>
         )}
 
@@ -252,7 +268,10 @@ export default function RosterPage() {
               <ArrowLeft className="w-4 h-4" />
               Back to options
             </Button>
-            <p className="text-slate-400">GOOD format import coming soon...</p>
+            <GOODImport
+              onSuccess={handleCloseModal}
+              onCancel={handleCloseModal}
+            />
           </div>
         )}
       </Modal>
@@ -314,6 +333,18 @@ export default function RosterPage() {
               </Button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* Export Modal */}
+      <Modal
+        isOpen={exportModalView !== null}
+        onClose={() => setExportModalView(null)}
+        title="Export Roster"
+        size="lg"
+      >
+        {exportModalView === 'good' && (
+          <GOODExport onClose={() => setExportModalView(null)} />
         )}
       </Modal>
     </div>
