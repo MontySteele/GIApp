@@ -117,8 +117,8 @@ pub fn extract_wish_url(log_path: &PathBuf) -> Result<String, String> {
 
     // Regex patterns to match wish history URLs (both /log and /index.html)
     let patterns = vec![
-        r"https://gs\.hoyoverse\.com/genshin/event/e20190909gacha-v3/(log|index\.html)\?[^\s""]+",
-        r"https://hk4e-api[^\s""]*gacha[^\s""]+",
+        r#"https://gs\.hoyoverse\.com/genshin/event/e20190909gacha-v3/(log|index\.html)\?[^\s"]+"#,
+        r#"https://hk4e-api[^\s"]*gacha[^\s"]+"#,
     ];
 
     for pattern_str in patterns {
