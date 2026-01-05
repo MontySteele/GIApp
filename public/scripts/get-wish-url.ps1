@@ -36,9 +36,9 @@ Write-Host ""
 try {
     $content = Get-Content -Path $targetLog -Raw
 
-    # Search for wish history URL patterns
+    # Search for wish history URL patterns (including both /log and /index.html)
     $patterns = @(
-        'https://gs\.hoyoverse\.com/genshin/event/e20190909gacha-v3/log\?[^\s"]+',
+        'https://gs\.hoyoverse\.com/genshin/event/e20190909gacha-v3/(log|index\.html)\?[^\s"]+',
         'https://hk4e-api[^\s"]*gacha[^\s"]+'
     )
 
@@ -48,6 +48,9 @@ try {
         if ($matches.Count -gt 0) {
             # Get the last (most recent) match
             $url = $matches[$matches.Count - 1].Value
+
+            # Normalize URL: convert /index.html to /log if present
+            $url = $url -replace '/index\.html\?', '/log?'
             break
         }
     }

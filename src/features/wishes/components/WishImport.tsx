@@ -32,6 +32,18 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     new Set(['character', 'weapon', 'standard', 'chronicled'])
   );
 
+  // Normalize URL - convert /index.html to /log
+  const normalizeUrl = (inputUrl: string): string => {
+    try {
+      const url = new URL(inputUrl);
+      // Replace /index.html with /log if present
+      url.pathname = url.pathname.replace(/\/index\.html$/, '/log');
+      return url.toString();
+    } catch {
+      return inputUrl;
+    }
+  };
+
   // Validate URL
   const validateUrl = (inputUrl: string) => {
     if (!inputUrl) {
@@ -40,7 +52,8 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     }
 
     try {
-      const parsedUrl = new URL(inputUrl);
+      const normalizedUrl = normalizeUrl(inputUrl);
+      const parsedUrl = new URL(normalizedUrl);
 
       if (!parsedUrl.hostname.includes('hoyoverse.com') && !parsedUrl.hostname.includes('mihoyo.com')) {
         setUrlError('Invalid URL format. Must be a HoYoverse wish history URL.');
@@ -62,7 +75,9 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
   // Handle URL change
   const handleUrlChange = (value: string) => {
-    setUrl(value);
+    // Automatically normalize the URL
+    const normalized = normalizeUrl(value);
+    setUrl(normalized);
     setImportError('');
     setImportSummary(null);
   };
@@ -234,8 +249,14 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       setCurrentBanner('');
       onImportComplete(allWishes);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setImportError(`Failed to import wish history: ${errorMessage}`);
+      let errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+      // Detect CORS errors
+      if (error instanceof TypeError && errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'CORS_ERROR';
+      }
+
+      setImportError(errorMessage);
     } finally {
       setIsImporting(false);
     }
@@ -391,7 +412,37 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       {/* Error */}
       {importError && (
         <div className="p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-md">
-          <p className="text-sm text-red-800 dark:text-red-200">{importError}</p>
+          {importError === 'CORS_ERROR' ? (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-red-800 dark:text-red-200">
+                Browser Security Restriction (CORS)
+              </h4>
+              <p className="text-sm text-red-800 dark:text-red-200">
+                Browsers block direct requests to HoYoverse's API for security reasons. This is a limitation of web-based apps.
+              </p>
+              <div className="text-sm text-red-800 dark:text-red-200">
+                <p className="font-medium mb-2">Workarounds:</p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>
+                    <strong>Use a CORS proxy:</strong> Set up a local proxy server (requires technical setup)
+                  </li>
+                  <li>
+                    <strong>Desktop app:</strong> Request this app be converted to Tauri/Electron (no CORS restrictions)
+                  </li>
+                  <li>
+                    <strong>Manual export:</strong> Use a third-party tool to export wish history as JSON, then import the file here
+                  </li>
+                </ol>
+              </div>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-2">
+                Note: This is not a bug - it's a fundamental limitation of Progressive Web Apps (PWAs) running in browsers.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-red-800 dark:text-red-200">
+              Failed to import wish history: {importError}
+            </p>
+          )}
         </div>
       )}
 

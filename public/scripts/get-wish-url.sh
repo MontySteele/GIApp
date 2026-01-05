@@ -43,14 +43,17 @@ echo "Found log file: $LOG_FILE"
 echo "Searching for wish history URL..."
 echo ""
 
-# Extract the wish history URL from the log
+# Extract the wish history URL from the log (including both /log and /index.html)
 # The URL contains the authentication token and is used by the game to fetch wish history
-URL=$(grep -o "https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?[^\"]*" "$LOG_FILE" | tail -n 1)
+URL=$(grep -oE "https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/(log|index\.html)\?[^\"]*" "$LOG_FILE" | tail -n 1)
 
 # Alternative: Search for URLs from other regions
 if [ -z "$URL" ]; then
     URL=$(grep -o "https://hk4e-api[^\"]*gacha[^\"]*" "$LOG_FILE" | tail -n 1)
 fi
+
+# Normalize URL: convert /index.html to /log if present
+URL=$(echo "$URL" | sed 's|/index\.html?|/log?|')
 
 if [ -z "$URL" ]; then
     echo "Error: Could not find wish history URL in log file."
