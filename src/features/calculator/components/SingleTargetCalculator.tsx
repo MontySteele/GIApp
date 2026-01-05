@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Calculator } from 'lucide-react';
+import ProbabilityChart from './ProbabilityChart';
 
 export default function SingleTargetCalculator() {
   const [currentPity, setCurrentPity] = useState(0);
@@ -138,6 +139,19 @@ export default function SingleTargetCalculator() {
                   The 50% mark is your "average case" scenario.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Probability Distribution Chart */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-xl font-semibold">Probability Distribution</h2>
+            </CardHeader>
+            <CardContent>
+              <ProbabilityChart data={result.distribution} />
+              <p className="text-sm text-slate-400 mt-4 text-center">
+                Shows cumulative probability of getting the character as pulls increase
+              </p>
             </CardContent>
           </Card>
         </>
