@@ -63,7 +63,9 @@ describe('WishHistoryList', () => {
       ];
       render(<WishHistoryList history={history} />);
 
-      expect(screen.getByText(/character/i)).toBeInTheDocument();
+      // Query within the list item
+      const listItem = screen.getByRole('listitem');
+      expect(listItem).toHaveTextContent(/character/i);
     });
 
     it('should show pull time', () => {
@@ -81,7 +83,9 @@ describe('WishHistoryList', () => {
       ];
       render(<WishHistoryList history={history} />);
 
-      expect(screen.getByText(/character.*event/i)).toBeInTheDocument();
+      // Query within the list item
+      const listItem = screen.getByRole('listitem');
+      expect(listItem).toHaveTextContent(/character.*event/i);
     });
   });
 
@@ -188,7 +192,8 @@ describe('WishHistoryList', () => {
       }));
       render(<WishHistoryList history={history} />);
 
-      expect(screen.getByText(/page/i)).toBeInTheDocument();
+      const pageTexts = screen.getAllByText(/page/i);
+      expect(pageTexts.length).toBeGreaterThan(0);
     });
 
     it('should limit items per page to 20', () => {

@@ -71,14 +71,6 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
     return date.toISOString().split('T')[0]; // YYYY-MM-DD format
   };
 
-  if (history.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-        No wish history available. Import your wish history to get started.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -132,16 +124,22 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
       </div>
 
       {/* Wish history list */}
-      <ul className="space-y-2">
-        {paginatedItems.map((item) => (
+      {filteredAndSorted.length === 0 ? (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          No wish history available. Import your wish history to get started.
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {paginatedItems.map((item) => (
           <li
             key={item.id}
             className={`p-4 border-2 rounded-lg ${getRarityClass(item.rarity)}`}
             role="listitem"
+            data-rarity={item.rarity}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="font-semibold text-lg">{item.name}</div>
+                <div className={`font-semibold text-lg ${getRarityClass(item.rarity)}`}>{item.name}</div>
                 <div className="text-sm space-x-3 mt-1">
                   <span className="capitalize">{item.itemType}</span>
                   <span>•</span>
@@ -171,9 +169,10 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
           </li>
         ))}
       </ul>
+      )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {filteredAndSorted.length > 0 && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
           <button
             className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700"

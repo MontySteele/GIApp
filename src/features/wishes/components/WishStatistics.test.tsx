@@ -51,14 +51,14 @@ describe('WishStatistics', () => {
     it('should display 5-star count', () => {
       render(<WishStatistics stats={mockStats} bannerType="character" />);
 
-      expect(screen.getByText(/5.*star/i)).toBeInTheDocument();
+      expect(screen.getByText(/5.*star.*pulls/i)).toBeInTheDocument();
       expect(screen.getByText('2')).toBeInTheDocument();
     });
 
     it('should display 4-star count', () => {
       render(<WishStatistics stats={mockStats} bannerType="character" />);
 
-      expect(screen.getByText(/4.*star/i)).toBeInTheDocument();
+      expect(screen.getByText(/4.*star.*pulls/i)).toBeInTheDocument();
       expect(screen.getByText('15')).toBeInTheDocument();
     });
 
