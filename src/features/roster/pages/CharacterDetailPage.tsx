@@ -4,6 +4,7 @@ import { useCharacter } from '../hooks/useCharacters';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import { formatArtifactSetName, formatSlotName, formatStatName, formatStatValue } from '@/lib/gameData';
 
 export default function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -173,10 +174,10 @@ export default function CharacterDetailPage() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h4 className="font-semibold text-slate-100 mb-1">
-                          {artifact.setKey}
+                          {formatArtifactSetName(artifact.setKey)}
                         </h4>
-                        <p className="text-sm text-slate-400 capitalize">
-                          {artifact.slotKey} • +{artifact.level}
+                        <p className="text-sm text-slate-400">
+                          {formatSlotName(artifact.slotKey)} • +{artifact.level}
                         </p>
                       </div>
                       <Badge variant={artifact.rarity === 5 ? 'warning' : 'default'}>
@@ -187,7 +188,7 @@ export default function CharacterDetailPage() {
                     <div className="mb-3">
                       <div className="text-xs text-slate-500 mb-1">Main Stat</div>
                       <div className="text-sm text-slate-200 font-medium">
-                        {artifact.mainStatKey}
+                        {formatStatName(artifact.mainStatKey)}
                       </div>
                     </div>
 
@@ -200,7 +201,7 @@ export default function CharacterDetailPage() {
                               key={subIndex}
                               className="text-xs text-slate-300"
                             >
-                              {substat.key}: {substat.value}
+                              {formatStatName(substat.key)}: {formatStatValue(substat.key, substat.value)}
                             </div>
                           ))}
                         </div>
