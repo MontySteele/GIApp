@@ -1,18 +1,27 @@
 import { useState } from 'react';
-import { Plus, Grid3x3, List, Search, Filter } from 'lucide-react';
+import { Plus, Grid3x3, List, Search, Filter, ArrowLeft } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import CharacterCard from '../components/CharacterCard';
 import EmptyState from '../components/EmptyState';
 import Modal from '@/components/ui/Modal';
+import CharacterForm from '../components/CharacterForm';
+
+type AddModalView = 'options' | 'manual' | 'enka' | 'good';
 
 export default function RosterPage() {
-  const { characters, isLoading } = useCharacters();
+  const { characters, isLoading, createCharacter } = useCharacters();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalView, setAddModalView] = useState<AddModalView>('options');
   const [showFilters, setShowFilters] = useState(false);
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setAddModalView('options');
+  };
 
   // Filter characters based on search
   const filteredCharacters = characters.filter((char) =>
@@ -132,26 +141,96 @@ export default function RosterPage() {
       {/* Add Character Modal */}
       <Modal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Add Character"
+        onClose={handleCloseModal}
+        title={
+          addModalView === 'options' ? 'Add Character' :
+          addModalView === 'manual' ? 'Manual Entry' :
+          addModalView === 'enka' ? 'Import from Enka.network' :
+          'Import GOOD Format'
+        }
         size="lg"
       >
-        <div className="space-y-4">
-          <p className="text-slate-400">
-            Choose how you'd like to add characters to your roster:
-          </p>
-          <div className="grid gap-3">
-            <Button variant="secondary" className="justify-start">
-              Manual Entry
-            </Button>
-            <Button variant="secondary" className="justify-start">
-              Import from Enka.network
-            </Button>
-            <Button variant="secondary" className="justify-start">
-              Import GOOD Format (JSON)
-            </Button>
+        {addModalView === 'options' && (
+          <div className="space-y-4">
+            <p className="text-slate-400">
+              Choose how you'd like to add characters to your roster:
+            </p>
+            <div className="grid gap-3">
+              <Button
+                variant="secondary"
+                className="justify-start"
+                onClick={() => setAddModalView('manual')}
+              >
+                Manual Entry
+              </Button>
+              <Button
+                variant="secondary"
+                className="justify-start"
+                onClick={() => setAddModalView('enka')}
+              >
+                Import from Enka.network
+              </Button>
+              <Button
+                variant="secondary"
+                className="justify-start"
+                onClick={() => setAddModalView('good')}
+              >
+                Import GOOD Format (JSON)
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {addModalView === 'manual' && (
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAddModalView('options')}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to options
+            </Button>
+            <CharacterForm
+              onSubmit={async (data) => {
+                await createCharacter(data);
+                handleCloseModal();
+              }}
+              onCancel={handleCloseModal}
+            />
+          </div>
+        )}
+
+        {addModalView === 'enka' && (
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAddModalView('options')}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to options
+            </Button>
+            <p className="text-slate-400">Enka.network import coming soon...</p>
+          </div>
+        )}
+
+        {addModalView === 'good' && (
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAddModalView('options')}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to options
+            </Button>
+            <p className="text-slate-400">GOOD format import coming soon...</p>
+          </div>
+        )}
       </Modal>
     </div>
   );
