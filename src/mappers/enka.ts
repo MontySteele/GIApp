@@ -471,11 +471,18 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
  * Fetch character data from Enka.network
  */
 export async function fetchEnkaData(uid: string): Promise<EnkaResponse> {
-  // Use CORS proxy to bypass browser CORS restrictions
-  // Alternative: https://corsproxy.io/?
-  const corsProxy = 'https://api.allorigins.win/raw?url=';
-  const enkaUrl = encodeURIComponent(`https://enka.network/api/uid/${uid}`);
-  const response = await fetch(`${corsProxy}${enkaUrl}`);
+  // Try direct fetch first (Enka supports CORS for most origins)
+  let response: Response;
+
+  try {
+    response = await fetch(`https://enka.network/api/uid/${uid}`);
+  } catch (error) {
+    // If direct fetch fails due to CORS, try CORS proxy
+    console.warn('Direct fetch failed, trying CORS proxy...');
+    const corsProxy = 'https://corsproxy.io/?';
+    const enkaUrl = encodeURIComponent(`https://enka.network/api/uid/${uid}`);
+    response = await fetch(`${corsProxy}${enkaUrl}`);
+  }
 
   if (!response.ok) {
     if (response.status === 404) {
