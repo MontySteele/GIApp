@@ -1,7 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ReverseCalculator } from './ReverseCalculator';
+import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
+
+beforeEach(() => {
+  useUIStore.persist?.clearStorage();
+  useUIStore.setState((state) => ({
+    ...state,
+    settings: { ...DEFAULT_SETTINGS },
+  }));
+});
 
 describe('ReverseCalculator', () => {
   describe('Initial render', () => {
@@ -31,6 +40,54 @@ describe('ReverseCalculator', () => {
       expect(screen.getByLabelText(/current pity/i)).toHaveValue(0);
       expect(screen.getByLabelText(/current pulls/i)).toHaveValue(0);
       expect(screen.getByLabelText(/custom daily primogem income/i)).toHaveValue(60);
+    });
+  });
+
+  describe('Default settings', () => {
+    it('prefills fields from stored defaults', () => {
+      useUIStore.setState((state) => ({
+        ...state,
+        settings: {
+          ...state.settings,
+          calculatorDefaults: {
+            ...state.settings.calculatorDefaults,
+            bannerType: 'weapon',
+            availablePulls: 20,
+            daysAvailable: 10,
+            targetProbability: 90,
+            dailyPrimogemIncome: 150,
+            pityPreset: {
+              pity: 5,
+              guaranteed: true,
+              radiantStreak: 1,
+            },
+          },
+        },
+      }));
+
+      render(<ReverseCalculator />);
+
+      expect(screen.getByLabelText(/banner type/i)).toHaveValue('weapon');
+      expect(screen.getByLabelText(/target probability/i)).toHaveValue(90);
+      expect(screen.getByLabelText(/days available/i)).toHaveValue(10);
+      expect(screen.getByLabelText(/current pity/i)).toHaveValue(5);
+      expect(screen.getByLabelText(/current pulls/i)).toHaveValue(20);
+      expect(screen.getByLabelText(/guaranteed/i)).toBeChecked();
+      expect(screen.getByLabelText(/radiant streak/i)).toHaveValue(1);
+      expect(screen.getByLabelText(/custom daily primogem income/i)).toHaveValue(150);
+    });
+
+    it('resets calculator inputs to stored defaults', async () => {
+      const user = userEvent.setup();
+      render(<ReverseCalculator />);
+
+      await user.clear(screen.getByLabelText(/current pity/i));
+      await user.type(screen.getByLabelText(/current pity/i), '12');
+      await user.click(screen.getByLabelText(/guaranteed/i));
+      await user.click(screen.getByRole('button', { name: /reset to defaults/i }));
+
+      expect(screen.getByLabelText(/current pity/i)).toHaveValue(0);
+      expect(screen.getByLabelText(/guaranteed/i)).not.toBeChecked();
     });
   });
 

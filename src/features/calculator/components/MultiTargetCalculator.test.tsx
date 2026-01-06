@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MultiTargetCalculator } from './MultiTargetCalculator';
 import * as montecarloClient from '@/workers/montecarloClient';
+import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
 
 const runSimulationMock = vi.fn();
 
@@ -19,6 +20,11 @@ const createMonteCarloWorkerMock = vi.mocked(montecarloClient.createMonteCarloWo
 
 describe('MultiTargetCalculator', () => {
   beforeEach(() => {
+    useUIStore.persist?.clearStorage();
+    useUIStore.setState((state) => ({
+      ...state,
+      settings: { ...DEFAULT_SETTINGS },
+    }));
     runSimulationMock.mockClear();
     createMonteCarloWorkerMock.mockClear();
 
@@ -58,6 +64,40 @@ describe('MultiTargetCalculator', () => {
       render(<MultiTargetCalculator />);
 
       expect(screen.getByText(/add characters you want to pull/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Default settings', () => {
+    it('prefills calculator values from stored defaults', async () => {
+      const user = userEvent.setup();
+      useUIStore.setState((state) => ({
+        ...state,
+        settings: {
+          ...state.settings,
+          calculatorDefaults: {
+            ...state.settings.calculatorDefaults,
+            bannerType: 'weapon',
+            simulationCount: 20000,
+            availablePulls: 75,
+            pityPreset: {
+              pity: 15,
+              guaranteed: true,
+              radiantStreak: 1,
+            },
+          },
+        },
+      }));
+
+      render(<MultiTargetCalculator />);
+
+      expect(screen.getByLabelText(/banner type/i)).toHaveValue('weapon');
+      expect(screen.getByLabelText(/simulation count/i)).toHaveValue('20000');
+      expect(screen.getByLabelText(/available pulls/i)).toHaveValue(75);
+
+      await user.click(screen.getByRole('button', { name: /add target/i }));
+      expect(screen.getByLabelText(/current pity/i)).toHaveValue(15);
+      expect(screen.getByLabelText(/guaranteed/i)).toBeChecked();
+      expect(screen.getByLabelText(/radiant streak/i)).toHaveValue(1);
     });
   });
 

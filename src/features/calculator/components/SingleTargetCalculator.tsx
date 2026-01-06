@@ -8,14 +8,24 @@ import Select from '@/components/ui/Select';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Calculator } from 'lucide-react';
 import ProbabilityChart from './ProbabilityChart';
+import { useUIStore } from '@/stores/uiStore';
 
 export default function SingleTargetCalculator() {
   const pitySnapshot = useCurrentPity('character');
-  const [currentPity, setCurrentPity] = useState(0);
-  const [isGuaranteed, setIsGuaranteed] = useState(false);
-  const [radiantStreak, setRadiantStreak] = useState(0);
-  const [availablePulls, setAvailablePulls] = useState(0);
+  const calculatorDefaults = useUIStore((state) => state.settings.calculatorDefaults);
+  const [currentPity, setCurrentPity] = useState(calculatorDefaults.pityPreset.pity);
+  const [isGuaranteed, setIsGuaranteed] = useState(calculatorDefaults.pityPreset.guaranteed);
+  const [radiantStreak, setRadiantStreak] = useState(calculatorDefaults.pityPreset.radiantStreak);
+  const [availablePulls, setAvailablePulls] = useState(calculatorDefaults.availablePulls);
   const [result, setResult] = useState<AnalyticalResult | null>(null);
+
+  const resetToDefaults = () => {
+    setCurrentPity(calculatorDefaults.pityPreset.pity);
+    setIsGuaranteed(calculatorDefaults.pityPreset.guaranteed);
+    setRadiantStreak(calculatorDefaults.pityPreset.radiantStreak);
+    setAvailablePulls(calculatorDefaults.availablePulls);
+    setResult(null);
+  };
 
   const handleCalculate = () => {
     const res = calculateSingleTarget(
@@ -43,14 +53,23 @@ export default function SingleTargetCalculator() {
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-xl font-semibold">Current State</h2>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleUseCurrentPity}
-              disabled={!pitySnapshot}
-            >
-              Use current pity
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={resetToDefaults}
+              >
+                Reset to defaults
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleUseCurrentPity}
+                disabled={!pitySnapshot}
+              >
+                Use current pity
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

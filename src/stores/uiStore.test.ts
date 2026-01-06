@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS, useUIStore } from './uiStore';
 
 describe('useUIStore settings surface', () => {
   beforeEach(() => {
+    useUIStore.persist?.clearStorage();
     useUIStore.setState({
       theme: 'system',
       rosterFilter: {
@@ -29,12 +30,19 @@ describe('useUIStore settings surface', () => {
     const { updateSettings } = useUIStore.getState();
     updateSettings({
       dateFormat: 'yyyy/MM/dd',
+      calculatorDefaults: {
+        targetProbability: 90,
+      },
     });
 
     const state = useUIStore.getState();
     expect(state.settings).toEqual({
       ...DEFAULT_SETTINGS,
       dateFormat: 'yyyy/MM/dd',
+      calculatorDefaults: {
+        ...DEFAULT_SETTINGS.calculatorDefaults,
+        targetProbability: 90,
+      },
     });
   });
 
@@ -43,6 +51,13 @@ describe('useUIStore settings surface', () => {
     updateSettings({
       defaultTheme: 'dark',
       backupReminderCadenceDays: 7,
+      calculatorDefaults: {
+        simulationCount: 20000,
+        pityPreset: {
+          ...DEFAULT_SETTINGS.calculatorDefaults.pityPreset,
+          pity: 10,
+        },
+      },
     });
 
     const state = useUIStore.getState();
@@ -50,6 +65,14 @@ describe('useUIStore settings surface', () => {
       ...DEFAULT_SETTINGS,
       defaultTheme: 'dark',
       backupReminderCadenceDays: 7,
+      calculatorDefaults: {
+        ...DEFAULT_SETTINGS.calculatorDefaults,
+        simulationCount: 20000,
+        pityPreset: {
+          ...DEFAULT_SETTINGS.calculatorDefaults.pityPreset,
+          pity: 10,
+        },
+      },
     });
   });
 

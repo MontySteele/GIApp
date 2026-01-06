@@ -9,6 +9,7 @@ import type { BannerType } from '@/types';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
 import { createMonteCarloWorker } from '@/workers/montecarloClient';
 import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
+import { useUIStore } from '@/stores/uiStore';
 
 interface Target {
   id: string;
@@ -19,13 +20,14 @@ interface Target {
 }
 
 export function MultiTargetCalculator() {
-  const [bannerType, setBannerType] = useState<BannerType>('character');
+  const calculatorDefaults = useUIStore((state) => state.settings.calculatorDefaults);
+  const [bannerType, setBannerType] = useState<BannerType>(calculatorDefaults.bannerType);
   const pitySnapshot = useCurrentPity(bannerType);
   const [targets, setTargets] = useState<Target[]>([]);
-  const [availablePulls, setAvailablePulls] = useState(0);
+  const [availablePulls, setAvailablePulls] = useState(calculatorDefaults.availablePulls);
   const [isCalculating, setIsCalculating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [iterations, setIterations] = useState(5000);
+  const [iterations, setIterations] = useState(calculatorDefaults.simulationCount);
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const workerRef = useRef(createMonteCarloWorker());
@@ -47,9 +49,9 @@ export function MultiTargetCalculator() {
     const newTarget: Target = {
       id: crypto.randomUUID(),
       characterName: '',
-      pity: 0,
-      guaranteed: false,
-      radiantStreak: 0,
+      pity: calculatorDefaults.pityPreset.pity,
+      guaranteed: calculatorDefaults.pityPreset.guaranteed,
+      radiantStreak: calculatorDefaults.pityPreset.radiantStreak,
     };
     setTargets([...targets, newTarget]);
     setErrors(validateTargets([...targets, newTarget], rules));
@@ -189,6 +191,15 @@ export function MultiTargetCalculator() {
 
   const canCalculate = targets.length > 0 && !isCalculating;
 
+  const resetToDefaults = () => {
+    setBannerType(calculatorDefaults.bannerType);
+    setAvailablePulls(calculatorDefaults.availablePulls);
+    setIterations(calculatorDefaults.simulationCount);
+    setTargets([]);
+    setResults(null);
+    setErrors(new Map());
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -204,7 +215,10 @@ export function MultiTargetCalculator() {
           ]}
         />
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={resetToDefaults}>
+          Reset to defaults
+        </Button>
         <Button size="sm" variant="secondary" onClick={prefillFromCurrentPity} disabled={!pitySnapshot}>
           Use current pity
         </Button>
@@ -353,7 +367,7 @@ export function MultiTargetCalculator() {
           className="w-full"
           variant="primary"
         >
-          {isCalculating ? 'Working…' : 'Calculate'}
+          {isCalculating ? 'Calculating…' : 'Calculate'}
         </Button>
         {isCalculating && (
           <div className="text-sm text-center text-slate-300">{(progress * 100).toFixed(0)}% complete</div>

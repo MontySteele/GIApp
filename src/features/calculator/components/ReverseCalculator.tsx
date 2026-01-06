@@ -13,45 +13,89 @@ import {
 import { calculateRequiredIncome } from '../domain/analyticalCalc';
 import type { BannerType } from '@/types';
 import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
+import { useUIStore } from '@/stores/uiStore';
 
 export function ReverseCalculator() {
+  const calculatorDefaults = useUIStore((state) => state.settings.calculatorDefaults);
   const [numTargets, setNumTargets] = useState(1);
-  const [targetProbability, setTargetProbability] = useState(80);
-  const [daysAvailable, setDaysAvailable] = useState(42);
-  const [currentPity, setCurrentPity] = useState(0);
-  const [currentAvailablePulls, setCurrentAvailablePulls] = useState(0);
-  const [customDailyPrimogemIncome, setCustomDailyPrimogemIncome] = useState(INCOME_F2P);
-  const [isGuaranteed, setIsGuaranteed] = useState(false);
-  const [radiantStreak, setRadiantStreak] = useState(0);
-  const [bannerType, setBannerType] = useState<BannerType>('character');
+  const [targetProbability, setTargetProbability] = useState(calculatorDefaults.targetProbability);
+  const [daysAvailable, setDaysAvailable] = useState(calculatorDefaults.daysAvailable);
+  const [currentPity, setCurrentPity] = useState(calculatorDefaults.pityPreset.pity);
+  const [currentAvailablePulls, setCurrentAvailablePulls] = useState(calculatorDefaults.availablePulls);
+  const [currentAvailablePullsInput, setCurrentAvailablePullsInput] = useState(
+    calculatorDefaults.availablePulls.toString()
+  );
+  const [customDailyPrimogemIncome, setCustomDailyPrimogemIncome] = useState(
+    calculatorDefaults.dailyPrimogemIncome ?? INCOME_F2P
+  );
+  const [customDailyPrimogemIncomeInput, setCustomDailyPrimogemIncomeInput] = useState(
+    (calculatorDefaults.dailyPrimogemIncome ?? INCOME_F2P).toString()
+  );
+  const [isGuaranteed, setIsGuaranteed] = useState(calculatorDefaults.pityPreset.guaranteed);
+  const [radiantStreak, setRadiantStreak] = useState(calculatorDefaults.pityPreset.radiantStreak);
+  const [bannerType, setBannerType] = useState<BannerType>(calculatorDefaults.bannerType);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const pitySnapshot = useCurrentPity(bannerType);
 
   const [results, setResults] = useState<ReturnType<typeof calculateRequiredIncome> | null>(null);
 
-  const validate = (): boolean => {
+  const toNumber = (value: string) => {
+    if (value === '') return 0;
+    const next = Number(value);
+    return Number.isNaN(next) ? 0 : next;
+  };
+
+  const currentPullsError =
+    errors.get('currentAvailablePulls') ||
+    (currentAvailablePulls < 0 || currentAvailablePullsInput.startsWith('-')
+      ? 'Cannot be negative'
+      : undefined);
+  const incomeError =
+    errors.get('customDailyPrimogemIncome') ||
+    (customDailyPrimogemIncome < 0 || customDailyPrimogemIncomeInput.startsWith('-')
+      ? 'Cannot be negative'
+      : undefined);
+
+  const runValidation = (overrides: Partial<{
+    numTargets: number;
+    targetProbability: number;
+    daysAvailable: number;
+    currentPity: number;
+    radiantStreak: number;
+    currentAvailablePulls: number;
+    customDailyPrimogemIncome: number;
+  }> = {}): boolean => {
+    const nextNumTargets = overrides.numTargets ?? numTargets;
+    const nextTargetProbability = overrides.targetProbability ?? targetProbability;
+    const nextDaysAvailable = overrides.daysAvailable ?? daysAvailable;
+    const nextCurrentPity = overrides.currentPity ?? currentPity;
+    const nextRadiantStreak = overrides.radiantStreak ?? radiantStreak;
+    const nextCurrentAvailablePulls = overrides.currentAvailablePulls ?? currentAvailablePulls;
+    const nextCustomDailyPrimogemIncome =
+      overrides.customDailyPrimogemIncome ?? customDailyPrimogemIncome;
+
     const newErrors = new Map<string, string>();
     const rules = GACHA_RULES[bannerType];
 
-    if (numTargets < 1) {
+    if (nextNumTargets < 1) {
       newErrors.set('numTargets', 'Must be at least 1');
     }
-    if (targetProbability < 0 || targetProbability > 100) {
+    if (nextTargetProbability < 0 || nextTargetProbability > 100) {
       newErrors.set('targetProbability', 'Must be between 0 and 100');
     }
-    if (daysAvailable < 1) {
+    if (nextDaysAvailable < 1) {
       newErrors.set('daysAvailable', 'Must be at least 1');
     }
-    if (currentPity < 0 || currentPity >= rules.hardPity) {
+    if (nextCurrentPity < 0 || nextCurrentPity >= rules.hardPity) {
       newErrors.set('currentPity', `Pity must be between 0 and ${rules.hardPity - 1}`);
     }
-    if (radiantStreak < 0 || radiantStreak > 3) {
+    if (nextRadiantStreak < 0 || nextRadiantStreak > 3) {
       newErrors.set('radiantStreak', 'Radiant streak should be between 0 and 3');
     }
-    if (currentAvailablePulls < 0) {
+    if (nextCurrentAvailablePulls < 0) {
       newErrors.set('currentAvailablePulls', 'Cannot be negative');
     }
-    if (customDailyPrimogemIncome < 0) {
+    if (nextCustomDailyPrimogemIncome < 0) {
       newErrors.set('customDailyPrimogemIncome', 'Cannot be negative');
     }
 
@@ -60,7 +104,7 @@ export function ReverseCalculator() {
   };
 
   const calculate = () => {
-    if (!validate()) return;
+    if (!runValidation()) return;
 
     const result = calculateRequiredIncome(
       numTargets,
@@ -79,7 +123,7 @@ export function ReverseCalculator() {
 
   // Validate when inputs change
   useEffect(() => {
-    validate();
+    runValidation();
   }, [
     numTargets,
     targetProbability,
@@ -110,6 +154,23 @@ export function ReverseCalculator() {
 
   const setProbabilityPreset = (prob: number) => {
     setTargetProbability(prob);
+  };
+
+  const resetToDefaults = () => {
+    setTargetProbability(calculatorDefaults.targetProbability);
+    setDaysAvailable(calculatorDefaults.daysAvailable);
+    setCurrentPity(calculatorDefaults.pityPreset.pity);
+    setCurrentAvailablePulls(calculatorDefaults.availablePulls);
+    setCurrentAvailablePullsInput(calculatorDefaults.availablePulls.toString());
+    setCustomDailyPrimogemIncome(calculatorDefaults.dailyPrimogemIncome ?? INCOME_F2P);
+    setCustomDailyPrimogemIncomeInput(
+      (calculatorDefaults.dailyPrimogemIncome ?? INCOME_F2P).toString()
+    );
+    setIsGuaranteed(calculatorDefaults.pityPreset.guaranteed);
+    setRadiantStreak(calculatorDefaults.pityPreset.radiantStreak);
+    setBannerType(calculatorDefaults.bannerType);
+    setResults(null);
+    setErrors(new Map());
   };
 
   const getFeasibilityColor = (feasibility: string) => {
@@ -170,7 +231,10 @@ export function ReverseCalculator() {
           ]}
         />
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={resetToDefaults}>
+          Reset to defaults
+        </Button>
         <Button size="sm" variant="secondary" onClick={handleUseCurrentPity} disabled={!pitySnapshot}>
           Use current pity
         </Button>
@@ -253,21 +317,34 @@ export function ReverseCalculator() {
 
           <Input
             label="Current Pulls / Fates"
-            type="number"
-            value={currentAvailablePulls}
-            onChange={(e) => setCurrentAvailablePulls(Number(e.target.value))}
-            error={errors.get('currentAvailablePulls')}
-            min={0}
+            type="text"
+            value={currentAvailablePullsInput}
+            onChange={(e) => {
+              const inputValue = e.target.value;
+              setCurrentAvailablePullsInput(inputValue);
+              const parsed = Number(inputValue);
+              const nextPulls = Number.isNaN(parsed) ? currentAvailablePulls : parsed;
+              setCurrentAvailablePulls(nextPulls);
+              runValidation({ currentAvailablePulls: nextPulls });
+            }}
+            error={currentPullsError}
           />
 
           <Input
             label="Custom Daily Primogem Income"
-            type="number"
-            value={customDailyPrimogemIncome}
-            onChange={(e) => setCustomDailyPrimogemIncome(Number(e.target.value))}
-            error={errors.get('customDailyPrimogemIncome')}
-            min={0}
+            type="text"
+            value={customDailyPrimogemIncomeInput}
+            onChange={(e) => {
+              const inputValue = e.target.value;
+              setCustomDailyPrimogemIncomeInput(inputValue);
+              const parsed = Number(inputValue);
+              const nextIncome = Number.isNaN(parsed) ? customDailyPrimogemIncome : parsed;
+              setCustomDailyPrimogemIncome(nextIncome);
+              runValidation({ customDailyPrimogemIncome: nextIncome });
+            }}
+            error={incomeError}
           />
+          <p className="text-sm text-slate-400">Values cannot be negative.</p>
           <p className="text-sm text-slate-400">
             Defaults to ~{INCOME_F2P} primos/day (commissions). Welkin ≈ {INCOME_WELKIN} and Welkin + BP ≈{' '}
             {INCOME_WELKIN_BP}. {PRIMOS_PER_PULL} primogems = 1 pull.
