@@ -8,12 +8,28 @@ import { MemoryRouter } from 'react-router-dom';
 
 const useCharactersSpy = vi.fn<(query?: CharacterQuery) => void>();
 
+const mockCharacter = {
+  id: '1',
+  key: 'Furina',
+  level: 90,
+  ascension: 6,
+  constellation: 0,
+  talent: { auto: 1, skill: 1, burst: 1 },
+  weapon: { key: 'Splendor', level: 90, ascension: 6, refinement: 1 },
+  artifacts: [],
+  notes: '',
+  priority: 'main' as const,
+  teamIds: [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 vi.mock('../hooks/useCharacters', () => {
   return {
     useCharacters: (query?: CharacterQuery) => {
       useCharactersSpy(query);
       return {
-        characters: [],
+        characters: [mockCharacter],
         isLoading: false,
         createCharacter: vi.fn(),
         updateCharacter: vi.fn(),

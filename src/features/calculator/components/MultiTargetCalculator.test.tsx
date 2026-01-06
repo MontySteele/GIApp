@@ -1,20 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MultiTargetCalculator } from './MultiTargetCalculator';
+import * as montecarloClient from '@/workers/montecarloClient';
+
 const runSimulationMock = vi.fn();
-const createMonteCarloWorkerMock = vi.fn(() => ({
-  worker: { terminate: vi.fn() } as unknown as Worker,
-  api: {
-    runSimulation: (...args: Parameters<typeof runSimulationMock>) =>
-      runSimulationMock(...args),
-  },
-}));
 
 vi.mock('@/workers/montecarloClient', () => ({
-  createMonteCarloWorker: createMonteCarloWorkerMock,
+  createMonteCarloWorker: vi.fn(() => ({
+    worker: { terminate: vi.fn() } as unknown as Worker,
+    api: {
+      runSimulation: vi.fn(),
+    },
+  })),
 }));
 
-import { MultiTargetCalculator } from './MultiTargetCalculator';
+const createMonteCarloWorkerMock = vi.mocked(montecarloClient.createMonteCarloWorker);
 
 describe('MultiTargetCalculator', () => {
   beforeEach(() => {
@@ -22,7 +23,7 @@ describe('MultiTargetCalculator', () => {
     createMonteCarloWorkerMock.mockClear();
 
     runSimulationMock.mockImplementation(async (input) => ({
-      perCharacter: input.targets.map((target, index) => ({
+      perCharacter: input.targets.map((target: { characterKey: string }, index: number) => ({
         characterKey: target.characterKey,
         probability: input.startingPulls > 0 ? 0.66 : 0,
         averagePullsUsed: 30 + index,
@@ -31,6 +32,13 @@ describe('MultiTargetCalculator', () => {
       allMustHavesProbability: input.startingPulls > 0 ? 0.66 : 0,
       pullTimeline: [],
     }));
+
+    createMonteCarloWorkerMock.mockReturnValue({
+      worker: { terminate: vi.fn() } as unknown as Worker,
+      api: {
+        runSimulation: runSimulationMock,
+      },
+    });
   });
 
   describe('Initial render', () => {

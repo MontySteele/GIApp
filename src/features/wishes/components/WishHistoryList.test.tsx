@@ -31,7 +31,7 @@ describe('WishHistoryList', () => {
       ];
       render(<WishHistoryList history={history} />);
 
-      const item = screen.getByText('Furina').closest('div');
+      const item = screen.getByText('Furina').closest('li');
       expect(item?.className).toMatch(/gold|yellow|amber/i);
     });
 
@@ -41,7 +41,7 @@ describe('WishHistoryList', () => {
       ];
       render(<WishHistoryList history={history} />);
 
-      const item = screen.getByText('Fischl').closest('div');
+      const item = screen.getByText('Fischl').closest('li');
       expect(item?.className).toMatch(/purple|violet/i);
     });
 
@@ -51,7 +51,7 @@ describe('WishHistoryList', () => {
       ];
       render(<WishHistoryList history={history} />);
 
-      const item = screen.getByText('Cool Steel').closest('div');
+      const item = screen.getByText('Cool Steel').closest('li');
       expect(item?.className).toMatch(/blue/i);
     });
   });
