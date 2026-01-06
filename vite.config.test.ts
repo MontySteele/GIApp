@@ -4,15 +4,17 @@ describe('VitePWA configuration', () => {
   it('matches the expected workbox runtime caching settings', () => {
     expect(pwaConfig.workbox).toMatchInlineSnapshot(`
       {
+        "cacheId": "giapp-v0.1.0",
         "cleanupOutdatedCaches": true,
         "globPatterns": [
           "**/*.{js,css,html,ico,png,svg,woff,woff2}",
         ],
+        "navigateFallback": "/offline.html",
         "runtimeCaching": [
           {
             "handler": "CacheFirst",
             "options": {
-              "cacheName": "static-assets",
+              "cacheName": "giapp-v0.1.0-static-assets",
               "cacheableResponse": {
                 "statuses": [
                   0,
@@ -29,7 +31,7 @@ describe('VitePWA configuration', () => {
           {
             "handler": "NetworkFirst",
             "options": {
-              "cacheName": "imports-network-first",
+              "cacheName": "giapp-v0.1.0-imports-network-first",
               "cacheableResponse": {
                 "statuses": [
                   0,

@@ -8,6 +8,7 @@ import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
 import AbyssPage from '@/features/abyss/pages/AbyssPage';
 import NotesPage from '@/features/notes/pages/NotesPage';
 import SyncPage from '@/features/sync/pages/SyncPage';
+import OfflinePage from '@/features/offline/OfflinePage';
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SyncPage />,
+      },
+      {
+        path: 'offline',
+        element: <OfflinePage />,
       },
     ],
   },

@@ -1,11 +1,14 @@
 import type { VitePWAOptions } from 'vite-plugin-pwa'
 
+const appVersion = process.env.npm_package_version ?? '0.0.0'
+const cachePrefix = `giapp-v${appVersion}`
+
 const runtimeCaching: NonNullable<NonNullable<VitePWAOptions['workbox']>['runtimeCaching']> = [
   {
     urlPattern: /^https?:\/\/.*\.(?:png|jpg|jpeg|svg|webp|ico|woff2?|ttf|otf|css|js)$/i,
     handler: 'CacheFirst',
     options: {
-      cacheName: 'static-assets',
+      cacheName: `${cachePrefix}-static-assets`,
       cacheableResponse: {
         statuses: [0, 200]
       },
@@ -19,7 +22,7 @@ const runtimeCaching: NonNullable<NonNullable<VitePWAOptions['workbox']>['runtim
     urlPattern: /^https?:\/\/(?:enka\.network|corsproxy\.io|[^/]*hoyoverse\.com|[^/]*mihoyo\.com)\/.*$/i,
     handler: 'NetworkFirst',
     options: {
-      cacheName: 'imports-network-first',
+      cacheName: `${cachePrefix}-imports-network-first`,
       networkTimeoutSeconds: 5,
       cacheableResponse: {
         statuses: [0, 200]
@@ -57,9 +60,10 @@ export const pwaConfig: VitePWAOptions = {
     ]
   },
   workbox: {
+    cacheId: cachePrefix,
     cleanupOutdatedCaches: true,
     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+    navigateFallback: '/offline.html',
     runtimeCaching
   }
 }
-

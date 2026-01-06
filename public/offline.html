@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Genshin Progress Tracker - Offline</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 16px;
+      }
+      .card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 520px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      }
+      h1 {
+        margin-top: 0;
+        color: #38bdf8;
+      }
+      p {
+        color: #cbd5e1;
+        line-height: 1.5;
+      }
+      .hint {
+        margin-top: 16px;
+        padding: 12px;
+        background: rgba(56, 189, 248, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 12px;
+        color: #bae6fd;
+      }
+      a {
+        color: #38bdf8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Offline mode</h1>
+      <p>
+        You&apos;re currently offline. We&apos;ve loaded the cached version of the
+        Genshin Progress Tracker so you can keep viewing your data.
+      </p>
+      <div class="hint">
+        The app will automatically sync once you&apos;re back online. If a page
+        doesn&apos;t load, try returning to the dashboard or reload when your
+        connection resumes.
+      </div>
+      <p class="hint" style="margin-top: 16px">
+        <a href="/offline">Open the offline page</a>
+      </p>
+    </div>
+  </body>
+</html>
