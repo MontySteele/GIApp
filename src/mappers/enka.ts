@@ -1,3 +1,4 @@
+import { db } from '@/db/schema';
 import type { Character } from '@/types';
 
 // Enka.network API types (simplified)
@@ -15,6 +16,85 @@ export interface EnkaResponse {
   avatarInfoList?: EnkaAvatar[];
   ttl: number;
   uid: string;
+}
+
+const ENKA_CACHE_PREFIX = 'enka:';
+const DEFAULT_CACHE_TTL_SECONDS = 300;
+const RETRY_DELAYS_MS = [0, 500, 1000];
+const RETRYABLE_STATUSES = [429, 500, 502, 503, 504];
+
+function buildCacheKey(uid: string) {
+  return `${ENKA_CACHE_PREFIX}${uid}`;
+}
+
+function getExpiration(ttlSeconds?: number) {
+  const ttl = (ttlSeconds ?? DEFAULT_CACHE_TTL_SECONDS) * 1000;
+  return new Date(Date.now() + ttl).toISOString();
+}
+
+async function getCachedEnka(uid: string): Promise<EnkaResponse | null> {
+  const cacheKey = buildCacheKey(uid);
+  const cached = await db.externalCache.where('cacheKey').equals(cacheKey).first();
+  if (!cached) return null;
+
+  const isExpired = new Date(cached.expiresAt).getTime() <= Date.now();
+  if (isExpired) {
+    await db.externalCache.delete(cached.id);
+    return null;
+  }
+
+  return cached.data as EnkaResponse;
+}
+
+async function cacheEnka(uid: string, data: EnkaResponse) {
+  const cacheKey = buildCacheKey(uid);
+  const existing = await db.externalCache.where('cacheKey').equals(cacheKey).first();
+  const now = new Date().toISOString();
+  const expiresAt = getExpiration(data.ttl);
+
+  await db.externalCache.put({
+    id: existing?.id ?? crypto.randomUUID(),
+    cacheKey,
+    data,
+    fetchedAt: now,
+    expiresAt,
+  });
+}
+
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shouldRetry(status: number) {
+  return RETRYABLE_STATUSES.includes(status);
+}
+
+async function fetchWithRetry(url: string) {
+  let lastError: unknown;
+  let response: Response | null = null;
+
+  for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt++) {
+    if (attempt > 0) {
+      await sleep(RETRY_DELAYS_MS[attempt]);
+    }
+
+    try {
+      response = await fetch(url);
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
+
+    if (response.ok || !shouldRetry(response.status)) {
+      return response;
+    }
+  }
+
+  if (response) {
+    return response;
+  }
+
+  throw lastError ?? new Error('Network request failed');
 }
 
 export interface EnkaShowcase {
@@ -471,17 +551,33 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
  * Fetch character data from Enka.network
  */
 export async function fetchEnkaData(uid: string): Promise<EnkaResponse> {
+  const cached = await getCachedEnka(uid);
+  if (cached) {
+    return cached;
+  }
+
+  const corsProxy = 'https://corsproxy.io/?';
   // Try direct fetch first (Enka supports CORS for most origins)
-  let response: Response;
+  const enkaUrl = `https://enka.network/api/uid/${uid}`;
+  const proxyUrl = `${corsProxy}${encodeURIComponent(enkaUrl)}`;
+
+  let response: Response | null = null;
+  let primaryError: unknown;
 
   try {
-    response = await fetch(`https://enka.network/api/uid/${uid}`);
+    response = await fetchWithRetry(enkaUrl);
   } catch (error) {
+    primaryError = error;
+  }
+
+  if (!response || (response.status >= 500 && shouldRetry(response.status))) {
     // If direct fetch fails due to CORS, try CORS proxy
     console.warn('Direct fetch failed, trying CORS proxy...');
-    const corsProxy = 'https://corsproxy.io/?';
-    const enkaUrl = encodeURIComponent(`https://enka.network/api/uid/${uid}`);
-    response = await fetch(`${corsProxy}${enkaUrl}`);
+    response = await fetchWithRetry(proxyUrl);
+  }
+
+  if (!response) {
+    throw primaryError instanceof Error ? primaryError : new Error('Failed to fetch data');
   }
 
   if (!response.ok) {
@@ -494,8 +590,10 @@ export async function fetchEnkaData(uid: string): Promise<EnkaResponse> {
     if (response.status === 429) {
       throw new Error('Rate limit exceeded. Please wait a moment and try again.');
     }
-    throw new Error(`Failed to fetch data: ${response.statusText}`);
+    throw new Error(`Failed to fetch data: ${response.statusText || response.status}`);
   }
 
-  return response.json();
+  const data = (await response.json()) as EnkaResponse;
+  await cacheEnka(uid, data);
+  return data;
 }
