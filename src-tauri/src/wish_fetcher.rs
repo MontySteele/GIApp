@@ -115,26 +115,62 @@ pub async fn fetch_banner_history(
 
     let client = reqwest::Client::new();
 
-    // Parse the original URL to get the query string
+    // Parse the original URL to extract only auth parameters
     let original_url = reqwest::Url::parse(base_url)
         .map_err(|e| format!("Invalid URL: {}", e))?;
 
     // Get the correct API endpoint
     let api_endpoint = get_api_endpoint(base_url)?;
 
-    loop {
-        // Start with the API endpoint and add the original query string
-        let mut url_string = format!("{}?{}", api_endpoint, original_url.query().unwrap_or(""));
+    // Extract only the necessary auth parameters (not web UI params like win_mode, gacha_id, etc.)
+    let hostname = original_url.host_str().ok_or("No hostname in URL")?;
+    let mut auth_params = Vec::new();
 
-        // Append additional parameters
-        url_string.push_str(&format!("&gacha_type={}", gacha_type));
-        url_string.push_str(&format!("&page={}", page));
-        url_string.push_str(&format!("&size={}", page_size));
-
-        // Only add end_id if it's not "0" (first page doesn't need it)
-        if end_id != "0" {
-            url_string.push_str(&format!("&end_id={}", end_id));
+    for (key, value) in original_url.query_pairs() {
+        match key.as_ref() {
+            "authkey" | "authkey_ver" | "sign_type" | "auth_appid" |
+            "lang" | "device_type" | "game_biz" | "region" => {
+                auth_params.push((key.to_string(), value.to_string()));
+            }
+            _ => {}
         }
+    }
+
+    // Ensure game_biz is present
+    if !auth_params.iter().any(|(k, _)| k == "game_biz") {
+        let game_biz = if hostname.contains("hoyoverse.com") {
+            "hk4e_global"
+        } else {
+            "hk4e_cn"
+        };
+        auth_params.push(("game_biz".to_string(), game_biz.to_string()));
+    }
+
+    loop {
+        // Build URL with only necessary parameters
+        let mut url = reqwest::Url::parse(&api_endpoint)
+            .map_err(|e| format!("Invalid API endpoint: {}", e))?;
+
+        {
+            let mut query = url.query_pairs_mut();
+
+            // Add auth parameters
+            for (key, value) in &auth_params {
+                query.append_pair(key, value);
+            }
+
+            // Add API request parameters
+            query.append_pair("gacha_type", gacha_type);
+            query.append_pair("page", &page.to_string());
+            query.append_pair("size", &page_size.to_string());
+
+            // Only add end_id if it's not "0"
+            if end_id != "0" {
+                query.append_pair("end_id", &end_id);
+            }
+        }
+
+        let url_string = url.to_string();
 
         // Log the request URL for debugging (first iteration only)
         if page == 1 {
