@@ -16,7 +16,10 @@ describe('useUIStore settings surface', () => {
         rarity: null,
         dateRange: null,
       },
-      settings: { ...DEFAULT_SETTINGS },
+      settings: {
+        ...DEFAULT_SETTINGS,
+        calculatorDefaults: { ...DEFAULT_SETTINGS.calculatorDefaults },
+      },
     });
   });
 
@@ -34,6 +37,7 @@ describe('useUIStore settings surface', () => {
     const state = useUIStore.getState();
     expect(state.settings).toEqual({
       ...DEFAULT_SETTINGS,
+      calculatorDefaults: { ...DEFAULT_SETTINGS.calculatorDefaults },
       dateFormat: 'yyyy/MM/dd',
     });
   });
@@ -48,8 +52,25 @@ describe('useUIStore settings surface', () => {
     const state = useUIStore.getState();
     expect(state.settings).toEqual({
       ...DEFAULT_SETTINGS,
+      calculatorDefaults: { ...DEFAULT_SETTINGS.calculatorDefaults },
       defaultTheme: 'dark',
       backupReminderCadenceDays: 7,
+    });
+  });
+
+  it('merges nested calculator defaults without losing untouched values', () => {
+    const { updateSettings } = useUIStore.getState();
+
+    updateSettings({
+      calculatorDefaults: {
+        availablePulls: 160,
+      },
+    });
+
+    const state = useUIStore.getState();
+    expect(state.settings.calculatorDefaults).toEqual({
+      ...DEFAULT_SETTINGS.calculatorDefaults,
+      availablePulls: 160,
     });
   });
 
@@ -59,6 +80,7 @@ describe('useUIStore settings surface', () => {
     updateSettings({
       dateFormat: 'dd/MM/yyyy',
       backupReminderCadenceDays: 3,
+      calculatorDefaults: { confidenceLevel: 99 },
     });
 
     resetSettings();
