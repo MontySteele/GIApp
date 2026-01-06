@@ -199,6 +199,8 @@ export interface Note {
   title: string;
   content: string; // Markdown
   tags: string[];
+  linkedCharacterKey?: string;
+  linkedTeamId?: string;
   pinned: boolean;
   createdAt: string;
   updatedAt: string;
