@@ -107,12 +107,12 @@ export function toGOOD(characters: Character[]): GOODFormat {
 /**
  * Convert GOOD format to internal Character format
  */
-export function fromGOOD(good: GOODFormat): Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] {
+export function fromGOOD(good: GOODFormat): Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] {
   if (good.format !== 'GOOD') {
     throw new Error('Invalid format: expected GOOD format');
   }
 
-  const characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] = [];
+  const characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] = [];
   const goodCharacters = good.characters || [];
   const goodWeapons = good.weapons || [];
   const goodArtifacts = good.artifacts || [];

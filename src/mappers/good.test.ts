@@ -3,7 +3,7 @@ import { toGOOD, fromGOOD, validateGOOD, type GOODFormat } from './good';
 import type { Character } from '@/types';
 
 describe('GOOD Mapper', () => {
-  const mockCharacter: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+  const mockCharacter: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
     key: 'Furina',
     level: 90,
     ascension: 6,
@@ -112,7 +112,7 @@ describe('GOOD Mapper', () => {
     });
 
     it('should handle multiple characters', () => {
-      const char2: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+      const char2: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
         ...mockCharacter,
         key: 'Neuvillette',
       };
@@ -124,7 +124,7 @@ describe('GOOD Mapper', () => {
     });
 
     it('should handle characters with no artifacts', () => {
-      const charNoArtifacts: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+      const charNoArtifacts: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
         ...mockCharacter,
         artifacts: [],
       };
@@ -485,7 +485,7 @@ describe('GOOD Mapper', () => {
 
     it('should handle multiple characters in round-trip', () => {
       const char1 = mockCharacter;
-      const char2: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+      const char2: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
         ...mockCharacter,
         key: 'Neuvillette',
         level: 80,

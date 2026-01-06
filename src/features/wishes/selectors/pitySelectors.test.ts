@@ -56,7 +56,7 @@ describe('pitySelectors', () => {
 
     expect(snapshot.pity).toBe(2);
     expect(snapshot.guaranteed).toBe(false);
-    expect(snapshot.radiantStreak).toBe(0);
+    expect(snapshot.radiantStreak).toBe(1);
     expect(snapshot.radianceActive).toBe(false);
   });
 

@@ -3,15 +3,16 @@ import type { PlannedBanner } from '@/types';
 
 export const upcomingWishRepo = {
   async getAll(): Promise<PlannedBanner[]> {
-    return db.plannedBanners.orderBy('expectedStartDate').toArray();
+    return db.plannedBanners.orderBy('expectedStartDate').filter((banner) => !banner.deletedAt).toArray();
   },
 
   async getById(id: string): Promise<PlannedBanner | undefined> {
-    return db.plannedBanners.get(id);
+    const banner = await db.plannedBanners.get(id);
+    return banner?.deletedAt ? undefined : banner;
   },
 
   async create(
-    banner: Omit<PlannedBanner, 'id' | 'createdAt' | 'updatedAt'>
+    banner: Omit<PlannedBanner, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
   ): Promise<string> {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
@@ -21,13 +22,14 @@ export const upcomingWishRepo = {
       id,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     });
 
     return id;
   },
 
   async bulkCreate(
-    banners: Omit<PlannedBanner, 'id' | 'createdAt' | 'updatedAt'>[]
+    banners: Omit<PlannedBanner, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[]
   ): Promise<void> {
     if (!banners.length) return;
 
@@ -37,6 +39,7 @@ export const upcomingWishRepo = {
       id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     }));
 
     await db.plannedBanners.bulkAdd(withMetadata);
@@ -44,7 +47,7 @@ export const upcomingWishRepo = {
 
   async update(
     id: string,
-    updates: Partial<Omit<PlannedBanner, 'id' | 'createdAt'>>
+    updates: Partial<Omit<PlannedBanner, 'id' | 'createdAt' | 'deletedAt'>>
   ): Promise<void> {
     await db.plannedBanners.update(id, {
       ...updates,
@@ -53,10 +56,18 @@ export const upcomingWishRepo = {
   },
 
   async delete(id: string): Promise<void> {
-    await db.plannedBanners.delete(id);
+    const deletedAt = new Date().toISOString();
+    await db.plannedBanners.update(id, {
+      deletedAt,
+      updatedAt: deletedAt,
+    });
   },
 
   async deleteAll(): Promise<void> {
-    await db.plannedBanners.clear();
+    const deletedAt = new Date().toISOString();
+    await db.plannedBanners.toCollection().modify((banner) => {
+      banner.deletedAt = deletedAt;
+      banner.updatedAt = deletedAt;
+    });
   },
 };

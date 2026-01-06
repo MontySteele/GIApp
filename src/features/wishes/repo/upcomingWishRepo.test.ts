@@ -3,7 +3,7 @@ import { upcomingWishRepo } from './upcomingWishRepo';
 import { db } from '@/db/schema';
 import type { PlannedBanner } from '@/types';
 
-const baseBanner: Omit<PlannedBanner, 'id' | 'createdAt' | 'updatedAt'> = {
+const baseBanner: Omit<PlannedBanner, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
   characterKey: 'Furina',
   expectedStartDate: '2025-01-01T00:00:00.000Z',
   expectedEndDate: '2025-01-21T00:00:00.000Z',
@@ -30,6 +30,7 @@ describe('upcomingWishRepo', () => {
     expect(stored?.characterKey).toBe(baseBanner.characterKey);
     expect(stored?.createdAt).toBeTruthy();
     expect(stored?.updatedAt).toBe(stored?.createdAt);
+    expect(stored?.deletedAt).toBeNull();
   });
 
   it('returns banners ordered by expected start date', async () => {
@@ -65,6 +66,9 @@ describe('upcomingWishRepo', () => {
 
     const banner = await upcomingWishRepo.getById(id);
     expect(banner).toBeUndefined();
+
+    const raw = await db.plannedBanners.get(id);
+    expect(raw?.deletedAt).toBeDefined();
   });
 
   it('ignores empty bulkCreate payloads', async () => {
@@ -80,5 +84,8 @@ describe('upcomingWishRepo', () => {
 
     const banners = await upcomingWishRepo.getAll();
     expect(banners).toEqual([]);
+
+    const all = await db.plannedBanners.toArray();
+    expect(all.every((banner) => banner.deletedAt)).toBe(true);
   });
 });

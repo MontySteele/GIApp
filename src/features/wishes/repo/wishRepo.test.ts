@@ -3,7 +3,7 @@ import { db } from '@/db/schema';
 import { wishRepo } from './wishRepo';
 import type { WishRecord } from '@/types';
 
-type NewWishRecord = Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt'>;
+type NewWishRecord = Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
 
 describe('wishRepo', () => {
   const baseWish: NewWishRecord = {
@@ -49,6 +49,7 @@ describe('wishRepo', () => {
     expect(updated!.timestamp).toBe(updatedWish.timestamp);
     expect(updated!.createdAt).toBe(original!.createdAt);
     expect(updated!.updatedAt > original!.updatedAt).toBe(true);
+    expect(updated!.deletedAt).toBeNull();
   });
 
   it('sorts wishes by timestamp descending', async () => {
@@ -101,5 +102,31 @@ describe('wishRepo', () => {
     expect(updated).toBeDefined();
     expect(updated!.itemKey).toBe('Albedo');
     expect(updated!.updatedAt > original!.updatedAt).toBe(true);
+  });
+
+  it('soft deletes wishes and keeps tombstones for sync', async () => {
+    const id = await wishRepo.create(baseWish);
+    await wishRepo.delete(id);
+
+    const visible = await wishRepo.getAll();
+    const direct = await db.wishRecords.get(id);
+
+    expect(visible).toHaveLength(0);
+    expect(direct?.deletedAt).toBeDefined();
+  });
+
+  it('marks all wishes deleted when clearing history', async () => {
+    await wishRepo.bulkCreate([
+      baseWish,
+      { ...baseWish, gachaId: 'w2', itemKey: 'Xianyun', timestamp: '2024-01-03T00:00:00.000Z' },
+    ]);
+
+    await wishRepo.deleteAll();
+
+    const visible = await wishRepo.getAll();
+    expect(visible).toHaveLength(0);
+
+    const all = await db.wishRecords.toArray();
+    expect(all.every((wish) => wish.deletedAt)).toBe(true);
   });
 });

@@ -70,6 +70,7 @@ export interface Character {
   teamIds: string[]; // References to Team.id
   createdAt: string; // ISO date
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 export interface Team {
@@ -80,6 +81,7 @@ export interface Team {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 // Wish History Models
@@ -96,6 +98,7 @@ export interface WishRecord {
   chartedWeapon?: string | null;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 // Computed at runtime - never stored
@@ -135,6 +138,7 @@ export interface PrimogemEntry {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 export interface FateEntry {
@@ -145,6 +149,7 @@ export interface FateEntry {
   source: FateSource;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 export interface ResourceSnapshot {
@@ -157,6 +162,8 @@ export interface ResourceSnapshot {
   starglitter: number;
   stardust: number;
   createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
 }
 
 // Abyss Models
@@ -171,6 +178,7 @@ export interface AbyssRun {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 // Goals & Notes Models
@@ -192,6 +200,7 @@ export interface Goal {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  deletedAt?: string | null;
 }
 
 export interface Note {
@@ -202,7 +211,7 @@ export interface Note {
   pinned: boolean;
   createdAt: string;
   updatedAt: string;
-  deletedAt?: string; // Soft delete for sync tombstones
+  deletedAt?: string | null; // Soft delete for sync tombstones
 }
 
 // Banner Planning Models
@@ -217,6 +226,7 @@ export interface PlannedBanner {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 // External Cache
@@ -226,6 +236,8 @@ export interface ExternalCache {
   data: any; // Raw API response
   fetchedAt: string;
   expiresAt: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
 }
 
 // App Metadata

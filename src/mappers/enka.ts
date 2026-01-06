@@ -35,11 +35,12 @@ function getExpiration(ttlSeconds?: number) {
 async function getCachedEnka(uid: string): Promise<EnkaResponse | null> {
   const cacheKey = buildCacheKey(uid);
   const cached = await db.externalCache.where('cacheKey').equals(cacheKey).first();
-  if (!cached) return null;
+  if (!cached || cached.deletedAt) return null;
 
   const isExpired = new Date(cached.expiresAt).getTime() <= Date.now();
   if (isExpired) {
-    await db.externalCache.delete(cached.id);
+    const deletedAt = new Date().toISOString();
+    await db.externalCache.update(cached.id, { deletedAt, updatedAt: deletedAt });
     return null;
   }
 
@@ -58,6 +59,8 @@ async function cacheEnka(uid: string, data: EnkaResponse) {
     data,
     fetchedAt: now,
     expiresAt,
+    updatedAt: now,
+    deletedAt: null,
   });
 }
 
@@ -510,12 +513,12 @@ const EQUIP_TYPE_MAP: { [key: string]: string } = {
 /**
  * Convert Enka.network response to internal Character format
  */
-export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] {
+export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] {
   if (!enkaResponse.avatarInfoList || enkaResponse.avatarInfoList.length === 0) {
     throw new Error('No character data found in showcase');
   }
 
-  const characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] = [];
+  const characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] = [];
 
   for (const avatar of enkaResponse.avatarInfoList) {
     try {

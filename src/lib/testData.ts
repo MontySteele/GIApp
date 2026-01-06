@@ -1,7 +1,7 @@
 import type { Character } from '@/types';
 
 // Helper to create test characters for development
-export const createSampleCharacter = (overrides?: Partial<Character>): Omit<Character, 'id' | 'createdAt' | 'updatedAt'> => ({
+export const createSampleCharacter = (overrides?: Partial<Character>): Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> => ({
   key: 'Furina',
   level: 90,
   ascension: 6,
@@ -90,7 +90,7 @@ export const createSampleCharacter = (overrides?: Partial<Character>): Omit<Char
   ...overrides,
 });
 
-export const sampleCharacters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] = [
+export const sampleCharacters: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] = [
   createSampleCharacter(),
   createSampleCharacter({
     key: 'Neuvillette',

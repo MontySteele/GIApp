@@ -8,7 +8,7 @@ import type { Character, Team } from '@/types';
 interface TeamFormProps {
   characters: Character[];
   initialData?: Team;
-  onSubmit: (team: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  onSubmit: (team: Omit<Team, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>) => Promise<void>;
   onCancel: () => void;
 }
 

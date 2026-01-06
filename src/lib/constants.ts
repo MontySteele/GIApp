@@ -1,3 +1,4 @@
+import { LATEST_SCHEMA_VERSION } from '@/db/version';
 import type { GachaRules } from '@/types';
 
 // Gacha System Constants
@@ -66,5 +67,5 @@ export const TABS = [
 ] as const;
 
 // App Metadata
-export const APP_SCHEMA_VERSION = 1;
+export const APP_SCHEMA_VERSION = LATEST_SCHEMA_VERSION;
 export const BACKUP_REMINDER_DAYS = 7;

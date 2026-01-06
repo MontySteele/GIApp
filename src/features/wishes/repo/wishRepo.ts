@@ -1,11 +1,15 @@
 import { db } from '@/db/schema';
 import type { WishRecord, BannerType } from '@/types';
 
-export type NewWishRecord = Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewWishRecord = Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
 
 export const wishRepo = {
   async getAll(): Promise<WishRecord[]> {
-    return db.wishRecords.orderBy('timestamp').reverse().toArray();
+    return db.wishRecords
+      .orderBy('timestamp')
+      .filter((record) => !record.deletedAt)
+      .reverse()
+      .toArray();
   },
 
   async getByBannerType(bannerType: BannerType): Promise<WishRecord[]> {
@@ -14,11 +18,12 @@ export const wishRepo = {
       .equals(bannerType)
       .sortBy('timestamp');
 
-    return wishes.reverse();
+    return wishes.filter((wish) => !wish.deletedAt).reverse();
   },
 
   async getByGachaId(gachaId: string): Promise<WishRecord | undefined> {
-    return db.wishRecords.where('gachaId').equals(gachaId).first();
+    const existing = await db.wishRecords.where('gachaId').equals(gachaId).first();
+    return existing?.deletedAt ? undefined : existing;
   },
 
   async create(wish: NewWishRecord): Promise<string> {
@@ -29,6 +34,7 @@ export const wishRepo = {
       await db.wishRecords.update(existing.id, {
         ...wish,
         updatedAt: now,
+        deletedAt: null,
       });
 
       return existing.id;
@@ -41,6 +47,7 @@ export const wishRepo = {
       id,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     });
 
     return id;
@@ -67,6 +74,7 @@ export const wishRepo = {
           db.wishRecords.update(existingRecord.id, {
             ...wish,
             updatedAt: now,
+            deletedAt: null,
           }),
         );
       } else {
@@ -75,6 +83,7 @@ export const wishRepo = {
           id: crypto.randomUUID(),
           createdAt: now,
           updatedAt: now,
+          deletedAt: null,
         });
       }
     }
@@ -88,7 +97,7 @@ export const wishRepo = {
     }
   },
 
-  async update(id: string, updates: Partial<Omit<WishRecord, 'id' | 'createdAt'>>): Promise<void> {
+  async update(id: string, updates: Partial<Omit<WishRecord, 'id' | 'createdAt' | 'deletedAt'>>): Promise<void> {
     await db.wishRecords.update(id, {
       ...updates,
       updatedAt: new Date().toISOString(),
@@ -96,10 +105,18 @@ export const wishRepo = {
   },
 
   async delete(id: string): Promise<void> {
-    await db.wishRecords.delete(id);
+    const deletedAt = new Date().toISOString();
+    await db.wishRecords.update(id, {
+      deletedAt,
+      updatedAt: deletedAt,
+    });
   },
 
   async deleteAll(): Promise<void> {
-    await db.wishRecords.clear();
+    const deletedAt = new Date().toISOString();
+    await db.wishRecords.toCollection().modify((record) => {
+      record.deletedAt = deletedAt;
+      record.updatedAt = deletedAt;
+    });
   },
 };

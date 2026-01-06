@@ -6,7 +6,7 @@ import Select from '@/components/ui/Select';
 import type { Character, CharacterPriority } from '@/types';
 
 interface CharacterFormProps {
-  onSubmit: (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  onSubmit: (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>) => Promise<void>;
   onCancel: () => void;
   initialData?: Character;
 }

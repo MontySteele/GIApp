@@ -1,17 +1,25 @@
 import { db } from '@/db/schema';
 import type { ResourceSnapshot } from '@/types';
 
-type ResourceSnapshotInput = Omit<ResourceSnapshot, 'id' | 'createdAt'> & {
+type ResourceSnapshotInput = Omit<ResourceSnapshot, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> & {
   timestamp?: string;
 };
 
 export const resourceSnapshotRepo = {
   async getLatest(): Promise<ResourceSnapshot | undefined> {
-    return db.resourceSnapshots.orderBy('timestamp').reverse().first();
+    return db.resourceSnapshots
+      .orderBy('timestamp')
+      .filter((snapshot) => !snapshot.deletedAt)
+      .reverse()
+      .first();
   },
 
   async getAll(): Promise<ResourceSnapshot[]> {
-    return db.resourceSnapshots.orderBy('timestamp').reverse().toArray();
+    return db.resourceSnapshots
+      .orderBy('timestamp')
+      .filter((snapshot) => !snapshot.deletedAt)
+      .reverse()
+      .toArray();
   },
 
   async create(snapshot: ResourceSnapshotInput): Promise<string> {
@@ -24,6 +32,8 @@ export const resourceSnapshotRepo = {
       timestamp: snapshot.timestamp ?? now,
       id,
       createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
     });
 
     return id;

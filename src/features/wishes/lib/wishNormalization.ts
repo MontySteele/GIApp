@@ -13,7 +13,7 @@ function normalizeTimestamp(time: string): string {
 
 export function toWishRecord(
   wish: WishHistoryItem
-): Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt'> {
+): Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> {
   const itemKey = wish.name.trim() || wish.name;
 
   return {

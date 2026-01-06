@@ -133,7 +133,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
     setActiveTeam(null);
   };
 
-  const handleTeamSubmit = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleTeamSubmit = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>) => {
     if (teamModalMode === 'create') {
       await createTeam(teamData);
     } else if (activeTeam) {

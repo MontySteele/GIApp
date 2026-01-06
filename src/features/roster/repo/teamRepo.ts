@@ -4,14 +4,19 @@ import type { Team } from '@/types';
 
 export const teamRepo = {
   async getAll(): Promise<Team[]> {
-    return db.teams.orderBy('updatedAt').reverse().toArray();
+    return db.teams
+      .orderBy('updatedAt')
+      .filter((team) => !team.deletedAt)
+      .reverse()
+      .toArray();
   },
 
   async getById(id: string): Promise<Team | undefined> {
-    return db.teams.get(id);
+    const team = await db.teams.get(id);
+    return team?.deletedAt ? undefined : team;
   },
 
-  async create(team: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  async create(team: Omit<Team, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<string> {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
 
@@ -21,6 +26,7 @@ export const teamRepo = {
         id,
         createdAt: now,
         updatedAt: now,
+        deletedAt: null,
       });
 
       await characterRepo.addTeamToCharacters(id, team.characterKeys, now);
@@ -29,7 +35,7 @@ export const teamRepo = {
     return id;
   },
 
-  async update(id: string, updates: Partial<Omit<Team, 'id' | 'createdAt'>>): Promise<void> {
+  async update(id: string, updates: Partial<Omit<Team, 'id' | 'createdAt' | 'deletedAt'>>): Promise<void> {
     const existing = await db.teams.get(id);
     if (!existing) return;
 
@@ -59,7 +65,10 @@ export const teamRepo = {
     const updatedAt = new Date().toISOString();
 
     await db.transaction('rw', db.teams, db.characters, async () => {
-      await db.teams.delete(id);
+      await db.teams.update(id, {
+        deletedAt: updatedAt,
+        updatedAt,
+      });
 
       if (existing) {
         await characterRepo.removeTeamFromCharacters(id, existing.characterKeys, updatedAt);

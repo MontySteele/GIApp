@@ -21,11 +21,11 @@ export function useCharacters(query?: CharacterQuery) {
     ]
   );
 
-  const createCharacter = async (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createCharacter = async (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>) => {
     return characterRepo.create(character);
   };
 
-  const updateCharacter = async (id: string, updates: Partial<Omit<Character, 'id' | 'createdAt'>>) => {
+  const updateCharacter = async (id: string, updates: Partial<Omit<Character, 'id' | 'createdAt' | 'deletedAt'>>) => {
     return characterRepo.update(id, updates);
   };
 

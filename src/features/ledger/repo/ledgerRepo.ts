@@ -4,17 +4,22 @@ import type { PrimogemEntry, FateEntry, ResourceSnapshot } from '@/types';
 export const ledgerRepo = {
   primogems: {
     async getAll(): Promise<PrimogemEntry[]> {
-      return db.primogemEntries.orderBy('timestamp').reverse().toArray();
+      return db.primogemEntries
+        .orderBy('timestamp')
+        .filter((entry) => !entry.deletedAt)
+        .reverse()
+        .toArray();
     },
 
     async getByDateRange(startDate: string, endDate: string): Promise<PrimogemEntry[]> {
       return db.primogemEntries
         .where('timestamp')
         .between(startDate, endDate, true, true)
+        .filter((entry) => !entry.deletedAt)
         .toArray();
     },
 
-    async create(entry: Omit<PrimogemEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    async create(entry: Omit<PrimogemEntry, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<string> {
       const now = new Date().toISOString();
       const id = crypto.randomUUID();
 
@@ -23,22 +28,31 @@ export const ledgerRepo = {
         id,
         createdAt: now,
         updatedAt: now,
+        deletedAt: null,
       });
 
       return id;
     },
 
     async delete(id: string): Promise<void> {
-      await db.primogemEntries.delete(id);
+      const deletedAt = new Date().toISOString();
+      await db.primogemEntries.update(id, {
+        deletedAt,
+        updatedAt: deletedAt,
+      });
     },
   },
 
   fates: {
     async getAll(): Promise<FateEntry[]> {
-      return db.fateEntries.orderBy('timestamp').reverse().toArray();
+      return db.fateEntries
+        .orderBy('timestamp')
+        .filter((entry) => !entry.deletedAt)
+        .reverse()
+        .toArray();
     },
 
-    async create(entry: Omit<FateEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    async create(entry: Omit<FateEntry, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<string> {
       const now = new Date().toISOString();
       const id = crypto.randomUUID();
 
@@ -47,6 +61,7 @@ export const ledgerRepo = {
         id,
         createdAt: now,
         updatedAt: now,
+        deletedAt: null,
       });
 
       return id;
@@ -55,17 +70,24 @@ export const ledgerRepo = {
 
   snapshots: {
     async getLatest(): Promise<ResourceSnapshot | undefined> {
-      return db.resourceSnapshots.orderBy('timestamp').reverse().first();
+      return db.resourceSnapshots
+        .orderBy('timestamp')
+        .filter((snapshot) => !snapshot.deletedAt)
+        .reverse()
+        .first();
     },
 
-    async create(snapshot: Omit<ResourceSnapshot, 'id'>): Promise<string> {
+    async create(snapshot: Omit<ResourceSnapshot, 'id' | 'updatedAt' | 'deletedAt'>): Promise<string> {
       const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
 
       await db.resourceSnapshots.add({
         ...snapshot,
         genesisCrystals: snapshot.genesisCrystals ?? 0,
         id,
-        createdAt: new Date().toISOString(),
+        createdAt,
+        updatedAt: createdAt,
+        deletedAt: null,
       });
 
       return id;

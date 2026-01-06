@@ -24,8 +24,9 @@ describe('Ledger repositories', () => {
 
       const stored = await primogemEntryRepo.getById(id);
       expect(stored?.id).toBe(id);
-      expect(stored?.timestamp).toMatch(/^\\d{4}-\\d{2}-\\d{2}T/);
+      expect(stored?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(stored?.createdAt).toBe(stored?.updatedAt);
+      expect(stored?.deletedAt).toBeNull();
     });
 
     it('updates entries and refreshes updatedAt', async () => {
@@ -43,6 +44,22 @@ describe('Ledger repositories', () => {
       expect(updated?.updatedAt).not.toBe(original?.updatedAt);
       expect(updated?.timestamp).toBe('2024-01-01T00:00:00.000Z');
     });
+
+    it('soft deletes entries and hides them from queries', async () => {
+      const id = await primogemEntryRepo.create({
+        amount: 10,
+        source: baseSource,
+        notes: 'Temp',
+      });
+
+      await primogemEntryRepo.delete(id);
+
+      const visible = await primogemEntryRepo.getAll();
+      const raw = await db.primogemEntries.get(id);
+
+      expect(visible).toHaveLength(0);
+      expect(raw?.deletedAt).toBeDefined();
+    });
   });
 
   describe('fateEntryRepo', () => {
@@ -56,8 +73,9 @@ describe('Ledger repositories', () => {
       });
 
       const stored = await fateEntryRepo.getById(id);
-      expect(stored?.timestamp).toMatch(/^\\d{4}-\\d{2}-\\d{2}T/);
+      expect(stored?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(stored?.createdAt).toBe(stored?.updatedAt);
+      expect(stored?.deletedAt).toBeNull();
     });
 
     it('updates entries and preserves timestamp unless provided', async () => {
@@ -75,6 +93,21 @@ describe('Ledger repositories', () => {
       expect(updated?.timestamp).toBe('2024-02-02T00:00:00.000Z');
       expect(updated?.updatedAt).not.toBe(original?.updatedAt);
     });
+
+    it('marks deleted entries instead of removing them', async () => {
+      const id = await fateEntryRepo.create({
+        amount: 1,
+        fateType: 'intertwined',
+        source: baseSource,
+      });
+
+      await fateEntryRepo.delete(id);
+      const visible = await fateEntryRepo.getAll();
+      const raw = await db.fateEntries.get(id);
+
+      expect(visible).toHaveLength(0);
+      expect(raw?.deletedAt).toBeDefined();
+    });
   });
 
   describe('resourceSnapshotRepo', () => {
@@ -90,8 +123,10 @@ describe('Ledger repositories', () => {
 
       const snapshot = await resourceSnapshotRepo.getLatest();
       expect(snapshot?.id).toBe(id);
-      expect(snapshot?.timestamp).toMatch(/^\\d{4}-\\d{2}-\\d{2}T/);
+      expect(snapshot?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(snapshot?.createdAt).toBeDefined();
+      expect(snapshot?.updatedAt).toBe(snapshot?.createdAt);
+      expect(snapshot?.deletedAt).toBeNull();
     });
   });
 });

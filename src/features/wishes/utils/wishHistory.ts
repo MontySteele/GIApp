@@ -17,7 +17,7 @@ const normalizeTimestamp = (timestamp: string) => {
 
 export const wishHistoryItemToRecord = (
   wish: WishHistoryItem
-): Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt'> => ({
+): Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> => ({
   gachaId: wish.id,
   bannerType: wish.banner,
   bannerVersion: getBannerVersion(wish.banner),

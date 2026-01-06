@@ -4,14 +4,14 @@ import { teamRepo } from './teamRepo';
 import { characterRepo } from './characterRepo';
 import type { Team, Character } from '@/types';
 
-const mockTeamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'> = {
+const mockTeamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
   name: 'Hyperbloom Raiden',
   characterKeys: ['RaidenShogun', 'Nahida', 'Yelan', 'Kazuha'],
   rotationNotes: 'Rotation notes here',
   tags: ['hyperbloom', 'spiral-abyss'],
 };
 
-const mockCharacter = (key: string): Omit<Character, 'id' | 'createdAt' | 'updatedAt'> => ({
+const mockCharacter = (key: string): Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> => ({
   key,
   level: 90,
   ascension: 6,
@@ -54,6 +54,7 @@ describe('Team Repository', () => {
       expect(team?.characterKeys).toEqual(mockTeamData.characterKeys);
       expect(team?.createdAt).toBeDefined();
       expect(team?.updatedAt).toBeDefined();
+      expect(team?.deletedAt).toBeNull();
     });
 
     it('adds teamId to linked characters', async () => {
@@ -129,6 +130,9 @@ describe('Team Repository', () => {
 
       const teams = await teamRepo.getAll();
       expect(teams).toHaveLength(0);
+
+      const rawTeam = await db.teams.get(id);
+      expect(rawTeam?.deletedAt).toBeDefined();
 
       const characters = await characterRepo.getAll();
       for (const character of characters) {

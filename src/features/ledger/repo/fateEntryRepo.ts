@@ -1,17 +1,22 @@
 import { db } from '@/db/schema';
 import type { FateEntry } from '@/types';
 
-type FateEntryInput = Omit<FateEntry, 'id' | 'createdAt' | 'updatedAt'> & {
+type FateEntryInput = Omit<FateEntry, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> & {
   timestamp?: string;
 };
 
 export const fateEntryRepo = {
   async getAll(): Promise<FateEntry[]> {
-    return db.fateEntries.orderBy('timestamp').reverse().toArray();
+    return db.fateEntries
+      .orderBy('timestamp')
+      .filter((entry) => !entry.deletedAt)
+      .reverse()
+      .toArray();
   },
 
   async getById(id: string): Promise<FateEntry | undefined> {
-    return db.fateEntries.get(id);
+    const entry = await db.fateEntries.get(id);
+    return entry?.deletedAt ? undefined : entry;
   },
 
   async create(entry: FateEntryInput): Promise<string> {
@@ -24,12 +29,13 @@ export const fateEntryRepo = {
       id,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     });
 
     return id;
   },
 
-  async update(id: string, updates: Partial<Omit<FateEntry, 'id' | 'createdAt'>>): Promise<void> {
+  async update(id: string, updates: Partial<Omit<FateEntry, 'id' | 'createdAt' | 'deletedAt'>>): Promise<void> {
     await db.fateEntries.update(id, {
       ...updates,
       updatedAt: new Date().toISOString(),
@@ -37,6 +43,10 @@ export const fateEntryRepo = {
   },
 
   async delete(id: string): Promise<void> {
-    await db.fateEntries.delete(id);
+    const deletedAt = new Date().toISOString();
+    await db.fateEntries.update(id, {
+      deletedAt,
+      updatedAt: deletedAt,
+    });
   },
 };

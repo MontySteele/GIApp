@@ -6,13 +6,14 @@ import { wishHistoryItemToRecord, wishRecordToHistoryItem } from './wishHistory'
 const baseDates = ['2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z'];
 
 const withRecordFields = (
-  record: Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt'>,
+  record: Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
   index: number
 ): WishRecord => ({
   ...record,
   id: `rec-${index}`,
   createdAt: baseDates[0],
   updatedAt: baseDates[1],
+  deletedAt: null,
 });
 
 describe('wishHistory storage helpers', () => {

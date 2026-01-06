@@ -14,7 +14,7 @@ describe('Character Repository', () => {
     await db.characters.clear();
   });
 
-  const mockCharacterData: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+  const mockCharacterData: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
     key: 'Furina',
     level: 90,
     ascension: 6,
@@ -69,6 +69,7 @@ describe('Character Repository', () => {
       expect(character?.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
       expect(character?.updatedAt).toBeDefined();
       expect(character?.updatedAt).toBe(character?.createdAt);
+      expect(character?.deletedAt).toBeNull();
     });
 
     it('should preserve all character data', async () => {
@@ -202,7 +203,9 @@ describe('Character Repository', () => {
       await characterRepo.delete(id);
 
       const character = await characterRepo.getById(id);
+      const raw = await db.characters.get(id);
       expect(character).toBeUndefined();
+      expect(raw?.deletedAt).toBeDefined();
     });
 
     it('should not error when deleting non-existent character', async () => {
@@ -247,6 +250,7 @@ describe('Character Repository', () => {
         expect(character.createdAt).toBeDefined();
         expect(character.updatedAt).toBeDefined();
         expect(character.createdAt).toBe(character.updatedAt);
+        expect(character.deletedAt).toBeNull();
       }
     });
   });
@@ -291,7 +295,7 @@ describe('Character Repository', () => {
 
   describe('Complex scenarios', () => {
     it('should handle character with multiple artifacts', async () => {
-      const charWith5Artifacts: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+      const charWith5Artifacts: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
         ...mockCharacterData,
         artifacts: [
           { setKey: 'GoldenTroupe', slotKey: 'flower', level: 20, rarity: 5, mainStatKey: 'hp', substats: [] },
@@ -323,7 +327,7 @@ describe('Character Repository', () => {
     });
 
     it('should handle character with no artifacts', async () => {
-      const charNoArtifacts: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+      const charNoArtifacts: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
         ...mockCharacterData,
         artifacts: [],
       };

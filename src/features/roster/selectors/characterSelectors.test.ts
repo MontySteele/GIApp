@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { filterAndSortCharacters, type CharacterQuery } from './characterSelectors';
 import type { Character } from '@/types';
 
-const baseCharacter: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+const baseCharacter: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> = {
   key: 'Furina',
   level: 90,
   ascension: 6,

@@ -5,11 +5,11 @@ import type { Team } from '@/types';
 export function useTeams() {
   const teams = useLiveQuery(() => teamRepo.getAll(), []);
 
-  const createTeam = async (team: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createTeam = async (team: Omit<Team, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>) => {
     return teamRepo.create(team);
   };
 
-  const updateTeam = async (id: string, updates: Partial<Omit<Team, 'id' | 'createdAt'>>) => {
+  const updateTeam = async (id: string, updates: Partial<Omit<Team, 'id' | 'createdAt' | 'deletedAt'>>) => {
     return teamRepo.update(id, updates);
   };
 
