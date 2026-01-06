@@ -306,7 +306,8 @@ describe('WishImport', () => {
 
       render(<WishImport onImportComplete={vi.fn()} />);
 
-      expect(await screen.findByText(/wish url expired/i)).toBeInTheDocument();
+      const expiredMessages = await screen.findAllByText(/wish url expired/i);
+      expect(expiredMessages.length).toBeGreaterThan(0);
       expect(screen.getByRole('button', { name: /refresh link/i })).toBeInTheDocument();
     });
 
@@ -347,8 +348,10 @@ describe('WishImport', () => {
       await user.click(importButton);
 
       await waitFor(() => {
-        // Should fetch character (301), weapon (302), standard (200), and chronicled (500)
-        expect(fetchSpy).toHaveBeenCalledTimes(4);
+        // Should fetch character (301 + 400), weapon (302), standard (200), and chronicled (500)
+        expect(fetchSpy).toHaveBeenCalledTimes(5);
+        const gachaTypes = fetchSpy.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
+        expect(gachaTypes).toEqual(expect.arrayContaining(['301', '400', '302', '200', '500']));
       });
     });
 
@@ -404,8 +407,10 @@ describe('WishImport', () => {
 
       const aggregatedWishes = onImportComplete.mock.calls[0][0];
       const banners = aggregatedWishes.map((wish: any) => wish.banner);
+      const gachaTypes = fetchMock.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
 
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchMock).toHaveBeenCalledTimes(5);
+      expect(gachaTypes).toEqual(expect.arrayContaining(['301', '400', '302', '200', '500']));
       expect(banners).toEqual(
         expect.arrayContaining(['character', 'weapon', 'standard', 'chronicled'])
       );
@@ -506,7 +511,8 @@ describe('WishImport', () => {
       const banners = aggregatedWishes.map((wish: any) => wish.banner);
       const fetchedGachaTypes = fetchMock.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
 
-      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchedGachaTypes).toEqual(expect.arrayContaining(['301', '400', '200', '500']));
       expect(fetchedGachaTypes).not.toContain('302');
       expect(banners).not.toContain('weapon');
       expect(banners).toEqual(
