@@ -1,5 +1,23 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
+
+/// Deserialize a value that could be either a string or a number into a String
+fn string_or_number<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrNumber {
+        String(String),
+        Number(i64),
+    }
+
+    match StringOrNumber::deserialize(deserializer)? {
+        StringOrNumber::String(s) => Ok(s),
+        StringOrNumber::Number(n) => Ok(n.to_string()),
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WishHistoryItem {
@@ -28,9 +46,11 @@ struct ApiData {
 struct ApiWishItem {
     id: String,
     name: String,
+    #[serde(deserialize_with = "string_or_number")]
     rank_type: String,
     item_type: String,
     time: String,
+    #[serde(deserialize_with = "string_or_number")]
     gacha_type: String,
 }
 
