@@ -53,12 +53,15 @@ fn get_api_endpoint(web_url: &str) -> Result<String, String> {
     // Determine region from hostname
     let hostname = url.host_str().ok_or("No hostname in URL")?;
 
-    let api_base = if hostname.contains("hoyoverse.com") {
-        // Global server
-        "https://hk4e-api-os.hoyoverse.com/event/gacha_info/api/getGachaLog"
+    // Use the correct public-operation endpoints (not hk4e-api)
+    let api_base = if hostname.contains("webstatic-sea")
+        || hostname.contains("hk4e-api-os")
+        || hostname.contains("hoyoverse.com") {
+        // Global/SEA server
+        "https://public-operation-hk4e-sg.hoyoverse.com/gacha_info/api/getGachaLog"
     } else if hostname.contains("mihoyo.com") {
         // CN server
-        "https://hk4e-api.mihoyo.com/event/gacha_info/api/getGachaLog"
+        "https://public-operation-hk4e.mihoyo.com/gacha_info/api/getGachaLog"
     } else {
         return Err(format!("Unknown hostname: {}", hostname));
     };
@@ -68,6 +71,8 @@ fn get_api_endpoint(web_url: &str) -> Result<String, String> {
 
 /// Extract query parameters from web URL
 fn extract_auth_params(web_url: &str) -> Result<Vec<(String, String)>, String> {
+    // Note: reqwest::Url::parse automatically decodes query parameters
+    // So we get the decoded values from url.query_pairs()
     let url = reqwest::Url::parse(web_url)
         .map_err(|e| format!("Invalid URL: {}", e))?;
 
@@ -75,6 +80,7 @@ fn extract_auth_params(web_url: &str) -> Result<Vec<(String, String)>, String> {
     let hostname = url.host_str().ok_or("No hostname in URL")?;
 
     // Extract important auth parameters
+    // The values from query_pairs() are already decoded by reqwest::Url
     for (key, value) in url.query_pairs() {
         match key.as_ref() {
             "authkey" | "authkey_ver" | "sign_type" | "auth_appid" |
@@ -91,7 +97,9 @@ fn extract_auth_params(web_url: &str) -> Result<Vec<(String, String)>, String> {
 
     // Add game_biz if not present (required by API)
     if !params.iter().any(|(k, _)| k == "game_biz") {
-        let game_biz = if hostname.contains("hoyoverse.com") {
+        let game_biz = if hostname.contains("webstatic-sea")
+            || hostname.contains("hk4e-api-os")
+            || hostname.contains("hoyoverse.com") {
             "hk4e_global"
         } else {
             "hk4e_cn"
@@ -177,11 +185,9 @@ pub async fn fetch_banner_history(
             eprintln!("DEBUG: Fetching from URL: {}", url_string);
         }
 
-        // Make the request with proper headers
+        // Make the request (no custom headers needed)
         let response = client
             .get(&url_string)
-            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-            .header("Accept", "application/json")
             .send()
             .await
             .map_err(|e| format!("Request failed: {}", e))?;
