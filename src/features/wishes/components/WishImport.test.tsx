@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GACHA_TYPE_MAP, WishImport } from './WishImport';
+import { db } from '@/db/schema';
 import { WISH_AUTH_SESSION_KEY } from '../lib/wishSession';
 
 beforeEach(() => {
@@ -17,8 +18,12 @@ beforeEach(() => {
   ) as any;
 });
 
-afterEach(() => {
-  sessionStorage.clear();
+beforeEach(async () => {
+  await db.appMeta.clear();
+});
+
+afterEach(async () => {
+  await db.appMeta.clear();
   vi.resetAllMocks();
 });
 
@@ -264,12 +269,15 @@ describe('WishImport', () => {
         expect(screen.getByText(/wish url.*expired/i)).toBeInTheDocument();
       });
 
-      expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).toBeNull();
+      await waitFor(async () => {
+        const metaEntry = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
+        expect(metaEntry).toBeUndefined();
+      });
     });
   });
 
   describe('Session handling', () => {
-    it('should clear saved auth session when tab closes', async () => {
+    it('persists saved auth session in app metadata and shows expiry info', async () => {
       const user = userEvent.setup();
       render(<WishImport onImportComplete={vi.fn()} />);
 
@@ -277,13 +285,46 @@ describe('WishImport', () => {
       await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
       await user.tab();
 
-      await waitFor(() => {
-        expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).not.toBeNull();
+      await waitFor(async () => {
+        const saved = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
+        expect(saved?.value.url).toContain('authkey=test');
       });
 
-      window.dispatchEvent(new Event('beforeunload'));
+      expect(await screen.findByText(/wish url expires/i)).toBeInTheDocument();
+    });
 
-      expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).toBeNull();
+    it('prompts regeneration when a saved session is expired', async () => {
+      const expiredTimestamp = Date.now() - 26 * 60 * 60 * 1000;
+      await db.appMeta.put({
+        key: WISH_AUTH_SESSION_KEY,
+        value: {
+          url: 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=expired',
+          storedAt: expiredTimestamp,
+          expiresAt: expiredTimestamp + 24 * 60 * 60 * 1000,
+        },
+      });
+
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      expect(await screen.findByText(/wish url expired/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /refresh link/i })).toBeInTheDocument();
+    });
+
+    it('clears the saved session when refresh link is clicked', async () => {
+      const user = userEvent.setup();
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+      await user.tab();
+
+      const refreshButton = await screen.findByRole('button', { name: /refresh link/i });
+      await user.click(refreshButton);
+
+      await waitFor(async () => {
+        const saved = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
+        expect(saved).toBeUndefined();
+      });
     });
   });
 
