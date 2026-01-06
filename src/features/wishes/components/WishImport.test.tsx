@@ -302,6 +302,110 @@ describe('WishImport', () => {
 
       expect(characterCheckbox).not.toBeChecked();
     });
+
+    it('should aggregate wishes from all selected banners', async () => {
+      const user = userEvent.setup();
+      const onImportComplete = vi.fn();
+
+      const fetchMock = vi.fn((url: string) => {
+        const gachaType = new URL(url).searchParams.get('gacha_type');
+
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            data: {
+              list: gachaType
+                ? [{
+                    id: `${gachaType}-id`,
+                    gacha_type: gachaType,
+                    rank_type: '5',
+                    name: `Item ${gachaType}`,
+                    item_type: gachaType === '302' ? 'Weapon' : 'Character',
+                    time: '2024-01-01 00:00:00',
+                  }]
+                : [],
+            },
+          }),
+        });
+      });
+
+      global.fetch = fetchMock as any;
+
+      render(<WishImport onImportComplete={onImportComplete} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      const importButton = screen.getByRole('button', { name: /^import$/i });
+      await user.click(importButton);
+
+      await waitFor(() => {
+        expect(onImportComplete).toHaveBeenCalledTimes(1);
+      });
+
+      const aggregatedWishes = onImportComplete.mock.calls[0][0];
+      const banners = aggregatedWishes.map((wish: any) => wish.banner);
+
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(banners).toEqual(
+        expect.arrayContaining(['character', 'weapon', 'standard', 'chronicled'])
+      );
+    });
+
+    it('should fetch only selected banners when some are deselected', async () => {
+      const user = userEvent.setup();
+      const onImportComplete = vi.fn();
+
+      const fetchMock = vi.fn((url: string) => {
+        const gachaType = new URL(url).searchParams.get('gacha_type');
+
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            data: {
+              list: gachaType && gachaType !== '302'
+                ? [{
+                    id: `${gachaType}-id`,
+                    gacha_type: gachaType,
+                    rank_type: '4',
+                    name: `Item ${gachaType}`,
+                    item_type: 'Character',
+                    time: '2024-01-01 00:00:00',
+                  }]
+                : [],
+            },
+          }),
+        });
+      });
+
+      global.fetch = fetchMock as any;
+
+      render(<WishImport onImportComplete={onImportComplete} />);
+
+      const weaponCheckbox = screen.getByLabelText(/weapon event/i);
+      await user.click(weaponCheckbox);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      const importButton = screen.getByRole('button', { name: /^import$/i });
+      await user.click(importButton);
+
+      await waitFor(() => {
+        expect(onImportComplete).toHaveBeenCalledTimes(1);
+      });
+
+      const aggregatedWishes = onImportComplete.mock.calls[0][0];
+      const banners = aggregatedWishes.map((wish: any) => wish.banner);
+      const fetchedGachaTypes = fetchMock.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
+
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchedGachaTypes).not.toContain('302');
+      expect(banners).not.toContain('weapon');
+      expect(banners).toEqual(
+        expect.arrayContaining(['character', 'standard', 'chronicled'])
+      );
+    });
   });
 
   describe('Import summary', () => {
