@@ -92,6 +92,8 @@ export interface WishRecord {
   itemType: 'character' | 'weapon';
   itemKey: string;
   rarity: 3 | 4 | 5;
+  isFeatured?: boolean;
+  chartedWeapon?: string | null;
   createdAt: string;
   updatedAt: string;
 }
