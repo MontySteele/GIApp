@@ -8,11 +8,15 @@ import { primogemEntryRepo } from '../repo/primogemEntryRepo';
 import { fateEntryRepo } from '../repo/fateEntryRepo';
 import { resourceSnapshotRepo } from '../repo/resourceSnapshotRepo';
 import type { FateType, PrimogemSource, FateSource } from '@/types';
+import { useDateFormatter } from '@/lib/dateFormat';
 
 export default function LedgerPage() {
   const primogemEntries = useLiveQuery(() => primogemEntryRepo.getAll(), []);
   const fateEntries = useLiveQuery(() => fateEntryRepo.getAll(), []);
   const latestSnapshot = useLiveQuery(() => resourceSnapshotRepo.getLatest(), []);
+
+  const formatDate = useDateFormatter();
+  const formatDateTime = useDateFormatter({ includeTime: true });
 
   const [primogemAmount, setPrimogemAmount] = useState<number>(0);
   const [primogemSource, setPrimogemSource] = useState<PrimogemSource>('daily_commission');
@@ -214,7 +218,7 @@ export default function LedgerPage() {
                     <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
                   </div>
                   <div className="text-sm text-slate-500 text-right">
-                    <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
+                    <p>{formatDate(entry.timestamp)}</p>
                     {entry.notes && <p className="text-slate-400">{entry.notes}</p>}
                   </div>
                 </div>
@@ -295,7 +299,7 @@ export default function LedgerPage() {
                     <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
                   </div>
                   <div className="text-sm text-slate-500 text-right">
-                    <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
+                    <p>{formatDate(entry.timestamp)}</p>
                   </div>
                 </div>
               ))}
@@ -315,7 +319,7 @@ export default function LedgerPage() {
           </div>
           <div className="text-sm text-slate-500 flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
-            {latestSnapshot ? new Date(latestSnapshot.timestamp).toLocaleString() : 'No snapshot yet'}
+            {latestSnapshot ? formatDateTime(latestSnapshot.timestamp) : 'No snapshot yet'}
           </div>
         </div>
 

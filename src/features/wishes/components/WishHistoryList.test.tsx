@@ -1,8 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WishHistoryList } from './WishHistoryList';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
+import { useUIStore } from '@/stores/uiStore';
+import { act } from 'react-dom/test-utils';
+
+afterEach(() => {
+  useUIStore.getState().resetSettings();
+});
 
 describe('WishHistoryList', () => {
   describe('Initial render', () => {
@@ -69,13 +75,13 @@ describe('WishHistoryList', () => {
     });
 
     it('should show pull time', () => {
-      const history: WishHistoryItem[] = [
-        { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-01T12:00:00Z', banner: 'character' },
-      ];
-      render(<WishHistoryList history={history} />);
+    const history: WishHistoryItem[] = [
+      { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-01T12:00:00Z', banner: 'character' },
+    ];
+    render(<WishHistoryList history={history} />);
 
-      expect(screen.getByText(/2024-01-01/i)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/01\/01\/2024/i)).toBeInTheDocument();
+  });
 
     it('should show banner type', () => {
       const history: WishHistoryItem[] = [
@@ -86,6 +92,23 @@ describe('WishHistoryList', () => {
       // Query within the list item
       const listItem = screen.getByRole('listitem');
       expect(listItem).toHaveTextContent(/character.*event/i);
+    });
+  });
+
+  describe('Date formatting', () => {
+    it('should re-render dates when the setting changes', () => {
+      const history: WishHistoryItem[] = [
+        { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-15T12:00:00Z', banner: 'character' },
+      ];
+      render(<WishHistoryList history={history} />);
+
+      expect(screen.getByText('01/15/2024')).toBeInTheDocument();
+
+      act(() => {
+        useUIStore.getState().updateSettings({ dateFormat: 'dd.MM.yyyy' });
+      });
+
+      expect(screen.getByText('15.01.2024')).toBeInTheDocument();
     });
   });
 

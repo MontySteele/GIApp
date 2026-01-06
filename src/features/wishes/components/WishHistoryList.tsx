@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { BannerType } from '@/types';
+import { useDateFormatter } from '@/lib/dateFormat';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 
 interface WishHistoryListProps {
@@ -14,6 +15,7 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const formatDate = useDateFormatter();
 
   // Apply filters and sorting
   const filteredAndSorted = useMemo(() => {
@@ -77,12 +79,6 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
       case 'chronicled':
         return 'Chronicled Wish';
     }
-  };
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD format
   };
 
   return (

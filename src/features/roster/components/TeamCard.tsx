@@ -1,6 +1,7 @@
 import { Pencil, Trash2, Users } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import { useDateFormatter } from '@/lib/dateFormat';
 import type { Character, Team } from '@/types';
 
 interface TeamCardProps {
@@ -11,6 +12,8 @@ interface TeamCardProps {
 }
 
 export default function TeamCard({ team, members, onEdit, onDelete }: TeamCardProps) {
+  const formatDate = useDateFormatter();
+
   return (
     <Card className="relative">
       <div className="absolute top-3 right-3 flex items-center gap-1">
@@ -40,7 +43,7 @@ export default function TeamCard({ team, members, onEdit, onDelete }: TeamCardPr
           <div>
             <h3 className="text-lg font-semibold text-slate-100">{team.name}</h3>
             <p className="text-xs text-slate-500">
-              Updated {new Date(team.updatedAt).toLocaleDateString()}
+              Updated {formatDate(team.updatedAt)}
             </p>
           </div>
         </div>
