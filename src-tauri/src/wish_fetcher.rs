@@ -115,39 +115,49 @@ pub async fn fetch_banner_history(
 
     let client = reqwest::Client::new();
 
-    // Get the correct API endpoint and extract auth params
+    // Parse the original URL to get the query string
+    let original_url = reqwest::Url::parse(base_url)
+        .map_err(|e| format!("Invalid URL: {}", e))?;
+
+    // Get the correct API endpoint
     let api_endpoint = get_api_endpoint(base_url)?;
-    let auth_params = extract_auth_params(base_url)?;
 
     loop {
-        // Build the API URL with auth params and request params
-        let mut url = reqwest::Url::parse(&api_endpoint)
-            .map_err(|e| format!("Invalid API endpoint: {}", e))?;
+        // Start with the API endpoint and add the original query string
+        let mut url_string = format!("{}?{}", api_endpoint, original_url.query().unwrap_or(""));
 
-        {
-            let mut query_pairs = url.query_pairs_mut();
+        // Append additional parameters
+        url_string.push_str(&format!("&gacha_type={}", gacha_type));
+        url_string.push_str(&format!("&page={}", page));
+        url_string.push_str(&format!("&size={}", page_size));
 
-            // Add auth parameters
-            for (key, value) in &auth_params {
-                query_pairs.append_pair(key, value);
-            }
-
-            // Add request parameters
-            query_pairs.append_pair("gacha_type", gacha_type);
-            query_pairs.append_pair("page", &page.to_string());
-            query_pairs.append_pair("size", &page_size.to_string());
-            query_pairs.append_pair("end_id", &end_id);
+        // Only add end_id if it's not "0" (first page doesn't need it)
+        if end_id != "0" {
+            url_string.push_str(&format!("&end_id={}", end_id));
         }
 
-        // Make the request
+        // Log the request URL for debugging (first iteration only)
+        if page == 1 {
+            eprintln!("DEBUG: Fetching from URL: {}", url_string);
+        }
+
+        // Make the request with proper headers
         let response = client
-            .get(url.as_str())
+            .get(&url_string)
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .header("Accept", "application/json")
             .send()
             .await
             .map_err(|e| format!("Request failed: {}", e))?;
 
-        if !response.status().is_success() {
-            return Err(format!("HTTP {}: {}", response.status(), response.status()));
+        // Get the status before consuming the response
+        let status = response.status();
+
+        if !status.is_success() {
+            // Try to get response body for more details
+            let body = response.text().await.unwrap_or_else(|_| "Could not read response body".to_string());
+            eprintln!("DEBUG: Response body: {}", body);
+            return Err(format!("HTTP {}: {} - Body: {}", status, status.canonical_reason().unwrap_or("Unknown"), body));
         }
 
         let api_response: ApiResponse = response
