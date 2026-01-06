@@ -81,6 +81,7 @@ describe('Ledger repositories', () => {
     it('stores snapshots with default timestamps and createdAt', async () => {
       const id = await resourceSnapshotRepo.create({
         primogems: 1600,
+        genesisCrystals: 0,
         intertwined: 5,
         acquaint: 3,
         starglitter: 20,

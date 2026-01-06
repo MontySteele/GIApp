@@ -24,6 +24,7 @@ export default function LedgerPage() {
 
   const [snapshotValues, setSnapshotValues] = useState({
     primogems: latestSnapshot?.primogems ?? 0,
+    genesisCrystals: latestSnapshot?.genesisCrystals ?? 0,
     intertwined: latestSnapshot?.intertwined ?? 0,
     acquaint: latestSnapshot?.acquaint ?? 0,
     starglitter: latestSnapshot?.starglitter ?? 0,
@@ -34,6 +35,7 @@ export default function LedgerPage() {
     if (!latestSnapshot) return;
     setSnapshotValues({
       primogems: latestSnapshot.primogems,
+      genesisCrystals: latestSnapshot.genesisCrystals ?? 0,
       intertwined: latestSnapshot.intertwined,
       acquaint: latestSnapshot.acquaint,
       starglitter: latestSnapshot.starglitter,
@@ -53,6 +55,18 @@ export default function LedgerPage() {
     });
     return totals;
   }, [fateEntries]);
+
+  const effectivePrimogems = latestSnapshot?.primogems ?? primogemTotal;
+  const effectiveIntertwined = latestSnapshot?.intertwined ?? fateTotals.intertwined;
+  const effectiveAcquaint = latestSnapshot?.acquaint ?? fateTotals.acquaint;
+  const effectiveGenesis = latestSnapshot?.genesisCrystals ?? 0;
+  const effectiveStarglitter = latestSnapshot?.starglitter ?? 0;
+
+  const wishesAvailable = useMemo(() => {
+    const primogemWishes = (effectivePrimogems + effectiveGenesis) / 160;
+    const starglitterWishes = Math.floor(effectiveStarglitter / 5);
+    return primogemWishes + effectiveIntertwined + effectiveAcquaint + starglitterWishes;
+  }, [effectivePrimogems, effectiveGenesis, effectiveIntertwined, effectiveAcquaint, effectiveStarglitter]);
 
   const handleAddPrimogems = async (amount: number, source: PrimogemSource, notes = '') => {
     await primogemEntryRepo.create({ amount, source, notes });
@@ -85,21 +99,34 @@ export default function LedgerPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Running balance</p>
-          <p className="text-3xl font-bold text-primary-400">{primogemTotal.toLocaleString()} Primogems</p>
-          <p className="text-sm text-slate-500">Based on your logged entries</p>
+          <p className="text-3xl font-bold text-primary-400">{effectivePrimogems.toLocaleString()} Primogems</p>
+          <p className="text-sm text-slate-500">
+            {latestSnapshot ? 'From your latest snapshot' : 'Based on your logged entries'}
+          </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Fates (Intertwined)</p>
-          <p className="text-3xl font-bold text-indigo-300">{fateTotals.intertwined}</p>
-          <p className="text-sm text-slate-500">Logged across all sources</p>
+          <p className="text-3xl font-bold text-indigo-300">{effectiveIntertwined}</p>
+          <p className="text-sm text-slate-500">
+            {latestSnapshot ? 'From your latest snapshot' : 'Logged across all sources'}
+          </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Fates (Acquaint)</p>
-          <p className="text-3xl font-bold text-cyan-300">{fateTotals.acquaint}</p>
-          <p className="text-sm text-slate-500">Logged across all sources</p>
+          <p className="text-3xl font-bold text-cyan-300">{effectiveAcquaint}</p>
+          <p className="text-sm text-slate-500">
+            {latestSnapshot ? 'From your latest snapshot' : 'Logged across all sources'}
+          </p>
+        </div>
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+          <p className="text-sm text-slate-400">Wishes Available</p>
+          <p className="text-3xl font-bold text-amber-300">{wishesAvailable.toFixed(2)}</p>
+          <p className="text-sm text-slate-500">
+            Includes primogems, genesis crystals, fates, and starglitter (5 per wish)
+          </p>
         </div>
       </div>
 
@@ -292,9 +319,10 @@ export default function LedgerPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           {[
             { key: 'primogems', label: 'Primogems' },
+            { key: 'genesisCrystals', label: 'Genesis Crystals' },
             { key: 'intertwined', label: 'Intertwined' },
             { key: 'acquaint', label: 'Acquaint' },
             { key: 'starglitter', label: 'Starglitter' },
