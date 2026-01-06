@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { fromEnka, type EnkaResponse } from './enka';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { db } from '@/db/schema';
+import { fetchEnkaData, fromEnka, type EnkaResponse } from './enka';
 
 describe('Enka Mapper', () => {
   const mockEnkaResponse: EnkaResponse = {
@@ -330,6 +331,113 @@ describe('Enka Mapper', () => {
         const result = fromEnka(response);
         expect(result[0].weapon.key).toBe(testCase.expected);
       }
+    });
+  });
+
+  describe('fetchEnkaData', () => {
+    const uid = '123456789';
+    const baseEnkaResponse: EnkaResponse = {
+      playerInfo: {
+        nickname: 'Tester',
+        level: 60,
+        signature: 'Testing',
+        nameCardId: 1,
+        finishAchievementNum: 1,
+        towerFloorIndex: 1,
+        towerLevelIndex: 1,
+        showAvatarInfoList: [],
+      },
+      avatarInfoList: [],
+      ttl: 60,
+      uid,
+    };
+
+    const originalFetch = globalThis.fetch;
+
+    beforeEach(async () => {
+      await db.externalCache.clear();
+      vi.restoreAllMocks();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns cached data when cache entry is still valid', async () => {
+      const future = new Date(Date.now() + 60_000).toISOString();
+      await db.externalCache.add({
+        id: 'cache-1',
+        cacheKey: `enka:${uid}`,
+        data: baseEnkaResponse,
+        fetchedAt: new Date().toISOString(),
+        expiresAt: future,
+      });
+
+      globalThis.fetch = vi.fn() as any;
+
+      const result = await fetchEnkaData(uid);
+
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+      expect(result.uid).toBe(uid);
+    });
+
+    it('fetches and caches data when cache is expired', async () => {
+      const expired = new Date(Date.now() - 1000).toISOString();
+      await db.externalCache.add({
+        id: 'cache-1',
+        cacheKey: `enka:${uid}`,
+        data: baseEnkaResponse,
+        fetchedAt: expired,
+        expiresAt: expired,
+      });
+
+      globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ ...baseEnkaResponse, ttl: 120 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ) as any;
+
+      const result = await fetchEnkaData(uid);
+
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+      expect(result.ttl).toBe(120);
+
+      const cached = await db.externalCache.where('cacheKey').equals(`enka:${uid}`).first();
+      expect(cached?.data.uid).toBe(uid);
+      expect(new Date(cached!.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('retries on retryable errors before succeeding', async () => {
+      vi.useFakeTimers();
+      globalThis.fetch = (vi
+        .fn()
+        .mockResolvedValueOnce(new Response('Server error', { status: 500, statusText: 'Server Error' }))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(baseEnkaResponse), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )) as any;
+
+      const fetchPromise = fetchEnkaData(uid);
+      await vi.runAllTimersAsync();
+      const result = await fetchPromise;
+
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(result.uid).toBe(uid);
+    });
+
+    it('throws helpful errors for API failures', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response('Not found', {
+          status: 404,
+          statusText: 'Not Found',
+        }),
+      ) as any;
+
+      await expect(fetchEnkaData(uid)).rejects.toThrow('UID not found');
     });
   });
 });

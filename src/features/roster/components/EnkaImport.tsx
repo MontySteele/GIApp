@@ -17,6 +17,7 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
   const [importResult, setImportResult] = useState<{
     success: boolean;
     count: number;
+    skipped?: number;
   } | null>(null);
 
   const handleImport = async () => {
@@ -36,6 +37,7 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
 
       // Convert to internal format
       const characters = fromEnka(enkaData);
+      const showcaseCount = enkaData.avatarInfoList?.length ?? 0;
 
       if (characters.length === 0) {
         throw new Error('No characters found in showcase. Make sure you have characters displayed in your showcase in-game.');
@@ -47,6 +49,7 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
       setImportResult({
         success: true,
         count: characters.length,
+        skipped: Math.max(0, showcaseCount - characters.length),
       });
 
       // Auto-close after 2 seconds
@@ -121,6 +124,11 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
             <div className="text-sm text-green-200">
               Successfully imported {importResult.count}{' '}
               {importResult.count === 1 ? 'character' : 'characters'} from your showcase!
+              {!!importResult.skipped && importResult.skipped > 0 && (
+                <span className="block text-yellow-200">
+                  Some characters were skipped due to missing or incomplete data ({importResult.skipped}).
+                </span>
+              )}
             </div>
           </div>
         )}
