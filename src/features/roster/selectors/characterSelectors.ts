@@ -36,7 +36,7 @@ export function filterAndSortCharacters(characters: Character[], query?: Charact
       metadata: getCharacterMetadata(character.key),
       index,
     }))
-    .filter(({ metadata }) => {
+    .filter(({ character, metadata }) => {
       if (!filters) return true;
 
       if (filters.element && metadata?.element !== filters.element) {
