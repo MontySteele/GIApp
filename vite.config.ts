@@ -44,9 +44,9 @@ export default defineConfig(({ command }) => ({
   server: {
     port: 5173,
     strictPort: true,
-    host: true, // Listen on all addresses, including LAN and localhost
+    host: '127.0.0.1', // Bind specifically to localhost for Tauri
     watch: {
-      // 3. tell vite to ignore watching `src-tauri`
+      // tell vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**']
     }
   },
