@@ -1,8 +1,19 @@
 import { create } from 'zustand';
 
+interface UISettings {
+  dateFormat: string;
+  defaultTheme: 'light' | 'dark' | 'system';
+  backupReminderCadenceDays: number;
+}
+
 interface UIState {
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
+
+  // Settings surface
+  settings: UISettings;
+  updateSettings: (settings: Partial<UISettings>) => void;
+  resetSettings: () => void;
 
   // Roster filters
   rosterFilter: {
@@ -23,9 +34,22 @@ interface UIState {
   setWishesFilter: (filter: Partial<UIState['wishesFilter']>) => void;
 }
 
+export const DEFAULT_SETTINGS: UISettings = {
+  dateFormat: 'MM/dd/yyyy',
+  defaultTheme: 'system',
+  backupReminderCadenceDays: 14,
+};
+
 export const useUIStore = create<UIState>((set) => ({
   theme: 'system',
   setTheme: (theme) => set({ theme }),
+
+  settings: { ...DEFAULT_SETTINGS },
+  updateSettings: (settings) =>
+    set((state) => ({
+      settings: { ...state.settings, ...settings },
+    })),
+  resetSettings: () => set({ settings: { ...DEFAULT_SETTINGS } }),
 
   rosterFilter: {
     element: null,
