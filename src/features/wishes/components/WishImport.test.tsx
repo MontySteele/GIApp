@@ -129,6 +129,24 @@ describe('WishImport', () => {
         expect(screen.getByText(/missing.*authkey/i)).toBeInTheDocument();
       });
     });
+
+    it('should normalize legacy index.html URLs on blur', async () => {
+      const user = userEvent.setup();
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(
+        urlInput,
+        'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/index.html?authkey=test'
+      );
+      await user.tab(); // triggers blur/normalize
+
+      await waitFor(() => {
+        expect((screen.getByLabelText(/wish history url/i) as HTMLInputElement).value).toContain(
+          '/log?authkey=test'
+        );
+      });
+    });
   });
 
   describe('Import process', () => {
