@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { calculateSingleTarget, type AnalyticalResult } from '../domain/analyticalCalc';
 import { GACHA_RULES } from '@/lib/constants';
+import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -9,6 +10,7 @@ import { Calculator } from 'lucide-react';
 import ProbabilityChart from './ProbabilityChart';
 
 export default function SingleTargetCalculator() {
+  const pitySnapshot = useCurrentPity('character');
   const [currentPity, setCurrentPity] = useState(0);
   const [isGuaranteed, setIsGuaranteed] = useState(false);
   const [radiantStreak, setRadiantStreak] = useState(0);
@@ -26,12 +28,30 @@ export default function SingleTargetCalculator() {
     setResult(res);
   };
 
+  const handleUseCurrentPity = () => {
+    if (!pitySnapshot) return;
+
+    setCurrentPity(pitySnapshot.pity);
+    setIsGuaranteed(pitySnapshot.guaranteed);
+    setRadiantStreak(pitySnapshot.radiantStreak);
+  };
+
   return (
     <div className="space-y-6">
       {/* Input Form */}
       <Card>
         <CardHeader>
-          <h2 className="text-xl font-semibold">Current State</h2>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold">Current State</h2>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleUseCurrentPity}
+              disabled={!pitySnapshot}
+            >
+              Use current pity
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
