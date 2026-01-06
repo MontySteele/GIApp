@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Star, Pencil, ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCharacter, useCharacters } from '../hooks/useCharacters';
+import { useTeams } from '../hooks/useTeams';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -14,9 +15,15 @@ export default function CharacterDetailPage() {
   const navigate = useNavigate();
   const { character, isLoading } = useCharacter(id);
   const { updateCharacter, deleteCharacter } = useCharacters();
+  const { teams } = useTeams();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const linkedTeams = useMemo(
+    () => (character ? teams.filter((team) => character.teamIds.includes(team.id)) : []),
+    [teams, character?.teamIds]
+  );
 
   const handleUpdate = async (data: Parameters<typeof updateCharacter>[1]) => {
     if (!character) return;
@@ -124,6 +131,48 @@ export default function CharacterDetailPage() {
                 <Badge variant="default">{character.priority}</Badge>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Teams Card */}
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Teams</h2>
+          </CardHeader>
+          <CardContent>
+            {linkedTeams.length === 0 ? (
+              <p className="text-slate-400 text-center py-4">This character is not assigned to any teams yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {linkedTeams.map((team) => (
+                  <div
+                    key={team.id}
+                    className="bg-slate-900 border border-slate-800 rounded-lg p-3 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-slate-100">{team.name}</div>
+                        <div className="text-xs text-slate-500">
+                          Rotation: {team.characterKeys.join(' • ')}
+                        </div>
+                      </div>
+                      {team.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {team.tags.map((tag) => (
+                            <Badge key={`${team.id}-${tag}`} variant="outline" className="text-[11px] capitalize">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {team.rotationNotes && (
+                      <p className="text-sm text-slate-300 whitespace-pre-line">{team.rotationNotes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

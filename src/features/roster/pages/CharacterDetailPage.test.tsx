@@ -30,10 +30,31 @@ vi.mock('../hooks/useCharacters', () => ({
   useCharacter: () => ({ character: mockCharacter, isLoading: false }),
   useCharacters: () => ({
     characters: [],
+    allCharacters: [],
     createCharacter: vi.fn(),
     updateCharacter: mockUpdateCharacter,
     deleteCharacter: mockDeleteCharacter,
     isLoading: false,
+  }),
+}));
+
+vi.mock('../hooks/useTeams', () => ({
+  useTeams: () => ({
+    teams: [
+      {
+        id: 'team-1',
+        name: 'Support Core',
+        characterKeys: ['Furina'],
+        rotationNotes: 'Battery duties',
+        tags: ['support'],
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+    isLoading: false,
+    createTeam: vi.fn(),
+    updateTeam: vi.fn(),
+    deleteTeam: vi.fn(),
   }),
 }));
 
