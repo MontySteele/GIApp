@@ -29,6 +29,7 @@ export function MultiTargetCalculator() {
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const workerRef = useRef(createMonteCarloWorker());
+  const rules = GACHA_RULES[bannerType];
 
   useEffect(() => {
     const currentWorker = workerRef.current;
@@ -37,6 +38,10 @@ export function MultiTargetCalculator() {
       currentWorker.worker.terminate();
     };
   }, []);
+
+  useEffect(() => {
+    setErrors(validateTargets(targets, GACHA_RULES[bannerType]));
+  }, [bannerType]);
 
   const addTarget = () => {
     const newTarget: Target = {
@@ -47,18 +52,36 @@ export function MultiTargetCalculator() {
       radiantStreak: 0,
     };
     setTargets([...targets, newTarget]);
+    setErrors(validateTargets([...targets, newTarget], rules));
     setResults(null); // Clear results when adding target
   };
 
   const removeTarget = (id: string) => {
-    setTargets(targets.filter((t) => t.id !== id));
+    const updatedTargets = targets.filter((t) => t.id !== id);
+    setTargets(updatedTargets);
+    setErrors(validateTargets(updatedTargets, rules));
     setResults(null); // Clear results when removing target
   };
 
+  const validateTargets = (targetsToValidate: Target[], bannerRules = rules): Map<string, string> => {
+    const newErrors = new Map<string, string>();
+
+    targetsToValidate.forEach((target) => {
+      if (target.pity < 0 || target.pity >= bannerRules.hardPity) {
+        newErrors.set(`pity-${target.id}`, `Pity must be between 0 and ${bannerRules.hardPity - 1}`);
+      }
+      if (target.radiantStreak < 0 || target.radiantStreak > 3) {
+        newErrors.set(`radiant-${target.id}`, 'Radiant streak should be 0-2');
+      }
+    });
+
+    return newErrors;
+  };
+
   const updateTarget = (id: string, updates: Partial<Target>) => {
-    setTargets(
-      targets.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    );
+    const updatedTargets = targets.map((t) => (t.id === id ? { ...t, ...updates } : t));
+    setTargets(updatedTargets);
+    setErrors(validateTargets(updatedTargets, rules));
     setResults(null); // Clear results when updating target
   };
 
@@ -108,18 +131,7 @@ export function MultiTargetCalculator() {
   };
 
   const validate = (): boolean => {
-    const newErrors = new Map<string, string>();
-    const rules = GACHA_RULES[bannerType];
-
-    targets.forEach((target) => {
-      if (target.pity < 0 || target.pity >= rules.hardPity) {
-        newErrors.set(`pity-${target.id}`, `Pity must be between 0 and ${rules.hardPity - 1}`);
-      }
-      if (target.radiantStreak < 0 || target.radiantStreak > 3) {
-        newErrors.set(`radiant-${target.id}`, 'Radiant streak should be 0-2');
-      }
-    });
-
+    const newErrors = validateTargets(targets);
     setErrors(newErrors);
     return newErrors.size === 0;
   };
@@ -129,6 +141,8 @@ export function MultiTargetCalculator() {
 
     setIsCalculating(true);
     setProgress(0);
+
+    const minimumLoadingDuration = new Promise((resolve) => setTimeout(resolve, 25));
 
     try {
       // For multi-target, we'll use current state for all targets
@@ -151,7 +165,7 @@ export function MultiTargetCalculator() {
         startingRadiantStreak: targets[0]?.radiantStreak || 0,
         startingPulls: availablePulls,
         incomePerDay: 0, // No daily income for this calculation
-        rules: GACHA_RULES[bannerType],
+        rules,
         config: {
           iterations,
           seed: Date.now(),
@@ -167,6 +181,8 @@ export function MultiTargetCalculator() {
     } catch (error) {
       console.error('Simulation error:', error);
     } finally {
+      // Ensure the loading state is visible for at least a brief moment
+      await minimumLoadingDuration;
       setIsCalculating(false);
     }
   };
@@ -368,7 +384,12 @@ export function MultiTargetCalculator() {
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <div className="text-slate-400">Success Rate</div>
-                      <div className="font-semibold text-slate-100">{(char.probability * 100).toFixed(1)}%</div>
+                      <div className="font-semibold text-slate-100" aria-hidden="true">
+                        {(char.probability * 100).toFixed(1)}
+                      </div>
+                      <span className="sr-only">
+                        {`${(char.probability * 100).toFixed(1)} percent success rate`}
+                      </span>
                     </div>
                     <div>
                       <div className="text-slate-400">Average Pulls</div>
