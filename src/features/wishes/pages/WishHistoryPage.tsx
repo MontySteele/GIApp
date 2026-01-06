@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import { analyzeWishHistory } from '../domain/wishAnalyzer';
+import { wishRepo } from '../repo/wishRepo';
 import { WishImport } from '../components/WishImport';
 import { WishHistoryList } from '../components/WishHistoryList';
 import { WishStatistics } from '../components/WishStatistics';
 import { PityTracker } from '../components/PityTracker';
 import { useWishRecords } from '../repo/hooks/useWishRecords';
 import { toWishHistoryItem, toWishRecord } from '../lib/wishNormalization';
+import { mapHistoryToWishRecords } from '../mappers/wishHistoryMapper';
 
 export function WishHistoryPage() {
   const [sessionHistory, setSessionHistory] = useState<WishHistoryItem[]>([]);

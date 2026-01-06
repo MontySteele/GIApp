@@ -18,6 +18,8 @@ describe('ReverseCalculator', () => {
       expect(screen.getByLabelText(/target probability/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/days available/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/current pity/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/current pulls/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/custom daily primogem income/i)).toBeInTheDocument();
     });
 
     it('should have default values', () => {
@@ -27,6 +29,8 @@ describe('ReverseCalculator', () => {
       expect(screen.getByLabelText(/target probability/i)).toHaveValue(80);
       expect(screen.getByLabelText(/days available/i)).toHaveValue(42);
       expect(screen.getByLabelText(/current pity/i)).toHaveValue(0);
+      expect(screen.getByLabelText(/current pulls/i)).toHaveValue(0);
+      expect(screen.getByLabelText(/custom daily primogem income/i)).toHaveValue(60);
     });
   });
 
@@ -83,6 +87,21 @@ describe('ReverseCalculator', () => {
       await user.type(radiantInput, '2');
 
       expect(radiantInput).toHaveValue(2);
+    });
+
+    it('should allow setting current pulls and custom income', async () => {
+      const user = userEvent.setup();
+      render(<ReverseCalculator />);
+
+      const pullsInput = screen.getByLabelText(/current pulls/i);
+      await user.clear(pullsInput);
+      await user.type(pullsInput, '10');
+      expect(pullsInput).toHaveValue(10);
+
+      const incomeInput = screen.getByLabelText(/custom daily primogem income/i);
+      await user.clear(incomeInput);
+      await user.type(incomeInput, '120');
+      expect(incomeInput).toHaveValue(120);
     });
   });
 
@@ -330,6 +349,21 @@ describe('ReverseCalculator', () => {
       await user.type(pityInput, '100');
 
       expect(screen.getByText(/pity must be between 0 and 89/i)).toBeInTheDocument();
+    });
+
+    it('should validate current pulls and daily income are non-negative', async () => {
+      const user = userEvent.setup();
+      render(<ReverseCalculator />);
+
+      const pullsInput = screen.getByLabelText(/current pulls/i);
+      await user.clear(pullsInput);
+      await user.type(pullsInput, '-1');
+      expect(screen.getByText(/cannot be negative/i)).toBeInTheDocument();
+
+      const incomeInput = screen.getByLabelText(/custom daily primogem income/i);
+      await user.clear(incomeInput);
+      await user.type(incomeInput, '-5');
+      expect(screen.getByText(/cannot be negative/i)).toBeInTheDocument();
     });
   });
 

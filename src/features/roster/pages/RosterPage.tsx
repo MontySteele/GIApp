@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Grid3x3, List, Search, Filter, ArrowLeft, AlertTriangle, Download } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
+import { useTeams } from '../hooks/useTeams';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import CharacterCard from '../components/CharacterCard';
@@ -10,14 +11,17 @@ import Modal from '@/components/ui/Modal';
 import CharacterForm from '../components/CharacterForm';
 import GOODImport from '../components/GOODImport';
 import GOODExport from '../components/GOODExport';
+import TeamForm from '../components/TeamForm';
+import TeamCard from '../components/TeamCard';
+import TeamSnapshotExport from '../components/TeamSnapshotExport';
 import EnkaImport from '../components/EnkaImport';
 import Select from '@/components/ui/Select';
 import { KNOWN_ELEMENTS, KNOWN_RARITIES, KNOWN_WEAPON_TYPES } from '../data/characterMetadata';
-import type { Character, CharacterPriority } from '@/types';
+import type { Character, CharacterPriority, Team } from '@/types';
 import type { CharacterSortField } from '../selectors/characterSelectors';
 
 type AddModalView = 'options' | 'manual' | 'enka' | 'good';
-type ExportModalView = null | 'good';
+type ExportModalView = null | 'good' | 'teams';
 
 interface RosterPageProps {
   enableFilters?: boolean;
@@ -39,7 +43,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
     rarity: null,
     priority: null,
   });
-  const { characters, isLoading, createCharacter, updateCharacter, deleteCharacter } = useCharacters({
+  const { characters, allCharacters, isLoading, createCharacter, updateCharacter, deleteCharacter } = useCharacters({
     filters: {
       ...filters,
       search: searchQuery,
@@ -51,6 +55,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         }
       : undefined,
   });
+  const { teams, isLoading: areTeamsLoading, createTeam, updateTeam, deleteTeam } = useTeams();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalView, setAddModalView] = useState<AddModalView>('options');
@@ -58,6 +63,10 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [deletingCharacter, setDeletingCharacter] = useState<Character | null>(null);
   const [exportModalView, setExportModalView] = useState<ExportModalView>(null);
+  const [teamModalMode, setTeamModalMode] = useState<'create' | 'edit'>('create');
+  const [activeTeam, setActiveTeam] = useState<Team | null>(null);
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
 
   const handleCloseModal = () => {
     setShowAddModal(false);
@@ -94,6 +103,52 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
     []
   );
 
+  const teamNameById = useMemo(
+    () => new Map(teams.map((team) => [team.id, team.name])),
+    [teams]
+  );
+
+  const characterByKey = useMemo(() => {
+    const map = new Map<string, Character>();
+    (allCharacters ?? []).forEach((char) => {
+      map.set(char.key.toLowerCase(), char);
+    });
+    return map;
+  }, [allCharacters]);
+
+  const openCreateTeamModal = () => {
+    setTeamModalMode('create');
+    setActiveTeam(null);
+    setShowTeamModal(true);
+  };
+
+  const openEditTeamModal = (team: Team) => {
+    setTeamModalMode('edit');
+    setActiveTeam(team);
+    setShowTeamModal(true);
+  };
+
+  const closeTeamModal = () => {
+    setShowTeamModal(false);
+    setActiveTeam(null);
+  };
+
+  const handleTeamSubmit = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (teamModalMode === 'create') {
+      await createTeam(teamData);
+    } else if (activeTeam) {
+      await updateTeam(activeTeam.id, teamData);
+    }
+    closeTeamModal();
+  };
+
+  const confirmTeamDelete = async () => {
+    if (!deletingTeam) return;
+
+    await deleteTeam(deletingTeam.id);
+    setDeletingTeam(null);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -116,7 +171,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
           {characters.length > 0 && (
             <Button variant="ghost" onClick={() => setExportModalView('good')}>
               <Download className="w-4 h-4" />
-              Export
+              Export Roster
             </Button>
           )}
           <Button variant="secondary" onClick={() => setShowAddModal(true)}>
@@ -124,6 +179,54 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
             Add Character
           </Button>
         </div>
+      </div>
+
+      {/* Teams Overview */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-2xl font-semibold">Teams</h2>
+            <p className="text-slate-400">Create squads and keep character links in sync.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {teams.length > 0 && (
+              <Button variant="ghost" onClick={() => setExportModalView('teams')}>
+                <Download className="w-4 h-4" />
+                Export Teams
+              </Button>
+            )}
+            <Button variant="secondary" onClick={openCreateTeamModal}>
+              <Plus className="w-4 h-4" />
+              New Team
+            </Button>
+          </div>
+        </div>
+
+        {areTeamsLoading ? (
+          <div className="flex items-center justify-center h-24 text-slate-400">Loading teams...</div>
+        ) : teams.length === 0 ? (
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 text-slate-400">
+            No teams yet. Build your first team to keep rotations organized.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {teams.map((team) => {
+              const members = team.characterKeys
+                .map((key) => characterByKey.get(key.toLowerCase()))
+                .filter(Boolean) as Character[];
+
+              return (
+                <TeamCard
+                  key={team.id}
+                  team={team}
+                  members={members}
+                  onEdit={openEditTeamModal}
+                  onDelete={setDeletingTeam}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {characters.length === 0 ? (
@@ -263,15 +366,22 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
                   : 'space-y-3'
               }
             >
-              {characters.map((character) => (
-                <CharacterCard
-                  key={character.id}
-                  character={character}
-                  onClick={() => navigate(`/roster/${character.id}`)}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))}
+              {characters.map((character) => {
+                const teamLabels = character.teamIds
+                  .map((id) => teamNameById.get(id))
+                  .filter((name): name is string => Boolean(name));
+
+                return (
+                  <CharacterCard
+                    key={character.id}
+                    character={character}
+                    teamNames={teamLabels}
+                    onClick={() => navigate(`/roster/${character.id}`)}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                );
+              })}
             </div>
           )}
         </>
@@ -378,6 +488,21 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         )}
       </Modal>
 
+      {/* Team Modal */}
+      <Modal
+        isOpen={showTeamModal}
+        onClose={closeTeamModal}
+        title={teamModalMode === 'create' ? 'Create Team' : 'Edit Team'}
+        size="lg"
+      >
+        <TeamForm
+          characters={allCharacters}
+          initialData={teamModalMode === 'edit' ? activeTeam ?? undefined : undefined}
+          onSubmit={handleTeamSubmit}
+          onCancel={closeTeamModal}
+        />
+      </Modal>
+
       {/* Edit Character Modal */}
       <Modal
         isOpen={editingCharacter !== null}
@@ -438,15 +563,53 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         )}
       </Modal>
 
+      {/* Delete Team Modal */}
+      <Modal
+        isOpen={deletingTeam !== null}
+        onClose={() => setDeletingTeam(null)}
+        title="Delete Team"
+        size="sm"
+      >
+        {deletingTeam && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-900/20 rounded-lg">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-slate-200 font-medium mb-1">
+                  Delete {deletingTeam.name}?
+                </p>
+                <p className="text-sm text-slate-400">
+                  Linked characters will have this team removed from their profiles.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-700">
+              <Button variant="ghost" onClick={() => setDeletingTeam(null)}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={confirmTeamDelete}>
+                Delete Team
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Export Modal */}
       <Modal
         isOpen={exportModalView !== null}
         onClose={() => setExportModalView(null)}
-        title="Export Roster"
+        title={exportModalView === 'teams' ? 'Export Teams' : 'Export Roster'}
         size="lg"
       >
         {exportModalView === 'good' && (
           <GOODExport onClose={() => setExportModalView(null)} />
+        )}
+        {exportModalView === 'teams' && (
+          <TeamSnapshotExport onClose={() => setExportModalView(null)} />
         )}
       </Modal>
     </div>

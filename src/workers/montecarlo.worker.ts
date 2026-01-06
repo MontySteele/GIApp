@@ -5,6 +5,7 @@ import type { GachaRules, PlannedBanner } from '@/types';
 export interface SimulationConfig {
   iterations: number;
   seed?: number;
+  chunkSize?: number;
 }
 
 export interface SimulationInput {
@@ -45,7 +46,10 @@ function seededRandom(seed: number): () => number {
 /**
  * Run Monte Carlo simulation for multi-target planning
  */
-export function runSimulation(input: SimulationInput): SimulationResult {
+export async function runSimulation(
+  input: SimulationInput,
+  reportProgress?: (progress: number) => void
+): Promise<SimulationResult> {
   const {
     targets,
     startingPity,
@@ -78,6 +82,8 @@ export function runSimulation(input: SimulationInput): SimulationResult {
   }
 
   let allMustHavesSuccesses = 0;
+
+  const chunkSize = Math.max(1, config.chunkSize ?? 1000);
 
   // Run simulations
   for (let sim = 0; sim < config.iterations; sim++) {
@@ -133,6 +139,12 @@ export function runSimulation(input: SimulationInput): SimulationResult {
 
     if (allMustHavesSucceeded) {
       allMustHavesSuccesses++;
+    }
+
+    if ((sim + 1) % chunkSize === 0 || sim === config.iterations - 1) {
+      reportProgress?.(Math.min(1, (sim + 1) / config.iterations));
+      // Yield control to keep the worker responsive during long runs
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
 

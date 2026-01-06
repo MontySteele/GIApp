@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GACHA_TYPE_MAP, WishImport } from './WishImport';
+import { db } from '@/db/schema';
 import { WISH_AUTH_SESSION_KEY } from '../lib/wishSession';
 
 beforeEach(() => {
@@ -17,8 +18,12 @@ beforeEach(() => {
   ) as any;
 });
 
-afterEach(() => {
-  sessionStorage.clear();
+beforeEach(async () => {
+  await db.appMeta.clear();
+});
+
+afterEach(async () => {
+  await db.appMeta.clear();
   vi.resetAllMocks();
 });
 
@@ -127,6 +132,24 @@ describe('WishImport', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/missing.*authkey/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should normalize legacy index.html URLs on blur', async () => {
+      const user = userEvent.setup();
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(
+        urlInput,
+        'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/index.html?authkey=test'
+      );
+      await user.tab(); // triggers blur/normalize
+
+      await waitFor(() => {
+        expect((screen.getByLabelText(/wish history url/i) as HTMLInputElement).value).toContain(
+          '/log?authkey=test'
+        );
       });
     });
   });
@@ -246,12 +269,15 @@ describe('WishImport', () => {
         expect(screen.getByText(/wish url.*expired/i)).toBeInTheDocument();
       });
 
-      expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).toBeNull();
+      await waitFor(async () => {
+        const metaEntry = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
+        expect(metaEntry).toBeUndefined();
+      });
     });
   });
 
   describe('Session handling', () => {
-    it('should clear saved auth session when tab closes', async () => {
+    it('persists saved auth session in app metadata and shows expiry info', async () => {
       const user = userEvent.setup();
       render(<WishImport onImportComplete={vi.fn()} />);
 
@@ -259,25 +285,58 @@ describe('WishImport', () => {
       await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
       await user.tab();
 
-      await waitFor(() => {
-        expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).not.toBeNull();
+      await waitFor(async () => {
+        const saved = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
+        expect(saved?.value.url).toContain('authkey=test');
       });
 
-      window.dispatchEvent(new Event('beforeunload'));
+      expect(await screen.findByText(/wish url expires/i)).toBeInTheDocument();
+    });
 
-      expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).toBeNull();
+    it('prompts regeneration when a saved session is expired', async () => {
+      const expiredTimestamp = Date.now() - 26 * 60 * 60 * 1000;
+      await db.appMeta.put({
+        key: WISH_AUTH_SESSION_KEY,
+        value: {
+          url: 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=expired',
+          storedAt: expiredTimestamp,
+          expiresAt: expiredTimestamp + 24 * 60 * 60 * 1000,
+        },
+      });
+
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      expect(await screen.findByText(/wish url expired/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /refresh link/i })).toBeInTheDocument();
+    });
+
+    it('clears the saved session when refresh link is clicked', async () => {
+      const user = userEvent.setup();
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+      await user.tab();
+
+      const refreshButton = await screen.findByRole('button', { name: /refresh link/i });
+      await user.click(refreshButton);
+
+      await waitFor(async () => {
+        const saved = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
+        expect(saved).toBeUndefined();
+      });
     });
   });
 
   describe('Banner selection', () => {
     it('should fetch all banner types by default', async () => {
       const user = userEvent.setup();
-      const fetchSpy = vi.fn(() =>
-        Promise.resolve({
+      const fetchSpy = vi.fn(() => {
+        return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ data: { list: [] } }),
-        })
-      );
+        });
+      });
       global.fetch = fetchSpy as any;
 
       render(<WishImport onImportComplete={vi.fn()} />);
@@ -349,6 +408,54 @@ describe('WishImport', () => {
       expect(fetchMock).toHaveBeenCalledTimes(4);
       expect(banners).toEqual(
         expect.arrayContaining(['character', 'weapon', 'standard', 'chronicled'])
+      );
+    });
+
+    it('should keep chronicled wishes when paginating with duplicate pages', async () => {
+      const user = userEvent.setup();
+      const onImportComplete = vi.fn();
+
+      const responsesByPage: Record<string, any[]> = {
+        '500-1': [
+          { id: '500-a', gacha_type: '500', rank_type: '5', name: 'Diluc', item_type: 'Character', time: '2024-01-01 00:00:00' },
+        ],
+        '500-2': [
+          // Same end_id should stop the loop without dropping the item
+          { id: '500-a', gacha_type: '500', rank_type: '4', name: 'Amber', item_type: 'Character', time: '2024-01-01 00:00:00' },
+        ],
+      };
+
+      const fetchMock = vi.fn((url: string) => {
+        const parsed = new URL(url);
+        const gachaType = parsed.searchParams.get('gacha_type');
+        const page = parsed.searchParams.get('page');
+        const key = `${gachaType}-${page}`;
+        const list = responsesByPage[key] ?? [];
+
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ data: { list } }),
+        });
+      });
+      global.fetch = fetchMock as any;
+
+      render(<WishImport onImportComplete={onImportComplete} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      const importButton = screen.getByRole('button', { name: /^import$/i });
+      await user.click(importButton);
+
+      await waitFor(() => {
+        expect(onImportComplete).toHaveBeenCalled();
+      });
+
+      const aggregatedWishes = onImportComplete.mock.calls[0][0];
+      expect(aggregatedWishes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: '500-a', banner: 'chronicled' }),
+        ])
       );
     });
 
