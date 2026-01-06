@@ -29,7 +29,7 @@ fn is_standard_weapon(name: &str) -> bool {
     STANDARD_WEAPONS.contains(&normalized.as_str())
 }
 
-fn resolve_is_featured(name: &str, banner: &str, item_type: &str, rarity: u8) -> Option<bool> {
+fn resolve_is_featured(name: &str, banner: &str, rarity: u8) -> Option<bool> {
     if rarity != 5 {
         return None;
     }
