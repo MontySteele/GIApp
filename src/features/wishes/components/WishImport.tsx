@@ -287,7 +287,18 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       setCurrentBanner('');
       onImportComplete(allWishes);
     } catch (error) {
-      let errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      let errorMessage: string;
+
+      // Handle different error types
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else {
+        errorMessage = 'Unknown error occurred';
+      }
 
       // Detect CORS errors (browser only)
       if (!isTauri && error instanceof TypeError && errorMessage.includes('Failed to fetch')) {

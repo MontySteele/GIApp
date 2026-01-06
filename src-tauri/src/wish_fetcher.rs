@@ -45,6 +45,63 @@ fn map_gacha_type(gacha_type: &str) -> String {
     }
 }
 
+/// Extract API endpoint from web URL
+fn get_api_endpoint(web_url: &str) -> Result<String, String> {
+    let url = reqwest::Url::parse(web_url)
+        .map_err(|e| format!("Invalid URL: {}", e))?;
+
+    // Determine region from hostname
+    let hostname = url.host_str().ok_or("No hostname in URL")?;
+
+    let api_base = if hostname.contains("hoyoverse.com") {
+        // Global server
+        "https://hk4e-api-os.hoyoverse.com/event/gacha_info/api/getGachaLog"
+    } else if hostname.contains("mihoyo.com") {
+        // CN server
+        "https://hk4e-api.mihoyo.com/event/gacha_info/api/getGachaLog"
+    } else {
+        return Err(format!("Unknown hostname: {}", hostname));
+    };
+
+    Ok(api_base.to_string())
+}
+
+/// Extract query parameters from web URL
+fn extract_auth_params(web_url: &str) -> Result<Vec<(String, String)>, String> {
+    let url = reqwest::Url::parse(web_url)
+        .map_err(|e| format!("Invalid URL: {}", e))?;
+
+    let mut params = Vec::new();
+    let hostname = url.host_str().ok_or("No hostname in URL")?;
+
+    // Extract important auth parameters
+    for (key, value) in url.query_pairs() {
+        match key.as_ref() {
+            "authkey" | "authkey_ver" | "sign_type" | "auth_appid" |
+            "lang" | "device_type" | "game_biz" | "region" => {
+                params.push((key.to_string(), value.to_string()));
+            }
+            _ => {}
+        }
+    }
+
+    if !params.iter().any(|(k, _)| k == "authkey") {
+        return Err("Missing authkey parameter".to_string());
+    }
+
+    // Add game_biz if not present (required by API)
+    if !params.iter().any(|(k, _)| k == "game_biz") {
+        let game_biz = if hostname.contains("hoyoverse.com") {
+            "hk4e_global"
+        } else {
+            "hk4e_cn"
+        };
+        params.push(("game_biz".to_string(), game_biz.to_string()));
+    }
+
+    Ok(params)
+}
+
 /// Fetch wish history for a specific banner type
 pub async fn fetch_banner_history(
     base_url: &str,
@@ -58,13 +115,24 @@ pub async fn fetch_banner_history(
 
     let client = reqwest::Client::new();
 
+    // Get the correct API endpoint and extract auth params
+    let api_endpoint = get_api_endpoint(base_url)?;
+    let auth_params = extract_auth_params(base_url)?;
+
     loop {
-        // Parse base URL and add query parameters
-        let mut url = reqwest::Url::parse(base_url)
-            .map_err(|e| format!("Invalid URL: {}", e))?;
+        // Build the API URL with auth params and request params
+        let mut url = reqwest::Url::parse(&api_endpoint)
+            .map_err(|e| format!("Invalid API endpoint: {}", e))?;
 
         {
             let mut query_pairs = url.query_pairs_mut();
+
+            // Add auth parameters
+            for (key, value) in &auth_params {
+                query_pairs.append_pair(key, value);
+            }
+
+            // Add request parameters
             query_pairs.append_pair("gacha_type", gacha_type);
             query_pairs.append_pair("page", &page.to_string());
             query_pairs.append_pair("size", &page_size.to_string());
