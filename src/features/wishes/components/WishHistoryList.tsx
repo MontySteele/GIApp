@@ -43,11 +43,11 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
   const getRarityClass = (rarity: 3 | 4 | 5) => {
     switch (rarity) {
       case 5:
-        return 'bg-amber-100 dark:bg-amber-900 border-amber-500 text-amber-900 dark:text-amber-100';
+        return 'bg-amber-900/30 border-amber-500 text-amber-100';
       case 4:
-        return 'bg-purple-100 dark:bg-purple-900 border-purple-500 text-purple-900 dark:text-purple-100';
+        return 'bg-purple-900/30 border-purple-500 text-purple-100';
       case 3:
-        return 'bg-blue-100 dark:bg-blue-900 border-blue-500 text-blue-900 dark:text-blue-100';
+        return 'bg-blue-900/30 border-blue-500 text-blue-100';
     }
   };
 
@@ -76,12 +76,12 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">
         <div className="flex-1 min-w-[200px]">
-          <label htmlFor="banner-filter" className="block text-sm font-medium mb-1">
+          <label htmlFor="banner-filter" className="block text-sm font-medium text-slate-300 mb-1">
             Filter by Banner
           </label>
           <select
             id="banner-filter"
-            className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             value={bannerFilter}
             onChange={(e) => {
               setBannerFilter(e.target.value as BannerType | 'all');
@@ -97,12 +97,12 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
         </div>
 
         <div className="flex-1 min-w-[200px]">
-          <label htmlFor="rarity-filter" className="block text-sm font-medium mb-1">
+          <label htmlFor="rarity-filter" className="block text-sm font-medium text-slate-300 mb-1">
             Filter by Rarity
           </label>
           <select
             id="rarity-filter"
-            className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             value={rarityFilter}
             onChange={(e) => {
               setRarityFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value) as 3 | 4 | 5);
@@ -118,14 +118,14 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
       </div>
 
       {/* Results info */}
-      <div className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="text-sm text-slate-400">
         Showing {filteredAndSorted.length} items
         {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
       </div>
 
       {/* Wish history list */}
       {filteredAndSorted.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-12 text-slate-400">
           No wish history available. Import your wish history to get started.
         </div>
       ) : (
@@ -139,8 +139,8 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className={`font-semibold text-lg ${getRarityClass(item.rarity)}`}>{item.name}</div>
-                <div className="text-sm space-x-3 mt-1">
+                <div className="font-semibold text-lg">{item.name}</div>
+                <div className="text-sm text-slate-300 space-x-3 mt-1">
                   <span className="capitalize">{item.itemType}</span>
                   <span>•</span>
                   <span>{getBannerName(item.banner)}</span>
@@ -151,11 +151,11 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
                 {item.rarity === 5 && item.isFeatured !== undefined && (
                   <div className="mt-2">
                     {item.isFeatured ? (
-                      <span className="text-xs font-semibold px-2 py-1 bg-green-500 text-white rounded">
+                      <span className="text-xs font-semibold px-2 py-1 bg-green-600 text-white rounded">
                         Featured
                       </span>
                     ) : (
-                      <span className="text-xs font-semibold px-2 py-1 bg-red-500 text-white rounded">
+                      <span className="text-xs font-semibold px-2 py-1 bg-red-600 text-white rounded">
                         Lost 50/50
                       </span>
                     )}
@@ -175,17 +175,17 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
       {filteredAndSorted.length > 0 && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
           <button
-            className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700"
+            className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(currentPage - 1)}
           >
             Previous
           </button>
-          <span className="px-4 py-2">
+          <span className="px-4 py-2 text-slate-300">
             Page {currentPage} of {totalPages}
           </span>
           <button
-            className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700"
+            className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(currentPage + 1)}
           >

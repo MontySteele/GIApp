@@ -43,7 +43,7 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
         </div>
 
         {/* Progress bar */}
-        <div className="relative h-8 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div className="relative h-8 bg-slate-700 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all ${getFiveStarColor()}`}
             style={{ width: `${fiveStarProgress}%` }}
@@ -52,7 +52,7 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
             aria-valuenow={fiveStarPity}
             aria-valuemax={rules.hardPity}
           />
-          <div className="absolute inset-0 flex items-center justify-center text-sm font-medium">
+          <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-slate-100">
             {fiveStarPity} / {rules.hardPity}
           </div>
         </div>
@@ -63,11 +63,11 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
           {(bannerType === 'character' || bannerType === 'chronicled') && (
             <div>
               {guaranteed ? (
-                <span className="text-green-600 dark:text-green-400 font-semibold">
+                <span className="text-green-400 font-semibold">
                   ✓ Guaranteed Featured
                 </span>
               ) : (
-                <span className="text-yellow-600 dark:text-yellow-400">
+                <span className="text-yellow-400">
                   50/50
                 </span>
               )}
@@ -76,26 +76,26 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
 
           {/* Soft pity warning */}
           {fiveStarPity >= rules.softPityStart + 1 && fiveStarPity < rules.hardPity && (
-            <div className="text-yellow-600 dark:text-yellow-400">
+            <div className="text-yellow-400">
               ⚠ Soft pity active (increased rates)
             </div>
           )}
 
           {/* Hard pity warning */}
           {fiveStarPity >= rules.hardPity - 1 && (
-            <div className="text-red-600 dark:text-red-400 font-semibold">
+            <div className="text-red-400 font-semibold">
               ⚠ Guaranteed next pull!
             </div>
           )}
 
           {/* Pulls until milestones */}
           {fiveStarPity < 60 && fiveStarPity < rules.hardPity - 1 && (
-            <div className="text-gray-600 dark:text-gray-400">
+            <div className="text-slate-400">
               {pullsUntilSoftPity} pulls until soft pity
             </div>
           )}
           {fiveStarPity >= 60 && fiveStarPity < rules.hardPity - 1 && (
-            <div className="text-gray-600 dark:text-gray-400">
+            <div className="text-slate-400">
               {pullsUntilHardPity} pulls until hard pity
             </div>
           )}
@@ -110,7 +110,7 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
         </div>
 
         {/* Progress bar */}
-        <div className="relative h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div className="relative h-6 bg-slate-700 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all ${getFourStarColor()}`}
             style={{ width: `${fourStarProgress}%` }}
@@ -119,14 +119,14 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
             aria-valuenow={fourStarPity}
             aria-valuemax={10}
           />
-          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-100">
             {fourStarPity} / 10
           </div>
         </div>
 
         {/* 4-star hard pity warning */}
         {fourStarPity >= 9 && (
-          <div className="text-sm text-red-600 dark:text-red-400">
+          <div className="text-sm text-red-400">
             4-star guaranteed next pull!
           </div>
         )}
