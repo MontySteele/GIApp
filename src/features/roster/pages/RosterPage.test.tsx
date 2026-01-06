@@ -7,6 +7,13 @@ import type { CharacterQuery } from '../selectors/characterSelectors';
 import { MemoryRouter } from 'react-router-dom';
 
 const useCharactersSpy = vi.fn<(query?: CharacterQuery) => void>();
+const mockTeamsHook = {
+  teams: [],
+  isLoading: false,
+  createTeam: vi.fn(),
+  updateTeam: vi.fn(),
+  deleteTeam: vi.fn(),
+};
 
 const mockCharacter = {
   id: '1',
@@ -30,6 +37,7 @@ vi.mock('../hooks/useCharacters', () => {
       useCharactersSpy(query);
       return {
         characters: [mockCharacter],
+        allCharacters: [mockCharacter],
         isLoading: false,
         createCharacter: vi.fn(),
         updateCharacter: vi.fn(),
@@ -38,6 +46,10 @@ vi.mock('../hooks/useCharacters', () => {
     },
   };
 });
+
+vi.mock('../hooks/useTeams', () => ({
+  useTeams: () => mockTeamsHook,
+}));
 
 const renderPage = (props?: ComponentProps<typeof RosterPage>) =>
   render(

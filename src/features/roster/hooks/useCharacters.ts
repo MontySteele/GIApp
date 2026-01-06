@@ -35,6 +35,7 @@ export function useCharacters(query?: CharacterQuery) {
 
   return {
     characters: filteredCharacters,
+    allCharacters: characters ?? [],
     createCharacter,
     updateCharacter,
     deleteCharacter,
