@@ -241,19 +241,34 @@ pub async fn fetch_banner_history(
             .ok_or("No data in response")?
             .list;
 
+        eprintln!("DEBUG: Page {} returned {} items for gacha_type={}", page, list.len(), gacha_type);
+
         if list.is_empty() {
+            eprintln!("DEBUG: Empty list, breaking");
             break;
+        }
+
+        // Log the first item's gacha_type for debugging
+        if let Some(first) = list.first() {
+            eprintln!("DEBUG: First item gacha_type='{}' (expected='{}')", first.gacha_type, gacha_type);
         }
 
         // Filter for items that match the requested banner type and haven't been seen
         let new_items: Vec<_> = list
             .into_iter()
             .filter(|item| {
-                !seen_ids.contains(&item.id) && item.gacha_type == gacha_type
+                let dominated = !seen_ids.contains(&item.id) && item.gacha_type == gacha_type;
+                if !dominated {
+                    eprintln!("DEBUG: Filtered out item id={} gacha_type={}", item.id, item.gacha_type);
+                }
+                dominated
             })
             .collect();
 
+        eprintln!("DEBUG: After filtering: {} new items", new_items.len());
+
         if new_items.is_empty() {
+            eprintln!("DEBUG: No new items after filtering, breaking");
             break;
         }
 
@@ -300,6 +315,8 @@ pub async fn fetch_all_wishes(
 ) -> Result<Vec<WishHistoryItem>, String> {
     let mut all_wishes = Vec::new();
 
+    eprintln!("DEBUG fetch_all_wishes: selected_banners = {:?}", selected_banners);
+
     let banner_map: Vec<(&str, Vec<&str>)> = vec![
         ("character", vec!["301", "400"]), // Character Event Wish-1 & Wish-2
         ("weapon", vec!["302"]),
@@ -308,13 +325,19 @@ pub async fn fetch_all_wishes(
     ];
 
     for (banner_name, gacha_types) in banner_map {
-        if selected_banners.contains(&banner_name.to_string()) {
+        let should_fetch = selected_banners.contains(&banner_name.to_string());
+        eprintln!("DEBUG: banner_name={}, should_fetch={}", banner_name, should_fetch);
+
+        if should_fetch {
             for gacha_type in gacha_types {
+                eprintln!("DEBUG: Fetching gacha_type={}", gacha_type);
                 let wishes = fetch_banner_history(url, gacha_type).await?;
+                eprintln!("DEBUG: Got {} wishes for gacha_type={}", wishes.len(), gacha_type);
                 all_wishes.extend(wishes);
             }
         }
     }
 
+    eprintln!("DEBUG: Total wishes fetched = {}", all_wishes.len());
     Ok(all_wishes)
 }
