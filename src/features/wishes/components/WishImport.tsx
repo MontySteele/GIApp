@@ -204,6 +204,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       fetchUrl.searchParams.set('page', page.toString());
       fetchUrl.searchParams.set('size', pageSize.toString());
       fetchUrl.searchParams.set('end_id', endId);
+      const previousEndId = endId;
 
       const response = await fetch(fetchUrl.toString());
 
@@ -231,9 +232,6 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       const newItems = list.filter((item: any) =>
         !seenIds.has(item.id) && String(item.gacha_type) === normalizedGachaType
       );
-      if (newItems.length === 0) {
-        break; // All items already seen or wrong banner type, we've reached the end
-      }
 
       // Transform API data to WishHistoryItem
       for (const item of newItems) {
@@ -256,7 +254,14 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         break;
       }
 
-      endId = list[list.length - 1].id;
+      const nextEndId = list[list.length - 1]?.id;
+
+      // Prevent infinite loops if the API returns duplicate pages
+      if (!nextEndId || nextEndId === previousEndId) {
+        break;
+      }
+
+      endId = nextEndId;
       page++;
 
       // Rate limiting (skip in test environment)

@@ -272,12 +272,12 @@ describe('WishImport', () => {
   describe('Banner selection', () => {
     it('should fetch all banner types by default', async () => {
       const user = userEvent.setup();
-      const fetchSpy = vi.fn(() =>
-        Promise.resolve({
+      const fetchSpy = vi.fn(() => {
+        return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ data: { list: [] } }),
-        })
-      );
+        });
+      });
       global.fetch = fetchSpy as any;
 
       render(<WishImport onImportComplete={vi.fn()} />);
@@ -349,6 +349,54 @@ describe('WishImport', () => {
       expect(fetchMock).toHaveBeenCalledTimes(4);
       expect(banners).toEqual(
         expect.arrayContaining(['character', 'weapon', 'standard', 'chronicled'])
+      );
+    });
+
+    it('should keep chronicled wishes when paginating with duplicate pages', async () => {
+      const user = userEvent.setup();
+      const onImportComplete = vi.fn();
+
+      const responsesByPage: Record<string, any[]> = {
+        '500-1': [
+          { id: '500-a', gacha_type: '500', rank_type: '5', name: 'Diluc', item_type: 'Character', time: '2024-01-01 00:00:00' },
+        ],
+        '500-2': [
+          // Same end_id should stop the loop without dropping the item
+          { id: '500-a', gacha_type: '500', rank_type: '4', name: 'Amber', item_type: 'Character', time: '2024-01-01 00:00:00' },
+        ],
+      };
+
+      const fetchMock = vi.fn((url: string) => {
+        const parsed = new URL(url);
+        const gachaType = parsed.searchParams.get('gacha_type');
+        const page = parsed.searchParams.get('page');
+        const key = `${gachaType}-${page}`;
+        const list = responsesByPage[key] ?? [];
+
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ data: { list } }),
+        });
+      });
+      global.fetch = fetchMock as any;
+
+      render(<WishImport onImportComplete={onImportComplete} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      const importButton = screen.getByRole('button', { name: /^import$/i });
+      await user.click(importButton);
+
+      await waitFor(() => {
+        expect(onImportComplete).toHaveBeenCalled();
+      });
+
+      const aggregatedWishes = onImportComplete.mock.calls[0][0];
+      expect(aggregatedWishes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: '500-a', banner: 'chronicled' }),
+        ])
       );
     });
 
