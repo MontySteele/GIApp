@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react';
 import { GACHA_RULES } from '@/lib/constants';
 import type { BannerType } from '@/types';
-import { runSimulation } from '@/workers/montecarlo.worker';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
+import { createMonteCarloWorker } from '@/workers/montecarloClient';
 
 interface Target {
   id: string;
@@ -24,6 +24,15 @@ export function MultiTargetCalculator() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
+  const workerRef = useRef(createMonteCarloWorker());
+
+  useEffect(() => {
+    const currentWorker = workerRef.current;
+
+    return () => {
+      currentWorker.worker.terminate();
+    };
+  }, []);
 
   const addTarget = () => {
     const newTarget: Target = {
@@ -115,7 +124,7 @@ export function MultiTargetCalculator() {
         },
       };
 
-      const result = runSimulation(simulationInput);
+      const result = await workerRef.current.api.runSimulation(simulationInput);
       setResults(result);
     } catch (error) {
       console.error('Simulation error:', error);
