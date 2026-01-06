@@ -1,3 +1,4 @@
+import { APP_SCHEMA_VERSION } from '@/lib/constants';
 import { db } from './schema';
 
 // Schema migrations will be added here as the app evolves
@@ -19,7 +20,7 @@ export async function initializeDatabase() {
     // Set initial app metadata if not exists
     const schemaVersion = await db.appMeta.get('schemaVersion');
     if (!schemaVersion) {
-      await db.appMeta.put({ key: 'schemaVersion', value: 1 });
+      await db.appMeta.put({ key: 'schemaVersion', value: APP_SCHEMA_VERSION });
       await db.appMeta.put({ key: 'deviceId', value: crypto.randomUUID() });
       await db.appMeta.put({
         key: 'createdAt',

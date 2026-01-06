@@ -64,3 +64,7 @@ export const TABS = [
   { id: 'notes', label: 'Notes', path: '/notes' },
   { id: 'settings', label: 'Settings', path: '/settings' },
 ] as const;
+
+// App Metadata
+export const APP_SCHEMA_VERSION = 1;
+export const BACKUP_REMINDER_DAYS = 7;
