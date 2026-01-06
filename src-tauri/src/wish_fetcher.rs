@@ -329,7 +329,7 @@ pub async fn fetch_banner_history(
                 item_type: item_type.clone(),
                 time: item.time,
                 banner: banner.clone(),
-                is_featured: resolve_is_featured(&item_name, &banner, &item_type, rarity),
+                is_featured: resolve_is_featured(&item_name, &banner, rarity),
             });
 
             end_id = item.id;
