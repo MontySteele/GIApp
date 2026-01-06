@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Grid3x3, List, Search, Filter, ArrowLeft, AlertTriangle, Download } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
@@ -11,16 +11,47 @@ import CharacterForm from '../components/CharacterForm';
 import GOODImport from '../components/GOODImport';
 import GOODExport from '../components/GOODExport';
 import EnkaImport from '../components/EnkaImport';
-import type { Character } from '@/types';
+import Select from '@/components/ui/Select';
+import { KNOWN_ELEMENTS, KNOWN_RARITIES, KNOWN_WEAPON_TYPES } from '../data/characterMetadata';
+import type { Character, CharacterPriority } from '@/types';
+import type { CharacterSortField } from '../selectors/characterSelectors';
 
 type AddModalView = 'options' | 'manual' | 'enka' | 'good';
 type ExportModalView = null | 'good';
 
-export default function RosterPage() {
+interface RosterPageProps {
+  enableFilters?: boolean;
+  enableSorting?: boolean;
+}
+
+export default function RosterPage({ enableFilters = true, enableSorting = true }: RosterPageProps) {
   const navigate = useNavigate();
-  const { characters, isLoading, createCharacter, updateCharacter, deleteCharacter } = useCharacters();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortField, setSortField] = useState<CharacterSortField>('name');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<{
+    element: string | null;
+    weaponType: string | null;
+    rarity: number | null;
+    priority: CharacterPriority | null;
+  }>({
+    element: null,
+    weaponType: null,
+    rarity: null,
+    priority: null,
+  });
+  const { characters, isLoading, createCharacter, updateCharacter, deleteCharacter } = useCharacters({
+    filters: {
+      ...filters,
+      search: searchQuery,
+    },
+    sort: enableSorting
+      ? {
+          field: sortField,
+          direction: sortField === 'level' ? 'desc' : 'asc',
+        }
+      : undefined,
+  });
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalView, setAddModalView] = useState<AddModalView>('options');
   const [showFilters, setShowFilters] = useState(false);
@@ -52,9 +83,15 @@ export default function RosterPage() {
     }
   };
 
-  // Filter characters based on search
-  const filteredCharacters = characters.filter((char) =>
-    char.key.toLowerCase().includes(searchQuery.toLowerCase())
+  const priorityOptions = useMemo(
+    () => [
+      { value: '', label: 'Any Priority' },
+      { value: 'main', label: 'Main' },
+      { value: 'secondary', label: 'Secondary' },
+      { value: 'bench', label: 'Bench' },
+      { value: 'unbuilt', label: 'Unbuilt' },
+    ],
+    []
   );
 
   if (isLoading) {
@@ -105,13 +142,29 @@ export default function RosterPage() {
             </div>
 
             {/* Filters Toggle */}
-            <Button
-              variant={showFilters ? 'primary' : 'secondary'}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-            </Button>
+            {enableFilters && (
+              <Button
+                variant={showFilters ? 'primary' : 'secondary'}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+              </Button>
+            )}
+
+            {enableSorting && (
+              <Select
+                aria-label="Sort characters"
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as CharacterSortField)}
+                options={[
+                  { value: 'name', label: 'Name (A-Z)' },
+                  { value: 'priority', label: 'Priority' },
+                  { value: 'level', label: 'Level (high to low)' },
+                ]}
+                className="w-48"
+              />
+            )}
 
             {/* View Mode Toggle */}
             <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
@@ -139,16 +192,65 @@ export default function RosterPage() {
           </div>
 
           {/* Filters Panel */}
-          {showFilters && (
+          {enableFilters && showFilters && (
             <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-6">
-              <div className="text-sm text-slate-400">
-                Filters coming soon: Element, Weapon Type, Rarity, Priority
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <Select
+                  aria-label="Filter by element"
+                  value={filters.element ?? ''}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, element: e.target.value || null }))
+                  }
+                  options={[
+                    { value: '', label: 'Any Element' },
+                    ...KNOWN_ELEMENTS.map((element) => ({ value: element, label: element })),
+                  ]}
+                />
+                <Select
+                  aria-label="Filter by weapon type"
+                  value={filters.weaponType ?? ''}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, weaponType: e.target.value || null }))
+                  }
+                  options={[
+                    { value: '', label: 'Any Weapon' },
+                    ...KNOWN_WEAPON_TYPES.map((weapon) => ({ value: weapon, label: weapon })),
+                  ]}
+                />
+                <Select
+                  aria-label="Filter by rarity"
+                  value={filters.rarity?.toString() ?? ''}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      rarity: e.target.value ? parseInt(e.target.value, 10) : null,
+                    }))
+                  }
+                  options={[
+                    { value: '', label: 'Any Rarity' },
+                    ...KNOWN_RARITIES.map((rarity) => ({
+                      value: rarity.toString(),
+                      label: `${rarity}★`,
+                    })),
+                  ]}
+                />
+                <Select
+                  aria-label="Filter by priority"
+                  value={filters.priority ?? ''}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      priority: (e.target.value as CharacterPriority) || null,
+                    }))
+                  }
+                  options={priorityOptions}
+                />
               </div>
             </div>
           )}
 
           {/* Character Grid/List */}
-          {filteredCharacters.length === 0 ? (
+          {characters.length === 0 ? (
             <div className="text-center py-12">
               <Search className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <p className="text-slate-400">No characters match your search</p>
@@ -161,7 +263,7 @@ export default function RosterPage() {
                   : 'space-y-3'
               }
             >
-              {filteredCharacters.map((character) => (
+              {characters.map((character) => (
                 <CharacterCard
                   key={character.id}
                   character={character}

@@ -1,10 +1,25 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/schema';
+import { useMemo } from 'react';
 import { characterRepo } from '../repo/characterRepo';
+import { filterAndSortCharacters, type CharacterQuery } from '../selectors/characterSelectors';
 import type { Character } from '@/types';
 
-export function useCharacters() {
+export function useCharacters(query?: CharacterQuery) {
   const characters = useLiveQuery(() => characterRepo.getAll(), []);
+
+  const filteredCharacters = useMemo(
+    () => filterAndSortCharacters(characters ?? [], query),
+    [
+      characters,
+      query?.filters?.element,
+      query?.filters?.weaponType,
+      query?.filters?.rarity,
+      query?.filters?.priority,
+      query?.filters?.search,
+      query?.sort?.field,
+      query?.sort?.direction,
+    ]
+  );
 
   const createCharacter = async (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>) => {
     return characterRepo.create(character);
@@ -19,7 +34,7 @@ export function useCharacters() {
   };
 
   return {
-    characters: characters ?? [],
+    characters: filteredCharacters,
     createCharacter,
     updateCharacter,
     deleteCharacter,
