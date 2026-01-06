@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
+import {
+  clearWishSession,
+  isWishSessionExpired,
+  loadWishSession,
+  saveWishSession,
+} from '../lib/wishSession';
 
 // Check if running in Tauri
 const isTauri = '__TAURI__' in window;
@@ -36,6 +42,27 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     new Set(['character', 'weapon', 'standard', 'chronicled'])
   );
 
+  useEffect(() => {
+    const existingSession = loadWishSession();
+
+    if (existingSession) {
+      if (isWishSessionExpired(existingSession)) {
+        clearWishSession();
+        setUrl('');
+        setUrlError('Your saved wish URL has expired. Please run the script again for a fresh link.');
+      } else {
+        setUrl(existingSession.url);
+      }
+    }
+
+    const handleTabClose = () => {
+      clearWishSession();
+    };
+
+    window.addEventListener('beforeunload', handleTabClose);
+    return () => window.removeEventListener('beforeunload', handleTabClose);
+  }, []);
+
   // Normalize URL - convert /index.html to /log
   const normalizeUrl = (inputUrl: string): string => {
     try {
@@ -49,7 +76,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   };
 
   // Validate URL
-  const validateUrl = (inputUrl: string) => {
+  const validateUrl = (inputUrl: string, options: { normalize?: boolean } = {}) => {
     if (!inputUrl) {
       setUrlError('');
       return false;
@@ -58,9 +85,12 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     try {
       const normalizedUrl = normalizeUrl(inputUrl);
       const parsedUrl = new URL(normalizedUrl);
+      if (options.normalize && normalizedUrl !== inputUrl) {
+        setUrl(normalizedUrl);
+      }
 
       if (!parsedUrl.hostname.includes('hoyoverse.com') && !parsedUrl.hostname.includes('mihoyo.com')) {
-        setUrlError('Invalid URL format. Must be a HoYoverse wish history URL.');
+        setUrlError('Invalid wish history URL. Please paste the full HoYoverse link from the script.');
         return false;
       }
 
@@ -72,23 +102,27 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       setUrlError('');
       return true;
     } catch {
-      setUrlError('Invalid URL format');
+      setUrlError('Invalid wish history URL. Please paste the full HoYoverse link from the script.');
       return false;
     }
   };
 
   // Handle URL change
   const handleUrlChange = (value: string) => {
-    // Automatically normalize the URL
-    const normalized = normalizeUrl(value);
-    setUrl(normalized);
+    setUrl(value);
+    setUrlError('');
     setImportError('');
     setImportSummary(null);
   };
 
   // Handle URL blur
   const handleUrlBlur = () => {
-    validateUrl(url);
+    const isValid = validateUrl(url, { normalize: true });
+    if (isValid) {
+      saveWishSession(url);
+    } else {
+      clearWishSession();
+    }
   };
 
   // Toggle banner selection
@@ -232,13 +266,21 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
   // Import wish history
   const handleImport = async () => {
-    if (!validateUrl(url)) {
+    if (!validateUrl(url, { normalize: true })) {
+      return;
+    }
+
+    const session = loadWishSession();
+    if (isWishSessionExpired(session)) {
+      clearWishSession();
+      setImportError('Your wish URL has expired. Please run the script again to get a new one.');
       return;
     }
 
     setIsImporting(true);
     setImportError('');
     setImportSummary(null);
+    saveWishSession(url);
 
     try {
       let allWishes: WishHistoryItem[];
@@ -303,6 +345,11 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       // Detect CORS errors (browser only)
       if (!isTauri && error instanceof TypeError && errorMessage.includes('Failed to fetch')) {
         errorMessage = 'CORS_ERROR';
+      }
+
+      if (errorMessage.toLowerCase().includes('authkey') && errorMessage.toLowerCase().includes('expire')) {
+        clearWishSession();
+        errorMessage = 'Your wish URL has expired. Please run the script again for a fresh link.';
       }
 
       setImportError(errorMessage);

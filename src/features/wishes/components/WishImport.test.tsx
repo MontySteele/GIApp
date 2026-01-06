@@ -1,7 +1,26 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WishImport } from './WishImport';
+import { WISH_AUTH_SESSION_KEY } from '../lib/wishSession';
+
+beforeEach(() => {
+  global.fetch = vi.fn(() =>
+    new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          ok: true,
+          json: () => Promise.resolve({ data: { list: [] } }),
+        });
+      }, 0);
+    })
+  ) as any;
+});
+
+afterEach(() => {
+  sessionStorage.clear();
+  vi.resetAllMocks();
+});
 
 describe('WishImport', () => {
   describe('Initial render', () => {
@@ -86,7 +105,7 @@ describe('WishImport', () => {
       await user.type(urlInput, 'not-a-valid-url');
       await user.tab(); // Trigger blur validation
 
-      expect(screen.getByText(/invalid.*url/i)).toBeInTheDocument();
+      expect(screen.getByText(/hoyoverse link/i)).toBeInTheDocument();
     });
 
     it('should show error if URL is missing authkey', async () => {
@@ -97,7 +116,9 @@ describe('WishImport', () => {
       await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log');
       await user.tab();
 
-      expect(screen.getByText(/missing.*authkey/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/missing.*authkey/i)).toBeInTheDocument();
+      });
     });
   });
 
@@ -113,7 +134,7 @@ describe('WishImport', () => {
       const importButton = screen.getByRole('button', { name: /^import$/i });
       await user.click(importButton);
 
-      expect(screen.getByText(/importing/i)).toBeInTheDocument();
+      expect(await screen.findByText(/importing/i)).toBeInTheDocument();
       expect(importButton).toBeDisabled();
     });
 
@@ -127,7 +148,7 @@ describe('WishImport', () => {
       const importButton = screen.getByRole('button', { name: /^import$/i });
       await user.click(importButton);
 
-      expect(screen.getByText(/fetching.*character.*banner/i)).toBeInTheDocument();
+      expect(await screen.findByText(/fetching.*banner/i)).toBeInTheDocument();
     });
 
     it('should call onImportComplete with wish data on success', async () => {
@@ -213,8 +234,29 @@ describe('WishImport', () => {
       await user.click(importButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/authkey.*expired/i)).toBeInTheDocument();
+        expect(screen.getByText(/wish url.*expired/i)).toBeInTheDocument();
       });
+
+      expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).toBeNull();
+    });
+  });
+
+  describe('Session handling', () => {
+    it('should clear saved auth session when tab closes', async () => {
+      const user = userEvent.setup();
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+      await user.tab();
+
+      await waitFor(() => {
+        expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).not.toBeNull();
+      });
+
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(sessionStorage.getItem(WISH_AUTH_SESSION_KEY)).toBeNull();
     });
   });
 
@@ -233,7 +275,6 @@ describe('WishImport', () => {
 
       const urlInput = screen.getByLabelText(/wish history url/i);
       await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
-
       const importButton = screen.getByRole('button', { name: /^import$/i });
       await user.click(importButton);
 
