@@ -235,6 +235,44 @@ describe('Character Repository', () => {
     });
   });
 
+  describe('team linkage helpers', () => {
+    it('adds teamId to characters by key', async () => {
+      await characterRepo.bulkCreate([
+        mockCharacterData,
+        { ...mockCharacterData, key: 'Neuvillette' },
+      ]);
+
+      const updatedAt = new Date('2024-01-01').toISOString();
+      await characterRepo.addTeamToCharacters('team-1', ['Furina', 'Neuvillette'], updatedAt);
+
+      const furina = await characterRepo.getByKey('Furina');
+      const neuvillette = await characterRepo.getByKey('Neuvillette');
+
+      expect(furina?.teamIds).toContain('team-1');
+      expect(neuvillette?.teamIds).toContain('team-1');
+      expect(furina?.updatedAt).toBe(updatedAt);
+      expect(neuvillette?.updatedAt).toBe(updatedAt);
+    });
+
+    it('removes teamId from characters by key', async () => {
+      await characterRepo.bulkCreate([
+        { ...mockCharacterData, teamIds: ['team-1'] },
+        { ...mockCharacterData, key: 'Neuvillette', teamIds: ['team-1'] },
+      ]);
+
+      const updatedAt = new Date('2024-01-02').toISOString();
+      await characterRepo.removeTeamFromCharacters('team-1', ['Furina'], updatedAt);
+
+      const furina = await characterRepo.getByKey('Furina');
+      const neuvillette = await characterRepo.getByKey('Neuvillette');
+
+      expect(furina?.teamIds).not.toContain('team-1');
+      expect(neuvillette?.teamIds).toContain('team-1');
+      expect(furina?.updatedAt).toBe(updatedAt);
+      expect(neuvillette?.updatedAt).not.toBe(updatedAt);
+    });
+  });
+
   describe('Complex scenarios', () => {
     it('should handle character with multiple artifacts', async () => {
       const charWith5Artifacts: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {

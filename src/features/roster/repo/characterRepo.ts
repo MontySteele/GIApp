@@ -39,6 +39,36 @@ export const characterRepo = {
     await db.characters.delete(id);
   },
 
+  async addTeamToCharacters(teamId: string, characterKeys: string[], updatedAt = new Date().toISOString()): Promise<void> {
+    if (characterKeys.length === 0) return;
+
+    const characters = await db.characters.where('key').anyOf(characterKeys).toArray();
+
+    for (const character of characters) {
+      if (character.teamIds.includes(teamId)) continue;
+
+      await db.characters.update(character.id, {
+        teamIds: [...character.teamIds, teamId],
+        updatedAt,
+      });
+    }
+  },
+
+  async removeTeamFromCharacters(teamId: string, characterKeys: string[], updatedAt = new Date().toISOString()): Promise<void> {
+    if (characterKeys.length === 0) return;
+
+    const characters = await db.characters.where('key').anyOf(characterKeys).toArray();
+
+    for (const character of characters) {
+      if (!character.teamIds.includes(teamId)) continue;
+
+      await db.characters.update(character.id, {
+        teamIds: character.teamIds.filter((id) => id !== teamId),
+        updatedAt,
+      });
+    }
+  },
+
   async bulkCreate(characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<void> {
     const now = new Date().toISOString();
     const withMetadata = characters.map((char) => ({
