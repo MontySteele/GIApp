@@ -10,15 +10,22 @@ import {
   type PityState,
 } from './wishAnalyzer';
 
+const basePityState: PityState = {
+  fiveStarPity: 0,
+  fourStarPity: 0,
+  guaranteed: false,
+  fatePoints: 0,
+  radiantStreak: 0,
+  radianceActive: false,
+};
+
 describe('Wish Analyzer', () => {
   describe('calculatePityState', () => {
     it('should calculate pity state from empty history', () => {
       const history: WishHistoryItem[] = [];
       const pityState = calculatePityState(history, 'character');
 
-      expect(pityState.fiveStarPity).toBe(0);
-      expect(pityState.fourStarPity).toBe(0);
-      expect(pityState.guaranteed).toBe(false);
+      expect(pityState).toEqual(basePityState);
     });
 
     it('should calculate pity after pulling some 3-stars', () => {
@@ -32,6 +39,8 @@ describe('Wish Analyzer', () => {
       expect(pityState.fiveStarPity).toBe(3);
       expect(pityState.fourStarPity).toBe(3);
       expect(pityState.guaranteed).toBe(false);
+      expect(pityState.fatePoints).toBe(0);
+      expect(pityState.radiantStreak).toBe(0);
     });
 
     it('should reset 4-star pity after getting a 4-star', () => {
@@ -44,17 +53,19 @@ describe('Wish Analyzer', () => {
 
       expect(pityState.fiveStarPity).toBe(3);
       expect(pityState.fourStarPity).toBe(2);
+      expect(pityState.radiantStreak).toBe(0);
     });
 
     it('should reset 5-star pity after getting a 5-star', () => {
       const history: WishHistoryItem[] = [
-        { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'character' },
+        { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'character', isFeatured: true },
         { id: '2', name: 'Cool Steel', rarity: 3, itemType: 'weapon', time: '2024-01-01', banner: 'character' },
       ];
       const pityState = calculatePityState(history, 'character');
 
       expect(pityState.fiveStarPity).toBe(1);
       expect(pityState.fourStarPity).toBe(1);
+      expect(pityState.radiantStreak).toBe(0);
     });
 
     it('should set guaranteed flag when losing 50/50', () => {
@@ -65,6 +76,8 @@ describe('Wish Analyzer', () => {
       const pityState = calculatePityState(history, 'character');
 
       expect(pityState.guaranteed).toBe(true);
+      expect(pityState.radiantStreak).toBe(1);
+      expect(pityState.radianceActive).toBe(false);
     });
 
     it('should clear guaranteed flag when winning featured', () => {
@@ -75,6 +88,7 @@ describe('Wish Analyzer', () => {
       const pityState = calculatePityState(history, 'character');
 
       expect(pityState.guaranteed).toBe(false);
+      expect(pityState.radiantStreak).toBe(0);
     });
 
     it('should only count pulls from the specified banner', () => {
@@ -86,6 +100,34 @@ describe('Wish Analyzer', () => {
       const pityState = calculatePityState(history, 'character');
 
       expect(pityState.fiveStarPity).toBe(2);
+    });
+
+    it('should track capturing radiance after two consecutive losses', () => {
+      const history: WishHistoryItem[] = [
+        { id: '1', name: 'Keqing', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'character', isFeatured: false },
+        { id: '2', name: 'Mona', rarity: 5, itemType: 'character', time: '2024-01-02', banner: 'character', isFeatured: false },
+        { id: '3', name: 'Cool Steel', rarity: 3, itemType: 'weapon', time: '2024-01-03', banner: 'character' },
+      ];
+
+      const pityState = calculatePityState(history, 'character');
+
+      expect(pityState.radiantStreak).toBe(2);
+      expect(pityState.radianceActive).toBe(true);
+      expect(pityState.guaranteed).toBe(true); // Still guaranteed after back-to-back losses
+    });
+
+    it('should track fate points on weapon banner', () => {
+      const history: WishHistoryItem[] = [
+        { id: '1', name: 'Skyward Harp', rarity: 5, itemType: 'weapon', time: '2024-01-01', banner: 'weapon', isFeatured: false },
+        { id: '2', name: 'Lost Prayer', rarity: 5, itemType: 'weapon', time: '2024-01-02', banner: 'weapon', isFeatured: false },
+        { id: '3', name: 'Aqua Simulacra', rarity: 5, itemType: 'weapon', time: '2024-01-03', banner: 'weapon', isFeatured: true },
+      ];
+
+      const pityState = calculatePityState(history, 'weapon');
+
+      expect(pityState.fatePoints).toBe(0);
+      expect(pityState.fiveStarPity).toBe(0);
+      expect(pityState.fourStarPity).toBe(0);
     });
   });
 
