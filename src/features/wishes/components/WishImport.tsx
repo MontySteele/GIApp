@@ -293,10 +293,19 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       if (isTauri) {
         setCurrentBanner('Fetching wish history...');
         const selectedBannersList = Array.from(selectedBanners);
+        console.log('[WishImport] Calling Tauri with selectedBanners:', selectedBannersList);
         allWishes = await invoke<WishHistoryItem[]>('fetch_wish_history', {
           url,
           selectedBanners: selectedBannersList,
         });
+        console.log('[WishImport] Tauri returned', allWishes.length, 'wishes');
+        console.log('[WishImport] Wishes by banner:', allWishes.reduce((acc, w) => {
+          acc[w.banner] = (acc[w.banner] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>));
+        if (allWishes.length > 0) {
+          console.log('[WishImport] First wish:', allWishes[0]);
+        }
       } else {
         // Fallback to browser fetch (will hit CORS)
         const baseUrl = new URL(url);
@@ -313,18 +322,24 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       }
 
       const existingRecords = await wishRepo.getAll();
+      console.log('[WishImport] Existing records in DB:', existingRecords.length);
       const existingIds = new Set(existingRecords.map((record) => record.gachaId));
       const wishesToStore = allWishes
         .filter((wish) => !existingIds.has(wish.id))
         .map(wishHistoryItemToRecord);
 
+      console.log('[WishImport] New wishes to store:', wishesToStore.length);
       if (wishesToStore.length > 0) {
+        console.log('[WishImport] First wish to store:', wishesToStore[0]);
         await wishRepo.bulkCreate(wishesToStore);
       }
 
       const persistedRecords = await wishRepo.getAll();
+      console.log('[WishImport] Total records after import:', persistedRecords.length);
       const persistedSummary = summarizeWishRecords(persistedRecords);
+      console.log('[WishImport] Summary:', persistedSummary);
       const persistedHistory = await loadWishHistoryFromRepo();
+      console.log('[WishImport] Loaded history:', persistedHistory.length, 'items');
 
       setImportSummary(persistedSummary);
       setCurrentBanner('');
