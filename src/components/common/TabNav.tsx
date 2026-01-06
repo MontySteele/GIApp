@@ -22,7 +22,7 @@ const icons = {
 
 export default function TabNav() {
   return (
-    <nav className="bg-slate-900 border-b border-slate-800 sticky top-[73px] z-40">
+    <nav className="bg-white/90 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-[73px] z-40 backdrop-blur">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex gap-1 overflow-x-auto scrollbar-thin">
           {TABS.map((tab) => {
@@ -34,8 +34,8 @@ export default function TabNav() {
                 className={({ isActive }) =>
                   `flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'text-primary-400 border-b-2 border-primary-400'
-                      : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
+                      ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border-b-2 border-transparent'
                   }`
                 }
               >

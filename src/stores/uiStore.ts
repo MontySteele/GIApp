@@ -40,16 +40,68 @@ export const DEFAULT_SETTINGS: UISettings = {
   backupReminderCadenceDays: 14,
 };
 
-export const useUIStore = create<UIState>((set) => ({
-  theme: 'system',
-  setTheme: (theme) => set({ theme }),
+const SETTINGS_STORAGE_KEY = 'ui-settings';
+const THEME_STORAGE_KEY = 'ui-theme';
 
-  settings: { ...DEFAULT_SETTINGS },
+const loadStoredSettings = (): UISettings => {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+
+  const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+  if (!stored) return { ...DEFAULT_SETTINGS };
+
+  try {
+    const parsed = JSON.parse(stored) as Partial<UISettings>;
+    return { ...DEFAULT_SETTINGS, ...parsed };
+  } catch (error) {
+    console.warn('Failed to parse stored UI settings', error);
+    return { ...DEFAULT_SETTINGS };
+  }
+};
+
+const loadStoredTheme = (): UIState['theme'] | null => {
+  if (typeof window === 'undefined') return null;
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === 'light' || stored === 'dark' || stored === 'system') {
+    return stored;
+  }
+  return null;
+};
+
+export const useUIStore = create<UIState>((set, get) => ({
+  theme: loadStoredTheme() ?? loadStoredSettings().defaultTheme,
+  setTheme: (theme) => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    }
+    set({ theme });
+  },
+
+  settings: loadStoredSettings(),
   updateSettings: (settings) =>
-    set((state) => ({
-      settings: { ...state.settings, ...settings },
-    })),
-  resetSettings: () => set({ settings: { ...DEFAULT_SETTINGS } }),
+    set((state) => {
+      const mergedSettings = { ...state.settings, ...settings };
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(mergedSettings));
+      }
+
+      if (settings.defaultTheme) {
+        const currentTheme = get().theme;
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(THEME_STORAGE_KEY, settings.defaultTheme);
+        }
+        return { settings: mergedSettings, theme: settings.defaultTheme ?? currentTheme };
+      }
+
+      return { settings: mergedSettings };
+    }),
+  resetSettings: () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_SETTINGS));
+      window.localStorage.setItem(THEME_STORAGE_KEY, DEFAULT_SETTINGS.defaultTheme);
+    }
+    set({ settings: { ...DEFAULT_SETTINGS }, theme: DEFAULT_SETTINGS.defaultTheme });
+  },
 
   rosterFilter: {
     element: null,

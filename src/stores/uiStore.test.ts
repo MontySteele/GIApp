@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS, useUIStore } from './uiStore';
 
 describe('useUIStore settings surface', () => {
   beforeEach(() => {
+    localStorage.clear();
     useUIStore.setState({
       theme: 'system',
       rosterFilter: {
@@ -25,6 +26,13 @@ describe('useUIStore settings surface', () => {
     expect(state.settings).toEqual(DEFAULT_SETTINGS);
   });
 
+  it('persists theme changes to localStorage', () => {
+    const { setTheme } = useUIStore.getState();
+    setTheme('dark');
+
+    expect(localStorage.getItem('ui-theme')).toBe('dark');
+  });
+
   it('updates settings without overwriting untouched fields', () => {
     const { updateSettings } = useUIStore.getState();
     updateSettings({
@@ -36,6 +44,19 @@ describe('useUIStore settings surface', () => {
       ...DEFAULT_SETTINGS,
       dateFormat: 'yyyy/MM/dd',
     });
+  });
+
+  it('updates default theme and keeps theme state in sync', () => {
+    const { updateSettings } = useUIStore.getState();
+
+    updateSettings({
+      defaultTheme: 'dark',
+    });
+
+    const state = useUIStore.getState();
+    expect(state.settings.defaultTheme).toEqual('dark');
+    expect(state.theme).toEqual('dark');
+    expect(localStorage.getItem('ui-theme')).toBe('dark');
   });
 
   it('can update multiple settings at once', () => {
