@@ -1,15 +1,42 @@
-import { Star, Pencil, ArrowLeft, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Star, Pencil, ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useCharacter } from '../hooks/useCharacters';
+import { useCharacter, useCharacters } from '../hooks/useCharacters';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
+import CharacterForm from '../components/CharacterForm';
 import { formatArtifactSetName, formatSlotName, formatStatName, formatStatValue } from '@/lib/gameData';
 
 export default function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { character, isLoading } = useCharacter(id);
+  const { updateCharacter, deleteCharacter } = useCharacters();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleUpdate = async (data: Parameters<typeof updateCharacter>[1]) => {
+    if (!character) return;
+
+    await updateCharacter(character.id, data);
+    setIsEditModalOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!character) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteCharacter(character.id);
+      navigate('/roster');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -48,11 +75,11 @@ export default function CharacterDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary">
+          <Button variant="secondary" onClick={() => setIsEditModalOpen(true)}>
             <Pencil className="w-4 h-4" />
             Edit
           </Button>
-          <Button variant="danger">
+          <Button variant="danger" onClick={() => setIsDeleteModalOpen(true)}>
             <Trash2 className="w-4 h-4" />
             Delete
           </Button>
@@ -226,6 +253,53 @@ export default function CharacterDetailPage() {
           </Card>
         )}
       </div>
+
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Character"
+        size="lg"
+      >
+        {character && (
+          <CharacterForm
+            initialData={character}
+            onSubmit={handleUpdate}
+            onCancel={() => setIsEditModalOpen(false)}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Character"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-red-900/20 rounded-lg">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-slate-200 font-medium mb-1">
+                Are you sure you want to delete {character?.key}?
+              </p>
+              <p className="text-sm text-slate-400">
+                This action cannot be undone. All character data including talents, weapon, and artifacts will be permanently removed.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-700">
+            <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDelete} loading={isDeleting}>
+              Delete Character
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
