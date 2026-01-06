@@ -44,7 +44,7 @@ describe('Character Repository', () => {
       },
     ],
     notes: 'Main DPS',
-    priority: 'crowned',
+    priority: 'main',
     teamIds: [],
   };
 
@@ -96,6 +96,22 @@ describe('Character Repository', () => {
 
       const characters = await characterRepo.getAll();
       expect(characters).toHaveLength(2);
+    });
+  });
+
+  describe('getByPriority', () => {
+    it('should filter characters by priority', async () => {
+      const mainId = await characterRepo.create(mockCharacterData);
+      await characterRepo.create({
+        ...mockCharacterData,
+        key: 'Neuvillette',
+        priority: 'bench',
+      });
+
+      const mainCharacters = await characterRepo.getByPriority('main');
+
+      expect(mainCharacters).toHaveLength(1);
+      expect(mainCharacters[0].id).toBe(mainId);
     });
   });
 
