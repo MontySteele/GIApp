@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import {
   clearWishSession,
+  getWishSessionExpiry,
   isWishSessionExpired,
   loadWishSession,
   saveWishSession,
@@ -31,6 +32,26 @@ const BANNER_NAMES: Record<BannerType, string> = {
   chronicled: 'Chronicled Wish',
 };
 
+function formatRemainingTime(ms: number | null): string | null {
+  if (ms === null || Number.isNaN(ms)) {
+    return null;
+  }
+
+  const minutes = Math.max(1, Math.ceil(ms / (1000 * 60)));
+  if (minutes >= 120) {
+    const hours = Math.ceil(minutes / 60);
+    return `${hours}h`;
+  }
+
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes - hours * 60;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+  }
+
+  return `${minutes}m`;
+}
+
 export function WishImport({ onImportComplete }: WishImportProps) {
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
@@ -41,26 +62,35 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   const [selectedBanners, setSelectedBanners] = useState<Set<BannerType>>(
     new Set(['character', 'weapon', 'standard', 'chronicled'])
   );
+  const [wishSession, setWishSession] = useState<Awaited<ReturnType<typeof loadWishSession>>>(null);
 
   useEffect(() => {
-    const existingSession = loadWishSession();
+    let isMounted = true;
 
-    if (existingSession) {
-      if (isWishSessionExpired(existingSession)) {
-        clearWishSession();
-        setUrl('');
-        setUrlError('Your saved wish URL has expired. Please run the script again for a fresh link.');
-      } else {
-        setUrl(existingSession.url);
+    const hydrateSession = async () => {
+      try {
+        const existingSession = await loadWishSession();
+        if (!isMounted) {
+          return;
+        }
+
+        if (existingSession) {
+          setWishSession(existingSession);
+          setUrl(existingSession.url);
+          if (isWishSessionExpired(existingSession)) {
+            setUrlError('Your saved wish URL has expired. Please refresh the link to continue.');
+          }
+        }
+      } catch (error) {
+        console.error('[WishImport] Failed to hydrate wish session metadata', error);
       }
-    }
-
-    const handleTabClose = () => {
-      clearWishSession();
     };
 
-    window.addEventListener('beforeunload', handleTabClose);
-    return () => window.removeEventListener('beforeunload', handleTabClose);
+    void hydrateSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Normalize URL - convert /index.html to /log
@@ -116,13 +146,24 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   };
 
   // Handle URL blur
-  const handleUrlBlur = () => {
+  const handleUrlBlur = async () => {
     const isValid = validateUrl(url, { normalize: true });
     if (isValid) {
-      saveWishSession(url);
+      const session = await saveWishSession(url);
+      setWishSession(session);
     } else {
-      clearWishSession();
+      await clearWishSession();
+      setWishSession(null);
     }
+  };
+
+  const handleRefreshLink = async () => {
+    await clearWishSession();
+    setWishSession(null);
+    setUrl('');
+    setUrlError('');
+    setImportError('');
+    setImportSummary(null);
   };
 
   // Toggle banner selection
@@ -197,6 +238,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     let endId = '0';
     const pageSize = 20;
     const normalizedGachaType = String(gachaType);
+    const apiHost = baseUrl.hostname;
 
     while (true) {
       const fetchUrl = new URL(baseUrl.toString());
@@ -216,8 +258,29 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       // Check for API errors
       if (data.retcode !== 0 && data.retcode !== undefined) {
         if (data.retcode === -101) {
+          console.warn('[WishImport] Authkey expired or invalid when fetching wishes', {
+            host: apiHost,
+            gachaType: normalizedGachaType,
+          });
           throw new Error('Authkey has expired. Please run the script again to get a new URL.');
         }
+        if (
+          data.message?.toString().toLowerCase().includes('rate') ||
+          data.message?.toString().toLowerCase().includes('limit')
+        ) {
+          console.warn('[WishImport] Possible rate limit detected while fetching wishes', {
+            host: apiHost,
+            gachaType: normalizedGachaType,
+            retcode: data.retcode,
+          });
+        }
+
+        console.error('[WishImport] API error response from wish history endpoint', {
+          host: apiHost,
+          gachaType: normalizedGachaType,
+          retcode: data.retcode,
+          message: data.message,
+        });
         throw new Error(data.message || `API error: ${data.retcode}`);
       }
 
@@ -274,17 +337,20 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       return;
     }
 
-    const session = loadWishSession();
+    const session = await loadWishSession();
     if (isWishSessionExpired(session)) {
-      clearWishSession();
+      await clearWishSession();
+      setWishSession(null);
       setImportError('Your wish URL has expired. Please run the script again to get a new one.');
+      setUrlError('Your saved wish URL has expired. Use refresh to generate a new link.');
       return;
     }
 
     setIsImporting(true);
     setImportError('');
     setImportSummary(null);
-    saveWishSession(url);
+    const persistedSession = session ?? (await saveWishSession(url));
+    setWishSession(persistedSession);
 
     try {
       let allWishes: WishHistoryItem[];
@@ -352,10 +418,12 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       }
 
       if (errorMessage.toLowerCase().includes('authkey') && errorMessage.toLowerCase().includes('expire')) {
-        clearWishSession();
+        await clearWishSession();
+        setWishSession(null);
         errorMessage = 'Your wish URL has expired. Please run the script again for a fresh link.';
       }
 
+      console.error('[WishImport] Import failed', { reason: errorMessage });
       setImportError(errorMessage);
     } finally {
       setIsImporting(false);
@@ -365,6 +433,19 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   const isValidUrl = url.length > 0 && !urlError;
   const canImport = isValidUrl && selectedBanners.size > 0 && !isImporting;
   const totalImported = importSummary ? Object.values(importSummary).reduce((a, b) => a + b, 0) : 0;
+  const sessionExpiry = useMemo(() => getWishSessionExpiry(wishSession), [wishSession]);
+  const sessionExpiryLabel = useMemo(() => {
+    if (!wishSession) {
+      return null;
+    }
+
+    if (sessionExpiry.expired) {
+      return 'Saved wish URL expired. Refresh to continue.';
+    }
+
+    const formatted = formatRemainingTime(sessionExpiry.remainingMs);
+    return formatted ? `Saved wish URL expires in ${formatted}.` : null;
+  }, [sessionExpiry, wishSession]);
 
   return (
     <div className="space-y-6">
@@ -380,6 +461,15 @@ export function WishImport({ onImportComplete }: WishImportProps) {
           🔒 Your wish history data is private and will not be shared with anyone.
         </p>
       </div>
+
+      {!isTauri && (
+        <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-amber-100">
+          <p className="font-semibold">Browser security limitations</p>
+          <p className="text-sm mt-1">
+            Web browsers block wish history requests because of CORS. Run the desktop app or route requests through a local proxy to import successfully.
+          </p>
+        </div>
+      )}
 
       {/* Script instructions */}
       <div className="space-y-4">
@@ -475,11 +565,32 @@ export function WishImport({ onImportComplete }: WishImportProps) {
             placeholder="https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=..."
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
-            onBlur={handleUrlBlur}
+            onBlur={() => void handleUrlBlur()}
             disabled={isImporting}
           />
           {urlError && (
             <p className="text-sm text-red-400">{urlError}</p>
+          )}
+          {sessionExpiryLabel && (
+            <div
+              className={`mt-2 flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
+                sessionExpiry.expired
+                  ? 'border-red-500/70 bg-red-900/30 text-red-100'
+                  : 'border-amber-500/60 bg-amber-500/10 text-amber-50'
+              }`}
+            >
+              <div className="space-y-1">
+                <p className="font-medium">{sessionExpiry.expired ? 'Wish URL expired' : 'Wish URL expiry'}</p>
+                <p>{sessionExpiryLabel}</p>
+              </div>
+              <button
+                className="rounded-md border border-current px-3 py-1 text-xs font-semibold hover:bg-white/10"
+                onClick={() => void handleRefreshLink()}
+                type="button"
+              >
+                Refresh link
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -529,29 +640,16 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         <div className="p-4 bg-red-900/30 border border-red-500 rounded-lg">
           {importError === 'CORS_ERROR' ? (
             <div className="space-y-3">
-              <h4 className="font-semibold text-red-200">
-                Browser Security Restriction (CORS)
-              </h4>
+              <h4 className="font-semibold text-red-200">Browser path blocked by CORS</h4>
               <p className="text-sm text-red-200">
-                Browsers block direct requests to HoYoverse's API for security reasons. This is a limitation of web-based apps.
+                The HoYoverse wish API rejects requests from browsers. Switch to the desktop app (Tauri) or run imports through a trusted local proxy to bypass CORS.
               </p>
-              <div className="text-sm text-red-200">
-                <p className="font-medium mb-2">Workarounds:</p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>
-                    <strong>Use a CORS proxy:</strong> Set up a local proxy server (requires technical setup)
-                  </li>
-                  <li>
-                    <strong>Desktop app:</strong> Request this app be converted to Tauri/Electron (no CORS restrictions)
-                  </li>
-                  <li>
-                    <strong>Manual export:</strong> Use a third-party tool to export wish history as JSON, then import the file here
-                  </li>
-                </ol>
-              </div>
-              <p className="text-xs text-red-300 mt-2">
-                Note: This is not a bug - it's a fundamental limitation of Progressive Web Apps (PWAs) running in browsers.
-              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-red-200">
+                <li>Desktop app: supports direct imports via Tauri&apos;s native <code className="rounded bg-white/10 px-1">invoke</code> calls.</li>
+                <li>Local proxy: forward traffic to the HoYoverse domain from your machine, then paste the proxied URL here.</li>
+                <li>Manual: export wish history JSON from another tool and import the file.</li>
+              </ul>
+              <p className="text-xs text-red-300 mt-2">Browser CORS protections block requests and will continue to fail without one of the options above.</p>
             </div>
           ) : (
             <p className="text-sm text-red-200">
