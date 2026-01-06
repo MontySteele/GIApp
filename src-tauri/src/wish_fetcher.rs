@@ -237,6 +237,9 @@ pub async fn fetch_banner_history(
             break;
         }
 
+        // Track how many new items we got in this page
+        let new_items_count = new_items.len();
+
         // Transform API data to WishHistoryItem
         for item in new_items {
             seen_ids.insert(item.id.clone());
@@ -257,7 +260,7 @@ pub async fn fetch_banner_history(
         }
 
         // If we got fewer items than requested, we've reached the end
-        if seen_ids.len() < page_size {
+        if new_items_count < page_size {
             break;
         }
 
