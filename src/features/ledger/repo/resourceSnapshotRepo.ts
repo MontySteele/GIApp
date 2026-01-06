@@ -20,6 +20,7 @@ export const resourceSnapshotRepo = {
 
     await db.resourceSnapshots.add({
       ...snapshot,
+      genesisCrystals: snapshot.genesisCrystals ?? 0,
       timestamp: snapshot.timestamp ?? now,
       id,
       createdAt: now,

@@ -63,6 +63,7 @@ export const ledgerRepo = {
 
       await db.resourceSnapshots.add({
         ...snapshot,
+        genesisCrystals: snapshot.genesisCrystals ?? 0,
         id,
         createdAt: new Date().toISOString(),
       });

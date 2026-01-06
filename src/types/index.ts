@@ -151,6 +151,7 @@ export interface ResourceSnapshot {
   id: string;
   timestamp: string;
   primogems: number;
+  genesisCrystals: number;
   intertwined: number;
   acquaint: number;
   starglitter: number;
