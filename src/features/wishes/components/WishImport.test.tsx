@@ -1,9 +1,25 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { WishImport } from './WishImport';
+import { GACHA_TYPE_MAP, WishImport } from './WishImport';
+
+const originalFetch = global.fetch;
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  global.fetch = originalFetch;
+});
 
 describe('WishImport', () => {
+  describe('GACHA_TYPE_MAP', () => {
+    it('should map gacha types to banner types', () => {
+      expect(GACHA_TYPE_MAP['301']).toBe('character');
+      expect(GACHA_TYPE_MAP['302']).toBe('weapon');
+      expect(GACHA_TYPE_MAP['200']).toBe('standard');
+      expect(GACHA_TYPE_MAP['500']).toBe('chronicled');
+    });
+  });
+
   describe('Initial render', () => {
     it('should render import instructions', () => {
       render(<WishImport onImportComplete={vi.fn()} />);
@@ -284,6 +300,50 @@ describe('WishImport', () => {
       await waitFor(() => {
         expect(screen.getByText(/imported.*2.*wishes/i)).toBeInTheDocument();
       });
+    });
+
+    it('should include all banner counts when each gacha type returns data', async () => {
+      const user = userEvent.setup();
+      const onImportComplete = vi.fn();
+
+      const bannerResponses: Record<string, any[]> = {
+        '301': [{ id: '1', gacha_type: 301, rank_type: '5', name: 'Furina', item_type: 'Character', time: '2024-01-01 12:00:00' }],
+        '302': [{ id: '2', gacha_type: 302, rank_type: '5', name: 'Aqua Simulacra', item_type: 'Weapon', time: '2024-01-01 12:10:00' }],
+        '200': [{ id: '3', gacha_type: 200, rank_type: '4', name: 'Jean', item_type: 'Character', time: '2024-01-01 12:20:00' }],
+        '500': [{ id: '4', gacha_type: 500, rank_type: '4', name: 'Diluc', item_type: 'Character', time: '2024-01-01 12:30:00' }],
+      };
+
+      global.fetch = vi.fn((url: string) => {
+        const gachaType = new URL(url).searchParams.get('gacha_type') || '';
+        const list = bannerResponses[gachaType] ?? [];
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ data: { list } }),
+        });
+      }) as any;
+
+      render(<WishImport onImportComplete={onImportComplete} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      const importButton = screen.getByRole('button', { name: /^import$/i });
+      await user.click(importButton);
+
+      await waitFor(() => {
+        expect(onImportComplete).toHaveBeenCalled();
+      });
+
+      const allWishes = onImportComplete.mock.calls[0][0];
+      expect(allWishes).toHaveLength(4);
+      expect(allWishes.map((wish: any) => wish.banner).sort()).toEqual(
+        ['character', 'weapon', 'standard', 'chronicled'].sort()
+      );
+
+      expect(screen.getByText(/character event: 1 wishes/i)).toBeInTheDocument();
+      expect(screen.getByText(/weapon event: 1 wishes/i)).toBeInTheDocument();
+      expect(screen.getByText(/standard: 1 wishes/i)).toBeInTheDocument();
+      expect(screen.getByText(/chronicled wish: 1 wishes/i)).toBeInTheDocument();
     });
 
     it('should show breakdown by banner type', async () => {
