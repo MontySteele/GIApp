@@ -22,16 +22,21 @@ describe('MultiTargetCalculator', () => {
     runSimulationMock.mockClear();
     createMonteCarloWorkerMock.mockClear();
 
-    runSimulationMock.mockImplementation(async (input) => ({
-      perCharacter: input.targets.map((target: { characterKey: string }, index: number) => ({
-        characterKey: target.characterKey,
-        probability: input.startingPulls > 0 ? 0.66 : 0,
-        averagePullsUsed: 30 + index,
-        medianPullsUsed: 25 + index,
-      })),
-      allMustHavesProbability: input.startingPulls > 0 ? 0.66 : 0,
-      pullTimeline: [],
-    }));
+    runSimulationMock.mockImplementation(async (input, reportProgress) => {
+      reportProgress?.(0.5);
+      reportProgress?.(1);
+
+      return {
+        perCharacter: input.targets.map((target: { characterKey: string }, index: number) => ({
+          characterKey: target.characterKey,
+          probability: input.startingPulls > 0 ? 0.66 : 0,
+          averagePullsUsed: 30 + index,
+          medianPullsUsed: 25 + index,
+        })),
+        allMustHavesProbability: input.startingPulls > 0 ? 0.66 : 0,
+        pullTimeline: [],
+      };
+    });
 
     createMonteCarloWorkerMock.mockReturnValue({
       worker: { terminate: vi.fn() } as unknown as Worker,
@@ -422,13 +427,14 @@ describe('MultiTargetCalculator', () => {
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       await waitFor(() => {
-        expect(runSimulationMock).toHaveBeenCalledTimes(1);
-      });
+      expect(runSimulationMock).toHaveBeenCalledTimes(1);
+    });
 
       const input = runSimulationMock.mock.calls[0][0];
       expect(input.startingPulls).toBe(120);
       expect(input.targets[0].characterKey).toBe('Furina');
       expect(input.rules).toBeDefined();
+      expect(input.config.iterations).toBe(5000);
     });
 
     it('should display results returned from the worker', async () => {

@@ -22,6 +22,8 @@ export function MultiTargetCalculator() {
   const [availablePulls, setAvailablePulls] = useState(0);
   const [bannerType, setBannerType] = useState<BannerType>('character');
   const [isCalculating, setIsCalculating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [iterations, setIterations] = useState(5000);
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const workerRef = useRef(createMonteCarloWorker());
@@ -95,6 +97,7 @@ export function MultiTargetCalculator() {
     if (!validate()) return;
 
     setIsCalculating(true);
+    setProgress(0);
 
     try {
       // For multi-target, we'll use current state for all targets
@@ -119,12 +122,16 @@ export function MultiTargetCalculator() {
         incomePerDay: 0, // No daily income for this calculation
         rules: GACHA_RULES[bannerType],
         config: {
-          iterations: 10000,
+          iterations,
           seed: Date.now(),
+          chunkSize: 500,
         },
       };
 
-      const result = await workerRef.current.api.runSimulation(simulationInput);
+      const result = await workerRef.current.api.runSimulation(
+        simulationInput,
+        (value: number) => setProgress(value)
+      );
       setResults(result);
     } catch (error) {
       console.error('Simulation error:', error);
@@ -150,6 +157,28 @@ export function MultiTargetCalculator() {
           ]}
         />
       </div>
+
+      <Card>
+        <CardHeader>
+          <h3 className="font-semibold">Simulation Settings</h3>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Select
+            label="Simulation Count"
+            value={iterations}
+            onChange={(e) => setIterations(Number(e.target.value))}
+            options={[
+              { value: 5000, label: '5,000 (fast)' },
+              { value: 20000, label: '20,000 (balanced)' },
+              { value: 100000, label: '100,000 (slow, more accurate)' },
+            ]}
+          />
+          <p className="text-sm text-amber-300">
+            Higher iterations improve accuracy but can take longer to run. 100k may feel slow on
+            some devices.
+          </p>
+        </CardContent>
+      </Card>
 
       {targets.length === 0 && (
         <Card>
@@ -265,14 +294,19 @@ export function MultiTargetCalculator() {
         </CardContent>
       </Card>
 
-      <Button
-        onClick={handleCalculate}
-        disabled={!canCalculate}
-        className="w-full"
-        variant="primary"
-      >
-        {isCalculating ? 'Calculating...' : 'Calculate'}
-      </Button>
+      <div className="space-y-2">
+        <Button
+          onClick={handleCalculate}
+          disabled={!canCalculate}
+          className="w-full"
+          variant="primary"
+        >
+          {isCalculating ? 'Working…' : 'Calculate'}
+        </Button>
+        {isCalculating && (
+          <div className="text-sm text-center text-slate-300">{(progress * 100).toFixed(0)}% complete</div>
+        )}
+      </div>
 
       {results && (
         <Card>
