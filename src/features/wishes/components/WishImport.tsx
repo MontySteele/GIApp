@@ -20,9 +20,17 @@ interface WishImportProps {
 // Banner type mapping
 export const GACHA_TYPE_MAP: Record<string, BannerType> = {
   '301': 'character',
+  '400': 'character',
   '302': 'weapon',
   '200': 'standard',
   '500': 'chronicled',
+};
+
+const GACHA_TYPES_BY_BANNER: Record<BannerType, string[]> = {
+  character: ['301', '400'], // Character Event Wish-1 & Wish-2
+  weapon: ['302'],
+  standard: ['200'],
+  chronicled: ['500'],
 };
 
 const BANNER_NAMES: Record<BannerType, string> = {
@@ -372,17 +380,14 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         // Fallback to browser fetch (will hit CORS)
         const baseUrl = new URL(url);
         allWishes = [];
-        const bannersToFetch: Array<[BannerType, string]> = [
-          ['character', '301'],
-          ['weapon', '302'],
-          ['standard', '200'],
-          ['chronicled', '500'],
-        ].filter(([bannerType]) => selectedBanners.has(bannerType as BannerType)) as Array<[BannerType, string]>;
+        const bannersToFetch = Array.from(selectedBanners) as BannerType[];
 
-        for (const [bannerType, gachaType] of bannersToFetch) {
-          setCurrentBanner(`Fetching ${BANNER_NAMES[bannerType]} banner...`);
-          const wishes = await fetchBannerHistory(baseUrl, gachaType);
-          allWishes.push(...wishes);
+        for (const bannerType of bannersToFetch) {
+          for (const gachaType of GACHA_TYPES_BY_BANNER[bannerType]) {
+            setCurrentBanner(`Fetching ${BANNER_NAMES[bannerType]} banner...`);
+            const wishes = await fetchBannerHistory(baseUrl, gachaType);
+            allWishes.push(...wishes);
+          }
         }
       }
 

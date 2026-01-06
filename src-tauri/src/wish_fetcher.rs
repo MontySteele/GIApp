@@ -38,6 +38,7 @@ struct ApiWishItem {
 fn map_gacha_type(gacha_type: &str) -> String {
     match gacha_type {
         "301" => "character".to_string(),
+        "400" => "character".to_string(), // Character Event Wish-2
         "302" => "weapon".to_string(),
         "200" => "standard".to_string(),
         "500" => "chronicled".to_string(),
@@ -276,17 +277,19 @@ pub async fn fetch_all_wishes(
 ) -> Result<Vec<WishHistoryItem>, String> {
     let mut all_wishes = Vec::new();
 
-    let banner_map = vec![
-        ("character", "301"),
-        ("weapon", "302"),
-        ("standard", "200"),
-        ("chronicled", "500"),
+    let banner_map: Vec<(&str, Vec<&str>)> = vec![
+        ("character", vec!["301", "400"]), // Character Event Wish-1 & Wish-2
+        ("weapon", vec!["302"]),
+        ("standard", vec!["200"]),
+        ("chronicled", vec!["500"]),
     ];
 
-    for (banner_name, gacha_type) in banner_map {
+    for (banner_name, gacha_types) in banner_map {
         if selected_banners.contains(&banner_name.to_string()) {
-            let wishes = fetch_banner_history(url, gacha_type).await?;
-            all_wishes.extend(wishes);
+            for gacha_type in gacha_types {
+                let wishes = fetch_banner_history(url, gacha_type).await?;
+                all_wishes.extend(wishes);
+            }
         }
     }
 
