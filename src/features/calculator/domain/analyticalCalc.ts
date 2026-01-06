@@ -1,4 +1,5 @@
 import { calculateDistribution, pullsForProbability } from './pityEngine';
+import { INCOME_F2P, INCOME_WELKIN, INCOME_WELKIN_BP, PRIMOS_PER_PULL } from '@/lib/constants';
 import type { GachaRules } from '@/types';
 
 export interface AnalyticalResult {
@@ -65,7 +66,9 @@ export function calculateRequiredIncome(
   currentPity: number,
   isGuaranteed: boolean,
   radiantStreak: number,
-  rules: GachaRules
+  rules: GachaRules,
+  currentAvailablePulls: number,
+  customDailyPrimogemIncome: number
 ): {
   requiredPullsPerDay: number;
   requiredPrimosPerDay: number;
@@ -84,24 +87,25 @@ export function calculateRequiredIncome(
   );
 
   const totalPullsNeeded = avgPullsPerTarget * targetCharacters;
-  const requiredPullsPerDay = totalPullsNeeded / daysAvailable;
-  const requiredPrimosPerDay = requiredPullsPerDay * 160;
+  const pullsCoveredByCustomIncome = (customDailyPrimogemIncome * daysAvailable) / PRIMOS_PER_PULL;
+  const remainingPullsNeeded = Math.max(totalPullsNeeded - currentAvailablePulls - pullsCoveredByCustomIncome, 0);
+  const requiredPullsPerDay = remainingPullsNeeded / daysAvailable;
+  const requiredPrimosPerDay = requiredPullsPerDay * PRIMOS_PER_PULL;
 
   // Compare to benchmarks
-  const F2P_INCOME = 60; // primos/day
-  const WELKIN_INCOME = 150;
-  const WELKIN_BP_INCOME = 170;
-
-  const comparedToF2P = requiredPrimosPerDay / F2P_INCOME;
-  const comparedToWelkin = requiredPrimosPerDay / WELKIN_INCOME;
-  const comparedToWelkinBP = requiredPrimosPerDay / WELKIN_BP_INCOME;
+  const comparedToF2P = requiredPrimosPerDay / INCOME_F2P;
+  const comparedToWelkin = requiredPrimosPerDay / INCOME_WELKIN;
+  const comparedToWelkinBP = requiredPrimosPerDay / INCOME_WELKIN_BP;
+  const effectiveDailyRequirement = customDailyPrimogemIncome + requiredPrimosPerDay;
 
   let feasibility: 'easy' | 'possible' | 'difficult' | 'unlikely';
-  if (requiredPrimosPerDay <= F2P_INCOME) {
+  if (requiredPrimosPerDay <= 0) {
     feasibility = 'easy';
-  } else if (requiredPrimosPerDay <= WELKIN_INCOME) {
+  } else if (effectiveDailyRequirement <= INCOME_F2P) {
+    feasibility = 'easy';
+  } else if (effectiveDailyRequirement <= INCOME_WELKIN) {
     feasibility = 'possible';
-  } else if (requiredPrimosPerDay <= WELKIN_BP_INCOME * 1.5) {
+  } else if (effectiveDailyRequirement <= INCOME_WELKIN_BP * 1.5) {
     feasibility = 'difficult';
   } else {
     feasibility = 'unlikely';

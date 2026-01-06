@@ -8,9 +8,10 @@ interface CharacterCardProps {
   onClick?: () => void;
   onEdit?: (character: Character) => void;
   onDelete?: (character: Character) => void;
+  teamNames?: string[];
 }
 
-export default function CharacterCard({ character, onClick, onEdit, onDelete }: CharacterCardProps) {
+export default function CharacterCard({ character, onClick, onEdit, onDelete, teamNames }: CharacterCardProps) {
   const priorityColors = {
     main: 'border-primary-500',
     secondary: 'border-blue-500',
@@ -114,6 +115,19 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete }: 
             Lv. {character.weapon.level}/{character.weapon.ascension * 10 + 20}
           </div>
         </div>
+
+        {teamNames && teamNames.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs text-slate-500 mb-1">Teams</div>
+            <div className="flex flex-wrap gap-1">
+              {teamNames.map((name) => (
+                <Badge key={`${character.id}-${name}`} variant="outline" className="text-[11px]">
+                  {name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );

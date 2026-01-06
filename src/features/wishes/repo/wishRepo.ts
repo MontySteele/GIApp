@@ -1,7 +1,7 @@
 import { db } from '@/db/schema';
 import type { WishRecord, BannerType } from '@/types';
 
-type NewWishRecord = Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewWishRecord = Omit<WishRecord, 'id' | 'createdAt' | 'updatedAt'>;
 
 export const wishRepo = {
   async getAll(): Promise<WishRecord[]> {

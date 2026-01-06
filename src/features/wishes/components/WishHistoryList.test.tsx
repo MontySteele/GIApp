@@ -135,11 +135,30 @@ describe('WishHistoryList', () => {
       const history: WishHistoryItem[] = [
         { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'character' },
         { id: '2', name: 'Aqua Simulacra', rarity: 5, itemType: 'weapon', time: '2024-01-01', banner: 'weapon' },
+        { id: '3', name: 'Diluc', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'chronicled' },
       ];
       render(<WishHistoryList history={history} />);
 
       expect(screen.getByText('Furina')).toBeInTheDocument();
       expect(screen.getByText('Aqua Simulacra')).toBeInTheDocument();
+      expect(screen.getByText('Diluc')).toBeInTheDocument();
+    });
+
+    it('should filter to chronicled wishes', async () => {
+      const user = userEvent.setup();
+      const history: WishHistoryItem[] = [
+        { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'character' },
+        { id: '2', name: 'Aqua Simulacra', rarity: 5, itemType: 'weapon', time: '2024-01-01', banner: 'weapon' },
+        { id: '3', name: 'Diluc', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'chronicled' },
+      ];
+      render(<WishHistoryList history={history} />);
+
+      const filter = screen.getByLabelText(/filter.*banner/i);
+      await user.selectOptions(filter, 'chronicled');
+
+      expect(screen.getByText('Diluc')).toBeInTheDocument();
+      expect(screen.queryByText('Furina')).not.toBeInTheDocument();
+      expect(screen.queryByText('Aqua Simulacra')).not.toBeInTheDocument();
     });
   });
 
