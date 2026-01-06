@@ -1,20 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
+import { wishRepo } from '../repo/wishRepo';
 import {
-  clearWishSession,
-  getWishSessionExpiry,
-  isWishSessionExpired,
-  loadWishSession,
-  saveWishSession,
-} from '../lib/wishSession';
+  loadWishHistoryFromRepo,
+  summarizeWishRecords,
+  wishHistoryItemToRecord,
+} from '../utils/wishHistory';
 
 // Check if running in Tauri
 const isTauri = '__TAURI__' in window;
 
 interface WishImportProps {
-  onImportComplete: (wishes: WishHistoryItem[]) => void | Promise<void>;
+  onImportComplete: (wishes: WishHistoryItem[]) => void;
 }
 
 // Banner type mapping
@@ -40,26 +39,6 @@ const BANNER_NAMES: Record<BannerType, string> = {
   chronicled: 'Chronicled Wish',
 };
 
-function formatRemainingTime(ms: number | null): string | null {
-  if (ms === null || Number.isNaN(ms)) {
-    return null;
-  }
-
-  const minutes = Math.max(1, Math.ceil(ms / (1000 * 60)));
-  if (minutes >= 120) {
-    const hours = Math.ceil(minutes / 60);
-    return `${hours}h`;
-  }
-
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes - hours * 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-  }
-
-  return `${minutes}m`;
-}
-
 export function WishImport({ onImportComplete }: WishImportProps) {
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
@@ -70,36 +49,6 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   const [selectedBanners, setSelectedBanners] = useState<Set<BannerType>>(
     new Set(['character', 'weapon', 'standard', 'chronicled'])
   );
-  const [wishSession, setWishSession] = useState<Awaited<ReturnType<typeof loadWishSession>>>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const hydrateSession = async () => {
-      try {
-        const existingSession = await loadWishSession();
-        if (!isMounted) {
-          return;
-        }
-
-        if (existingSession) {
-          setWishSession(existingSession);
-          setUrl(existingSession.url);
-          if (isWishSessionExpired(existingSession)) {
-            setUrlError('Your saved wish URL has expired. Please refresh the link to continue.');
-          }
-        }
-      } catch (error) {
-        console.error('[WishImport] Failed to hydrate wish session metadata', error);
-      }
-    };
-
-    void hydrateSession();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Normalize URL - convert /index.html to /log
   const normalizeUrl = (inputUrl: string): string => {
@@ -148,30 +97,13 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   // Handle URL change
   const handleUrlChange = (value: string) => {
     setUrl(value);
-    setUrlError('');
     setImportError('');
     setImportSummary(null);
   };
 
   // Handle URL blur
-  const handleUrlBlur = async () => {
-    const isValid = validateUrl(url, { normalize: true });
-    if (isValid) {
-      const session = await saveWishSession(url);
-      setWishSession(session);
-    } else {
-      await clearWishSession();
-      setWishSession(null);
-    }
-  };
-
-  const handleRefreshLink = async () => {
-    await clearWishSession();
-    setWishSession(null);
-    setUrl('');
-    setUrlError('');
-    setImportError('');
-    setImportSummary(null);
+  const handleUrlBlur = () => {
+    validateUrl(url, { normalize: true });
   };
 
   // Toggle banner selection
@@ -350,20 +282,9 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       return;
     }
 
-    const session = await loadWishSession();
-    if (isWishSessionExpired(session)) {
-      await clearWishSession();
-      setWishSession(null);
-      setImportError('Your wish URL has expired. Please run the script again to get a new one.');
-      setUrlError('Your saved wish URL has expired. Use refresh to generate a new link.');
-      return;
-    }
-
     setIsImporting(true);
     setImportError('');
     setImportSummary(null);
-    const persistedSession = session ?? (await saveWishSession(url));
-    setWishSession(persistedSession);
 
     try {
       let allWishes: WishHistoryItem[];
@@ -391,23 +312,23 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         }
       }
 
-      // Calculate summary
-      const summary: Record<BannerType, number> = {
-        character: 0,
-        weapon: 0,
-        standard: 0,
-        chronicled: 0,
-      };
+      const existingRecords = await wishRepo.getAll();
+      const existingIds = new Set(existingRecords.map((record) => record.gachaId));
+      const wishesToStore = allWishes
+        .filter((wish) => !existingIds.has(wish.id))
+        .map(wishHistoryItemToRecord);
 
-      for (const wish of allWishes) {
-        if (wish.banner in summary) {
-          summary[wish.banner as BannerType]++;
-        }
+      if (wishesToStore.length > 0) {
+        await wishRepo.bulkCreate(wishesToStore);
       }
 
-      setImportSummary(summary);
+      const persistedRecords = await wishRepo.getAll();
+      const persistedSummary = summarizeWishRecords(persistedRecords);
+      const persistedHistory = await loadWishHistoryFromRepo();
+
+      setImportSummary(persistedSummary);
       setCurrentBanner('');
-      await onImportComplete(allWishes);
+      onImportComplete(persistedHistory);
     } catch (error) {
       let errorMessage: string;
 
@@ -427,12 +348,6 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         errorMessage = 'CORS_ERROR';
       }
 
-      if (errorMessage.toLowerCase().includes('authkey') && errorMessage.toLowerCase().includes('expire')) {
-        await clearWishSession();
-        setWishSession(null);
-        errorMessage = 'Your wish URL has expired. Please run the script again for a fresh link.';
-      }
-
       console.error('[WishImport] Import failed', { reason: errorMessage });
       setImportError(errorMessage);
     } finally {
@@ -443,19 +358,6 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   const isValidUrl = url.length > 0 && !urlError;
   const canImport = isValidUrl && selectedBanners.size > 0 && !isImporting;
   const totalImported = importSummary ? Object.values(importSummary).reduce((a, b) => a + b, 0) : 0;
-  const sessionExpiry = useMemo(() => getWishSessionExpiry(wishSession), [wishSession]);
-  const sessionExpiryLabel = useMemo(() => {
-    if (!wishSession) {
-      return null;
-    }
-
-    if (sessionExpiry.expired) {
-      return 'Saved wish URL expired. Refresh to continue.';
-    }
-
-    const formatted = formatRemainingTime(sessionExpiry.remainingMs);
-    return formatted ? `Saved wish URL expires in ${formatted}.` : null;
-  }, [sessionExpiry, wishSession]);
 
   return (
     <div className="space-y-6">
@@ -549,7 +451,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       {/* URL Input */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Step 2: Get Your Wish History URL</h3>
+          <h3 className="text-lg font-semibold">Step 2: Paste Your Wish History URL</h3>
           {isTauri && (
             <button
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
@@ -575,32 +477,11 @@ export function WishImport({ onImportComplete }: WishImportProps) {
             placeholder="https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=..."
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
-            onBlur={() => void handleUrlBlur()}
+            onBlur={handleUrlBlur}
             disabled={isImporting}
           />
           {urlError && (
             <p className="text-sm text-red-400">{urlError}</p>
-          )}
-          {sessionExpiryLabel && (
-            <div
-              className={`mt-2 flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
-                sessionExpiry.expired
-                  ? 'border-red-500/70 bg-red-900/30 text-red-100'
-                  : 'border-amber-500/60 bg-amber-500/10 text-amber-50'
-              }`}
-            >
-              <div className="space-y-1">
-                <p className="font-medium">{sessionExpiry.expired ? 'Wish URL expired' : 'Wish URL expiry'}</p>
-                <p>{sessionExpiryLabel}</p>
-              </div>
-              <button
-                className="rounded-md border border-current px-3 py-1 text-xs font-semibold hover:bg-white/10"
-                onClick={() => void handleRefreshLink()}
-                type="button"
-              >
-                Refresh link
-              </button>
-            </div>
           )}
         </div>
       </div>

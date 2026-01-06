@@ -3,28 +3,28 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GACHA_TYPE_MAP, WishImport } from './WishImport';
 import { db } from '@/db/schema';
-import { WISH_AUTH_SESSION_KEY } from '../lib/wishSession';
+import { wishRepo } from '../repo/wishRepo';
 
-beforeEach(() => {
+vi.mock('@/db/schema', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/db/schema')>();
+  return {
+    ...actual,
+  };
+});
+
+beforeEach(async () => {
+  await db.wishRecords.clear();
   global.fetch = vi.fn(() =>
-    new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: { list: [] } }),
-        });
-      }, 0);
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
     })
   ) as any;
 });
 
-beforeEach(async () => {
-  await db.appMeta.clear();
-});
-
 afterEach(async () => {
-  await db.appMeta.clear();
-  vi.resetAllMocks();
+  await db.wishRecords.clear();
+  vi.restoreAllMocks();
 });
 
 describe('WishImport', () => {
@@ -158,57 +158,19 @@ describe('WishImport', () => {
     it('should show loading state during import', async () => {
       const user = userEvent.setup();
       const onImportComplete = vi.fn();
-      render(<WishImport onImportComplete={onImportComplete} />);
-
-      const urlInput = screen.getByLabelText(/wish history url/i);
-      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
-
-      const importButton = screen.getByRole('button', { name: /^import$/i });
-      await user.click(importButton);
-
-      expect(await screen.findByText(/importing/i)).toBeInTheDocument();
-      expect(importButton).toBeDisabled();
-    });
-
-    it('should show progress during import', async () => {
-      const user = userEvent.setup();
-      render(<WishImport onImportComplete={vi.fn()} />);
-
-      const urlInput = screen.getByLabelText(/wish history url/i);
-      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
-
-      const importButton = screen.getByRole('button', { name: /^import$/i });
-      await user.click(importButton);
-
-      expect(await screen.findByText(/fetching.*banner/i)).toBeInTheDocument();
-    });
-
-    it('should call onImportComplete with wish data on success', async () => {
-      const user = userEvent.setup();
-      const onImportComplete = vi.fn();
-
-      // Mock successful fetch
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            data: {
-              list: [
-                {
-                  id: '1',
-                  gacha_type: '301',
-                  item_id: '10000089',
-                  name: 'Furina',
-                  item_type: 'Character',
-                  rank_type: '5',
-                  time: '2024-01-01 12:00:00',
-                },
-              ],
-            },
-          }),
-        })
+      global.fetch = vi.fn(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
+                }),
+              50
+            )
+          )
       ) as any;
-
       render(<WishImport onImportComplete={onImportComplete} />);
 
       const urlInput = screen.getByLabelText(/wish history url/i);
@@ -218,7 +180,81 @@ describe('WishImport', () => {
       await user.click(importButton);
 
       await waitFor(() => {
+        expect(screen.getByText(/importing/i)).toBeInTheDocument();
+        expect(importButton).toBeDisabled();
+      });
+    });
+
+    it('should show progress during import', async () => {
+      const user = userEvent.setup();
+      global.fetch = vi.fn(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
+                }),
+              50
+            )
+          )
+      ) as any;
+      render(<WishImport onImportComplete={vi.fn()} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      const importButton = screen.getByRole('button', { name: /^import$/i });
+      await user.click(importButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/fetching.*character.*banner/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should call onImportComplete with wish data on success', async () => {
+      const user = userEvent.setup();
+      const onImportComplete = vi.fn();
+
+      // Mock successful fetch
+      global.fetch = vi.fn((url: string) => {
+        const gachaType = new URL(url).searchParams.get('gacha_type');
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            retcode: 0,
+            data: {
+              list: gachaType === '301'
+                ? [
+                  {
+                    id: '1',
+                    gacha_type: '301',
+                    item_id: '10000089',
+                    name: 'Furina',
+                    item_type: 'Character',
+                    rank_type: '5',
+                    time: '2024-01-01 12:00:00',
+                  },
+                ]
+                : [],
+            },
+          }),
+        });
+      }) as any;
+
+      render(<WishImport onImportComplete={onImportComplete} />);
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      const importButton = screen.getByRole('button', { name: /^import$/i });
+      await user.click(importButton);
+
+      await waitFor(async () => {
         expect(onImportComplete).toHaveBeenCalled();
+        const stored = await wishRepo.getAll();
+        expect(stored).toHaveLength(1);
       });
     });
 
@@ -266,65 +302,7 @@ describe('WishImport', () => {
       await user.click(importButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/wish url.*expired/i)).toBeInTheDocument();
-      });
-
-      await waitFor(async () => {
-        const metaEntry = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
-        expect(metaEntry).toBeUndefined();
-      });
-    });
-  });
-
-  describe('Session handling', () => {
-    it('persists saved auth session in app metadata and shows expiry info', async () => {
-      const user = userEvent.setup();
-      render(<WishImport onImportComplete={vi.fn()} />);
-
-      const urlInput = screen.getByLabelText(/wish history url/i);
-      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
-      await user.tab();
-
-      await waitFor(async () => {
-        const saved = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
-        expect(saved?.value.url).toContain('authkey=test');
-      });
-
-      expect(await screen.findByText(/wish url expires/i)).toBeInTheDocument();
-    });
-
-    it('prompts regeneration when a saved session is expired', async () => {
-      const expiredTimestamp = Date.now() - 26 * 60 * 60 * 1000;
-      await db.appMeta.put({
-        key: WISH_AUTH_SESSION_KEY,
-        value: {
-          url: 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=expired',
-          storedAt: expiredTimestamp,
-          expiresAt: expiredTimestamp + 24 * 60 * 60 * 1000,
-        },
-      });
-
-      render(<WishImport onImportComplete={vi.fn()} />);
-
-      const expiredMessages = await screen.findAllByText(/wish url expired/i);
-      expect(expiredMessages.length).toBeGreaterThan(0);
-      expect(screen.getByRole('button', { name: /refresh link/i })).toBeInTheDocument();
-    });
-
-    it('clears the saved session when refresh link is clicked', async () => {
-      const user = userEvent.setup();
-      render(<WishImport onImportComplete={vi.fn()} />);
-
-      const urlInput = screen.getByLabelText(/wish history url/i);
-      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
-      await user.tab();
-
-      const refreshButton = await screen.findByRole('button', { name: /refresh link/i });
-      await user.click(refreshButton);
-
-      await waitFor(async () => {
-        const saved = await db.appMeta.get(WISH_AUTH_SESSION_KEY);
-        expect(saved).toBeUndefined();
+        expect(screen.getByText(/authkey.*expired/i)).toBeInTheDocument();
       });
     });
   });
@@ -335,7 +313,7 @@ describe('WishImport', () => {
       const fetchSpy = vi.fn(() => {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ data: { list: [] } }),
+          json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
         });
       });
       global.fetch = fetchSpy as any;
@@ -375,6 +353,7 @@ describe('WishImport', () => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
+            retcode: 0,
             data: {
               list: gachaType
                 ? [{
@@ -439,7 +418,7 @@ describe('WishImport', () => {
 
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ data: { list } }),
+          json: () => Promise.resolve({ retcode: 0, data: { list } }),
         });
       });
       global.fetch = fetchMock as any;
@@ -474,6 +453,7 @@ describe('WishImport', () => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
+            retcode: 0,
             data: {
               list: gachaType && gachaType !== '302'
                 ? [{
@@ -530,6 +510,7 @@ describe('WishImport', () => {
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
+            retcode: 0,
             data: {
               list: [
                 { id: '1', gacha_type: '301', rank_type: '5', name: 'Furina', item_type: 'Character', time: '2024-01-01 12:00:00' },
@@ -548,8 +529,10 @@ describe('WishImport', () => {
       const importButton = screen.getByRole('button', { name: /^import$/i });
       await user.click(importButton);
 
-      await waitFor(() => {
+      await waitFor(async () => {
         expect(screen.getByText(/imported.*2.*wishes/i)).toBeInTheDocument();
+        const stored = await wishRepo.getAll();
+        expect(stored).toHaveLength(2);
       });
     });
 
@@ -569,7 +552,7 @@ describe('WishImport', () => {
         const list = bannerResponses[gachaType] ?? [];
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ data: { list } }),
+          json: () => Promise.resolve({ retcode: 0, data: { list } }),
         });
       }) as any;
 
@@ -605,6 +588,7 @@ describe('WishImport', () => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
+            retcode: 0,
             data: {
               list: gachaType === '301'
                 ? [{ id: '1', gacha_type: '301', rank_type: '5', name: 'Furina', item_type: 'Character', time: '2024-01-01 12:00:00' }]
@@ -622,8 +606,10 @@ describe('WishImport', () => {
       const importButton = screen.getByRole('button', { name: /^import$/i });
       await user.click(importButton);
 
-      await waitFor(() => {
+      await waitFor(async () => {
         expect(screen.getByText(/character.*event.*1/i)).toBeInTheDocument();
+        const stored = await wishRepo.getAll();
+        expect(stored).toHaveLength(1);
       });
     });
   });
