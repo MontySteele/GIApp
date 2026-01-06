@@ -179,9 +179,75 @@ export function validateGOOD(data: any): data is GOODFormat {
     return false;
   }
 
+  const isValidSubstat = (substat: any): substat is { key: string; value: number } =>
+    typeof substat === 'object' &&
+    substat !== null &&
+    typeof substat.key === 'string' &&
+    typeof substat.value === 'number';
+
+  const isValidArtifact = (artifact: any): artifact is GOODArtifact =>
+    typeof artifact === 'object' &&
+    artifact !== null &&
+    typeof artifact.setKey === 'string' &&
+    typeof artifact.slotKey === 'string' &&
+    typeof artifact.level === 'number' &&
+    typeof artifact.rarity === 'number' &&
+    typeof artifact.mainStatKey === 'string' &&
+    typeof artifact.location === 'string' &&
+    typeof artifact.lock === 'boolean' &&
+    Array.isArray(artifact.substats) &&
+    artifact.substats.every(isValidSubstat);
+
+  const isValidWeapon = (weapon: any): weapon is GOODWeapon =>
+    typeof weapon === 'object' &&
+    weapon !== null &&
+    typeof weapon.key === 'string' &&
+    typeof weapon.level === 'number' &&
+    typeof weapon.ascension === 'number' &&
+    typeof weapon.refinement === 'number' &&
+    typeof weapon.location === 'string' &&
+    typeof weapon.lock === 'boolean';
+
+  const isValidCharacter = (character: any): character is GOODCharacter =>
+    typeof character === 'object' &&
+    character !== null &&
+    typeof character.key === 'string' &&
+    typeof character.level === 'number' &&
+    typeof character.constellation === 'number' &&
+    typeof character.ascension === 'number' &&
+    typeof character.talent === 'object' &&
+    character.talent !== null &&
+    typeof character.talent.auto === 'number' &&
+    typeof character.talent.skill === 'number' &&
+    typeof character.talent.burst === 'number';
+
   // Characters array is optional but must be valid if present
   if (data.characters !== undefined) {
     if (!Array.isArray(data.characters)) {
+      return false;
+    }
+
+    if (!data.characters.every(isValidCharacter)) {
+      return false;
+    }
+  }
+
+  if (data.weapons !== undefined) {
+    if (!Array.isArray(data.weapons)) {
+      return false;
+    }
+
+    if (!data.weapons.every(isValidWeapon)) {
+      return false;
+    }
+  }
+
+  if (data.artifacts !== undefined) {
+    if (!Array.isArray(data.artifacts)) {
+      return false;
+    }
+
+    if (!data.artifacts.every(isValidArtifact)) {
       return false;
     }
   }

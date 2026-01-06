@@ -341,6 +341,121 @@ describe('GOOD Mapper', () => {
 
       expect(validateGOOD(invalidData)).toBe(false);
     });
+
+    it('should reject invalid character entries', () => {
+      const invalidData = {
+        format: 'GOOD',
+        version: 2,
+        source: 'Test',
+        characters: [
+          {
+            key: 'Furina',
+            level: 90,
+            constellation: 0,
+            ascension: 6,
+            talent: { auto: 10, skill: 10 }, // missing burst
+          },
+        ],
+      };
+
+      expect(validateGOOD(invalidData)).toBe(false);
+    });
+
+    it('should validate GOOD format with populated arrays', () => {
+      const validData = {
+        format: 'GOOD',
+        version: 2,
+        source: 'Test',
+        characters: [
+          {
+            key: 'Furina',
+            level: 90,
+            constellation: 0,
+            ascension: 6,
+            talent: { auto: 10, skill: 10, burst: 10 },
+          },
+        ],
+        weapons: [
+          {
+            key: 'weapon',
+            level: 90,
+            ascension: 6,
+            refinement: 1,
+            location: 'Furina',
+            lock: true,
+          },
+        ],
+        artifacts: [
+          {
+            setKey: 'MarechausseeHunter',
+            slotKey: 'flower',
+            level: 20,
+            rarity: 5,
+            mainStatKey: 'hp_',
+            location: 'Furina',
+            lock: true,
+            substats: [
+              { key: 'hp_', value: 4.1 },
+              { key: 'atk_', value: 2 },
+            ],
+          },
+        ],
+      };
+
+      expect(validateGOOD(validData)).toBe(true);
+    });
+
+    it('should reject invalid weapon entries', () => {
+      const invalidData = {
+        format: 'GOOD',
+        version: 2,
+        source: 'Test',
+        weapons: [
+          {
+            key: 'weapon',
+            level: '90',
+            ascension: 6,
+            refinement: 1,
+            location: 'Furina',
+            lock: true,
+          },
+        ],
+      };
+
+      expect(validateGOOD(invalidData)).toBe(false);
+    });
+
+    it('should reject invalid artifact entries', () => {
+      const invalidData = {
+        format: 'GOOD',
+        version: 2,
+        source: 'Test',
+        artifacts: [
+          {
+            setKey: 'MarechausseeHunter',
+            slotKey: 'flower',
+            level: 20,
+            rarity: 5,
+            mainStatKey: 'hp_',
+            location: 'Furina',
+            lock: 'true',
+            substats: [{ key: 'hp_', value: 4.1 }],
+          },
+          {
+            setKey: 'MarechausseeHunter',
+            slotKey: 'plume',
+            level: 20,
+            rarity: 5,
+            mainStatKey: 'atk',
+            location: 'Furina',
+            lock: true,
+            substats: [{ key: 'hp_', value: 'not-a-number' }],
+          },
+        ],
+      };
+
+      expect(validateGOOD(invalidData)).toBe(false);
+    });
   });
 
   describe('Bidirectional conversion', () => {
