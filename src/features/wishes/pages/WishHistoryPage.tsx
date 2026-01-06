@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import { analyzeWishHistory } from '../domain/wishAnalyzer';
@@ -6,14 +6,33 @@ import { WishImport } from '../components/WishImport';
 import { WishHistoryList } from '../components/WishHistoryList';
 import { WishStatistics } from '../components/WishStatistics';
 import { PityTracker } from '../components/PityTracker';
+import { WishManualEntry } from '../components/WishManualEntry';
+import { loadWishHistoryFromRepo } from '../utils/wishHistory';
 
 export function WishHistoryPage() {
   const [wishHistory, setWishHistory] = useState<WishHistoryItem[]>([]);
   const [selectedBanner, setSelectedBanner] = useState<BannerType>('character');
   const [showImport, setShowImport] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadHistory = async () => {
+    const history = await loadWishHistoryFromRepo();
+    setWishHistory(history);
+    setShowImport(history.length === 0);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    void loadHistory();
+  }, []);
 
   // Handle import completion
   const handleImportComplete = (wishes: WishHistoryItem[]) => {
+    setWishHistory(wishes);
+    setShowImport(false);
+  };
+
+  const handleManualEntrySaved = (wishes: WishHistoryItem[]) => {
     setWishHistory(wishes);
     setShowImport(false);
   };
@@ -38,10 +57,21 @@ export function WishHistoryPage() {
         </p>
       </div>
 
+      {isLoading && (
+        <div className="bg-slate-800 border border-slate-700 rounded-lg shadow p-6 mb-6">
+          <p className="text-slate-300">Loading wish history...</p>
+        </div>
+      )}
+
       {/* Show import section if no history or user wants to re-import */}
       {showImport ? (
-        <div className="bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
-          <WishImport onImportComplete={handleImportComplete} />
+        <div className="space-y-6">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
+            <WishImport onImportComplete={handleImportComplete} />
+          </div>
+          <div className="bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
+            <WishManualEntry onEntrySaved={handleManualEntrySaved} />
+          </div>
         </div>
       ) : (
         <>
@@ -53,6 +83,10 @@ export function WishHistoryPage() {
             >
               Re-import Wish History
             </button>
+          </div>
+
+          <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
+            <WishManualEntry onEntrySaved={handleManualEntrySaved} />
           </div>
 
           {/* Banner tabs */}

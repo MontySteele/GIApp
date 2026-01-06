@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
+import { wishRepo } from '../repo/wishRepo';
+import {
+  loadWishHistoryFromRepo,
+  summarizeWishRecords,
+  wishHistoryItemToRecord,
+} from '../utils/wishHistory';
 
 // Check if running in Tauri
 const isTauri = '__TAURI__' in window;
@@ -79,9 +85,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
   // Handle URL change
   const handleUrlChange = (value: string) => {
-    // Automatically normalize the URL
-    const normalized = normalizeUrl(value);
-    setUrl(normalized);
+    setUrl(value);
     setImportError('');
     setImportSummary(null);
   };
@@ -269,23 +273,23 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         }
       }
 
-      // Calculate summary
-      const summary: Record<BannerType, number> = {
-        character: 0,
-        weapon: 0,
-        standard: 0,
-        chronicled: 0,
-      };
+      const existingRecords = await wishRepo.getAll();
+      const existingIds = new Set(existingRecords.map((record) => record.gachaId));
+      const wishesToStore = allWishes
+        .filter((wish) => !existingIds.has(wish.id))
+        .map(wishHistoryItemToRecord);
 
-      for (const wish of allWishes) {
-        if (wish.banner in summary) {
-          summary[wish.banner as BannerType]++;
-        }
+      if (wishesToStore.length > 0) {
+        await wishRepo.bulkCreate(wishesToStore);
       }
 
-      setImportSummary(summary);
+      const persistedRecords = await wishRepo.getAll();
+      const persistedSummary = summarizeWishRecords(persistedRecords);
+      const persistedHistory = await loadWishHistoryFromRepo();
+
+      setImportSummary(persistedSummary);
       setCurrentBanner('');
-      onImportComplete(allWishes);
+      onImportComplete(persistedHistory);
     } catch (error) {
       let errorMessage: string;
 
