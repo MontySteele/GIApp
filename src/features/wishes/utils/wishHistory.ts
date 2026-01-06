@@ -25,6 +25,7 @@ export const wishHistoryItemToRecord = (
   itemType: wish.itemType,
   itemKey: wish.name,
   rarity: wish.rarity,
+  isFeatured: wish.isFeatured,
 });
 
 export const wishRecordToHistoryItem = (record: WishRecord): WishHistoryItem => ({
@@ -34,6 +35,7 @@ export const wishRecordToHistoryItem = (record: WishRecord): WishHistoryItem => 
   itemType: record.itemType,
   time: record.timestamp,
   banner: record.bannerType,
+  isFeatured: record.isFeatured,
 });
 
 export const summarizeWishRecords = (

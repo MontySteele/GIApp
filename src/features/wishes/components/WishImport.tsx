@@ -8,6 +8,7 @@ import {
   summarizeWishRecords,
   wishHistoryItemToRecord,
 } from '../utils/wishHistory';
+import { resolveIsFeatured } from '../data/standardPool';
 
 // Check if running in Tauri
 const isTauri = '__TAURI__' in window;
@@ -241,13 +242,16 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         seenIds.add(item.id);
         const bannerType = GACHA_TYPE_MAP[String(item.gacha_type)];
         if (bannerType) {
+          const itemType = item.item_type.toLowerCase() === 'character' ? 'character' : 'weapon';
+          const rarity = parseInt(item.rank_type) as 3 | 4 | 5;
           wishes.push({
             id: item.id,
             name: item.name,
-            rarity: parseInt(item.rank_type) as 3 | 4 | 5,
-            itemType: item.item_type.toLowerCase() === 'character' ? 'character' : 'weapon',
+            rarity,
+            itemType,
             time: item.time,
             banner: bannerType,
+            isFeatured: resolveIsFeatured(item.name, bannerType, itemType, rarity),
           });
         }
       }

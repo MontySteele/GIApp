@@ -1,6 +1,50 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 
+const STANDARD_CHARACTERS: [&str; 7] = ["diluc", "jean", "keqing", "mona", "qiqi", "tighnari", "dehya"];
+
+const STANDARD_WEAPONS: [&str; 9] = [
+    "amos' bow",
+    "aquila favonia",
+    "lost prayer to the sacred winds",
+    "skyward atlas",
+    "skyward blade",
+    "skyward harp",
+    "skyward pride",
+    "skyward spine",
+    "wolf's gravestone",
+];
+
+fn normalize_name(name: &str) -> String {
+    name.trim().to_lowercase()
+}
+
+fn is_standard_character(name: &str) -> bool {
+    let normalized = normalize_name(name);
+    STANDARD_CHARACTERS.contains(&normalized.as_str())
+}
+
+fn is_standard_weapon(name: &str) -> bool {
+    let normalized = normalize_name(name);
+    STANDARD_WEAPONS.contains(&normalized.as_str())
+}
+
+fn resolve_is_featured(name: &str, banner: &str, item_type: &str, rarity: u8) -> Option<bool> {
+    if rarity != 5 {
+        return None;
+    }
+
+    if banner == "character" || banner == "chronicled" {
+        return Some(!is_standard_character(name));
+    }
+
+    if banner == "weapon" {
+        return Some(!is_standard_weapon(name));
+    }
+
+    None
+}
+
 /// Deserialize a value that could be either a string or a number into a String
 fn string_or_number<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
@@ -28,6 +72,8 @@ pub struct WishHistoryItem {
     pub item_type: String,
     pub time: String,
     pub banner: String,
+    #[serde(rename = "isFeatured", skip_serializing_if = "Option::is_none")]
+    pub is_featured: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -268,17 +314,21 @@ pub async fn fetch_banner_history(
         // Transform API data to WishHistoryItem
         for item in new_items {
             seen_ids.insert(item.id.clone());
+            let rarity = item.rank_type.parse::<u8>().unwrap_or(3);
+            let banner = map_gacha_type(&item.gacha_type);
+            let item_type = if item.item_type.to_lowercase() == "character" {
+                "character".to_string()
+            } else {
+                "weapon".to_string()
+            };
             wishes.push(WishHistoryItem {
                 id: item.id.clone(),
                 name: item.name,
-                rarity: item.rank_type.parse::<u8>().unwrap_or(3),
-                item_type: if item.item_type.to_lowercase() == "character" {
-                    "character".to_string()
-                } else {
-                    "weapon".to_string()
-                },
+                rarity,
+                item_type: item_type.clone(),
                 time: item.time,
-                banner: map_gacha_type(&item.gacha_type),
+                banner: banner.clone(),
+                is_featured: resolve_is_featured(&item.name, &banner, &item_type, rarity),
             });
 
             end_id = item.id;
