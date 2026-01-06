@@ -106,6 +106,21 @@ describe('WishStatistics', () => {
       const rateElement = screen.getByText(/1%/);
       expect(rateElement.className).toMatch(/red|danger/i);
     });
+
+    it('should round long decimal rates for display', () => {
+      const longDecimalStats: BannerStats = {
+        ...mockStats,
+        fiveStarRate: 1.23456,
+        fourStarRate: 13.94,
+        fiftyFiftyWinRate: 47.777,
+      };
+      render(<WishStatistics stats={longDecimalStats} bannerType="character" />);
+
+      expect(screen.getByText('1.2%')).toBeInTheDocument();
+      expect(screen.getByText('13.9%')).toBeInTheDocument();
+      expect(screen.getByText('47.8%')).toBeInTheDocument();
+      expect(screen.queryByText(/1\.234/)).not.toBeInTheDocument();
+    });
   });
 
   describe('Average pity', () => {
