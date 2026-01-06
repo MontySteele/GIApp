@@ -78,30 +78,30 @@ export function ReverseCalculator() {
   const getFeasibilityColor = (feasibility: string) => {
     switch (feasibility) {
       case 'easy':
-        return 'text-green-600';
+        return 'text-green-400';
       case 'possible':
-        return 'text-blue-600';
+        return 'text-blue-400';
       case 'difficult':
-        return 'text-orange-600';
+        return 'text-orange-400';
       case 'unlikely':
-        return 'text-red-600';
+        return 'text-red-400';
       default:
-        return 'text-gray-600';
+        return 'text-slate-400';
     }
   };
 
   const getFeasibilityBg = (feasibility: string) => {
     switch (feasibility) {
       case 'easy':
-        return 'bg-green-100';
+        return 'bg-green-900/30 border border-green-500';
       case 'possible':
-        return 'bg-blue-100';
+        return 'bg-blue-900/30 border border-blue-500';
       case 'difficult':
-        return 'bg-orange-100';
+        return 'bg-orange-900/30 border border-orange-500';
       case 'unlikely':
-        return 'bg-red-100';
+        return 'bg-red-900/30 border border-red-500';
       default:
-        return 'bg-gray-100';
+        return 'bg-slate-800 border border-slate-700';
     }
   };
 
@@ -231,13 +231,13 @@ export function ReverseCalculator() {
           <CardContent className="space-y-6">
             {/* Main metrics */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Pulls Per Day</div>
-                <div className="text-2xl font-bold">{results.requiredPullsPerDay.toFixed(2)}</div>
+              <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg">
+                <div className="text-sm text-slate-400 mb-1">Pulls Per Day</div>
+                <div className="text-2xl font-bold text-slate-100">{results.requiredPullsPerDay.toFixed(2)}</div>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Primogems Per Day</div>
-                <div className="text-2xl font-bold">{results.requiredPrimosPerDay.toFixed(0)}</div>
+              <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg">
+                <div className="text-sm text-slate-400 mb-1">Primogems Per Day</div>
+                <div className="text-2xl font-bold text-slate-100">{results.requiredPrimosPerDay.toFixed(0)}</div>
               </div>
             </div>
 
@@ -245,7 +245,7 @@ export function ReverseCalculator() {
             <div
               className={`p-4 rounded-lg ${getFeasibilityBg(results.feasibility)}`}
             >
-              <div className="text-sm mb-1">Feasibility</div>
+              <div className="text-sm text-slate-400 mb-1">Feasibility</div>
               <div className={`text-2xl font-bold capitalize ${getFeasibilityColor(results.feasibility)}`}>
                 {results.feasibility}
               </div>
@@ -253,16 +253,16 @@ export function ReverseCalculator() {
 
             {/* Income comparisons */}
             <div className="space-y-3">
-              <div className="text-sm font-semibold">Compared to Income Sources</div>
+              <div className="text-sm font-semibold text-slate-300">Compared to Income Sources</div>
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm">F2P (~60 primos/day)</span>
-                  <span className="text-sm font-semibold">×{results.comparedToF2P.toFixed(2)}</span>
+                  <span className="text-sm text-slate-300">F2P (~60 primos/day)</span>
+                  <span className="text-sm font-semibold text-slate-100">×{results.comparedToF2P.toFixed(2)}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-slate-700 rounded-full h-2">
                   <div
-                    className="bg-gray-600 h-2 rounded-full"
+                    className="bg-slate-500 h-2 rounded-full"
                     style={{ width: `${Math.min(100, results.comparedToF2P * 100)}%` }}
                     role="progressbar"
                     aria-valuenow={results.comparedToF2P}
@@ -274,12 +274,12 @@ export function ReverseCalculator() {
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm">Welkin (~150 primos/day)</span>
-                  <span className="text-sm font-semibold">×{results.comparedToWelkin.toFixed(2)}</span>
+                  <span className="text-sm text-slate-300">Welkin (~150 primos/day)</span>
+                  <span className="text-sm font-semibold text-slate-100">×{results.comparedToWelkin.toFixed(2)}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-slate-700 rounded-full h-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full"
+                    className="bg-blue-500 h-2 rounded-full"
                     style={{ width: `${Math.min(100, results.comparedToWelkin * 100)}%` }}
                     role="progressbar"
                     aria-valuenow={results.comparedToWelkin}
@@ -291,12 +291,12 @@ export function ReverseCalculator() {
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm">Welkin + BP (~170 primos/day)</span>
-                  <span className="text-sm font-semibold">×{results.comparedToWelkinBP.toFixed(2)}</span>
+                  <span className="text-sm text-slate-300">Welkin + BP (~170 primos/day)</span>
+                  <span className="text-sm font-semibold text-slate-100">×{results.comparedToWelkinBP.toFixed(2)}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-slate-700 rounded-full h-2">
                   <div
-                    className="bg-purple-600 h-2 rounded-full"
+                    className="bg-purple-500 h-2 rounded-full"
                     style={{ width: `${Math.min(100, results.comparedToWelkinBP * 100)}%` }}
                     role="progressbar"
                     aria-valuenow={results.comparedToWelkinBP}
@@ -308,18 +308,18 @@ export function ReverseCalculator() {
             </div>
 
             {/* Help text */}
-            <div className="text-sm text-gray-600 space-y-2 pt-4 border-t">
+            <div className="text-sm text-slate-400 space-y-2 pt-4 border-t border-slate-700">
               <p>
-                <strong>Easy:</strong> Achievable with F2P income (daily commissions, events)
+                <strong className="text-slate-300">Easy:</strong> Achievable with F2P income (daily commissions, events)
               </p>
               <p>
-                <strong>Possible:</strong> Requires Welkin Moon or equivalent
+                <strong className="text-slate-300">Possible:</strong> Requires Welkin Moon or equivalent
               </p>
               <p>
-                <strong>Difficult:</strong> Requires Welkin + BP or high spending
+                <strong className="text-slate-300">Difficult:</strong> Requires Welkin + BP or high spending
               </p>
               <p>
-                <strong>Unlikely:</strong> Requires significant spending beyond Welkin + BP
+                <strong className="text-slate-300">Unlikely:</strong> Requires significant spending beyond Welkin + BP
               </p>
             </div>
           </CardContent>

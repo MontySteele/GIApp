@@ -144,7 +144,7 @@ export function MultiTargetCalculator() {
 
       {targets.length === 0 && (
         <Card>
-          <CardContent className="py-12 text-center text-gray-500">
+          <CardContent className="py-12 text-center text-slate-400">
             <p className="mb-4">Add characters you want to pull for to get started</p>
           </CardContent>
         </Card>
@@ -272,32 +272,32 @@ export function MultiTargetCalculator() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <div className="text-sm text-gray-600 mb-1">Probability of Getting All Targets</div>
-              <div className="text-3xl font-bold text-primary-600">
+              <div className="text-sm text-slate-400 mb-1">Probability of Getting All Targets</div>
+              <div className="text-3xl font-bold text-primary-400">
                 {(results.allMustHavesProbability * 100).toFixed(1)}%
               </div>
             </div>
 
             <div className="space-y-3">
-              <div className="text-sm font-semibold text-gray-700">Per-Character Results</div>
+              <div className="text-sm font-semibold text-slate-300">Per-Character Results</div>
               {results.perCharacter.map((char) => (
                 <div
                   key={char.characterKey}
-                  className="p-4 bg-gray-50 rounded-lg"
+                  className="p-4 bg-slate-800 border border-slate-700 rounded-lg"
                 >
-                  <div className="font-medium mb-2">{char.characterKey}</div>
+                  <div className="font-medium mb-2 text-slate-100">{char.characterKey}</div>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <div className="text-gray-600">Success Rate</div>
-                      <div className="font-semibold">{(char.probability * 100).toFixed(1)}%</div>
+                      <div className="text-slate-400">Success Rate</div>
+                      <div className="font-semibold text-slate-100">{(char.probability * 100).toFixed(1)}%</div>
                     </div>
                     <div>
-                      <div className="text-gray-600">Average Pulls</div>
-                      <div className="font-semibold">{char.averagePullsUsed.toFixed(1)}</div>
+                      <div className="text-slate-400">Average Pulls</div>
+                      <div className="font-semibold text-slate-100">{char.averagePullsUsed.toFixed(1)}</div>
                     </div>
                     <div>
-                      <div className="text-gray-600">Median Pulls</div>
-                      <div className="font-semibold">{char.medianPullsUsed}</div>
+                      <div className="text-slate-400">Median Pulls</div>
+                      <div className="font-semibold text-slate-100">{char.medianPullsUsed}</div>
                     </div>
                   </div>
                 </div>
