@@ -3,6 +3,7 @@ import { appMetaService, type AppMetaStatus } from '../services/appMetaService';
 
 const defaultStatus: AppMetaStatus = {
   createdAt: undefined,
+  lastBackupAt: undefined,
   schemaVersion: undefined,
   needsBackup: false,
   schemaMismatch: false,
