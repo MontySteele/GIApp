@@ -11,6 +11,8 @@ const ITEMS_PER_PAGE = 20;
 export function WishHistoryList({ history }: WishHistoryListProps) {
   const [bannerFilter, setBannerFilter] = useState<BannerType | 'all'>('all');
   const [rarityFilter, setRarityFilter] = useState<3 | 4 | 5 | 'all'>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Apply filters and sorting
@@ -27,11 +29,23 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
       filtered = filtered.filter((item) => item.rarity === rarityFilter);
     }
 
+    // Filter by date range
+    if (startDate) {
+      const start = new Date(startDate);
+      filtered = filtered.filter((item) => new Date(item.time) >= start);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((item) => new Date(item.time) <= end);
+    }
+
     // Sort by newest first
     filtered.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
     return filtered;
-  }, [history, bannerFilter, rarityFilter]);
+  }, [history, bannerFilter, rarityFilter, startDate, endDate]);
 
   // Paginate
   const totalPages = Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE);
@@ -114,6 +128,38 @@ export function WishHistoryList({ history }: WishHistoryListProps) {
             <option value="4">4-Star</option>
             <option value="3">3-Star</option>
           </select>
+        </div>
+
+        <div className="flex-1 min-w-[200px]">
+          <label htmlFor="start-date" className="block text-sm font-medium text-slate-300 mb-1">
+            Start Date
+          </label>
+          <input
+            id="start-date"
+            type="date"
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+
+        <div className="flex-1 min-w-[200px]">
+          <label htmlFor="end-date" className="block text-sm font-medium text-slate-300 mb-1">
+            End Date
+          </label>
+          <input
+            id="end-date"
+            type="date"
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
         </div>
       </div>
 
