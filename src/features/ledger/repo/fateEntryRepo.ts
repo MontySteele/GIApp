@@ -14,6 +14,10 @@ export const fateEntryRepo = {
     return db.fateEntries.get(id);
   },
 
+  async getByDateRange(startDate: string, endDate: string): Promise<FateEntry[]> {
+    return db.fateEntries.where('timestamp').between(startDate, endDate, true, true).toArray();
+  },
+
   async create(entry: FateEntryInput): Promise<string> {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();

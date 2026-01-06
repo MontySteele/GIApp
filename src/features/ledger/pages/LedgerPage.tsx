@@ -7,12 +7,33 @@ import Select from '@/components/ui/Select';
 import { primogemEntryRepo } from '../repo/primogemEntryRepo';
 import { fateEntryRepo } from '../repo/fateEntryRepo';
 import { resourceSnapshotRepo } from '../repo/resourceSnapshotRepo';
+import { wishRepo } from '@/features/wishes/repo/wishRepo';
+import IncomeTimeline from '../components/IncomeTimeline';
+import {
+  bucketPrimogemEntries,
+  calculateAvailablePulls,
+  calculateWishSpending,
+  splitPrimogemIncome,
+  type IncomeBucketFilters,
+} from '../domain/resourceCalculations';
 import type { FateType, PrimogemSource, FateSource } from '@/types';
+
+const FAR_FUTURE = '9999-12-31T23:59:59.999Z';
 
 export default function LedgerPage() {
   const primogemEntries = useLiveQuery(() => primogemEntryRepo.getAll(), []);
   const fateEntries = useLiveQuery(() => fateEntryRepo.getAll(), []);
   const latestSnapshot = useLiveQuery(() => resourceSnapshotRepo.getLatest(), []);
+  const snapshotTimestamp = latestSnapshot?.timestamp;
+  const postSnapshotPrimogemEntries = useLiveQuery(
+    () => (snapshotTimestamp ? primogemEntryRepo.getByDateRange(snapshotTimestamp, FAR_FUTURE) : primogemEntryRepo.getAll()),
+    [snapshotTimestamp]
+  );
+  const postSnapshotFateEntries = useLiveQuery(
+    () => (snapshotTimestamp ? fateEntryRepo.getByDateRange(snapshotTimestamp, FAR_FUTURE) : fateEntryRepo.getAll()),
+    [snapshotTimestamp]
+  );
+  const wishRecords = useLiveQuery(() => wishRepo.getAll(), []);
 
   const [primogemAmount, setPrimogemAmount] = useState<number>(0);
   const [primogemSource, setPrimogemSource] = useState<PrimogemSource>('daily_commission');
@@ -30,6 +51,12 @@ export default function LedgerPage() {
     starglitter: latestSnapshot?.starglitter ?? 0,
     stardust: latestSnapshot?.stardust ?? 0,
   });
+  const [includePurchases, setIncludePurchases] = useState(true);
+  const [timelineFilters, setTimelineFilters] = useState<IncomeBucketFilters>({
+    interval: 'week',
+    includePurchases: true,
+    source: 'all',
+  });
 
   useEffect(() => {
     if (!latestSnapshot) return;
@@ -43,9 +70,18 @@ export default function LedgerPage() {
     });
   }, [latestSnapshot]);
 
+  useEffect(() => {
+    setTimelineFilters((prev) => ({ ...prev, includePurchases }));
+  }, [includePurchases]);
+
   const primogemTotal = useMemo(
     () => primogemEntries?.reduce((sum, entry) => sum + entry.amount, 0) ?? 0,
     [primogemEntries]
+  );
+
+  const primogemDelta = useMemo(
+    () => postSnapshotPrimogemEntries?.reduce((sum, entry) => sum + entry.amount, 0) ?? 0,
+    [postSnapshotPrimogemEntries]
   );
 
   const fateTotals = useMemo(() => {
@@ -56,17 +92,73 @@ export default function LedgerPage() {
     return totals;
   }, [fateEntries]);
 
-  const effectivePrimogems = latestSnapshot?.primogems ?? primogemTotal;
-  const effectiveIntertwined = latestSnapshot?.intertwined ?? fateTotals.intertwined;
-  const effectiveAcquaint = latestSnapshot?.acquaint ?? fateTotals.acquaint;
+  const fateDeltas = useMemo(() => {
+    const totals: Record<FateType, number> = { intertwined: 0, acquaint: 0 };
+    (postSnapshotFateEntries ?? []).forEach((entry) => {
+      totals[entry.fateType] += entry.amount;
+    });
+    return totals;
+  }, [postSnapshotFateEntries]);
+
+  const wishSpending = useMemo(
+    () => (snapshotTimestamp ? calculateWishSpending(wishRecords ?? [], snapshotTimestamp) : undefined),
+    [snapshotTimestamp, wishRecords]
+  );
+
+  const primogemIncomeSplit = useMemo(
+    () => splitPrimogemIncome((snapshotTimestamp ? postSnapshotPrimogemEntries : primogemEntries) ?? []),
+    [postSnapshotPrimogemEntries, primogemEntries, snapshotTimestamp]
+  );
+
+  const basePrimogems = latestSnapshot?.primogems ?? primogemTotal;
+  const primogemGross = latestSnapshot ? basePrimogems + primogemDelta : primogemTotal;
+  const primogemAfterSpending = primogemGross - (wishSpending?.primogemEquivalent ?? 0);
+  const effectivePrimogems = Math.max(0, primogemAfterSpending);
+
+  const effectiveIntertwined = Math.max(
+    0,
+    (latestSnapshot ? latestSnapshot.intertwined + fateDeltas.intertwined : fateTotals.intertwined) -
+      (wishSpending?.pullsByFate.intertwined ?? 0)
+  );
+  const effectiveAcquaint = Math.max(
+    0,
+    (latestSnapshot ? latestSnapshot.acquaint + fateDeltas.acquaint : fateTotals.acquaint) -
+      (wishSpending?.pullsByFate.acquaint ?? 0)
+  );
   const effectiveGenesis = latestSnapshot?.genesisCrystals ?? 0;
   const effectiveStarglitter = latestSnapshot?.starglitter ?? 0;
 
-  const wishesAvailable = useMemo(() => {
-    const primogemWishes = (effectivePrimogems + effectiveGenesis) / 160;
-    const starglitterWishes = Math.floor(effectiveStarglitter / 5);
-    return primogemWishes + effectiveIntertwined + effectiveAcquaint + starglitterWishes;
-  }, [effectivePrimogems, effectiveGenesis, effectiveIntertwined, effectiveAcquaint, effectiveStarglitter]);
+  const wishesAvailable = useMemo(
+    () =>
+      calculateAvailablePulls({
+        primogems: effectivePrimogems,
+        genesisCrystals: effectiveGenesis,
+        intertwined: effectiveIntertwined,
+        acquaint: effectiveAcquaint,
+        starglitter: effectiveStarglitter,
+      }),
+    [effectiveAcquaint, effectiveGenesis, effectiveIntertwined, effectivePrimogems, effectiveStarglitter]
+  );
+
+  const netChangePrimogems = latestSnapshot ? primogemDelta - (wishSpending?.primogemEquivalent ?? 0) : primogemTotal;
+  const netChangeIntertwined = latestSnapshot
+    ? fateDeltas.intertwined - (wishSpending?.pullsByFate.intertwined ?? 0)
+    : fateTotals.intertwined;
+  const netChangeAcquaint = latestSnapshot
+    ? fateDeltas.acquaint - (wishSpending?.pullsByFate.acquaint ?? 0)
+    : fateTotals.acquaint;
+
+  const filteredNetChangePrimogems = includePurchases
+    ? netChangePrimogems
+    : netChangePrimogems - primogemIncomeSplit.purchased;
+
+  const incomeBuckets = useMemo(
+    () => bucketPrimogemEntries(primogemEntries ?? [], timelineFilters),
+    [primogemEntries, timelineFilters]
+  );
+
+  const wishSpendingTotals =
+    wishSpending ?? { totalPulls: 0, primogemEquivalent: 0, pullsByFate: { intertwined: 0, acquaint: 0 } };
 
   const handleAddPrimogems = async (amount: number, source: PrimogemSource, notes = '') => {
     await primogemEntryRepo.create({ amount, source, notes });
@@ -78,6 +170,13 @@ export default function LedgerPage() {
     await resourceSnapshotRepo.create({
       ...snapshotValues,
     });
+  };
+
+  const handleTimelineFiltersChange = (next: IncomeBucketFilters) => {
+    setTimelineFilters(next);
+    if (next.includePurchases !== includePurchases) {
+      setIncludePurchases(next.includePurchases);
+    }
   };
 
   return (
@@ -99,33 +198,92 @@ export default function LedgerPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <label className="flex items-center gap-2 text-sm text-slate-200">
+          <input
+            type="checkbox"
+            checked={includePurchases}
+            onChange={(e) => setIncludePurchases(e.target.checked)}
+            className="rounded border-slate-600 bg-slate-800"
+          />
+          Include purchased primogems in summaries
+        </label>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Running balance</p>
+          <p className="text-sm text-slate-400">Current primogem stash</p>
           <p className="text-3xl font-bold text-primary-400">{effectivePrimogems.toLocaleString()} Primogems</p>
           <p className="text-sm text-slate-500">
-            {latestSnapshot ? 'From your latest snapshot' : 'Based on your logged entries'}
+            {latestSnapshot
+              ? 'Snapshot + ledger deltas - wish spending'
+              : 'Based on your logged entries'}
           </p>
+          {latestSnapshot && (
+            <p className="text-xs text-slate-400 mt-1">
+              Net Δ since snapshot: {filteredNetChangePrimogems >= 0 ? '+' : ''}
+              {filteredNetChangePrimogems.toLocaleString()}
+            </p>
+          )}
+        </div>
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+          <p className="text-sm text-slate-400">Earned primogems</p>
+          <p className="text-3xl font-bold text-green-300">{primogemIncomeSplit.earned.toLocaleString()}</p>
+          <p className="text-sm text-slate-500">Ledger deltas (excludes purchases)</p>
+        </div>
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+          <p className="text-sm text-slate-400">Purchased primogems</p>
+          <p className="text-3xl font-bold text-indigo-300">{primogemIncomeSplit.purchased.toLocaleString()}</p>
+          <p className="text-sm text-slate-500">Tracked separately from earned income</p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Fates (Intertwined)</p>
           <p className="text-3xl font-bold text-indigo-300">{effectiveIntertwined}</p>
           <p className="text-sm text-slate-500">
-            {latestSnapshot ? 'From your latest snapshot' : 'Logged across all sources'}
+            {latestSnapshot ? 'Snapshot + ledger deltas - pulls' : 'Logged across all sources'}
           </p>
+          {latestSnapshot && (
+            <p className="text-xs text-slate-400 mt-1">
+              Net Δ: {netChangeIntertwined >= 0 ? '+' : ''}
+              {netChangeIntertwined}
+            </p>
+          )}
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Fates (Acquaint)</p>
           <p className="text-3xl font-bold text-cyan-300">{effectiveAcquaint}</p>
           <p className="text-sm text-slate-500">
-            {latestSnapshot ? 'From your latest snapshot' : 'Logged across all sources'}
+            {latestSnapshot ? 'Snapshot + ledger deltas - pulls' : 'Logged across all sources'}
           </p>
+          {latestSnapshot && (
+            <p className="text-xs text-slate-400 mt-1">
+              Net Δ: {netChangeAcquaint >= 0 ? '+' : ''}
+              {netChangeAcquaint}
+            </p>
+          )}
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Wishes Available</p>
           <p className="text-3xl font-bold text-amber-300">{wishesAvailable.toFixed(2)}</p>
           <p className="text-sm text-slate-500">
-            Includes primogems, genesis crystals, fates, and starglitter (5 per wish)
+            Snapshot + ledger deltas + starglitter (5 per wish)
+          </p>
+        </div>
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+          <p className="text-sm text-slate-400">Total pulls spent since snapshot</p>
+          <p className="text-3xl font-bold text-slate-100">{wishSpendingTotals.totalPulls}</p>
+          <p className="text-sm text-slate-500">
+            {latestSnapshot ? 'Counted from wish history after your snapshot' : 'Add a snapshot to reconcile pulls'}
+          </p>
+        </div>
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+          <p className="text-sm text-slate-400">Primogem-equivalent spent</p>
+          <p className="text-3xl font-bold text-slate-100">{wishSpendingTotals.primogemEquivalent.toLocaleString()}</p>
+          <p className="text-sm text-slate-500">
+            Deducted so snapshots + pulls don’t double count
           </p>
         </div>
       </div>
@@ -308,10 +466,27 @@ export default function LedgerPage() {
       </div>
 
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 className="text-xl font-semibold">Income Timeline</h2>
+            <p className="text-slate-400 text-sm">
+              Bucket primogem income by week/month with earned vs purchased breakdowns.
+            </p>
+          </div>
+          <p className="text-xs text-slate-500">
+            Toggle purchases to include/exclude paid primogems from analytics.
+          </p>
+        </div>
+        <IncomeTimeline buckets={incomeBuckets} filters={timelineFilters} onFiltersChange={handleTimelineFiltersChange} />
+      </section>
+
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">Current Stash</h2>
-            <p className="text-slate-400 text-sm">Based on your latest snapshot</p>
+            <p className="text-slate-400 text-sm">
+              Snapshot baseline (ledger deltas and wish spending are applied on top automatically)
+            </p>
           </div>
           <div className="text-sm text-slate-500 flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
