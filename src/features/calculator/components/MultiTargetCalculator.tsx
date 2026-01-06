@@ -8,6 +8,7 @@ import { GACHA_RULES } from '@/lib/constants';
 import type { BannerType } from '@/types';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
 import { createMonteCarloWorker } from '@/workers/montecarloClient';
+import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
 
 interface Target {
   id: string;
@@ -18,9 +19,10 @@ interface Target {
 }
 
 export function MultiTargetCalculator() {
+  const [bannerType, setBannerType] = useState<BannerType>('character');
+  const pitySnapshot = useCurrentPity(bannerType);
   const [targets, setTargets] = useState<Target[]>([]);
   const [availablePulls, setAvailablePulls] = useState(0);
-  const [bannerType, setBannerType] = useState<BannerType>('character');
   const [isCalculating, setIsCalculating] = useState(false);
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
@@ -56,6 +58,35 @@ export function MultiTargetCalculator() {
       targets.map((t) => (t.id === id ? { ...t, ...updates } : t))
     );
     setResults(null); // Clear results when updating target
+  };
+
+  const prefillFromCurrentPity = () => {
+    if (!pitySnapshot) return;
+
+    const nextTargetValues = {
+      pity: pitySnapshot.pity,
+      guaranteed: pitySnapshot.banner === 'weapon'
+        ? (pitySnapshot.fatePoints ?? 0) >= (GACHA_RULES.weapon.maxFatePoints ?? 2)
+        : pitySnapshot.guaranteed,
+      radiantStreak: pitySnapshot.radiantStreak,
+    };
+
+    if (targets.length === 0) {
+      setTargets([
+        {
+          id: crypto.randomUUID(),
+          characterName: '',
+          ...nextTargetValues,
+        },
+      ]);
+      return;
+    }
+
+    setTargets(
+      targets.map((target, index) =>
+        index === 0 ? { ...target, ...nextTargetValues } : target
+      )
+    );
   };
 
   const moveTargetUp = (index: number) => {
@@ -149,6 +180,11 @@ export function MultiTargetCalculator() {
             { value: 'standard', label: 'Standard' },
           ]}
         />
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" variant="secondary" onClick={prefillFromCurrentPity} disabled={!pitySnapshot}>
+          Use current pity
+        </Button>
       </div>
 
       {targets.length === 0 && (

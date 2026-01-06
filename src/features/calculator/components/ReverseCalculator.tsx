@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { GACHA_RULES } from '@/lib/constants';
 import { calculateRequiredIncome } from '../domain/analyticalCalc';
 import type { BannerType } from '@/types';
+import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
 
 export function ReverseCalculator() {
   const [numTargets, setNumTargets] = useState(1);
@@ -16,6 +17,7 @@ export function ReverseCalculator() {
   const [radiantStreak, setRadiantStreak] = useState(0);
   const [bannerType, setBannerType] = useState<BannerType>('character');
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
+  const pitySnapshot = useCurrentPity(bannerType);
 
   const [results, setResults] = useState<ReturnType<typeof calculateRequiredIncome> | null>(null);
 
@@ -105,6 +107,19 @@ export function ReverseCalculator() {
     }
   };
 
+  const handleUseCurrentPity = () => {
+    if (!pitySnapshot) return;
+
+    const nextGuaranteed =
+      pitySnapshot.banner === 'weapon'
+        ? (pitySnapshot.fatePoints ?? 0) >= (GACHA_RULES.weapon.maxFatePoints ?? 2)
+        : pitySnapshot.guaranteed;
+
+    setCurrentPity(pitySnapshot.pity);
+    setIsGuaranteed(nextGuaranteed);
+    setRadiantStreak(pitySnapshot.radiantStreak);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -119,6 +134,11 @@ export function ReverseCalculator() {
             { value: 'standard', label: 'Standard' },
           ]}
         />
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" variant="secondary" onClick={handleUseCurrentPity} disabled={!pitySnapshot}>
+          Use current pity
+        </Button>
       </div>
 
       <Card>

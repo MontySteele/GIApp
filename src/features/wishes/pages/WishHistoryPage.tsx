@@ -2,10 +2,12 @@ import { useState } from 'react';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import { analyzeWishHistory } from '../domain/wishAnalyzer';
+import { wishRepo } from '../repo/wishRepo';
 import { WishImport } from '../components/WishImport';
 import { WishHistoryList } from '../components/WishHistoryList';
 import { WishStatistics } from '../components/WishStatistics';
 import { PityTracker } from '../components/PityTracker';
+import { mapHistoryToWishRecords } from '../mappers/wishHistoryMapper';
 
 export function WishHistoryPage() {
   const [wishHistory, setWishHistory] = useState<WishHistoryItem[]>([]);
@@ -15,6 +17,14 @@ export function WishHistoryPage() {
   // Handle import completion
   const handleImportComplete = (wishes: WishHistoryItem[]) => {
     setWishHistory(wishes);
+    const wishRecords = mapHistoryToWishRecords(wishes);
+    void (async () => {
+      try {
+        await wishRepo.bulkCreate(wishRecords);
+      } catch (error) {
+        console.error('Failed to save wishes to database', error);
+      }
+    })();
     setShowImport(false);
   };
 
