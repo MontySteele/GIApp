@@ -1,9 +1,38 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+const runSimulationMock = vi.fn();
+const createMonteCarloWorkerMock = vi.fn(() => ({
+  worker: { terminate: vi.fn() } as unknown as Worker,
+  api: {
+    runSimulation: (...args: Parameters<typeof runSimulationMock>) =>
+      runSimulationMock(...args),
+  },
+}));
+
+vi.mock('@/workers/montecarloClient', () => ({
+  createMonteCarloWorker: createMonteCarloWorkerMock,
+}));
+
 import { MultiTargetCalculator } from './MultiTargetCalculator';
 
 describe('MultiTargetCalculator', () => {
+  beforeEach(() => {
+    runSimulationMock.mockClear();
+    createMonteCarloWorkerMock.mockClear();
+
+    runSimulationMock.mockImplementation(async (input) => ({
+      perCharacter: input.targets.map((target, index) => ({
+        characterKey: target.characterKey,
+        probability: input.startingPulls > 0 ? 0.66 : 0,
+        averagePullsUsed: 30 + index,
+        medianPullsUsed: 25 + index,
+      })),
+      allMustHavesProbability: input.startingPulls > 0 ? 0.66 : 0,
+      pullTimeline: [],
+    }));
+  });
+
   describe('Initial render', () => {
     it('should render the component with empty state', () => {
       render(<MultiTargetCalculator />);
@@ -370,6 +399,57 @@ describe('MultiTargetCalculator', () => {
       await user.type(pityInput, '89');
 
       expect(pityInput).toHaveValue(89);
+    });
+  });
+
+  describe('Worker integration', () => {
+    it('should send simulation input to the worker api', async () => {
+      const user = userEvent.setup();
+      render(<MultiTargetCalculator />);
+
+      await user.click(screen.getByRole('button', { name: /add target/i }));
+      await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
+      await user.type(screen.getByLabelText(/available pulls/i), '120');
+
+      await user.click(screen.getByRole('button', { name: /calculate/i }));
+
+      await waitFor(() => {
+        expect(runSimulationMock).toHaveBeenCalledTimes(1);
+      });
+
+      const input = runSimulationMock.mock.calls[0][0];
+      expect(input.startingPulls).toBe(120);
+      expect(input.targets[0].characterKey).toBe('Furina');
+      expect(input.rules).toBeDefined();
+    });
+
+    it('should display results returned from the worker', async () => {
+      const user = userEvent.setup();
+      runSimulationMock.mockResolvedValueOnce({
+        perCharacter: [
+          {
+            characterKey: 'Furina',
+            probability: 0.9,
+            averagePullsUsed: 50,
+            medianPullsUsed: 45,
+          },
+        ],
+        allMustHavesProbability: 0.9,
+        pullTimeline: [],
+      });
+
+      render(<MultiTargetCalculator />);
+
+      await user.click(screen.getByRole('button', { name: /add target/i }));
+      await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
+      await user.type(screen.getByLabelText(/available pulls/i), '160');
+
+      await user.click(screen.getByRole('button', { name: /calculate/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/90.0%/i)).toBeInTheDocument();
+        expect(screen.getByText(/average pulls/i)).toBeInTheDocument();
+      });
     });
   });
 });

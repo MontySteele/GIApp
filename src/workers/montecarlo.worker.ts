@@ -1,3 +1,4 @@
+import { expose } from 'comlink';
 import { simulatePull } from '@/features/calculator/domain/pityEngine';
 import type { GachaRules, PlannedBanner } from '@/types';
 
@@ -192,6 +193,12 @@ export function runSimulation(input: SimulationInput): SimulationResult {
     pullTimeline,
   };
 }
+
+const workerApi = {
+  runSimulation,
+};
+
+expose(workerApi);
 
 // Expose functions to main thread
 export type { SimulationInput, SimulationResult, SimulationConfig };
