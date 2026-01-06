@@ -248,24 +248,14 @@ pub async fn fetch_banner_history(
             break;
         }
 
-        // Log the first item's gacha_type for debugging
-        if let Some(first) = list.first() {
-            eprintln!("DEBUG: First item gacha_type='{}' (expected='{}')", first.gacha_type, gacha_type);
-        }
-
-        // Filter for items that match the requested banner type and haven't been seen
+        // Filter for items that haven't been seen (no gacha_type filter - API already filters)
+        // Note: HoYoverse API may return gacha_type 400 even when requesting 301 (they're merged)
         let new_items: Vec<_> = list
             .into_iter()
-            .filter(|item| {
-                let dominated = !seen_ids.contains(&item.id) && item.gacha_type == gacha_type;
-                if !dominated {
-                    eprintln!("DEBUG: Filtered out item id={} gacha_type={}", item.id, item.gacha_type);
-                }
-                dominated
-            })
+            .filter(|item| !seen_ids.contains(&item.id))
             .collect();
 
-        eprintln!("DEBUG: After filtering: {} new items", new_items.len());
+        eprintln!("DEBUG: After dedup filtering: {} new items", new_items.len());
 
         if new_items.is_empty() {
             eprintln!("DEBUG: No new items after filtering, breaking");
