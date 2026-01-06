@@ -11,7 +11,7 @@ interface WishImportProps {
 }
 
 // Banner type mapping
-const GACHA_TYPE_MAP: Record<string, BannerType> = {
+export const GACHA_TYPE_MAP: Record<string, BannerType> = {
   '301': 'character',
   '302': 'weapon',
   '200': 'standard',
@@ -162,10 +162,11 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     let page = 1;
     let endId = '0';
     const pageSize = 20;
+    const normalizedGachaType = String(gachaType);
 
     while (true) {
       const fetchUrl = new URL(baseUrl.toString());
-      fetchUrl.searchParams.set('gacha_type', gachaType);
+      fetchUrl.searchParams.set('gacha_type', normalizedGachaType);
       fetchUrl.searchParams.set('page', page.toString());
       fetchUrl.searchParams.set('size', pageSize.toString());
       fetchUrl.searchParams.set('end_id', endId);
@@ -194,7 +195,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
       // Filter for items that match the requested banner type and haven't been seen
       const newItems = list.filter((item: any) =>
-        !seenIds.has(item.id) && item.gacha_type === gachaType
+        !seenIds.has(item.id) && String(item.gacha_type) === normalizedGachaType
       );
       if (newItems.length === 0) {
         break; // All items already seen or wrong banner type, we've reached the end
@@ -203,14 +204,17 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       // Transform API data to WishHistoryItem
       for (const item of newItems) {
         seenIds.add(item.id);
-        wishes.push({
-          id: item.id,
-          name: item.name,
-          rarity: parseInt(item.rank_type) as 3 | 4 | 5,
-          itemType: item.item_type.toLowerCase() === 'character' ? 'character' : 'weapon',
-          time: item.time,
-          banner: GACHA_TYPE_MAP[item.gacha_type],
-        });
+        const bannerType = GACHA_TYPE_MAP[String(item.gacha_type)];
+        if (bannerType) {
+          wishes.push({
+            id: item.id,
+            name: item.name,
+            rarity: parseInt(item.rank_type) as 3 | 4 | 5,
+            itemType: item.item_type.toLowerCase() === 'character' ? 'character' : 'weapon',
+            time: item.time,
+            banner: bannerType,
+          });
+        }
       }
 
       // If we got fewer items than requested, we've reached the end
