@@ -3,7 +3,13 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { GACHA_RULES } from '@/lib/constants';
+import {
+  GACHA_RULES,
+  INCOME_F2P,
+  INCOME_WELKIN,
+  INCOME_WELKIN_BP,
+  PRIMOS_PER_PULL,
+} from '@/lib/constants';
 import { calculateRequiredIncome } from '../domain/analyticalCalc';
 import type { BannerType } from '@/types';
 
@@ -12,6 +18,8 @@ export function ReverseCalculator() {
   const [targetProbability, setTargetProbability] = useState(80);
   const [daysAvailable, setDaysAvailable] = useState(42);
   const [currentPity, setCurrentPity] = useState(0);
+  const [currentAvailablePulls, setCurrentAvailablePulls] = useState(0);
+  const [customDailyPrimogemIncome, setCustomDailyPrimogemIncome] = useState(INCOME_F2P);
   const [isGuaranteed, setIsGuaranteed] = useState(false);
   const [radiantStreak, setRadiantStreak] = useState(0);
   const [bannerType, setBannerType] = useState<BannerType>('character');
@@ -36,7 +44,13 @@ export function ReverseCalculator() {
       newErrors.set('currentPity', `Pity must be between 0 and ${rules.hardPity - 1}`);
     }
     if (radiantStreak < 0 || radiantStreak > 3) {
-      newErrors.set('radiantStreak', 'Radiant streak should be 0-2');
+      newErrors.set('radiantStreak', 'Radiant streak should be between 0 and 3');
+    }
+    if (currentAvailablePulls < 0) {
+      newErrors.set('currentAvailablePulls', 'Cannot be negative');
+    }
+    if (customDailyPrimogemIncome < 0) {
+      newErrors.set('customDailyPrimogemIncome', 'Cannot be negative');
     }
 
     setErrors(newErrors);
@@ -53,7 +67,9 @@ export function ReverseCalculator() {
       currentPity,
       isGuaranteed,
       radiantStreak,
-      GACHA_RULES[bannerType]
+      GACHA_RULES[bannerType],
+      currentAvailablePulls,
+      customDailyPrimogemIncome
     );
 
     setResults(result);
@@ -62,14 +78,33 @@ export function ReverseCalculator() {
   // Validate when inputs change
   useEffect(() => {
     validate();
-  }, [numTargets, targetProbability, daysAvailable, currentPity, radiantStreak, bannerType]);
+  }, [
+    numTargets,
+    targetProbability,
+    daysAvailable,
+    currentPity,
+    radiantStreak,
+    bannerType,
+    currentAvailablePulls,
+    customDailyPrimogemIncome,
+  ]);
 
   // Auto-calculate when inputs change
   useEffect(() => {
     if (results) {
       calculate();
     }
-  }, [numTargets, targetProbability, daysAvailable, currentPity, isGuaranteed, radiantStreak, bannerType]);
+  }, [
+    numTargets,
+    targetProbability,
+    daysAvailable,
+    currentPity,
+    currentAvailablePulls,
+    customDailyPrimogemIncome,
+    isGuaranteed,
+    radiantStreak,
+    bannerType,
+  ]);
 
   const setProbabilityPreset = (prob: number) => {
     setTargetProbability(prob);
@@ -195,6 +230,28 @@ export function ReverseCalculator() {
             min={0}
             max={89}
           />
+
+          <Input
+            label="Current Pulls / Fates"
+            type="number"
+            value={currentAvailablePulls}
+            onChange={(e) => setCurrentAvailablePulls(Number(e.target.value))}
+            error={errors.get('currentAvailablePulls')}
+            min={0}
+          />
+
+          <Input
+            label="Custom Daily Primogem Income"
+            type="number"
+            value={customDailyPrimogemIncome}
+            onChange={(e) => setCustomDailyPrimogemIncome(Number(e.target.value))}
+            error={errors.get('customDailyPrimogemIncome')}
+            min={0}
+          />
+          <p className="text-sm text-slate-400">
+            Defaults to ~{INCOME_F2P} primos/day (commissions). Welkin ≈ {INCOME_WELKIN} and Welkin + BP ≈{' '}
+            {INCOME_WELKIN_BP}. {PRIMOS_PER_PULL} primogems = 1 pull.
+          </p>
 
           <div className="flex items-center gap-2">
             <input

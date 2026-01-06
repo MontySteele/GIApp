@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateSingleTarget, calculateRequiredIncome } from './analyticalCalc';
+import { INCOME_F2P } from '@/lib/constants';
 import { GACHA_RULES } from '@/lib/constants';
 
 describe('analyticalCalc', () => {
@@ -91,16 +92,18 @@ describe('analyticalCalc', () => {
         0, // starting pity
         false, // not guaranteed
         0, // no radiant streak
-        characterRules
+        characterRules,
+        0,
+        0
       );
 
       expect(result.requiredPullsPerDay).toBeGreaterThan(0);
-      expect(result.requiredPrimosPerDay).toBe(result.requiredPullsPerDay * 160);
+      expect(result.requiredPrimosPerDay).toBeCloseTo(result.requiredPullsPerDay * 160);
     });
 
     it('should scale with number of targets', () => {
-      const result1Target = calculateRequiredIncome(1, 0.8, 60, 0, false, 0, characterRules);
-      const result2Targets = calculateRequiredIncome(2, 0.8, 60, 0, false, 0, characterRules);
+      const result1Target = calculateRequiredIncome(1, 0.8, 60, 0, false, 0, characterRules, 0, 0);
+      const result2Targets = calculateRequiredIncome(2, 0.8, 60, 0, false, 0, characterRules, 0, 0);
 
       // 2 targets should require roughly double the daily pulls
       expect(result2Targets.requiredPullsPerDay).toBeGreaterThan(
@@ -112,7 +115,7 @@ describe('analyticalCalc', () => {
     });
 
     it('should provide comparison to income benchmarks', () => {
-      const result = calculateRequiredIncome(1, 0.5, 30, 0, false, 0, characterRules);
+      const result = calculateRequiredIncome(1, 0.5, 30, 0, false, 0, characterRules, 0, 0);
 
       expect(result.comparedToF2P).toBeGreaterThan(0);
       expect(result.comparedToWelkin).toBeGreaterThan(0);
@@ -125,14 +128,14 @@ describe('analyticalCalc', () => {
 
     it('should categorize feasibility as "easy" for low requirements', () => {
       // 1 target over a long period should be easy
-      const result = calculateRequiredIncome(1, 0.5, 365, 80, false, 0, characterRules);
+      const result = calculateRequiredIncome(1, 0.5, 365, 80, false, 0, characterRules, 0, 0);
 
       expect(result.feasibility).toBe('easy');
       expect(result.requiredPrimosPerDay).toBeLessThanOrEqual(60); // F2P income
     });
 
     it('should categorize feasibility as "possible" for moderate requirements', () => {
-      const result = calculateRequiredIncome(1, 0.8, 45, 0, false, 0, characterRules);
+      const result = calculateRequiredIncome(1, 0.8, 45, 0, false, 0, characterRules, 0, 0);
 
       // This should require more than F2P but achievable with Welkin
       if (result.requiredPrimosPerDay > 60 && result.requiredPrimosPerDay <= 150) {
@@ -142,15 +145,15 @@ describe('analyticalCalc', () => {
 
     it('should categorize feasibility as "unlikely" for very high requirements', () => {
       // 5 targets in 30 days should be unlikely
-      const result = calculateRequiredIncome(5, 0.99, 30, 0, false, 0, characterRules);
+      const result = calculateRequiredIncome(5, 0.99, 30, 0, false, 0, characterRules, 0, 0);
 
       expect(result.feasibility).toBe('unlikely');
       expect(result.requiredPrimosPerDay).toBeGreaterThan(170 * 1.5);
     });
 
     it('should require fewer resources when starting with high pity', () => {
-      const resultFrom0 = calculateRequiredIncome(1, 0.8, 60, 0, false, 0, characterRules);
-      const resultFrom80 = calculateRequiredIncome(1, 0.8, 60, 80, false, 0, characterRules);
+      const resultFrom0 = calculateRequiredIncome(1, 0.8, 60, 0, false, 0, characterRules, 0, 0);
+      const resultFrom80 = calculateRequiredIncome(1, 0.8, 60, 80, false, 0, characterRules, 0, 0);
 
       expect(resultFrom80.requiredPullsPerDay).toBeLessThan(
         resultFrom0.requiredPullsPerDay
@@ -165,7 +168,9 @@ describe('analyticalCalc', () => {
         0,
         false,
         0,
-        characterRules
+        characterRules,
+        0,
+        0
       );
       const resultGuaranteed = calculateRequiredIncome(
         1,
@@ -174,7 +179,9 @@ describe('analyticalCalc', () => {
         0,
         true,
         0,
-        characterRules
+        characterRules,
+        0,
+        0
       );
 
       expect(resultGuaranteed.requiredPullsPerDay).toBeLessThan(
@@ -183,7 +190,7 @@ describe('analyticalCalc', () => {
     });
 
     it('should handle very short time periods', () => {
-      const result = calculateRequiredIncome(1, 0.5, 1, 0, false, 0, characterRules);
+      const result = calculateRequiredIncome(1, 0.5, 1, 0, false, 0, characterRules, 0, 0);
 
       // 1 day should require all pulls immediately
       expect(result.requiredPullsPerDay).toBeGreaterThan(50);
@@ -191,7 +198,7 @@ describe('analyticalCalc', () => {
     });
 
     it('should handle very long time periods', () => {
-      const result = calculateRequiredIncome(1, 0.99, 1000, 0, false, 0, characterRules);
+      const result = calculateRequiredIncome(1, 0.99, 1000, 0, false, 0, characterRules, 0, 0);
 
       // 1000 days should be very achievable
       expect(result.feasibility).toBe('easy');
@@ -215,11 +222,29 @@ describe('analyticalCalc', () => {
     });
 
     it('should handle 0 targets in income calculator', () => {
-      const result = calculateRequiredIncome(0, 0.5, 60, 0, false, 0, characterRules);
+      const result = calculateRequiredIncome(0, 0.5, 60, 0, false, 0, characterRules, 0, 0);
 
       expect(result.requiredPullsPerDay).toBe(0);
       expect(result.requiredPrimosPerDay).toBe(0);
       expect(result.feasibility).toBe('easy');
+    });
+
+    it('should reduce required pulls when custom income and starting pulls are provided', () => {
+      const baseline = calculateRequiredIncome(1, 0.8, 30, 0, false, 0, characterRules, 0, 0);
+      const withIncomeAndPulls = calculateRequiredIncome(
+        1,
+        0.8,
+        30,
+        0,
+        false,
+        0,
+        characterRules,
+        20,
+        INCOME_F2P
+      );
+
+      expect(withIncomeAndPulls.requiredPullsPerDay).toBeLessThan(baseline.requiredPullsPerDay);
+      expect(withIncomeAndPulls.feasibility === 'easy' || withIncomeAndPulls.feasibility === 'possible').toBe(true);
     });
   });
 });
