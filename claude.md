@@ -2,21 +2,139 @@
 
 ## Project Overview
 
-A local-first Progressive Web App for Genshin Impact players to track character progression, wish history, primogem income, and plan future pulls with probability calculations.
+A **Tauri desktop application** for Genshin Impact players to track character progression, wish history, primogem income, and plan future pulls with probability calculations.
 
 **Tech Stack:**
-- React 18+ with TypeScript
-- Vite (build tooling)
-- Dexie.js (IndexedDB wrapper)
-- Zustand (UI state management)
-- Tailwind CSS + Recharts + Lucide React
-- Web Workers (for Monte Carlo simulations)
-- PWA capabilities
+- **Frontend**: React 18+ with TypeScript, Vite, Tailwind CSS, Recharts, Lucide React
+- **Backend**: Tauri (Rust) with native system integration
+- **Database**: Dexie.js (IndexedDB wrapper)
+- **State Management**: Zustand (UI state)
+- **Additional**: Web Workers (Monte Carlo simulations), PWA capabilities (still works in browser)
 
 **Architecture:**
 ```
-React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedDB)
+React Components → Tauri Commands (Rust) → HoYoverse API (no CORS!)
+                ↓
+     Zustand (UI State) → Repository Layer → Dexie (IndexedDB)
 ```
+
+---
+
+## 🎉 MAJOR ARCHITECTURAL CHANGE: PWA → Tauri Desktop App
+
+**Why the change?**
+- **CORS Issue**: Browser-based PWA cannot fetch from HoYoverse API due to browser security restrictions
+- **Solution**: Converted to Tauri desktop app with Rust backend that makes native HTTP requests (bypasses CORS entirely)
+
+**Benefits:**
+- ✅ **One-click wish import** - Auto-extracts URL from Genshin Impact game logs
+- ✅ **No CORS errors** - Native HTTP client in Rust backend
+- ✅ **Cross-platform** - Windows, macOS, Linux support
+- ✅ **Better UX** - Native desktop app with system integration
+- ✅ **Database sync ready** - Foundation for SQLite + cloud folder sync
+
+**Tauri Backend Modules:**
+1. **log_parser.rs** - Auto-detects Genshin Impact log files (Windows/Mac/Linux) and extracts wish URLs
+2. **wish_fetcher.rs** - Native HTTP client that fetches wish history from HoYoverse API
+3. **Tauri Commands** - `extract_wish_url()`, `get_log_file_path()`, `fetch_wish_history()`
+
+**Frontend Changes:**
+- WishImport component detects Tauri vs browser
+- Shows "Auto-Extract from Game Logs" button in desktop app
+- Falls back to manual URL entry with helpful CORS explanation in browser
+
+**Build Commands:**
+```bash
+npm run tauri:dev    # Development with hot reload
+npm run tauri:build  # Production build (creates installers)
+```
+
+---
+
+## Current Implementation Status
+
+### ✅ Phase 1: Foundation (COMPLETE)
+- [x] Vite + React + TypeScript setup
+- [x] Tailwind CSS configured
+- [x] Dexie schema with versioned stores
+- [x] Repository layer pattern
+- [x] React Router with tab navigation
+- [x] Layout (header, nav, content area)
+- [x] PWA manifest (still works in browser for development)
+- [x] Zustand stores
+
+### ✅ Phase 2: Wish History Tracker (COMPLETE)
+- [x] Wish record models & repository
+- [x] Gacha rules configuration (character, weapon, standard, chronicled)
+- [x] Pity computation engine
+  - [x] Basic pity counting
+  - [x] Guarantee tracking (50/50, 75/25)
+  - [x] Capturing Radiance support (post-5.0)
+  - [x] Weapon fate points
+  - [x] Versioned gacha rules
+- [x] **98/100 unit tests passing** for pity engine
+- [x] Pity dashboard UI (PityTracker component)
+- [x] Wish history table with computed pity columns
+- [x] Wish statistics (WishStatistics component)
+- [x] **Tauri-based wish import** (auto-extract + fetch)
+- [x] Manual wish entry
+- [x] URL normalization (/index.html → /log)
+- [x] Cross-platform log file detection
+
+**Test Results:**
+```
+Test Files: 10 passed (10)
+Tests: 98 passed (98)
+Coverage: Pity engine thoroughly tested
+```
+
+### 🚧 Phase 3: Character Roster (NOT STARTED)
+- [ ] Character data models & repository
+- [ ] Character list page
+- [ ] Character detail page
+- [ ] Build display (weapon, artifacts, talents)
+- [ ] Enka.network import
+- [ ] GOOD format import/export
+
+**Known Issues Fixed:**
+- ✅ Artifact display showing IDs instead of names (fixed with Enka.Network hash mappings)
+- ✅ Stat names showing raw keys (fixed with formatters)
+- ✅ CORS blocking wish import (fixed by converting to Tauri)
+- ✅ PowerShell/Bash scripts finding wrong URL format (fixed with normalization)
+- ✅ Blank screen on Tauri app launch (fixed with proper Vite server config)
+- ✅ Regex pattern compilation errors in Rust (fixed with raw string literals)
+- ✅ Invalid devTimeout property in Tauri config
+- ✅ Default bundle identifier preventing builds
+
+---
+
+## 🎯 Next Steps (Priority Order)
+
+### Immediate Tasks
+1. **Test wish import end-to-end** on both Windows and Mac
+   - Verify auto-extract works on Windows PC (where Genshin is installed)
+   - Verify manual URL paste works on Mac laptop
+   - Confirm wish history displays correctly with pity calculations
+
+2. **Add wish data persistence**
+   - Currently wishes are fetched but may not persist in IndexedDB
+   - Verify WishHistoryPage saves to `wishRecords` table
+   - Test that imported wishes persist after app restart
+
+3. **Character roster implementation** (Phase 3)
+   - The roster page already has some UI (showing artifacts)
+   - Need to implement character list, add character, Enka import
+   - Artifact display formatters are already working
+
+### Future Enhancements
+4. **Database sync via cloud folder** (as discussed)
+   - Implement SQLite export/import
+   - Auto-sync to Dropbox/iCloud folder
+   - Windows app: fetch wishes → export DB → cloud sync
+   - Mac app: import DB from cloud folder
+
+5. **Primogem ledger** (Phase 4)
+6. **Pull probability calculator** (Phase 5)
 
 ---
 
