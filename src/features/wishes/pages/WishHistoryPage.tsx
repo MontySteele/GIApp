@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import { analyzeWishHistory } from '../domain/wishAnalyzer';
@@ -7,29 +7,49 @@ import { WishImport } from '../components/WishImport';
 import { WishHistoryList } from '../components/WishHistoryList';
 import { WishStatistics } from '../components/WishStatistics';
 import { PityTracker } from '../components/PityTracker';
+import { useWishRecords } from '../repo/hooks/useWishRecords';
+import { toWishHistoryItem, toWishRecord } from '../lib/wishNormalization';
 import { mapHistoryToWishRecords } from '../mappers/wishHistoryMapper';
 
 export function WishHistoryPage() {
-  const [wishHistory, setWishHistory] = useState<WishHistoryItem[]>([]);
+  const [sessionHistory, setSessionHistory] = useState<WishHistoryItem[]>([]);
   const [selectedBanner, setSelectedBanner] = useState<BannerType>('character');
   const [showImport, setShowImport] = useState(true);
+  const [persistError, setPersistError] = useState('');
+  const { wishes: storedWishes, addWishes, isLoading } = useWishRecords();
+
+  const storedHistory = useMemo(
+    () => storedWishes.map((wish) => toWishHistoryItem(wish)),
+    [storedWishes]
+  );
+
+  const history = storedHistory.length > 0 ? storedHistory : sessionHistory;
+  const hasPersistedHistory = storedHistory.length > 0;
+
+  useEffect(() => {
+    if (!isLoading && storedHistory.length > 0) {
+      setShowImport(false);
+    }
+  }, [isLoading, storedHistory.length]);
 
   // Handle import completion
-  const handleImportComplete = (wishes: WishHistoryItem[]) => {
-    setWishHistory(wishes);
-    const wishRecords = mapHistoryToWishRecords(wishes);
-    void (async () => {
-      try {
-        await wishRepo.bulkCreate(wishRecords);
-      } catch (error) {
-        console.error('Failed to save wishes to database', error);
-      }
-    })();
-    setShowImport(false);
+  const handleImportComplete = async (wishes: WishHistoryItem[]) => {
+    setSessionHistory(wishes);
+    setPersistError('');
+
+    try {
+      const records = wishes.map((wish) => toWishRecord(wish));
+      await addWishes(records);
+      setShowImport(false);
+    } catch (error) {
+      console.error('Failed to persist wishes', error);
+      setPersistError('Imported wishes are available for this session, but saving them for later failed.');
+      setShowImport(false);
+    }
   };
 
   // Analyze current banner
-  const analysis = analyzeWishHistory(wishHistory, selectedBanner);
+  const analysis = analyzeWishHistory(history, selectedBanner);
 
   // Banner tabs
   const banners: Array<{ type: BannerType; label: string }> = [
@@ -86,6 +106,19 @@ export function WishHistoryPage() {
             </div>
           </div>
 
+          {!hasPersistedHistory && (
+            <div className="mb-4 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-300">
+              <p className="text-sm">
+                Showing imported wishes for this session. They will be saved locally whenever storage is available.
+              </p>
+              {persistError && (
+                <p className="text-sm text-red-400 mt-2">
+                  {persistError}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Pity Tracker */}
           <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Current Pity</h2>
@@ -101,7 +134,7 @@ export function WishHistoryPage() {
           {/* Wish History List */}
           <div className="bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Wish History</h2>
-            <WishHistoryList history={wishHistory} />
+            <WishHistoryList history={history} />
           </div>
         </>
       )}

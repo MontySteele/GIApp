@@ -14,7 +14,7 @@ import {
 const isTauri = '__TAURI__' in window;
 
 interface WishImportProps {
-  onImportComplete: (wishes: WishHistoryItem[]) => void;
+  onImportComplete: (wishes: WishHistoryItem[]) => void | Promise<void>;
 }
 
 // Banner type mapping
@@ -402,7 +402,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
       setImportSummary(summary);
       setCurrentBanner('');
-      onImportComplete(allWishes);
+      await onImportComplete(allWishes);
     } catch (error) {
       let errorMessage: string;
 

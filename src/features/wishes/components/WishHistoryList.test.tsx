@@ -185,6 +185,26 @@ describe('WishHistoryList', () => {
     });
   });
 
+  describe('Filtering by date', () => {
+    it('should filter by start and end date', async () => {
+      const user = userEvent.setup();
+      const history: WishHistoryItem[] = [
+        { id: '1', name: 'Old Pull', rarity: 5, itemType: 'character', time: '2024-01-05T00:00:00Z', banner: 'character' },
+        { id: '2', name: 'New Pull', rarity: 4, itemType: 'character', time: '2024-02-10T00:00:00Z', banner: 'character' },
+      ];
+      render(<WishHistoryList history={history} />);
+
+      const startInput = screen.getByLabelText(/start date/i);
+      const endInput = screen.getByLabelText(/end date/i);
+
+      await user.type(startInput, '2024-02-01');
+      await user.type(endInput, '2024-02-28');
+
+      expect(screen.getByText('New Pull')).toBeInTheDocument();
+      expect(screen.queryByText('Old Pull')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Sorting', () => {
     it('should sort by newest first by default', () => {
       const history: WishHistoryItem[] = [
