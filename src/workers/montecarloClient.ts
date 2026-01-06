@@ -2,7 +2,10 @@ import { wrap, type Remote } from 'comlink';
 import type { SimulationInput, SimulationResult } from './montecarlo.worker';
 
 export interface MonteCarloWorkerApi {
-  runSimulation(input: SimulationInput): Promise<SimulationResult>;
+  runSimulation(
+    input: SimulationInput,
+    reportProgress?: (progress: number) => void
+  ): Promise<SimulationResult>;
 }
 
 export interface MonteCarloWorkerHandle {
