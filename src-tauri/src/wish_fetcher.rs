@@ -321,14 +321,15 @@ pub async fn fetch_banner_history(
             } else {
                 "weapon".to_string()
             };
+            let item_name = item.name.clone();
             wishes.push(WishHistoryItem {
                 id: item.id.clone(),
-                name: item.name,
+                name: item_name.clone(),
                 rarity,
                 item_type: item_type.clone(),
                 time: item.time,
                 banner: banner.clone(),
-                is_featured: resolve_is_featured(&item.name, &banner, rarity),
+                is_featured: resolve_is_featured(&item_name, &banner, &item_type, rarity),
             });
 
             end_id = item.id;
