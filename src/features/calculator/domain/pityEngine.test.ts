@@ -210,6 +210,34 @@ describe('pityEngine', () => {
         expect(point.probability).toBeLessThanOrEqual(1.0);
       }
     });
+
+    it('should apply Capturing Radiance threshold within distribution', () => {
+      const distWithoutRadiance = calculateDistribution(73, false, 0, 1, characterRules);
+      const distWithRadiance = calculateDistribution(73, false, 2, 1, characterRules);
+
+      expect(distWithRadiance[0].probability).toBeGreaterThan(distWithoutRadiance[0].probability);
+    });
+
+    it('should reflect guarantee state on first pull', () => {
+      const distGuaranteed = calculateDistribution(73, true, 0, 1, characterRules);
+      const distNonGuaranteed = calculateDistribution(73, false, 0, 1, characterRules);
+
+      expect(distGuaranteed[0].probability).toBeGreaterThan(distNonGuaranteed[0].probability);
+      expect(distGuaranteed[0].probability).toBeCloseTo(
+        getPullProbability(73, characterRules),
+        5
+      );
+    });
+
+    it('should honor soft and hard pity boundaries', () => {
+      const softPityStartProb = calculateDistribution(73, false, 0, 1, characterRules)[0].probability;
+      const earlyPityProb = calculateDistribution(0, false, 0, 1, characterRules)[0].probability;
+      const hardPityProb = calculateDistribution(89, false, 0, 1, characterRules)[0].probability;
+
+      expect(softPityStartProb).toBeGreaterThan(earlyPityProb);
+      expect(hardPityProb).toBeGreaterThan(softPityStartProb);
+      expect(hardPityProb).toBeCloseTo(0.5, 2); // 100% 5-star * 50% featured
+    });
   });
 
   describe('pullsForProbability', () => {
