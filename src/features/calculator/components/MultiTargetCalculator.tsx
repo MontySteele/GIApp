@@ -165,7 +165,13 @@ export function MultiTargetCalculator() {
   };
 
   const handleCalculate = async () => {
-    if (!validate() || !rules) return;
+    console.log('[Main] handleCalculate called');
+    console.log('[Main] targets:', targets.length, 'rules:', !!rules);
+    if (!validate() || !rules) {
+      console.log('[Main] Validation failed or no rules');
+      return;
+    }
+    console.log('[Main] Validation passed, starting calculation');
 
     setIsCalculating(true);
     setProgress(0);
@@ -208,17 +214,25 @@ export function MultiTargetCalculator() {
       };
 
       console.log('[Main] Waiting for worker to be ready...');
+      console.log('[Main] workerRef.current:', workerRef.current);
+      console.log('[Main] workerRef.current.ready:', workerRef.current.ready);
       await workerRef.current.ready;
       console.log('[Main] Worker ready, calling runSimulation...');
-      const result = await workerRef.current.api.runSimulation(
-        simulationInput,
-        proxy((value: number) => {
-          console.log('[Main] Progress callback received:', value);
-          setProgress(value);
-        })
-      );
-      console.log('[Main] Got result:', result);
-      setResults(result);
+      console.log('[Main] simulationInput:', JSON.stringify(simulationInput, null, 2));
+      try {
+        const result = await workerRef.current.api.runSimulation(
+          simulationInput,
+          proxy((value: number) => {
+            console.log('[Main] Progress callback received:', value);
+            setProgress(value);
+          })
+        );
+        console.log('[Main] Got result:', result);
+        setResults(result);
+      } catch (simError) {
+        console.error('[Main] runSimulation threw error:', simError);
+        throw simError;
+      }
     } catch (error) {
       console.error('Simulation error:', error);
       // Show user-visible error
