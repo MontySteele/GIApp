@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toGOOD, fromGOOD, validateGOOD, type GOODFormat } from './good';
+import { toGoodStatKey } from '@/lib/gameData';
 import type { Character } from '@/types';
 
 describe('GOOD Mapper', () => {
@@ -27,8 +28,8 @@ describe('GOOD Mapper', () => {
         rarity: 5,
         mainStatKey: 'hp',
         substats: [
-          { key: 'critRate', value: 3.9 },
-          { key: 'critDMG', value: 14.8 },
+          { key: 'critRate_', value: 3.9 },
+          { key: 'critDMG_', value: 14.8 },
           { key: 'hp_', value: 10.5 },
           { key: 'def', value: 16 },
         ],
@@ -40,8 +41,8 @@ describe('GOOD Mapper', () => {
         rarity: 5,
         mainStatKey: 'atk',
         substats: [
-          { key: 'critRate', value: 7.8 },
-          { key: 'critDMG', value: 21.0 },
+          { key: 'critRate_', value: 7.8 },
+          { key: 'critDMG_', value: 21.0 },
         ],
       },
     ],
@@ -103,8 +104,8 @@ describe('GOOD Mapper', () => {
         location: 'Furina',
         lock: true,
         substats: [
-          { key: 'critRate', value: 3.9 },
-          { key: 'critDMG', value: 14.8 },
+          { key: 'critRate_', value: 3.9 },
+          { key: 'critDMG_', value: 14.8 },
           { key: 'hp_', value: 10.5 },
           { key: 'def', value: 16 },
         ],
@@ -477,7 +478,10 @@ describe('GOOD Mapper', () => {
       const goodData = toGOOD([mockCharacter as Character]);
       const result = fromGOOD(goodData);
 
-      const originalSubstats = mockCharacter.artifacts[0].substats;
+      const originalSubstats = mockCharacter.artifacts[0].substats.map((substat) => ({
+        ...substat,
+        key: toGoodStatKey(substat.key),
+      }));
       const roundTripSubstats = result[0].artifacts[0].substats;
 
       expect(roundTripSubstats).toEqual(originalSubstats);

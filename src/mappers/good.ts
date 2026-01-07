@@ -1,4 +1,5 @@
 import type { Character } from '@/types';
+import { toGoodArtifactSetKey, toGoodStatKey } from '@/lib/gameData';
 
 // GOOD Format v2 Specification
 // https://frzyc.github.io/genshin-optimizer/#/doc
@@ -82,14 +83,17 @@ export function toGOOD(characters: Character[]): GOODFormat {
     // Add artifacts
     for (const artifact of char.artifacts) {
       goodArtifacts.push({
-        setKey: artifact.setKey,
+        setKey: toGoodArtifactSetKey(artifact.setKey),
         slotKey: artifact.slotKey,
         level: artifact.level,
         rarity: artifact.rarity,
-        mainStatKey: artifact.mainStatKey,
+        mainStatKey: toGoodStatKey(artifact.mainStatKey),
         location: char.key,
         lock: true,
-        substats: artifact.substats,
+        substats: artifact.substats.map((substat) => ({
+          key: toGoodStatKey(substat.key),
+          value: substat.value,
+        })),
       });
     }
   }
