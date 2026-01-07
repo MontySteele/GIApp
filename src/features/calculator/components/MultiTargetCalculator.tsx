@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { ChevronUp, ChevronDown, Trash2, Plus, Download } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, Plus, Download, RotateCcw } from 'lucide-react';
 import { GACHA_RULES } from '@/lib/constants';
 import type { BannerType } from '@/types';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
@@ -23,13 +23,52 @@ interface Target {
   useInheritedPity: boolean; // If true, inherit pity from previous target's simulation result
 }
 
+const STORAGE_KEY = 'multi-target-calculator-state';
+
+interface PersistedState {
+  targets: Target[];
+  availablePulls: number;
+  iterations: number;
+}
+
+function loadPersistedState(): PersistedState | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored) as PersistedState;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+function savePersistedState(state: PersistedState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function clearPersistedState(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function MultiTargetCalculator() {
-  const [targets, setTargets] = useState<Target[]>([]);
-  const [availablePulls, setAvailablePulls] = useState(0);
+  // Load initial state from localStorage
+  const initialState = useRef(loadPersistedState());
+
+  const [targets, setTargets] = useState<Target[]>(initialState.current?.targets ?? []);
+  const [availablePulls, setAvailablePulls] = useState(initialState.current?.availablePulls ?? 0);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLoadingPulls, setIsLoadingPulls] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [iterations, setIterations] = useState(5000);
+  const [iterations, setIterations] = useState(initialState.current?.iterations ?? 5000);
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const workerRef = useRef<MonteCarloWorkerHandle | null>(null);
@@ -50,6 +89,21 @@ export function MultiTargetCalculator() {
       }
     };
   }, []);
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    savePersistedState({ targets, availablePulls, iterations });
+  }, [targets, availablePulls, iterations]);
+
+  // Reset all state to defaults
+  const handleReset = () => {
+    setTargets([]);
+    setAvailablePulls(0);
+    setIterations(5000);
+    setResults(null);
+    setErrors(new Map());
+    clearPersistedState();
+  };
 
   // Import available pulls from tracked resources
   const importAvailablePulls = async () => {
@@ -236,7 +290,19 @@ export function MultiTargetCalculator() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Multi-Target Planner</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Multi-Target Planner</h2>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleReset}
+          disabled={targets.length === 0 && availablePulls === 0}
+          title="Reset all settings"
+        >
+          <RotateCcw className="w-4 h-4 mr-1" />
+          Reset
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>

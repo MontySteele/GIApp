@@ -195,7 +195,8 @@ export async function runSimulation(
       }
 
       const maxBudget = target.maxPullBudget ?? Infinity;
-      const budgetForThis = Math.min(availablePulls, maxBudget);
+      // Clamp budget to zero - can't use negative pulls
+      const budgetForThis = Math.max(0, Math.min(availablePulls, maxBudget));
       const copiesNeeded = target.copiesNeeded || 1;
 
       let pullsUsed = 0;
