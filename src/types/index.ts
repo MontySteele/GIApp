@@ -151,6 +151,7 @@ export interface ResourceSnapshot {
   id: string;
   timestamp: string;
   primogems: number;
+  genesisCrystals: number;
   intertwined: number;
   acquaint: number;
   starglitter: number;
@@ -198,6 +199,8 @@ export interface Note {
   title: string;
   content: string; // Markdown
   tags: string[];
+  linkedCharacterKey?: string;
+  linkedTeamId?: string;
   pinned: boolean;
   createdAt: string;
   updatedAt: string;

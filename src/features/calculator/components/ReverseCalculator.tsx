@@ -13,6 +13,7 @@ import {
 import { calculateRequiredIncome } from '../domain/analyticalCalc';
 import type { BannerType } from '@/types';
 import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
+import { getAvailablePullsFromTracker } from '../selectors/availablePulls';
 
 export function ReverseCalculator() {
   const [numTargets, setNumTargets] = useState(1);
@@ -25,6 +26,7 @@ export function ReverseCalculator() {
   const [radiantStreak, setRadiantStreak] = useState(0);
   const [bannerType, setBannerType] = useState<BannerType>('character');
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
+  const [isSyncingAvailablePulls, setIsSyncingAvailablePulls] = useState(false);
   const pitySnapshot = useCurrentPity(bannerType);
 
   const [results, setResults] = useState<ReturnType<typeof calculateRequiredIncome> | null>(null);
@@ -155,6 +157,20 @@ export function ReverseCalculator() {
     setRadiantStreak(pitySnapshot.radiantStreak);
   };
 
+  const syncAvailablePulls = async () => {
+    setIsSyncingAvailablePulls(true);
+    try {
+      const { availablePulls } = await getAvailablePullsFromTracker();
+      setCurrentAvailablePulls(Number(availablePulls.toFixed(2)));
+    } finally {
+      setIsSyncingAvailablePulls(false);
+    }
+  };
+
+  useEffect(() => {
+    void syncAvailablePulls();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -170,9 +186,12 @@ export function ReverseCalculator() {
           ]}
         />
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2 flex-wrap">
         <Button size="sm" variant="secondary" onClick={handleUseCurrentPity} disabled={!pitySnapshot}>
           Use current pity
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => void syncAvailablePulls()} disabled={isSyncingAvailablePulls}>
+          Sync from tracker
         </Button>
       </div>
 
@@ -259,6 +278,9 @@ export function ReverseCalculator() {
             error={errors.get('currentAvailablePulls')}
             min={0}
           />
+          <p className="text-xs text-slate-400">
+            Auto-fills from your tracker (snapshot + ledger deltas). You can override manually.
+          </p>
 
           <Input
             label="Custom Daily Primogem Income"

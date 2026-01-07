@@ -6,6 +6,11 @@ interface WishStatisticsProps {
   bannerType: BannerType;
 }
 
+const formatPercent = (value: number, decimals = 1) => {
+  const roundedValue = Number(value.toFixed(decimals));
+  return `${roundedValue}%`;
+};
+
 export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
   // Expected rates for comparison
   const expectedFiveStarRate = 1.6;
@@ -97,10 +102,10 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
           5-Star Rate
         </h3>
         <p className={`text-3xl font-bold mt-2 ${getRateColor(stats.fiveStarRate, expectedFiveStarRate)}`}>
-          {stats.fiveStarRate.toFixed(2)}%
+          {formatPercent(stats.fiveStarRate)}
         </p>
         <p className="text-xs text-slate-400 mt-1">
-          Expected: {expectedFiveStarRate}%
+          Expected: {formatPercent(expectedFiveStarRate)}
         </p>
       </article>
 
@@ -110,10 +115,10 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
           4-Star Rate
         </h3>
         <p className={`text-3xl font-bold mt-2 ${getRateColor(stats.fourStarRate, expectedFourStarRate)}`}>
-          {stats.fourStarRate.toFixed(2)}%
+          {formatPercent(stats.fourStarRate)}
         </p>
         <p className="text-xs text-slate-400 mt-1">
-          Expected: {expectedFourStarRate}%
+          Expected: {formatPercent(expectedFourStarRate)}
         </p>
       </article>
 
@@ -150,7 +155,7 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
             50/50 Win Rate
           </h3>
           <p className="text-3xl font-bold mt-2 text-slate-100">
-            {stats.fiftyFiftyWinRate.toFixed(0)}%
+            {formatPercent(stats.fiftyFiftyWinRate, 0)}
           </p>
           <p className="text-xs text-slate-400 mt-1">
             Won: {stats.fiftyFiftyWon} | Lost: {stats.fiftyFiftyLost}

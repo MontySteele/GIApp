@@ -1,9 +1,21 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ReverseCalculator } from './ReverseCalculator';
+import { primogemEntryRepo } from '@/features/ledger/repo/primogemEntryRepo';
+import { fateEntryRepo } from '@/features/ledger/repo/fateEntryRepo';
+import { resourceSnapshotRepo } from '@/features/ledger/repo/resourceSnapshotRepo';
+import { wishRepo } from '@/features/wishes/repo/wishRepo';
+import { db } from '@/db/schema';
 
 describe('ReverseCalculator', () => {
+  beforeEach(async () => {
+    await db.primogemEntries.clear();
+    await db.fateEntries.clear();
+    await db.resourceSnapshots.clear();
+    await db.wishRecords.clear();
+  });
+
   describe('Initial render', () => {
     it('should render the component', () => {
       render(<ReverseCalculator />);
@@ -471,6 +483,49 @@ describe('ReverseCalculator', () => {
 
       // Results should update
       expect(screen.getByText(/required income/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Available pulls autofill', () => {
+    it('prefills pulls from snapshot plus ledger deltas', async () => {
+      await resourceSnapshotRepo.create({
+        primogems: 1600,
+        genesisCrystals: 0,
+        intertwined: 2,
+        acquaint: 1,
+        starglitter: 10,
+        stardust: 0,
+      });
+      await primogemEntryRepo.create({ amount: 160, source: 'event', notes: '' });
+      await fateEntryRepo.create({ amount: 1, fateType: 'intertwined', source: 'event' });
+
+      render(<ReverseCalculator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/current pulls/i)).toHaveValue(17);
+      });
+    });
+
+    it('prefills pulls from ledger data when no snapshot exists', async () => {
+      await primogemEntryRepo.create({
+        amount: 320,
+        source: 'event',
+        notes: '',
+        timestamp: '2024-01-01T00:00:00.000Z',
+      });
+      await fateEntryRepo.create({
+        amount: 2,
+        fateType: 'acquaint',
+        source: 'event',
+        timestamp: '2024-01-01T00:00:00.000Z',
+      });
+      await wishRepo.deleteAll();
+
+      render(<ReverseCalculator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/current pulls/i)).toHaveValue(4);
+      });
     });
   });
 });
