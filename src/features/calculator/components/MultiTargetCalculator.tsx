@@ -233,15 +233,10 @@ export function MultiTargetCalculator() {
         fatePoints: target.useInheritedPity ? null : target.fatePoints,
       }));
 
-      // Get constellation label for display
-      const getConstellationLabel = (c: number) => c === 0 ? 'C0' : `C${c}`;
-
       const simulationInput: SimulationInput = {
         targets: targets.map((target, index) => ({
           id: target.id,
-          characterKey: target.characterName
-            ? `${target.characterName} (${getConstellationLabel(target.constellation)})`
-            : `Target ${index + 1} (${getConstellationLabel(target.constellation)})`,
+          characterKey: target.characterName || `Target ${index + 1}`,
           expectedStartDate: new Date().toISOString(),
           expectedEndDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
           priority: 1,
@@ -621,32 +616,67 @@ export function MultiTargetCalculator() {
             </div>
 
             <div className="space-y-3">
-              <div className="text-sm font-semibold text-slate-300">Per-Character Results</div>
-              {results.perCharacter.map((char) => (
-                <div
-                  key={char.characterKey}
-                  className="p-4 bg-slate-800 border border-slate-700 rounded-lg"
-                >
-                  <div className="font-medium mb-2 text-slate-100">{char.characterKey}</div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <div className="text-slate-400">Success Rate</div>
-                      <div className="font-semibold text-slate-100" aria-hidden="true">
-                        {(char.probability * 100).toFixed(1)}
-                      </div>
-                      <span className="sr-only">
-                        {`${(char.probability * 100).toFixed(1)} percent success rate`}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">Average Pulls</div>
-                      <div className="font-semibold text-slate-100">{char.averagePullsUsed.toFixed(1)}</div>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">Median Pulls</div>
-                      <div className="font-semibold text-slate-100">{char.medianPullsUsed}</div>
-                    </div>
+              <div className="text-sm font-semibold text-slate-300">Per-Target Breakdown</div>
+
+              {/* Nothing result - probability of getting zero copies from all targets */}
+              <div className="p-4 bg-slate-900 border border-slate-600 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-slate-300">Nothing</div>
+                  <div className="text-2xl font-bold text-slate-400">
+                    {(results.nothingProbability * 100).toFixed(1)}%
                   </div>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  Probability of not getting any target
+                </div>
+              </div>
+
+              {/* Per-character constellation breakdown */}
+              {results.perCharacter.map((char, charIndex) => (
+                <div key={`${char.characterKey}-${charIndex}`} className="space-y-2">
+                  <div className="text-sm font-medium text-slate-200 px-1">
+                    {char.characterKey || `Target ${charIndex + 1}`}
+                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
+                      {char.bannerType === 'weapon' ? 'Weapon' : 'Character'}
+                    </span>
+                  </div>
+                  {char.constellations.map((cons) => (
+                    <div
+                      key={`${char.characterKey}-${cons.label}`}
+                      className="p-3 bg-slate-800 border border-slate-700 rounded-lg ml-2"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium text-slate-100">{cons.label}</div>
+                        <div
+                          className={`text-lg font-bold ${
+                            cons.probability >= 0.8
+                              ? 'text-green-400'
+                              : cons.probability >= 0.5
+                                ? 'text-yellow-400'
+                                : cons.probability >= 0.2
+                                  ? 'text-orange-400'
+                                  : 'text-red-400'
+                          }`}
+                        >
+                          {(cons.probability * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="text-slate-400">Avg Pulls</div>
+                          <div className="font-semibold text-slate-100">
+                            {cons.averagePullsUsed > 0 ? cons.averagePullsUsed.toFixed(0) : '-'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Median</div>
+                          <div className="font-semibold text-slate-100">
+                            {cons.medianPullsUsed > 0 ? cons.medianPullsUsed : '-'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
