@@ -207,12 +207,15 @@ export function MultiTargetCalculator() {
         perTargetStates, // Pass per-target pity overrides
       };
 
+      console.log('[Main] Calling worker.runSimulation...');
       const result = await workerRef.current.api.runSimulation(
         simulationInput,
         proxy((value: number) => {
+          console.log('[Main] Progress callback received:', value);
           setProgress(value);
         })
       );
+      console.log('[Main] Got result:', result);
       setResults(result);
     } catch (error) {
       console.error('Simulation error:', error);

@@ -57,6 +57,8 @@ export async function runSimulation(
   input: SimulationInput,
   reportProgress?: (progress: number) => void
 ): Promise<SimulationResult> {
+  console.log('[Worker] runSimulation called with', input.targets.length, 'targets');
+
   const {
     targets,
     startingPity,
@@ -68,6 +70,9 @@ export async function runSimulation(
     config,
     perTargetStates,
   } = input;
+
+  console.log('[Worker] Config:', config);
+  console.log('[Worker] Rules:', rules);
 
   // Sort targets by expected start date
   const sortedTargets = [...targets].sort(
@@ -92,6 +97,7 @@ export async function runSimulation(
   let allMustHavesSuccesses = 0;
 
   const chunkSize = Math.max(1, config.chunkSize ?? 1000);
+  console.log('[Worker] Starting simulation loop, iterations:', config.iterations, 'chunkSize:', chunkSize);
 
   // Run simulations
   for (let sim = 0; sim < config.iterations; sim++) {
@@ -159,14 +165,25 @@ export async function runSimulation(
     }
 
     if ((sim + 1) % chunkSize === 0 || sim === config.iterations - 1) {
+      const progressValue = Math.min(1, (sim + 1) / config.iterations);
+      console.log('[Worker] Progress checkpoint:', sim + 1, '/', config.iterations, '=', progressValue);
+
       // With Comlink proxy, the callback returns a Promise - await it for proper sync
       if (reportProgress) {
-        await reportProgress(Math.min(1, (sim + 1) / config.iterations));
+        console.log('[Worker] Calling reportProgress...');
+        try {
+          await reportProgress(progressValue);
+          console.log('[Worker] reportProgress completed');
+        } catch (e) {
+          console.error('[Worker] reportProgress error:', e);
+        }
       }
       // Yield control to keep the worker responsive during long runs
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
+
+  console.log('[Worker] Simulation loop complete, calculating results...');
 
   // Calculate results
   const perCharacter = sortedTargets.map((target) => {
@@ -218,11 +235,14 @@ export async function runSimulation(
     };
   });
 
-  return {
+  const result = {
     perCharacter,
     allMustHavesProbability: allMustHavesSuccesses / config.iterations,
     pullTimeline,
   };
+
+  console.log('[Worker] Returning result:', result);
+  return result;
 }
 
 const workerApi = {
