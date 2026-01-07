@@ -16,6 +16,7 @@ interface Target {
   pity: number;
   guaranteed: boolean;
   radiantStreak: number;
+  useInheritedPity: boolean; // If true, inherit pity from previous target's simulation result
 }
 
 export function MultiTargetCalculator() {
@@ -44,12 +45,14 @@ export function MultiTargetCalculator() {
   }, [bannerType]);
 
   const addTarget = () => {
+    const isFirstTarget = targets.length === 0;
     const newTarget: Target = {
       id: crypto.randomUUID(),
       characterName: '',
       pity: 0,
       guaranteed: false,
       radiantStreak: 0,
+      useInheritedPity: !isFirstTarget, // First target uses specified pity, others inherit
     };
     setTargets([...targets, newTarget]);
     setErrors(validateTargets([...targets, newTarget], rules));
@@ -103,15 +106,17 @@ export function MultiTargetCalculator() {
         {
           id: crypto.randomUUID(),
           characterName: '',
+          useInheritedPity: false, // First target uses specified pity
           ...nextTargetValues,
         },
       ]);
       return;
     }
 
+    // Only update first target's pity state
     setTargets(
       targets.map((target, index) =>
-        index === 0 ? { ...target, ...nextTargetValues } : target
+        index === 0 ? { ...target, ...nextTargetValues, useInheritedPity: false } : target
       )
     );
   };
@@ -125,7 +130,12 @@ export function MultiTargetCalculator() {
       newTargets[index - 1] = current;
       newTargets[index] = prev;
     }
-    setTargets(newTargets);
+    // Update useInheritedPity based on new positions
+    const updatedTargets = newTargets.map((t, i) => ({
+      ...t,
+      useInheritedPity: i === 0 ? false : t.useInheritedPity,
+    }));
+    setTargets(updatedTargets);
     setResults(null);
   };
 
@@ -138,7 +148,12 @@ export function MultiTargetCalculator() {
       newTargets[index] = next;
       newTargets[index + 1] = current;
     }
-    setTargets(newTargets);
+    // Update useInheritedPity based on new positions
+    const updatedTargets = newTargets.map((t, i) => ({
+      ...t,
+      useInheritedPity: i === 0 ? false : t.useInheritedPity,
+    }));
+    setTargets(updatedTargets);
     setResults(null);
   };
 
@@ -157,8 +172,13 @@ export function MultiTargetCalculator() {
     const minimumLoadingDuration = new Promise((resolve) => setTimeout(resolve, 25));
 
     try {
-      // For multi-target, we'll use current state for all targets
-      // In a real implementation, each target might have different states
+      // Build per-target pity states for more accurate simulation
+      const perTargetStates = targets.map((target) => ({
+        pity: target.useInheritedPity ? null : target.pity, // null means inherit from previous
+        guaranteed: target.useInheritedPity ? null : target.guaranteed,
+        radiantStreak: target.useInheritedPity ? null : target.radiantStreak,
+      }));
+
       const simulationInput: SimulationInput = {
         targets: targets.map((target, index) => ({
           id: target.id,
@@ -183,6 +203,7 @@ export function MultiTargetCalculator() {
           seed: Date.now(),
           chunkSize: 500,
         },
+        perTargetStates, // Pass per-target pity overrides
       };
 
       const result = await workerRef.current.api.runSimulation(
@@ -290,47 +311,113 @@ export function MultiTargetCalculator() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <Input
                     label="Character Name"
                     value={target.characterName}
                     onChange={(e) => updateTarget(target.id, { characterName: e.target.value })}
                     placeholder="Character name"
                   />
-                  <Input
-                    label="Current Pity"
-                    type="number"
-                    value={target.pity}
-                    onChange={(e) =>
-                      updateTarget(target.id, { pity: Number(e.target.value) })
-                    }
-                    error={errors.get(`pity-${target.id}`)}
-                    min={0}
-                    max={89}
-                  />
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`guaranteed-${target.id}`}
-                      checked={target.guaranteed}
-                      onChange={(e) =>
-                        updateTarget(target.id, { guaranteed: e.target.checked })
-                      }
-                      className="rounded"
-                    />
-                    <label htmlFor={`guaranteed-${target.id}`}>Guaranteed</label>
-                  </div>
-                  <Input
-                    label="Radiant Streak"
-                    type="number"
-                    value={target.radiantStreak}
-                    onChange={(e) =>
-                      updateTarget(target.id, { radiantStreak: Number(e.target.value) })
-                    }
-                    error={errors.get(`radiant-${target.id}`)}
-                    min={0}
-                    max={3}
-                  />
+
+                  {/* First target always shows pity inputs; subsequent targets have inherit option */}
+                  {index === 0 ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="Current Pity"
+                        type="number"
+                        value={target.pity}
+                        onChange={(e) =>
+                          updateTarget(target.id, { pity: Number(e.target.value) })
+                        }
+                        error={errors.get(`pity-${target.id}`)}
+                        min={0}
+                        max={89}
+                      />
+                      <Input
+                        label="Radiant Streak"
+                        type="number"
+                        value={target.radiantStreak}
+                        onChange={(e) =>
+                          updateTarget(target.id, { radiantStreak: Number(e.target.value) })
+                        }
+                        error={errors.get(`radiant-${target.id}`)}
+                        min={0}
+                        max={3}
+                      />
+                      <div className="flex items-center gap-2 col-span-2">
+                        <input
+                          type="checkbox"
+                          id={`guaranteed-${target.id}`}
+                          checked={target.guaranteed}
+                          onChange={(e) =>
+                            updateTarget(target.id, { guaranteed: e.target.checked })
+                          }
+                          className="rounded"
+                        />
+                        <label htmlFor={`guaranteed-${target.id}`}>Guaranteed 5★</label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`inherit-${target.id}`}
+                          checked={target.useInheritedPity}
+                          onChange={(e) =>
+                            updateTarget(target.id, { useInheritedPity: e.target.checked })
+                          }
+                          className="rounded"
+                        />
+                        <label htmlFor={`inherit-${target.id}`} className="text-sm">
+                          Inherit pity from previous target&apos;s pulls
+                        </label>
+                      </div>
+
+                      {target.useInheritedPity ? (
+                        <p className="text-sm text-slate-400 pl-6">
+                          Pity state will carry over from simulation results of previous target(s)
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4 pl-6 border-l-2 border-slate-700">
+                          <Input
+                            label="Starting Pity"
+                            type="number"
+                            value={target.pity}
+                            onChange={(e) =>
+                              updateTarget(target.id, { pity: Number(e.target.value) })
+                            }
+                            error={errors.get(`pity-${target.id}`)}
+                            min={0}
+                            max={89}
+                          />
+                          <Input
+                            label="Radiant Streak"
+                            type="number"
+                            value={target.radiantStreak}
+                            onChange={(e) =>
+                              updateTarget(target.id, { radiantStreak: Number(e.target.value) })
+                            }
+                            error={errors.get(`radiant-${target.id}`)}
+                            min={0}
+                            max={3}
+                          />
+                          <div className="flex items-center gap-2 col-span-2">
+                            <input
+                              type="checkbox"
+                              id={`guaranteed-${target.id}`}
+                              checked={target.guaranteed}
+                              onChange={(e) =>
+                                updateTarget(target.id, { guaranteed: e.target.checked })
+                              }
+                              className="rounded"
+                            />
+                            <label htmlFor={`guaranteed-${target.id}`}>Guaranteed 5★</label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

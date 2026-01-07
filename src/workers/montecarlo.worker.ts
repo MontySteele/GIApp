@@ -8,6 +8,12 @@ export interface SimulationConfig {
   chunkSize?: number;
 }
 
+export interface TargetPityState {
+  pity: number | null; // null means inherit from previous target
+  guaranteed: boolean | null;
+  radiantStreak: number | null;
+}
+
 export interface SimulationInput {
   targets: PlannedBanner[];
   startingPity: number;
@@ -17,6 +23,7 @@ export interface SimulationInput {
   incomePerDay: number;
   rules: GachaRules;
   config: SimulationConfig;
+  perTargetStates?: TargetPityState[]; // Optional per-target pity overrides
 }
 
 export interface SimulationResult {
@@ -59,6 +66,7 @@ export async function runSimulation(
     incomePerDay,
     rules,
     config,
+    perTargetStates,
   } = input;
 
   // Sort targets by expected start date
@@ -97,11 +105,20 @@ export async function runSimulation(
     const now = new Date();
     let allMustHavesSucceeded = true;
 
-    for (const target of sortedTargets) {
+    for (let targetIndex = 0; targetIndex < sortedTargets.length; targetIndex++) {
+      const target = sortedTargets[targetIndex]!;
       const targetDate = new Date(target.expectedStartDate);
       const daysUntil = Math.max(0, (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const earnedPulls = Math.floor(daysUntil * incomePerDay);
       availablePulls += earnedPulls;
+
+      // Apply per-target pity overrides if provided (null means inherit from previous)
+      const targetState = perTargetStates?.[targetIndex];
+      if (targetState) {
+        if (targetState.pity !== null) pity = targetState.pity;
+        if (targetState.guaranteed !== null) guaranteed = targetState.guaranteed;
+        if (targetState.radiantStreak !== null) radiantStreak = targetState.radiantStreak;
+      }
 
       const maxBudget = target.maxPullBudget ?? Infinity;
       const budgetForThis = Math.min(availablePulls, maxBudget);
