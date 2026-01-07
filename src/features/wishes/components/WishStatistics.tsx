@@ -97,7 +97,7 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
           5-Star Rate
         </h3>
         <p className={`text-3xl font-bold mt-2 ${getRateColor(stats.fiveStarRate, expectedFiveStarRate)}`}>
-          {stats.fiveStarRate}%
+          {stats.fiveStarRate.toFixed(2)}%
         </p>
         <p className="text-xs text-slate-400 mt-1">
           Expected: {expectedFiveStarRate}%
@@ -110,7 +110,7 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
           4-Star Rate
         </h3>
         <p className={`text-3xl font-bold mt-2 ${getRateColor(stats.fourStarRate, expectedFourStarRate)}`}>
-          {stats.fourStarRate}%
+          {stats.fourStarRate.toFixed(2)}%
         </p>
         <p className="text-xs text-slate-400 mt-1">
           Expected: {expectedFourStarRate}%
@@ -123,7 +123,7 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
           Average 5-Star Pity
         </h3>
         <p className="text-3xl font-bold mt-2 text-slate-100">
-          {stats.fiveStars > 0 ? stats.averageFiveStarPity : 'N/A'}
+          {stats.fiveStars > 0 ? stats.averageFiveStarPity.toFixed(1) : 'N/A'}
         </p>
         <p className="text-xs text-slate-400 mt-1">
           {stats.fiveStars > 0 ? `Based on ${stats.fiveStars} pulls` : 'No 5-stars yet'}
@@ -136,7 +136,7 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
           Average 4-Star Pity
         </h3>
         <p className="text-3xl font-bold mt-2 text-slate-100">
-          {stats.fourStars > 0 ? stats.averageFourStarPity : 'N/A'}
+          {stats.fourStars > 0 ? stats.averageFourStarPity.toFixed(1) : 'N/A'}
         </p>
         <p className="text-xs text-slate-400 mt-1">
           {stats.fourStars > 0 ? `Based on ${stats.fourStars} pulls` : 'No 4-stars yet'}
@@ -150,7 +150,7 @@ export function WishStatistics({ stats, bannerType }: WishStatisticsProps) {
             50/50 Win Rate
           </h3>
           <p className="text-3xl font-bold mt-2 text-slate-100">
-            {stats.fiftyFiftyWinRate}%
+            {stats.fiftyFiftyWinRate.toFixed(0)}%
           </p>
           <p className="text-xs text-slate-400 mt-1">
             Won: {stats.fiftyFiftyWon} | Lost: {stats.fiftyFiftyLost}
