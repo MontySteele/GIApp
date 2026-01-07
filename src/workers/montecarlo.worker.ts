@@ -152,8 +152,8 @@ export async function runSimulation(
       copiesNeeded: number;
       bannerType: BannerType;
       baseName: string;
-      // Per-run tracking: array of [copiesObtained, pullsUsed] for each simulation
-      runsData: Array<{ copies: number; pulls: number }>;
+      // Per-run tracking: pullsAtCopy[i] = pulls used when copy i+1 was obtained (or null if not obtained)
+      runsData: Array<{ pullsAtCopy: (number | null)[] }>;
     }
   >();
 
@@ -216,6 +216,8 @@ export async function runSimulation(
 
       let pullsUsed = 0;
       let copiesObtained = 0;
+      // Track cumulative pulls at each copy milestone
+      const pullsAtCopy: (number | null)[] = new Array(copiesNeeded).fill(null);
 
       // Simulate pulling until we get all copies or run out of budget
       while (pullsUsed < budgetForThis && copiesObtained < copiesNeeded) {
@@ -227,6 +229,8 @@ export async function runSimulation(
         pullsUsed++;
 
         if (result.got5Star && result.wasFeatured) {
+          // Record cumulative pulls when this copy was obtained
+          pullsAtCopy[copiesObtained] = pullsUsed;
           copiesObtained++;
         }
       }
@@ -235,7 +239,7 @@ export async function runSimulation(
 
       // Track this run's data
       const stats = characterStats.get(target.id)!;
-      stats.runsData.push({ copies: copiesObtained, pulls: pullsUsed });
+      stats.runsData.push({ pullsAtCopy });
 
       if (copiesObtained > 0) {
         gotAnythingThisRun = true;
@@ -276,24 +280,26 @@ export async function runSimulation(
     // Generate constellation results for each copy level (C0, C1, C2, etc.)
     const constellations: ConstellationResult[] = [];
 
-    for (let copyLevel = 1; copyLevel <= copiesNeeded; copyLevel++) {
-      // Count runs where we got at least this many copies
-      const runsWithAtLeastThisManyAttempts = runsData.filter((r) => r.copies >= copyLevel);
-      const probability = runsWithAtLeastThisManyAttempts.length / config.iterations;
+    for (let copyIndex = 0; copyIndex < copiesNeeded; copyIndex++) {
+      // Get pulls at this copy milestone for runs that achieved it
+      const pullsAtThisCopy = runsData
+        .map((r) => r.pullsAtCopy[copyIndex])
+        .filter((p): p is number => p !== null);
 
-      // Calculate average and median pulls for runs that achieved this level
-      const pullsForThisLevel = runsWithAtLeastThisManyAttempts.map((r) => r.pulls);
+      const probability = pullsAtThisCopy.length / config.iterations;
+
+      // Calculate average and median pulls to reach this constellation
       const averagePullsUsed =
-        pullsForThisLevel.length > 0
-          ? pullsForThisLevel.reduce((sum, p) => sum + p, 0) / pullsForThisLevel.length
+        pullsAtThisCopy.length > 0
+          ? pullsAtThisCopy.reduce((sum, p) => sum + p, 0) / pullsAtThisCopy.length
           : 0;
 
-      const sortedPulls = [...pullsForThisLevel].sort((a, b) => a - b);
+      const sortedPulls = [...pullsAtThisCopy].sort((a, b) => a - b);
       const medianPullsUsed =
         sortedPulls.length > 0 ? sortedPulls[Math.floor(sortedPulls.length / 2)] ?? 0 : 0;
 
       // Label: C0, C1, C2... for characters; R1, R2, R3... for weapons
-      const label = bannerType === 'weapon' ? `R${copyLevel}` : `C${copyLevel - 1}`;
+      const label = bannerType === 'weapon' ? `R${copyIndex + 1}` : `C${copyIndex}`;
 
       constellations.push({
         label,
