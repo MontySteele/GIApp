@@ -116,6 +116,8 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   '3094139291': 'Flower of Paradise Lost',
   '3410220315': 'Golden Troupe',
   '3626268211': 'Echoes of an Offering',
+  '147298547': 'Wanderer\'s Troupe',
+  '1212345779': 'Gladiator\'s Finale',
 
   // Also support direct string names (for test data and GOOD format)
   'Gladiator\'s Finale': 'Gladiator\'s Finale',
@@ -294,6 +296,7 @@ const STAT_GOOD_KEYS: Record<string, string> = {
 
 const toPascalCase = (value: string): string =>
   value
+    .replace(/['’]s\b/g, 's')
     .replace(/[^A-Za-z0-9]+/g, ' ')
     .trim()
     .split(/\s+/)
