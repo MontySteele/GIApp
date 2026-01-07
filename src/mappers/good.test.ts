@@ -58,6 +58,14 @@ describe('GOOD Mapper', () => {
       expect(result.format).toBe('GOOD');
       expect(result.version).toBe(2);
       expect(result.source).toBe('Genshin Progress Tracker');
+      expect(result.active).toBe('Furina');
+      expect(result.targets).toEqual([
+        {
+          level: 1,
+          pos: [0, 0],
+          radius: 1,
+        },
+      ]);
     });
 
     it('should export character data correctly', () => {
@@ -144,6 +152,8 @@ describe('GOOD Mapper', () => {
       expect(result.characters).toHaveLength(0);
       expect(result.weapons).toHaveLength(0);
       expect(result.artifacts).toHaveLength(0);
+      expect(result.targets).toEqual([]);
+      expect(result.active).toBeUndefined();
     });
   });
 
@@ -275,6 +285,14 @@ describe('GOOD Mapper', () => {
         format: 'GOOD',
         version: 2,
         source: 'Test',
+        active: 'Furina',
+        targets: [
+          {
+            level: 1,
+            pos: [0, 0],
+            radius: 1,
+          },
+        ],
         characters: [],
         weapons: [],
         artifacts: [],
@@ -367,6 +385,14 @@ describe('GOOD Mapper', () => {
         format: 'GOOD',
         version: 2,
         source: 'Test',
+        active: 'Furina',
+        targets: [
+          {
+            level: 90,
+            pos: [0, 0],
+            radius: 1,
+          },
+        ],
         characters: [
           {
             key: 'Furina',
@@ -451,6 +477,23 @@ describe('GOOD Mapper', () => {
             location: 'Furina',
             lock: true,
             substats: [{ key: 'hp_', value: 'not-a-number' }],
+          },
+        ],
+      };
+
+      expect(validateGOOD(invalidData)).toBe(false);
+    });
+
+    it('should reject invalid targets', () => {
+      const invalidData = {
+        format: 'GOOD',
+        version: 2,
+        source: 'Test',
+        targets: [
+          {
+            level: '1',
+            pos: [0, 0],
+            radius: 1,
           },
         ],
       };
