@@ -1,7 +1,9 @@
-import { Star, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Star, Pencil, Trash2, User } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, CharacterPriority } from '@/types';
+import { getCharacterPortraitUrl } from '@/lib/gameData';
 
 interface CharacterCardProps {
   character: Character;
@@ -12,6 +14,9 @@ interface CharacterCardProps {
 }
 
 export default function CharacterCard({ character, onClick, onEdit, onDelete, teamNames }: CharacterCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const portraitUrl = getCharacterPortraitUrl(character.avatarId);
+
   const priorityColors: Record<CharacterPriority, string> = {
     main: 'border-primary-500',
     secondary: 'border-blue-500',
@@ -60,19 +65,37 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
       </div>
 
       <div className="p-4">
-        {/* Character Name & Level */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 pr-2">
-            <h3 className="font-semibold text-slate-100 mb-1">
-              {character.key}
-            </h3>
+        {/* Character Portrait & Name */}
+        <div className="flex items-start gap-3 mb-3">
+          {/* Portrait */}
+          <div className="w-14 h-14 rounded-lg bg-slate-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
+            {portraitUrl && !imageError ? (
+              <img
+                src={portraitUrl}
+                alt={character.key}
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+                loading="lazy"
+              />
+            ) : (
+              <User className="w-8 h-8 text-slate-600" />
+            )}
+          </div>
+
+          {/* Name & Level */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-slate-100 truncate">
+                {character.key}
+              </h3>
+              <Badge variant="default" className="text-xs flex-shrink-0">
+                {priorityLabels[character.priority]}
+              </Badge>
+            </div>
             <p className="text-sm text-slate-400">
               Lv. {character.level}/{character.ascension * 10 + 20}
             </p>
           </div>
-          <Badge variant="default" className="text-xs">
-            {priorityLabels[character.priority]}
-          </Badge>
         </div>
 
         {/* Constellation */}

@@ -579,6 +579,7 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
         notes: `Imported from Enka.network (UID: ${enkaResponse.uid})`,
         priority: 'unbuilt',
         teamIds: [],
+        avatarId: avatar.avatarId,
       });
     } catch (err) {
       console.error(`Failed to parse character ${avatar.avatarId}:`, err);

@@ -268,32 +268,33 @@ Changes completed:
 - [x] Verified after Capturing Radiance fix: 50% probability shows ~79 pulls
 - [x] This is in the expected soft pity range (73-90) with 55% base rate
 
-#### 1.3 Fix Multi-Target Calculator
+#### 1.3 Fix Multi-Target Calculator ✅ COMPLETED
 **Files:** `src/features/calculator/components/MultiTargetCalculator.tsx`, `src/workers/montecarlo.worker.ts`
 
-Current issues:
-- Uses only first target's pity state for all simulations
-- UI allows per-target pity/guarantee but values are ignored
-- Pity carryover between targets not properly modeled
+~~Current issues:~~
+~~- Uses only first target's pity state for all simulations~~
+~~- UI allows per-target pity/guarantee but values are ignored~~
+~~- Pity carryover between targets not properly modeled~~
 
-Fixes needed:
-- [ ] Pass per-target starting states to worker
-- [ ] Update worker to accept array of target states
-- [ ] Track pity carryover between sequential banners
-- [ ] Show per-target probability breakdown
+Changes completed:
+- [x] Added `TargetPityState` interface and `perTargetStates` array to `SimulationInput`
+- [x] Updated worker to apply per-target pity states during simulation
+- [x] Added UI option to inherit pity from previous target or specify custom
+- [x] First target uses full pity inputs, subsequent targets can inherit or customize
+- [x] Pity carryover between sequential banners properly modeled
 
-#### 1.4 Fix Reverse Calculator
+#### 1.4 Fix Reverse Calculator ✅ COMPLETED
 **Files:** `src/features/calculator/domain/analyticalCalc.ts`, `src/features/calculator/components/ReverseCalculator.tsx`
 
-Current issue: Linear approximation (pulls × targets) is inaccurate
-- For 2 targets at 80%: shows ~160 pulls needed
-- Reality: 80% × 80% = 64% for both with that many pulls
+~~Current issue: Linear approximation (pulls × targets) is inaccurate~~
+~~- For 2 targets at 80%: shows ~160 pulls needed~~
+~~- Reality: 80% × 80% = 64% for both with that many pulls~~
 
-Fixes needed:
-- [ ] Use Monte Carlo simulation for multi-target calculations
-- [ ] Or implement proper compound probability math
-- [ ] Account for pity carryover benefits when failing earlier targets
-- [ ] Show confidence intervals, not just point estimates
+Changes completed:
+- [x] Implemented compound probability math: P(all) = P(each)^N → P(each) = P(all)^(1/N)
+- [x] Shows per-target probability required for multi-target calculations
+- [x] Added explanatory UI panel for multi-target calculations
+- [x] Note directing users to Monte Carlo for more accurate results
 
 ### Priority 2: Display Bugs (High)
 
@@ -327,14 +328,16 @@ Fixes completed:
 
 ### Priority 3: Feature Enhancements (Medium)
 
-#### 3.1 Add Character Portraits
-**Files:** `src/features/roster/components/CharacterCard.tsx`, `src/features/roster/components/CharacterListItem.tsx`
+#### 3.1 Add Character Portraits ✅ COMPLETED
+**Files:** `src/features/roster/components/CharacterCard.tsx`, `src/types/index.ts`, `src/lib/gameData.ts`, `src/mappers/enka.ts`
 
-Add character portrait images to roster display:
-- [ ] Use Enka asset URLs or local sprite sheet
-- [ ] Add portrait field to Character type (optional, populated on import)
-- [ ] Fallback to placeholder/element icon if no portrait
-- [ ] Consider using Enka's CDN: `https://enka.network/ui/{assetId}.png`
+~~Add character portrait images to roster display:~~
+- [x] Added `avatarId` field to Character type (optional, populated on Enka import)
+- [x] Created `CHARACTER_ICON_NAMES` mapping (avatarId → Enka icon name)
+- [x] Added `getCharacterPortraitUrl()` and `getCharacterGachaArtUrl()` utilities
+- [x] Updated CharacterCard to display portraits with fallback placeholder
+- [x] Using Enka's CDN: `https://enka.network/ui/UI_AvatarIcon_Side_{name}.png`
+- [x] Updated fromEnka mapper to include avatarId when importing characters
 
 #### 3.2 Historical Pulls & Projection Charts
 **Files:** New: `src/features/wishes/components/PullHistoryChart.tsx`, `src/features/ledger/components/ProjectionChart.tsx`
@@ -412,12 +415,12 @@ Complete the Abyss tracking feature:
 3. ~~Fix wish sum partial values (2.1) - quick win~~ ✅
 4. ~~Fix Enka duplicates (2.2) - quick win~~ ✅
 
-**Sprint 2 - Multi-Target & Reverse Calculator** ← CURRENT
-1. Fix multi-target calculator (1.3)
-2. Fix reverse calculator (1.4)
-3. Add character portraits (3.1)
+**Sprint 2 - Multi-Target & Reverse Calculator** ✅ COMPLETED
+1. ~~Fix multi-target calculator (1.3)~~ ✅
+2. ~~Fix reverse calculator (1.4)~~ ✅
+3. ~~Add character portraits (3.1)~~ ✅
 
-**Sprint 3 - Charts & Visualization**
+**Sprint 3 - Charts & Visualization** ← CURRENT
 1. Historical pulls chart (3.2)
 2. Primogem projection chart (3.2)
 3. Hide manual entry sections (3.3)

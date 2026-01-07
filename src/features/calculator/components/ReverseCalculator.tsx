@@ -408,6 +408,20 @@ export function ReverseCalculator() {
               </div>
             </div>
 
+            {/* Multi-target info */}
+            {results.isMultiTarget && (
+              <div className="p-4 bg-amber-900/20 border border-amber-600/50 rounded-lg">
+                <div className="text-sm text-amber-300 mb-1">Multi-Target Calculation</div>
+                <p className="text-sm text-slate-300">
+                  To achieve <strong>{targetProbability}%</strong> chance of getting all {numTargets} targets,
+                  each target needs <strong>{(results.perTargetProbability * 100).toFixed(1)}%</strong> individual probability.
+                </p>
+                <p className="text-xs text-slate-400 mt-2">
+                  Uses compound probability: P(all) = P(each)^N. For more accurate multi-target estimates, use the Monte Carlo simulator.
+                </p>
+              </div>
+            )}
+
             {/* Help text */}
             <div className="text-sm text-slate-400 space-y-2 pt-4 border-t border-slate-700">
               <p>

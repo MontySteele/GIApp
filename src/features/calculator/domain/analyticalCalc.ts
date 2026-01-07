@@ -58,6 +58,10 @@ export function calculateSingleTarget(
 
 /**
  * Reverse calculator: find required daily income for target probability
+ *
+ * For multi-target, uses compound probability:
+ * - To get ALL targets with combined probability P, each target needs probability P^(1/N)
+ * - This accounts for independent probability multiplication
  */
 export function calculateRequiredIncome(
   targetCharacters: number,
@@ -76,17 +80,47 @@ export function calculateRequiredIncome(
   comparedToWelkin: number;
   comparedToWelkinBP: number;
   feasibility: 'easy' | 'possible' | 'difficult' | 'unlikely';
+  perTargetProbability: number;
+  isMultiTarget: boolean;
 } {
-  // Estimate pulls needed (rough approximation for multiple targets)
-  const avgPullsPerTarget = pullsForProbability(
-    targetProbability,
+  // Handle 0 targets edge case
+  if (targetCharacters <= 0) {
+    return {
+      requiredPullsPerDay: 0,
+      requiredPrimosPerDay: 0,
+      comparedToF2P: 0,
+      comparedToWelkin: 0,
+      comparedToWelkinBP: 0,
+      feasibility: 'easy',
+      perTargetProbability: 0,
+      isMultiTarget: false,
+    };
+  }
+
+  // For multiple targets, calculate the per-target probability needed
+  // P(all) = P(1)^N, so P(1) = P(all)^(1/N)
+  // This gives a more accurate estimate than linear multiplication
+  const perTargetProbability = targetCharacters > 1
+    ? Math.pow(targetProbability, 1 / targetCharacters)
+    : targetProbability;
+
+  // Calculate pulls needed for the first target
+  const pullsForFirstTarget = pullsForProbability(
+    perTargetProbability,
     currentPity,
     isGuaranteed,
     radiantStreak,
     rules
   );
 
-  const totalPullsNeeded = avgPullsPerTarget * targetCharacters;
+  // For subsequent targets, we assume starting from 0 pity (worst case)
+  // In reality, pity carryover can help, so this is a conservative estimate
+  const pullsForSubsequentTargets = targetCharacters > 1
+    ? pullsForProbability(perTargetProbability, 0, false, 0, rules)
+    : 0;
+
+  // Total pulls: first target uses current state, subsequent targets start fresh
+  const totalPullsNeeded = pullsForFirstTarget + (pullsForSubsequentTargets * (targetCharacters - 1));
   const pullsCoveredByCustomIncome = (customDailyPrimogemIncome * daysAvailable) / PRIMOS_PER_PULL;
   const remainingPullsNeeded = Math.max(totalPullsNeeded - currentAvailablePulls - pullsCoveredByCustomIncome, 0);
   const requiredPullsPerDay = remainingPullsNeeded / daysAvailable;
@@ -118,5 +152,7 @@ export function calculateRequiredIncome(
     comparedToWelkin,
     comparedToWelkinBP,
     feasibility,
+    perTargetProbability,
+    isMultiTarget: targetCharacters > 1,
   };
 }
