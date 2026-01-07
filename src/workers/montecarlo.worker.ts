@@ -1,6 +1,10 @@
+console.log('[Worker] montecarlo.worker.ts loading...');
+
 import { expose } from 'comlink';
-import { simulatePull } from '@/features/calculator/domain/pityEngine';
-import type { GachaRules, PlannedBanner } from '@/types';
+import { simulatePull } from '../features/calculator/domain/pityEngine';
+import type { GachaRules, PlannedBanner } from '../types';
+
+console.log('[Worker] imports complete');
 
 export interface SimulationConfig {
   iterations: number;
