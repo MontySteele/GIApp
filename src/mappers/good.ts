@@ -56,6 +56,22 @@ export interface GOODArtifact {
   }>;
 }
 
+const getMaxArtifactLevel = (rarity: number): number => {
+  switch (rarity) {
+    case 1:
+      return 4;
+    case 2:
+      return 8;
+    case 3:
+      return 12;
+    case 4:
+      return 16;
+    case 5:
+    default:
+      return 20;
+  }
+};
+
 /**
  * Convert internal Character format to GOOD format
  */
@@ -92,10 +108,11 @@ export function toGOOD(characters: Character[]): GOODFormat {
 
     // Add artifacts
     for (const artifact of char.artifacts) {
+      const maxLevel = getMaxArtifactLevel(artifact.rarity);
       goodArtifacts.push({
         setKey: toGoodArtifactSetKey(artifact.setKey),
         slotKey: artifact.slotKey,
-        level: artifact.level,
+        level: Math.min(artifact.level, maxLevel),
         rarity: artifact.rarity,
         mainStatKey: toGoodStatKey(artifact.mainStatKey),
         location: characterKey,

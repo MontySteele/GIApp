@@ -145,6 +145,28 @@ describe('GOOD Mapper', () => {
       expect(result.weapons).toHaveLength(1);
     });
 
+    it('should clamp artifact level to the max for its rarity', () => {
+      const charWithOverleveledArtifact: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+        ...mockCharacter,
+        artifacts: [
+          {
+            setKey: 'GoldenTroupe',
+            slotKey: 'circlet',
+            level: 17,
+            rarity: 4,
+            mainStatKey: 'critRate_',
+            substats: [],
+          },
+        ],
+      };
+
+      const result = toGOOD([charWithOverleveledArtifact as Character]);
+
+      expect(result.artifacts).toHaveLength(1);
+      expect(result.artifacts![0].level).toBe(16);
+      expect(result.artifacts![0].rarity).toBe(4);
+    });
+
     it('should handle empty character array', () => {
       const result = toGOOD([]);
 
