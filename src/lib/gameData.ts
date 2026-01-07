@@ -116,6 +116,8 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   '3094139291': 'Flower of Paradise Lost',
   '3410220315': 'Golden Troupe',
   '3626268211': 'Echoes of an Offering',
+  '147298547': 'Wanderer\'s Troupe',
+  '1212345779': 'Gladiator\'s Finale',
 
   // Also support direct string names (for test data and GOOD format)
   'Gladiator\'s Finale': 'Gladiator\'s Finale',
@@ -294,6 +296,7 @@ const STAT_GOOD_KEYS: Record<string, string> = {
 
 const toPascalCase = (value: string): string =>
   value
+    .replace(/['’]s\b/g, 's')
     .replace(/[^A-Za-z0-9]+/g, ' ')
     .trim()
     .split(/\s+/)
@@ -325,6 +328,21 @@ export function toGoodArtifactSetKey(setKey: string): string {
 }
 
 /**
+ * Formats a character key to a GOOD/GO-compatible key
+ */
+export function toGoodCharacterKey(characterKey: string): string {
+  if (!characterKey) {
+    return characterKey;
+  }
+
+  if (/[^A-Za-z0-9]/.test(characterKey)) {
+    return toPascalCase(characterKey);
+  }
+
+  return characterKey;
+}
+
+/**
  * Formats a stat key to a readable name
  */
 export function formatStatName(statKey: string): string {
@@ -336,6 +354,21 @@ export function formatStatName(statKey: string): string {
  */
 export function toGoodStatKey(statKey: string): string {
   return STAT_GOOD_KEYS[statKey] || statKey;
+}
+
+/**
+ * Formats a weapon key to a GOOD/GO-compatible key
+ */
+export function toGoodWeaponKey(weaponKey: string): string {
+  if (!weaponKey) {
+    return weaponKey;
+  }
+
+  if (/[^A-Za-z0-9]/.test(weaponKey)) {
+    return toPascalCase(weaponKey);
+  }
+
+  return weaponKey;
 }
 
 /**
