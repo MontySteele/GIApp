@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, CharacterPriority } from '@/types';
 import { getCharacterPortraitUrl } from '@/lib/gameData';
+import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
 
 interface CharacterCardProps {
   character: Character;
@@ -93,7 +94,7 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
               </Badge>
             </div>
             <p className="text-sm text-slate-400">
-              Lv. {character.level}/{character.ascension * 10 + 20}
+              Lv. {character.level}/{MAX_LEVEL_BY_ASCENSION[character.ascension] ?? 90}
             </p>
           </div>
         </div>
@@ -135,7 +136,7 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
             {character.weapon.key} R{character.weapon.refinement}
           </div>
           <div className="text-xs text-slate-400">
-            Lv. {character.weapon.level}/{character.weapon.ascension * 10 + 20}
+            Lv. {character.weapon.level}/{MAX_LEVEL_BY_ASCENSION[character.weapon.ascension] ?? 90}
           </div>
         </div>
 
