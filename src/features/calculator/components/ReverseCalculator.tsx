@@ -163,7 +163,7 @@ export function ReverseCalculator() {
     setIsSyncingAvailablePulls(true);
     try {
       const { availablePulls } = await getAvailablePullsFromTracker();
-      setCurrentAvailablePulls(Number(availablePulls.toFixed(2)));
+      setCurrentAvailablePulls(Math.floor(availablePulls));
     } finally {
       setIsSyncingAvailablePulls(false);
     }

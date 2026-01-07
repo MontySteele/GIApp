@@ -24,7 +24,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
     baseRate: 0.006,
     softPityRateIncrease: 0.06,
     hasCapturingRadiance: true,
-    radianceThreshold: 2,
+    radianceThreshold: 3,
   },
   weapon: {
     version: '5.0+',

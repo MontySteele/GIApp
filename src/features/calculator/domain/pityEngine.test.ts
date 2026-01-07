@@ -56,20 +56,23 @@ describe('pityEngine', () => {
   });
 
   describe('getFeaturedProbability', () => {
-    it('should return 0.5 for normal 50/50', () => {
+    it('should return 0.55 for normal 50/50 (base rate)', () => {
       const prob = getFeaturedProbability(0, characterRules);
-      expect(prob).toBe(0.5);
+      expect(prob).toBe(0.55);
 
       const prob1Loss = getFeaturedProbability(1, characterRules);
-      expect(prob1Loss).toBe(0.5);
+      expect(prob1Loss).toBe(0.55);
+
+      const prob2Losses = getFeaturedProbability(2, characterRules);
+      expect(prob2Losses).toBe(0.55);
     });
 
-    it('should return 0.75 with Capturing Radiance (2+ losses)', () => {
-      const prob = getFeaturedProbability(2, characterRules);
-      expect(prob).toBe(0.75);
+    it('should return 1.0 with Capturing Radiance (3+ losses)', () => {
+      const prob = getFeaturedProbability(3, characterRules);
+      expect(prob).toBe(1.0);
 
-      const prob3Losses = getFeaturedProbability(3, characterRules);
-      expect(prob3Losses).toBe(0.75);
+      const prob4Losses = getFeaturedProbability(4, characterRules);
+      expect(prob4Losses).toBe(1.0);
     });
 
     it('should return 0.5 for banners without Capturing Radiance', () => {
@@ -139,13 +142,14 @@ describe('pityEngine', () => {
       expect(result.newRadiantStreak).toBe(1);
     });
 
-    it('should trigger Capturing Radiance after 2 losses', () => {
-      const mockRng = () => 0.001; // Always win
+    it('should trigger Capturing Radiance after 3 losses', () => {
+      const mockRng = () => 0.99; // Would normally lose 50/50, but Radiance guarantees
 
-      const result = simulatePull(0, false, 2, characterRules, mockRng);
+      // Use hard pity (90) to guarantee 5-star, then test Radiance
+      const result = simulatePull(90, false, 3, characterRules, mockRng);
 
       expect(result.got5Star).toBe(true);
-      expect(result.wasFeatured).toBe(true);
+      expect(result.wasFeatured).toBe(true); // Radiance guarantees featured
       expect(result.triggeredRadiance).toBe(true);
       expect(result.newRadiantStreak).toBe(0);
     });
@@ -213,8 +217,9 @@ describe('pityEngine', () => {
 
     it('should apply Capturing Radiance threshold within distribution', () => {
       const distWithoutRadiance = calculateDistribution(73, false, 0, 1, characterRules);
-      const distWithRadiance = calculateDistribution(73, false, 2, 1, characterRules);
+      const distWithRadiance = calculateDistribution(73, false, 3, 1, characterRules);
 
+      // With radiantStreak >= 3, Capturing Radiance guarantees featured (1.0 vs 0.55)
       expect(distWithRadiance[0].probability).toBeGreaterThan(distWithoutRadiance[0].probability);
     });
 
@@ -236,7 +241,7 @@ describe('pityEngine', () => {
 
       expect(softPityStartProb).toBeGreaterThan(earlyPityProb);
       expect(hardPityProb).toBeGreaterThan(softPityStartProb);
-      expect(hardPityProb).toBeCloseTo(0.5, 2); // 100% 5-star * 50% featured
+      expect(hardPityProb).toBeCloseTo(0.55, 2); // 100% 5-star * 55% featured
     });
   });
 
@@ -284,8 +289,8 @@ describe('pityEngine', () => {
     });
 
     it('should handle radiantStreak exactly at threshold', () => {
-      const prob = getFeaturedProbability(2, characterRules);
-      expect(prob).toBe(0.75);
+      const prob = getFeaturedProbability(3, characterRules);
+      expect(prob).toBe(1.0);
     });
 
     it('should handle maxPulls of 1', () => {

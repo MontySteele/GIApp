@@ -56,8 +56,10 @@ describe('pitySelectors', () => {
 
     expect(snapshot.pity).toBe(2);
     expect(snapshot.guaranteed).toBe(false);
-    expect(snapshot.radiantStreak).toBe(0);
-    expect(snapshot.radianceActive).toBe(false);
+    // Note: Guaranteed featured wins do NOT reset radiantStreak per game mechanics
+    // After losing 50/50 on 'a', streak = 1. After guaranteed win on 'b', streak stays 1.
+    expect(snapshot.radiantStreak).toBe(1);
+    expect(snapshot.radianceActive).toBe(false); // 1 < threshold(3)
   });
 
   it('derives weapon fate points as guarantee indicator', () => {

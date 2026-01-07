@@ -267,7 +267,7 @@ export default function LedgerPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Wishes Available</p>
-          <p className="text-3xl font-bold text-amber-300">{wishesAvailable.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-amber-300">{Math.floor(wishesAvailable)}</p>
           <p className="text-sm text-slate-500">
             Snapshot + ledger deltas + starglitter (5 per wish)
           </p>

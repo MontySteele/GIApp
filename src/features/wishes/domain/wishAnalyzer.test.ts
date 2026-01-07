@@ -102,18 +102,20 @@ describe('Wish Analyzer', () => {
       expect(pityState.fiveStarPity).toBe(2);
     });
 
-    it('should track capturing radiance after two consecutive losses', () => {
+    it('should track capturing radiance after three consecutive losses', () => {
+      // With threshold=3, need 3 consecutive losses to activate radiance
       const history: WishHistoryItem[] = [
         { id: '1', name: 'Keqing', rarity: 5, itemType: 'character', time: '2024-01-01', banner: 'character', isFeatured: false },
         { id: '2', name: 'Mona', rarity: 5, itemType: 'character', time: '2024-01-02', banner: 'character', isFeatured: false },
-        { id: '3', name: 'Cool Steel', rarity: 3, itemType: 'weapon', time: '2024-01-03', banner: 'character' },
+        { id: '3', name: 'Diluc', rarity: 5, itemType: 'character', time: '2024-01-03', banner: 'character', isFeatured: false },
+        { id: '4', name: 'Cool Steel', rarity: 3, itemType: 'weapon', time: '2024-01-04', banner: 'character' },
       ];
 
       const pityState = calculatePityState(history, 'character');
 
-      expect(pityState.radiantStreak).toBe(2);
+      expect(pityState.radiantStreak).toBe(3);
       expect(pityState.radianceActive).toBe(true);
-      expect(pityState.guaranteed).toBe(true); // Still guaranteed after back-to-back losses
+      expect(pityState.guaranteed).toBe(true); // Still guaranteed after consecutive losses
     });
 
     it('should track fate points on weapon banner', () => {
