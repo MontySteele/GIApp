@@ -1,10 +1,44 @@
-console.log('[Worker] montecarlo.worker.ts loading...');
-
 import { expose } from 'comlink';
 import { simulatePull } from '../features/calculator/domain/pityEngine';
-import type { GachaRules, PlannedBanner } from '../types';
-
-console.log('[Worker] imports complete');
+import type { BannerType, GachaRules } from '../types';
+// Import GACHA_RULES inline to avoid path resolution issues in worker context
+const GACHA_RULES: Record<string, GachaRules> = {
+  character: {
+    version: '5.0+',
+    softPityStart: 74,
+    hardPity: 90,
+    baseRate: 0.006,
+    softPityRateIncrease: 0.06,
+    hasCapturingRadiance: true,
+    radianceThreshold: 2,
+  },
+  weapon: {
+    version: '5.0+',
+    softPityStart: 63,
+    hardPity: 80,
+    baseRate: 0.007,
+    softPityRateIncrease: 0.07,
+    hasCapturingRadiance: false,
+    hasFatePoints: true,
+    maxFatePoints: 2,
+  },
+  standard: {
+    version: '5.0+',
+    softPityStart: 74,
+    hardPity: 90,
+    baseRate: 0.006,
+    softPityRateIncrease: 0.06,
+    hasCapturingRadiance: false,
+  },
+  chronicled: {
+    version: '5.0+',
+    softPityStart: 74,
+    hardPity: 90,
+    baseRate: 0.006,
+    softPityRateIncrease: 0.06,
+    hasCapturingRadiance: false,
+  },
+};
 
 export interface SimulationConfig {
   iterations: number;
@@ -16,18 +50,36 @@ export interface TargetPityState {
   pity: number | null; // null means inherit from previous target
   guaranteed: boolean | null;
   radiantStreak: number | null;
+  fatePoints: number | null;
+}
+
+// Extended PlannedBanner for multi-banner support
+export interface SimulationTarget {
+  id: string;
+  characterKey: string;
+  expectedStartDate: string;
+  expectedEndDate: string;
+  priority: 1 | 2 | 3 | 4 | 5;
+  maxPullBudget: number | null;
+  isConfirmed: boolean;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  // Extended fields
+  bannerType?: BannerType;
+  copiesNeeded?: number; // How many copies to get (1 = C0, 7 = C6)
 }
 
 export interface SimulationInput {
-  targets: PlannedBanner[];
+  targets: SimulationTarget[];
   startingPity: number;
   startingGuaranteed: boolean;
   startingRadiantStreak: number;
+  startingFatePoints?: number;
   startingPulls: number;
   incomePerDay: number;
-  rules: GachaRules;
   config: SimulationConfig;
-  perTargetStates?: TargetPityState[]; // Optional per-target pity overrides
+  perTargetStates?: TargetPityState[];
 }
 
 export interface SimulationResult {
@@ -54,6 +106,14 @@ function seededRandom(seed: number): () => number {
   };
 }
 
+// Per-banner pity state tracking
+interface BannerPityState {
+  pity: number;
+  guaranteed: boolean;
+  radiantStreak: number;
+  fatePoints: number;
+}
+
 /**
  * Run Monte Carlo simulation for multi-target planning
  */
@@ -61,22 +121,17 @@ export async function runSimulation(
   input: SimulationInput,
   reportProgress?: (progress: number) => void
 ): Promise<SimulationResult> {
-  console.log('[Worker] runSimulation called with', input.targets.length, 'targets');
-
   const {
     targets,
     startingPity,
     startingGuaranteed,
     startingRadiantStreak,
+    startingFatePoints = 0,
     startingPulls,
     incomePerDay,
-    rules,
     config,
     perTargetStates,
   } = input;
-
-  console.log('[Worker] Config:', config);
-  console.log('[Worker] Rules:', rules);
 
   // Sort targets by expected start date
   const sortedTargets = [...targets].sort(
@@ -99,61 +154,71 @@ export async function runSimulation(
   }
 
   let allMustHavesSuccesses = 0;
-
   const chunkSize = Math.max(1, config.chunkSize ?? 1000);
-  console.log('[Worker] Starting simulation loop, iterations:', config.iterations, 'chunkSize:', chunkSize);
 
   // Run simulations
   for (let sim = 0; sim < config.iterations; sim++) {
     const rng = config.seed !== undefined ? seededRandom(config.seed + sim) : Math.random;
 
-    let pity = startingPity;
-    let guaranteed = startingGuaranteed;
-    let radiantStreak = startingRadiantStreak;
-    let availablePulls = startingPulls;
+    // Track pity state separately for each banner type
+    const bannerStates: Record<string, BannerPityState> = {
+      character: { pity: startingPity, guaranteed: startingGuaranteed, radiantStreak: startingRadiantStreak, fatePoints: 0 },
+      weapon: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: startingFatePoints },
+      standard: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: 0 },
+    };
 
+    let availablePulls = startingPulls;
     const now = new Date();
     let allMustHavesSucceeded = true;
 
     for (let targetIndex = 0; targetIndex < sortedTargets.length; targetIndex++) {
       const target = sortedTargets[targetIndex]!;
+      const bannerType = target.bannerType || 'character';
+      const rules = GACHA_RULES[bannerType];
+      if (!rules) continue;
+
       const targetDate = new Date(target.expectedStartDate);
       const daysUntil = Math.max(0, (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const earnedPulls = Math.floor(daysUntil * incomePerDay);
       availablePulls += earnedPulls;
 
+      // Get current banner state
+      let state = bannerStates[bannerType]!;
+
       // Apply per-target pity overrides if provided (null means inherit from previous)
       const targetState = perTargetStates?.[targetIndex];
       if (targetState) {
-        if (targetState.pity !== null) pity = targetState.pity;
-        if (targetState.guaranteed !== null) guaranteed = targetState.guaranteed;
-        if (targetState.radiantStreak !== null) radiantStreak = targetState.radiantStreak;
+        if (targetState.pity !== null) state.pity = targetState.pity;
+        if (targetState.guaranteed !== null) state.guaranteed = targetState.guaranteed;
+        if (targetState.radiantStreak !== null) state.radiantStreak = targetState.radiantStreak;
+        if (targetState.fatePoints !== null) state.fatePoints = targetState.fatePoints;
       }
 
       const maxBudget = target.maxPullBudget ?? Infinity;
       const budgetForThis = Math.min(availablePulls, maxBudget);
+      const copiesNeeded = target.copiesNeeded || 1;
 
       let pullsUsed = 0;
-      let gotCharacter = false;
+      let copiesObtained = 0;
 
-      // Simulate pulling until we get the character or run out of budget
-      while (pullsUsed < budgetForThis && !gotCharacter) {
-        const result = simulatePull(pity, guaranteed, radiantStreak, rules, rng);
+      // Simulate pulling until we get all copies or run out of budget
+      while (pullsUsed < budgetForThis && copiesObtained < copiesNeeded) {
+        const result = simulatePull(state.pity, state.guaranteed, state.radiantStreak, rules, rng);
 
-        pity = result.newPity;
-        guaranteed = result.newGuaranteed;
-        radiantStreak = result.newRadiantStreak;
+        state.pity = result.newPity;
+        state.guaranteed = result.newGuaranteed;
+        state.radiantStreak = result.newRadiantStreak;
         pullsUsed++;
 
         if (result.got5Star && result.wasFeatured) {
-          gotCharacter = true;
+          copiesObtained++;
         }
       }
 
       availablePulls -= pullsUsed;
 
       const stats = characterStats.get(target.characterKey)!;
-      if (gotCharacter) {
+      if (copiesObtained >= copiesNeeded) {
         stats.successes++;
         stats.totalPullsUsed.push(pullsUsed);
       } else {
@@ -170,24 +235,17 @@ export async function runSimulation(
 
     if ((sim + 1) % chunkSize === 0 || sim === config.iterations - 1) {
       const progressValue = Math.min(1, (sim + 1) / config.iterations);
-      console.log('[Worker] Progress checkpoint:', sim + 1, '/', config.iterations, '=', progressValue);
-
-      // With Comlink proxy, the callback returns a Promise - await it for proper sync
       if (reportProgress) {
-        console.log('[Worker] Calling reportProgress...');
         try {
           await reportProgress(progressValue);
-          console.log('[Worker] reportProgress completed');
-        } catch (e) {
-          console.error('[Worker] reportProgress error:', e);
+        } catch {
+          // Ignore progress callback errors
         }
       }
       // Yield control to keep the worker responsive during long runs
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
-
-  console.log('[Worker] Simulation loop complete, calculating results...');
 
   // Calculate results
   const perCharacter = sortedTargets.map((target) => {
@@ -245,12 +303,10 @@ export async function runSimulation(
     pullTimeline,
   };
 
-  console.log('[Worker] Returning result:', result);
   return result;
 }
 
 function ping(): string {
-  console.log('[Worker] ping called');
   return 'pong';
 }
 
@@ -259,10 +315,4 @@ const workerApi = {
   ping,
 };
 
-console.log('[Worker] About to call expose() with workerApi:', Object.keys(workerApi));
-try {
-  expose(workerApi);
-  console.log('[Worker] expose() completed successfully');
-} catch (e) {
-  console.error('[Worker] expose() failed:', e);
-}
+expose(workerApi);
