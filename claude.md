@@ -24,46 +24,46 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 
 ### 1. Character Roster Management
 - [x] Character storage schema (level, constellation, talents, weapon, artifacts)
-- [ ] Character list view (grid/list toggle, filtering, sorting, search)
-- [ ] Character detail view with full build display
-- [ ] Team management (create, edit, assign characters)
-- [ ] Enka.network import (fetch showcase by UID)
-- [ ] GOOD format import/export
-- [ ] Team snapshot export
-- [ ] Manual character entry
+- [x] Character list view (grid/list toggle, filtering, sorting, search)
+- [x] Character detail view with full build display
+- [x] Team management (create, edit, assign characters)
+- [x] Enka.network import (fetch showcase by UID)
+- [x] GOOD format import/export
+- [x] Team snapshot export
+- [x] Manual character entry
 
 ### 2. Wish History & Pity Tracking
-- [ ] Wish record storage (minimal raw data)
-- [ ] Pity computation engine (replay-based, not stored per-record)
-- [ ] Capturing Radiance support (post-5.0 mechanic)
-- [ ] Versioned gacha rules engine
-- [ ] Pity dashboard (progress bars, guarantee status, radiant streak)
-- [ ] Wish history table with computed pity display
-- [ ] Wish URL import (with session-only authkey storage)
-- [ ] Manual wish entry
-- [ ] Statistics (average pity, 50/50 win rate, total pulls)
+- [x] Wish record storage (minimal raw data)
+- [x] Pity computation engine (replay-based, not stored per-record)
+- [x] Capturing Radiance support (post-5.0 mechanic)
+- [x] Versioned gacha rules engine
+- [x] Pity dashboard (progress bars, guarantee status, radiant streak)
+- [x] Wish history table with computed pity display
+- [x] Wish URL import (with session-only authkey storage)
+- [x] Manual wish entry
+- [x] Statistics (average pity, 50/50 win rate, total pulls)
 
 ### 3. Primogem & Resource Tracking
-- [ ] Primogem ledger (gains/spending with categorized sources)
-- [ ] Fate tracking (Intertwined/Acquaint)
-- [ ] Resource snapshots (primos, fates, starglitter, stardust)
-- [ ] Daily checklist (quick-log commissions, Welkin)
-- [ ] Income analytics (daily/weekly/monthly averages, source breakdown)
-- [ ] Pull accumulation rate & projections
-- [ ] Transaction history with filters
+- [x] Primogem ledger (gains/spending with categorized sources)
+- [x] Fate tracking (Intertwined/Acquaint)
+- [x] Resource snapshots (primos, fates, starglitter, stardust)
+- [x] Daily checklist (quick-log commissions, Welkin)
+- [x] Income analytics (daily/weekly/monthly averages, source breakdown)
+- [x] Pull accumulation rate & projections
+- [x] Transaction history with filters
 
 ### 4. Pull Probability Calculator
-- [ ] Web Worker setup for heavy computation
-- [ ] Single-target calculator (analytical DP approach)
-  - [ ] Exact probability with current pulls
-  - [ ] Pulls needed for 50/80/90/99% confidence
-  - [ ] Probability distribution chart
-- [ ] Multi-target planner (Monte Carlo simulation)
-  - [ ] Multiple characters with banner dates
-  - [ ] Pull timeline visualization
-  - [ ] Per-character probabilities
-  - [ ] Configurable simulation count (5k/20k/100k)
-- [ ] Reverse calculator (required income for target confidence)
+- [x] Web Worker setup for heavy computation
+- [x] Single-target calculator (analytical DP approach)
+  - [x] Exact probability with current pulls
+  - [x] Pulls needed for 50/80/90/99% confidence
+  - [x] Probability distribution chart
+- [x] Multi-target planner (Monte Carlo simulation)
+  - [x] Multiple characters with banner dates
+  - [x] Pull timeline visualization
+  - [x] Per-character probabilities
+  - [x] Configurable simulation count (5k/20k/100k)
+- [x] Reverse calculator (required income for target confidence)
 - [ ] Scenario comparison (save & compare plans)
 
 ### 5. Spiral Abyss Log
@@ -74,15 +74,15 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [ ] Quick team export from Abyss runs
 
 ### 6. Goals & Notes
-- [ ] Goal tracking with checklists
-- [ ] Category filtering & status tracking
-- [ ] Character/team linking
-- [ ] Markdown notes editor
-- [ ] Tagging & search
-- [ ] Pin to top
+- [x] Goal tracking with checklists
+- [x] Category filtering & status tracking
+- [x] Character/team linking
+- [x] Markdown notes editor
+- [x] Tagging & search
+- [x] Pin to top
 
 ### 7. Cross-Device Sync
-- [ ] Export all data (JSON backup)
+- [x] Export all data (JSON backup)
 - [ ] Import/restore with merge strategies
 - [ ] Compression (lz-string)
 - [ ] Encryption (AES-GCM with passphrase)
@@ -90,13 +90,13 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [ ] Merge strategies (replace, newer wins, keep local)
 
 ### 8. PWA & Settings
-- [ ] PWA manifest & service worker
-- [ ] Offline caching for static assets
-- [ ] Installability
+- [x] PWA manifest & service worker
+- [x] Offline caching for static assets
+- [x] Installability
 - [ ] Theme (light/dark/system)
 - [ ] Date format preferences
 - [ ] Default calculator settings
-- [ ] Backup reminders
+- [x] Backup reminders
 
 ---
 
@@ -128,71 +128,71 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 ## Implementation Tasks
 
 ### Phase 1: Foundation & Setup
-- [ ] Initialize Vite + React + TypeScript project
-- [ ] Configure Tailwind CSS
-- [ ] Set up Dexie schema with version 1 stores
-- [ ] Create repository layer skeleton
-- [ ] Set up React Router with tab navigation
-- [ ] Create basic layout (header, tab nav, content area)
-- [ ] Set up PWA manifest and Vite PWA plugin
-- [ ] Initialize Zustand stores (UI state, calculator state)
+- [x] Initialize Vite + React + TypeScript project
+- [x] Configure Tailwind CSS
+- [x] Set up Dexie schema with version 1 stores
+- [x] Create repository layer skeleton
+- [x] Set up React Router with tab navigation
+- [x] Create basic layout (header, tab nav, content area)
+- [x] Set up PWA manifest and Vite PWA plugin
+- [x] Initialize Zustand stores (UI state, calculator state)
 
 ### Phase 2: Character Roster
-- [ ] Character data models & repository
-- [ ] Character list page (grid/list view)
-- [ ] Character filters & sorting
-- [ ] Character detail page
-- [ ] Build display components (weapon, artifacts, talents)
-- [ ] Team data models & repository
-- [ ] Team builder component
-- [ ] GOOD format mapper (import/export)
-- [ ] Enka mapper & API integration
-- [ ] Team snapshot export format
-- [ ] Manual character entry form
+- [x] Character data models & repository
+- [x] Character list page (grid/list view)
+- [x] Character filters & sorting
+- [x] Character detail page
+- [x] Build display components (weapon, artifacts, talents)
+- [x] Team data models & repository
+- [x] Team builder component
+- [x] GOOD format mapper (import/export)
+- [x] Enka mapper & API integration
+- [x] Team snapshot export format
+- [x] Manual character entry form
 
 ### Phase 3: Wish Tracking
-- [ ] Wish record models & repository
-- [ ] Gacha rules configuration (all banner types)
-- [ ] Pity computation engine
-  - [ ] Basic pity counting
-  - [ ] Guarantee tracking
-  - [ ] Capturing Radiance (radiant streak)
-  - [ ] Weapon fate points
-- [ ] Unit tests for pity engine (edge cases)
-- [ ] Pity dashboard UI
-- [ ] Wish history table with computed columns
-- [ ] Wish URL import flow
-- [ ] Authkey session management
-- [ ] Manual wish entry
-- [ ] Statistics dashboard
+- [x] Wish record models & repository
+- [x] Gacha rules configuration (all banner types)
+- [x] Pity computation engine
+  - [x] Basic pity counting
+  - [x] Guarantee tracking
+  - [x] Capturing Radiance (radiant streak)
+  - [x] Weapon fate points
+- [x] Unit tests for pity engine (edge cases)
+- [x] Pity dashboard UI
+- [x] Wish history table with computed columns
+- [x] Wish URL import flow
+- [x] Authkey session management
+- [x] Manual wish entry
+- [x] Statistics dashboard
 
 ### Phase 4: Primogem Ledger
-- [ ] Ledger models & repository
-- [ ] Quick entry panel with presets
-- [ ] Daily checklist component
-- [ ] Transaction history table
-- [ ] Income analytics calculations
-- [ ] Charts (income by source, cumulative over time)
-- [ ] Pull rate projections
+- [x] Ledger models & repository
+- [x] Quick entry panel with presets
+- [x] Daily checklist component
+- [x] Transaction history table
+- [x] Income analytics calculations
+- [x] Charts (income by source, cumulative over time)
+- [x] Pull rate projections
 - [ ] Bulk import
 
 ### Phase 5: Pull Calculator
-- [ ] Web Worker setup with Comlink
-- [ ] Analytical calculator (single target)
-  - [ ] Probability model implementation
-  - [ ] Dynamic programming solver
-  - [ ] Distribution curve generator
-- [ ] Monte Carlo simulator
-  - [ ] Simulation engine with seeded RNG
-  - [ ] Multi-target timeline builder
-  - [ ] Progress reporting
-- [ ] Calculator UI components
-  - [ ] Single target form & results
-  - [ ] Multi-target planner interface
-  - [ ] Reverse calculator
-  - [ ] Probability charts (Recharts)
+- [x] Web Worker setup with Comlink
+- [x] Analytical calculator (single target)
+  - [x] Probability model implementation
+  - [x] Dynamic programming solver
+  - [x] Distribution curve generator
+- [x] Monte Carlo simulator
+  - [x] Simulation engine with seeded RNG
+  - [x] Multi-target timeline builder
+  - [x] Progress reporting
+- [x] Calculator UI components
+  - [x] Single target form & results
+  - [x] Multi-target planner interface
+  - [x] Reverse calculator
+  - [x] Probability charts (Recharts)
 - [ ] Scenario save/compare feature
-- [ ] Performance optimization & testing
+- [x] Performance optimization & testing
 
 ### Phase 6: Abyss & Goals
 - [ ] Abyss run models & repository
@@ -200,16 +200,16 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [ ] Cycle history view
 - [ ] Progress charts (stars over time)
 - [ ] Team usage analytics
-- [ ] Goal models & repository
-- [ ] Goal creation & editing
-- [ ] Checklist component
-- [ ] Goal filtering & status tracking
-- [ ] Note models & repository
-- [ ] Markdown editor integration
-- [ ] Note tagging & search
+- [x] Goal models & repository
+- [x] Goal creation & editing
+- [x] Checklist component
+- [x] Goal filtering & status tracking
+- [x] Note models & repository
+- [x] Markdown editor integration
+- [x] Note tagging & search
 
 ### Phase 7: Sync & Polish
-- [ ] Export all data function
+- [x] Export all data function
 - [ ] Import with validation
 - [ ] Compression pipeline (lz-string)
 - [ ] Encryption/decryption (Web Crypto API)
@@ -217,18 +217,18 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [ ] QR code scanning
 - [ ] Merge strategy implementations
 - [ ] Conflict resolution UI
-- [ ] Settings page
-- [ ] Backup reminders
-- [ ] UI polish & responsive design
-- [ ] Offline mode testing
-- [ ] Performance audit
-- [ ] Service worker caching strategy
+- [x] Settings page
+- [x] Backup reminders
+- [x] UI polish & responsive design
+- [x] Offline mode testing
+- [x] Performance audit
+- [x] Service worker caching strategy
 
 ### Phase 8: Testing & Documentation
-- [ ] Unit tests for critical paths
-  - [ ] Pity engine edge cases
-  - [ ] Probability calculations
-  - [ ] Format mappers
+- [x] Unit tests for critical paths
+  - [x] Pity engine edge cases
+  - [x] Probability calculations
+  - [x] Format mappers
   - [ ] Merge logic
 - [ ] Regression test fixtures
 - [ ] Integration tests
