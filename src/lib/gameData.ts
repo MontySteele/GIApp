@@ -116,6 +116,8 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   '3094139291': 'Flower of Paradise Lost',
   '3410220315': 'Golden Troupe',
   '3626268211': 'Echoes of an Offering',
+  '147298547': 'Wanderer\'s Troupe',
+  '1212345779': 'Gladiator\'s Finale',
 
   // Also support direct string names (for test data and GOOD format)
   'Gladiator\'s Finale': 'Gladiator\'s Finale',
@@ -228,6 +230,80 @@ export const SLOT_NAMES: Record<string, string> = {
   'circlet': 'Circlet of Logos',
 };
 
+// GOOD/GO stat key mappings
+const STAT_GOOD_KEYS: Record<string, string> = {
+  // HP
+  'FIGHT_PROP_HP': 'hp',
+  'FIGHT_PROP_HP_PERCENT': 'hp_',
+  'hp': 'hp',
+  'hp_': 'hp_',
+
+  // ATK
+  'FIGHT_PROP_ATTACK': 'atk',
+  'FIGHT_PROP_ATTACK_PERCENT': 'atk_',
+  'atk': 'atk',
+  'atk_': 'atk_',
+
+  // DEF
+  'FIGHT_PROP_DEFENSE': 'def',
+  'FIGHT_PROP_DEFENSE_PERCENT': 'def_',
+  'def': 'def',
+  'def_': 'def_',
+
+  // Elemental Mastery
+  'FIGHT_PROP_ELEMENT_MASTERY': 'eleMas',
+  'eleMas': 'eleMas',
+  'em': 'eleMas',
+
+  // Energy Recharge
+  'FIGHT_PROP_CHARGE_EFFICIENCY': 'enerRech_',
+  'enerRech_': 'enerRech_',
+  'er': 'enerRech_',
+
+  // Crit
+  'FIGHT_PROP_CRITICAL': 'critRate_',
+  'FIGHT_PROP_CRITICAL_HURT': 'critDMG_',
+  'critRate_': 'critRate_',
+  'critDMG_': 'critDMG_',
+  'critRate': 'critRate_',
+  'critDMG': 'critDMG_',
+  'cr': 'critRate_',
+  'cd': 'critDMG_',
+
+  // Damage Bonuses
+  'FIGHT_PROP_PHYSICAL_ADD_HURT': 'physical_dmg_',
+  'FIGHT_PROP_FIRE_ADD_HURT': 'pyro_dmg_',
+  'FIGHT_PROP_WATER_ADD_HURT': 'hydro_dmg_',
+  'FIGHT_PROP_GRASS_ADD_HURT': 'dendro_dmg_',
+  'FIGHT_PROP_ELEC_ADD_HURT': 'electro_dmg_',
+  'FIGHT_PROP_WIND_ADD_HURT': 'anemo_dmg_',
+  'FIGHT_PROP_ICE_ADD_HURT': 'cryo_dmg_',
+  'FIGHT_PROP_ROCK_ADD_HURT': 'geo_dmg_',
+
+  'physical_dmg_': 'physical_dmg_',
+  'pyro_dmg_': 'pyro_dmg_',
+  'hydro_dmg_': 'hydro_dmg_',
+  'dendro_dmg_': 'dendro_dmg_',
+  'electro_dmg_': 'electro_dmg_',
+  'anemo_dmg_': 'anemo_dmg_',
+  'cryo_dmg_': 'cryo_dmg_',
+  'geo_dmg_': 'geo_dmg_',
+
+  // Healing Bonus
+  'FIGHT_PROP_HEAL_ADD': 'heal_',
+  'heal_': 'heal_',
+};
+
+const toPascalCase = (value: string): string =>
+  value
+    .replace(/['’]s\b/g, 's')
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+
 /**
  * Formats an artifact set key to a readable name
  */
@@ -236,10 +312,63 @@ export function formatArtifactSetName(setKey: string): string {
 }
 
 /**
+ * Formats an artifact set key to a GOOD/GO-compatible key
+ */
+export function toGoodArtifactSetKey(setKey: string): string {
+  const displayName = ARTIFACT_SET_NAMES[setKey] || setKey;
+  if (!displayName) {
+    return setKey;
+  }
+
+  if (/[^A-Za-z0-9]/.test(displayName)) {
+    return toPascalCase(displayName);
+  }
+
+  return displayName;
+}
+
+/**
+ * Formats a character key to a GOOD/GO-compatible key
+ */
+export function toGoodCharacterKey(characterKey: string): string {
+  if (!characterKey) {
+    return characterKey;
+  }
+
+  if (/[^A-Za-z0-9]/.test(characterKey)) {
+    return toPascalCase(characterKey);
+  }
+
+  return characterKey;
+}
+
+/**
  * Formats a stat key to a readable name
  */
 export function formatStatName(statKey: string): string {
   return STAT_NAMES[statKey] || statKey;
+}
+
+/**
+ * Formats a stat key to a GOOD/GO-compatible key
+ */
+export function toGoodStatKey(statKey: string): string {
+  return STAT_GOOD_KEYS[statKey] || statKey;
+}
+
+/**
+ * Formats a weapon key to a GOOD/GO-compatible key
+ */
+export function toGoodWeaponKey(weaponKey: string): string {
+  if (!weaponKey) {
+    return weaponKey;
+  }
+
+  if (/[^A-Za-z0-9]/.test(weaponKey)) {
+    return toPascalCase(weaponKey);
+  }
+
+  return weaponKey;
 }
 
 /**

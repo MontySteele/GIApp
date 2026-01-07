@@ -1,4 +1,5 @@
 import type { Character } from '@/types';
+import { toGoodArtifactSetKey, toGoodCharacterKey, toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 
 // GOOD Format v2 Specification
 // https://frzyc.github.io/genshin-optimizer/#/doc
@@ -7,9 +8,17 @@ export interface GOODFormat {
   format: 'GOOD';
   version: number;
   source: string;
+  active?: string | null;
+  targets?: GOODTarget[];
   characters?: GOODCharacter[];
   artifacts?: GOODArtifact[];
   weapons?: GOODWeapon[];
+}
+
+export interface GOODTarget {
+  level: number;
+  pos: [number, number];
+  radius: number;
 }
 
 export interface GOODCharacter {
@@ -47,6 +56,22 @@ export interface GOODArtifact {
   }>;
 }
 
+const getMaxArtifactLevel = (rarity: number): number => {
+  switch (rarity) {
+    case 1:
+      return 4;
+    case 2:
+      return 8;
+    case 3:
+      return 12;
+    case 4:
+      return 16;
+    case 5:
+    default:
+      return 20;
+  }
+};
+
 /**
  * Convert internal Character format to GOOD format
  */
@@ -56,9 +81,11 @@ export function toGOOD(characters: Character[]): GOODFormat {
   const goodArtifacts: GOODArtifact[] = [];
 
   for (const char of characters) {
+    const characterKey = toGoodCharacterKey(char.key);
+
     // Add character
     goodCharacters.push({
-      key: char.key,
+      key: characterKey,
       level: char.level,
       constellation: char.constellation,
       ascension: char.ascension,
@@ -71,33 +98,51 @@ export function toGOOD(characters: Character[]): GOODFormat {
 
     // Add weapon
     goodWeapons.push({
-      key: char.weapon.key,
+      key: toGoodWeaponKey(char.weapon.key),
       level: char.weapon.level,
       ascension: char.weapon.ascension,
       refinement: char.weapon.refinement,
-      location: char.key,
+      location: characterKey,
       lock: true,
     });
 
     // Add artifacts
     for (const artifact of char.artifacts) {
+      const maxLevel = getMaxArtifactLevel(artifact.rarity);
       goodArtifacts.push({
-        setKey: artifact.setKey,
+        setKey: toGoodArtifactSetKey(artifact.setKey),
         slotKey: artifact.slotKey,
-        level: artifact.level,
+        level: Math.min(artifact.level, maxLevel),
         rarity: artifact.rarity,
-        mainStatKey: artifact.mainStatKey,
-        location: char.key,
+        mainStatKey: toGoodStatKey(artifact.mainStatKey),
+        location: characterKey,
         lock: true,
-        substats: artifact.substats,
+        substats: artifact.substats.map((substat) => ({
+          key: toGoodStatKey(substat.key),
+          value: substat.value,
+        })),
       });
     }
   }
+
+  const active = goodCharacters.length > 0 ? goodCharacters[0].key : undefined;
+  const targets: GOODTarget[] =
+    goodCharacters.length > 0
+      ? [
+          {
+            level: 1,
+            pos: [0, 0],
+            radius: 1,
+          },
+        ]
+      : [];
 
   return {
     format: 'GOOD',
     version: 2,
     source: 'Genshin Progress Tracker',
+    ...(active ? { active } : {}),
+    targets,
     characters: goodCharacters,
     weapons: goodWeapons,
     artifacts: goodArtifacts,
@@ -179,6 +224,19 @@ export function validateGOOD(data: any): data is GOODFormat {
     return false;
   }
 
+  if (data.active !== undefined && data.active !== null && typeof data.active !== 'string') {
+    return false;
+  }
+
+  const isValidTarget = (target: any): target is GOODTarget =>
+    typeof target === 'object' &&
+    target !== null &&
+    typeof target.level === 'number' &&
+    Array.isArray(target.pos) &&
+    target.pos.length === 2 &&
+    target.pos.every((value: any) => typeof value === 'number') &&
+    typeof target.radius === 'number';
+
   const isValidSubstat = (substat: any): substat is { key: string; value: number } =>
     typeof substat === 'object' &&
     substat !== null &&
@@ -228,6 +286,16 @@ export function validateGOOD(data: any): data is GOODFormat {
     }
 
     if (!data.characters.every(isValidCharacter)) {
+      return false;
+    }
+  }
+
+  if (data.targets !== undefined) {
+    if (!Array.isArray(data.targets)) {
+      return false;
+    }
+
+    if (!data.targets.every(isValidTarget)) {
       return false;
     }
   }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toGOOD, fromGOOD, validateGOOD, type GOODFormat } from './good';
+import { toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 import type { Character } from '@/types';
 
 describe('GOOD Mapper', () => {
@@ -27,8 +28,8 @@ describe('GOOD Mapper', () => {
         rarity: 5,
         mainStatKey: 'hp',
         substats: [
-          { key: 'critRate', value: 3.9 },
-          { key: 'critDMG', value: 14.8 },
+          { key: 'critRate_', value: 3.9 },
+          { key: 'critDMG_', value: 14.8 },
           { key: 'hp_', value: 10.5 },
           { key: 'def', value: 16 },
         ],
@@ -40,8 +41,8 @@ describe('GOOD Mapper', () => {
         rarity: 5,
         mainStatKey: 'atk',
         substats: [
-          { key: 'critRate', value: 7.8 },
-          { key: 'critDMG', value: 21.0 },
+          { key: 'critRate_', value: 7.8 },
+          { key: 'critDMG_', value: 21.0 },
         ],
       },
     ],
@@ -57,6 +58,14 @@ describe('GOOD Mapper', () => {
       expect(result.format).toBe('GOOD');
       expect(result.version).toBe(2);
       expect(result.source).toBe('Genshin Progress Tracker');
+      expect(result.active).toBe('Furina');
+      expect(result.targets).toEqual([
+        {
+          level: 1,
+          pos: [0, 0],
+          radius: 1,
+        },
+      ]);
     });
 
     it('should export character data correctly', () => {
@@ -81,7 +90,7 @@ describe('GOOD Mapper', () => {
 
       expect(result.weapons).toHaveLength(1);
       expect(result.weapons![0]).toEqual({
-        key: 'Splendor of Tranquil Waters',
+        key: 'SplendorOfTranquilWaters',
         level: 90,
         ascension: 6,
         refinement: 1,
@@ -103,8 +112,8 @@ describe('GOOD Mapper', () => {
         location: 'Furina',
         lock: true,
         substats: [
-          { key: 'critRate', value: 3.9 },
-          { key: 'critDMG', value: 14.8 },
+          { key: 'critRate_', value: 3.9 },
+          { key: 'critDMG_', value: 14.8 },
           { key: 'hp_', value: 10.5 },
           { key: 'def', value: 16 },
         ],
@@ -136,6 +145,28 @@ describe('GOOD Mapper', () => {
       expect(result.weapons).toHaveLength(1);
     });
 
+    it('should clamp artifact level to the max for its rarity', () => {
+      const charWithOverleveledArtifact: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
+        ...mockCharacter,
+        artifacts: [
+          {
+            setKey: 'GoldenTroupe',
+            slotKey: 'circlet',
+            level: 17,
+            rarity: 4,
+            mainStatKey: 'critRate_',
+            substats: [],
+          },
+        ],
+      };
+
+      const result = toGOOD([charWithOverleveledArtifact as Character]);
+
+      expect(result.artifacts).toHaveLength(1);
+      expect(result.artifacts![0].level).toBe(16);
+      expect(result.artifacts![0].rarity).toBe(4);
+    });
+
     it('should handle empty character array', () => {
       const result = toGOOD([]);
 
@@ -143,6 +174,8 @@ describe('GOOD Mapper', () => {
       expect(result.characters).toHaveLength(0);
       expect(result.weapons).toHaveLength(0);
       expect(result.artifacts).toHaveLength(0);
+      expect(result.targets).toEqual([]);
+      expect(result.active).toBeUndefined();
     });
   });
 
@@ -162,7 +195,7 @@ describe('GOOD Mapper', () => {
       const result = fromGOOD(goodData);
 
       expect(result[0].weapon).toEqual({
-        key: 'Splendor of Tranquil Waters',
+        key: 'SplendorOfTranquilWaters',
         level: 90,
         ascension: 6,
         refinement: 1,
@@ -274,6 +307,14 @@ describe('GOOD Mapper', () => {
         format: 'GOOD',
         version: 2,
         source: 'Test',
+        active: 'Furina',
+        targets: [
+          {
+            level: 1,
+            pos: [0, 0],
+            radius: 1,
+          },
+        ],
         characters: [],
         weapons: [],
         artifacts: [],
@@ -366,6 +407,14 @@ describe('GOOD Mapper', () => {
         format: 'GOOD',
         version: 2,
         source: 'Test',
+        active: 'Furina',
+        targets: [
+          {
+            level: 90,
+            pos: [0, 0],
+            radius: 1,
+          },
+        ],
         characters: [
           {
             key: 'Furina',
@@ -456,6 +505,23 @@ describe('GOOD Mapper', () => {
 
       expect(validateGOOD(invalidData)).toBe(false);
     });
+
+    it('should reject invalid targets', () => {
+      const invalidData = {
+        format: 'GOOD',
+        version: 2,
+        source: 'Test',
+        targets: [
+          {
+            level: '1',
+            pos: [0, 0],
+            radius: 1,
+          },
+        ],
+      };
+
+      expect(validateGOOD(invalidData)).toBe(false);
+    });
   });
 
   describe('Bidirectional conversion', () => {
@@ -469,7 +535,10 @@ describe('GOOD Mapper', () => {
       expect(result[0].ascension).toBe(mockCharacter.ascension);
       expect(result[0].constellation).toBe(mockCharacter.constellation);
       expect(result[0].talent).toEqual(mockCharacter.talent);
-      expect(result[0].weapon).toEqual(mockCharacter.weapon);
+      expect(result[0].weapon).toEqual({
+        ...mockCharacter.weapon,
+        key: toGoodWeaponKey(mockCharacter.weapon.key),
+      });
       expect(result[0].artifacts).toHaveLength(mockCharacter.artifacts.length);
     });
 
@@ -477,7 +546,10 @@ describe('GOOD Mapper', () => {
       const goodData = toGOOD([mockCharacter as Character]);
       const result = fromGOOD(goodData);
 
-      const originalSubstats = mockCharacter.artifacts[0].substats;
+      const originalSubstats = mockCharacter.artifacts[0].substats.map((substat) => ({
+        ...substat,
+        key: toGoodStatKey(substat.key),
+      }));
       const roundTripSubstats = result[0].artifacts[0].substats;
 
       expect(roundTripSubstats).toEqual(originalSubstats);
