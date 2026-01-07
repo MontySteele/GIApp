@@ -159,7 +159,10 @@ export async function runSimulation(
     }
 
     if ((sim + 1) % chunkSize === 0 || sim === config.iterations - 1) {
-      reportProgress?.(Math.min(1, (sim + 1) / config.iterations));
+      // With Comlink proxy, the callback returns a Promise - await it for proper sync
+      if (reportProgress) {
+        await reportProgress(Math.min(1, (sim + 1) / config.iterations));
+      }
       // Yield control to keep the worker responsive during long runs
       await new Promise((resolve) => setTimeout(resolve, 0));
     }

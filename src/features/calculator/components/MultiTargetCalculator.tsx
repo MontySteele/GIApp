@@ -209,11 +209,15 @@ export function MultiTargetCalculator() {
 
       const result = await workerRef.current.api.runSimulation(
         simulationInput,
-        proxy((value: number) => setProgress(value))
+        proxy((value: number) => {
+          setProgress(value);
+        })
       );
       setResults(result);
     } catch (error) {
       console.error('Simulation error:', error);
+      // Show user-visible error
+      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // Ensure the loading state is visible for at least a brief moment
       await minimumLoadingDuration;
