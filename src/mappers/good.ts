@@ -1,5 +1,5 @@
 import type { Character } from '@/types';
-import { toGoodArtifactSetKey, toGoodStatKey } from '@/lib/gameData';
+import { toGoodArtifactSetKey, toGoodCharacterKey, toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 
 // GOOD Format v2 Specification
 // https://frzyc.github.io/genshin-optimizer/#/doc
@@ -8,9 +8,17 @@ export interface GOODFormat {
   format: 'GOOD';
   version: number;
   source: string;
+  active?: string | null;
+  targets?: GOODTarget[];
   characters?: GOODCharacter[];
   artifacts?: GOODArtifact[];
   weapons?: GOODWeapon[];
+}
+
+export interface GOODTarget {
+  level: number;
+  pos: [number, number];
+  radius: number;
 }
 
 export interface GOODCharacter {
@@ -57,9 +65,11 @@ export function toGOOD(characters: Character[]): GOODFormat {
   const goodArtifacts: GOODArtifact[] = [];
 
   for (const char of characters) {
+    const characterKey = toGoodCharacterKey(char.key);
+
     // Add character
     goodCharacters.push({
-      key: char.key,
+      key: characterKey,
       level: char.level,
       constellation: char.constellation,
       ascension: char.ascension,
@@ -72,11 +82,11 @@ export function toGOOD(characters: Character[]): GOODFormat {
 
     // Add weapon
     goodWeapons.push({
-      key: char.weapon.key,
+      key: toGoodWeaponKey(char.weapon.key),
       level: char.weapon.level,
       ascension: char.weapon.ascension,
       refinement: char.weapon.refinement,
-      location: char.key,
+      location: characterKey,
       lock: true,
     });
 
@@ -88,7 +98,7 @@ export function toGOOD(characters: Character[]): GOODFormat {
         level: artifact.level,
         rarity: artifact.rarity,
         mainStatKey: toGoodStatKey(artifact.mainStatKey),
-        location: char.key,
+        location: characterKey,
         lock: true,
         substats: artifact.substats.map((substat) => ({
           key: toGoodStatKey(substat.key),
@@ -98,10 +108,24 @@ export function toGOOD(characters: Character[]): GOODFormat {
     }
   }
 
+  const active = goodCharacters.length > 0 ? goodCharacters[0].key : undefined;
+  const targets: GOODTarget[] =
+    goodCharacters.length > 0
+      ? [
+          {
+            level: 1,
+            pos: [0, 0],
+            radius: 1,
+          },
+        ]
+      : [];
+
   return {
     format: 'GOOD',
     version: 2,
     source: 'Genshin Progress Tracker',
+    ...(active ? { active } : {}),
+    targets,
     characters: goodCharacters,
     weapons: goodWeapons,
     artifacts: goodArtifacts,
@@ -183,6 +207,19 @@ export function validateGOOD(data: any): data is GOODFormat {
     return false;
   }
 
+  if (data.active !== undefined && data.active !== null && typeof data.active !== 'string') {
+    return false;
+  }
+
+  const isValidTarget = (target: any): target is GOODTarget =>
+    typeof target === 'object' &&
+    target !== null &&
+    typeof target.level === 'number' &&
+    Array.isArray(target.pos) &&
+    target.pos.length === 2 &&
+    target.pos.every((value: any) => typeof value === 'number') &&
+    typeof target.radius === 'number';
+
   const isValidSubstat = (substat: any): substat is { key: string; value: number } =>
     typeof substat === 'object' &&
     substat !== null &&
@@ -232,6 +269,16 @@ export function validateGOOD(data: any): data is GOODFormat {
     }
 
     if (!data.characters.every(isValidCharacter)) {
+      return false;
+    }
+  }
+
+  if (data.targets !== undefined) {
+    if (!Array.isArray(data.targets)) {
+      return false;
+    }
+
+    if (!data.targets.every(isValidTarget)) {
       return false;
     }
   }
