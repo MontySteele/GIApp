@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toGOOD, fromGOOD, validateGOOD, type GOODFormat } from './good';
-import { toGoodStatKey } from '@/lib/gameData';
+import { toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 import type { Character } from '@/types';
 
 describe('GOOD Mapper', () => {
@@ -90,7 +90,7 @@ describe('GOOD Mapper', () => {
 
       expect(result.weapons).toHaveLength(1);
       expect(result.weapons![0]).toEqual({
-        key: 'Splendor of Tranquil Waters',
+        key: 'SplendorOfTranquilWaters',
         level: 90,
         ascension: 6,
         refinement: 1,
@@ -173,7 +173,7 @@ describe('GOOD Mapper', () => {
       const result = fromGOOD(goodData);
 
       expect(result[0].weapon).toEqual({
-        key: 'Splendor of Tranquil Waters',
+        key: 'SplendorOfTranquilWaters',
         level: 90,
         ascension: 6,
         refinement: 1,
@@ -513,7 +513,10 @@ describe('GOOD Mapper', () => {
       expect(result[0].ascension).toBe(mockCharacter.ascension);
       expect(result[0].constellation).toBe(mockCharacter.constellation);
       expect(result[0].talent).toEqual(mockCharacter.talent);
-      expect(result[0].weapon).toEqual(mockCharacter.weapon);
+      expect(result[0].weapon).toEqual({
+        ...mockCharacter.weapon,
+        key: toGoodWeaponKey(mockCharacter.weapon.key),
+      });
       expect(result[0].artifacts).toHaveLength(mockCharacter.artifacts.length);
     });
 

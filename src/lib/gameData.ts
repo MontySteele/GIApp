@@ -325,6 +325,21 @@ export function toGoodArtifactSetKey(setKey: string): string {
 }
 
 /**
+ * Formats a character key to a GOOD/GO-compatible key
+ */
+export function toGoodCharacterKey(characterKey: string): string {
+  if (!characterKey) {
+    return characterKey;
+  }
+
+  if (/[^A-Za-z0-9]/.test(characterKey)) {
+    return toPascalCase(characterKey);
+  }
+
+  return characterKey;
+}
+
+/**
  * Formats a stat key to a readable name
  */
 export function formatStatName(statKey: string): string {
@@ -336,6 +351,21 @@ export function formatStatName(statKey: string): string {
  */
 export function toGoodStatKey(statKey: string): string {
   return STAT_GOOD_KEYS[statKey] || statKey;
+}
+
+/**
+ * Formats a weapon key to a GOOD/GO-compatible key
+ */
+export function toGoodWeaponKey(weaponKey: string): string {
+  if (!weaponKey) {
+    return weaponKey;
+  }
+
+  if (/[^A-Za-z0-9]/.test(weaponKey)) {
+    return toPascalCase(weaponKey);
+  }
+
+  return weaponKey;
 }
 
 /**

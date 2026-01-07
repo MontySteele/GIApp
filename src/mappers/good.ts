@@ -1,5 +1,5 @@
 import type { Character } from '@/types';
-import { toGoodArtifactSetKey, toGoodStatKey } from '@/lib/gameData';
+import { toGoodArtifactSetKey, toGoodCharacterKey, toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 
 // GOOD Format v2 Specification
 // https://frzyc.github.io/genshin-optimizer/#/doc
@@ -65,9 +65,11 @@ export function toGOOD(characters: Character[]): GOODFormat {
   const goodArtifacts: GOODArtifact[] = [];
 
   for (const char of characters) {
+    const characterKey = toGoodCharacterKey(char.key);
+
     // Add character
     goodCharacters.push({
-      key: char.key,
+      key: characterKey,
       level: char.level,
       constellation: char.constellation,
       ascension: char.ascension,
@@ -80,11 +82,11 @@ export function toGOOD(characters: Character[]): GOODFormat {
 
     // Add weapon
     goodWeapons.push({
-      key: char.weapon.key,
+      key: toGoodWeaponKey(char.weapon.key),
       level: char.weapon.level,
       ascension: char.weapon.ascension,
       refinement: char.weapon.refinement,
-      location: char.key,
+      location: characterKey,
       lock: true,
     });
 
@@ -96,7 +98,7 @@ export function toGOOD(characters: Character[]): GOODFormat {
         level: artifact.level,
         rarity: artifact.rarity,
         mainStatKey: toGoodStatKey(artifact.mainStatKey),
-        location: char.key,
+        location: characterKey,
         lock: true,
         substats: artifact.substats.map((substat) => ({
           key: toGoodStatKey(substat.key),
