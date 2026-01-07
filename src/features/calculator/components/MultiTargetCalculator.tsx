@@ -207,7 +207,9 @@ export function MultiTargetCalculator() {
         perTargetStates, // Pass per-target pity overrides
       };
 
-      console.log('[Main] Calling worker.runSimulation...');
+      console.log('[Main] Waiting for worker to be ready...');
+      await workerRef.current.ready;
+      console.log('[Main] Worker ready, calling runSimulation...');
       const result = await workerRef.current.api.runSimulation(
         simulationInput,
         proxy((value: number) => {

@@ -1,4 +1,4 @@
-import type { GachaRules } from '@/types';
+import type { GachaRules } from '../../../types';
 
 /**
  * Calculate 5-star pull probability at a given pity count

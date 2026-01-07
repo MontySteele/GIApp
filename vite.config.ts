@@ -14,6 +14,14 @@ export default defineConfig(({ command }) => ({
       '@': '/src'
     }
   },
+  worker: {
+    format: 'es',
+    rollupOptions: {
+      output: {
+        entryFileNames: '[name]-[hash].js',
+      },
+    },
+  },
   // Vite server configuration for Tauri
   server: {
     port: 5173,

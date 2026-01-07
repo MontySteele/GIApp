@@ -249,8 +249,20 @@ export async function runSimulation(
   return result;
 }
 
+function ping(): string {
+  console.log('[Worker] ping called');
+  return 'pong';
+}
+
 const workerApi = {
   runSimulation,
+  ping,
 };
 
-expose(workerApi);
+console.log('[Worker] About to call expose() with workerApi:', Object.keys(workerApi));
+try {
+  expose(workerApi);
+  console.log('[Worker] expose() completed successfully');
+} catch (e) {
+  console.error('[Worker] expose() failed:', e);
+}
