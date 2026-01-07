@@ -283,6 +283,17 @@ Changes completed:
 - [x] First target uses full pity inputs, subsequent targets can inherit or customize
 - [x] Pity carryover between sequential banners properly modeled
 
+**Additional Enhancements (Sprint 2.5):**
+- [x] Per-constellation breakdown (C0, C1, C2... for characters; R1, R2... for weapons)
+- [x] "Nothing" probability display (chance of getting 0 copies from all targets)
+- [x] Mixed character + weapon banner targeting in single simulation
+- [x] Separate pity tracking per banner type (character/weapon/standard)
+- [x] State persistence across tab navigation with localStorage
+- [x] Reset button to clear calculator state
+- [x] Import pulls from resource tracker button
+- [x] Fixed negative values bug (clamp budget to zero)
+- [x] Fixed cumulative pulls tracking at each constellation milestone
+
 #### 1.4 Fix Reverse Calculator ✅ COMPLETED
 **Files:** `src/features/calculator/domain/analyticalCalc.ts`, `src/features/calculator/components/ReverseCalculator.tsx`
 
@@ -338,6 +349,14 @@ Fixes completed:
 - [x] Updated CharacterCard to display portraits with fallback placeholder
 - [x] Using Enka's CDN: `https://enka.network/ui/UI_AvatarIcon_Side_{name}.png`
 - [x] Updated fromEnka mapper to include avatarId when importing characters
+
+#### 3.1b Fix Character Max Level Display ✅ COMPLETED
+**Files:** `src/lib/constants.ts`, `src/features/roster/components/CharacterCard.tsx`, `CharacterDetailPage.tsx`, `TeamCard.tsx`, `TeamForm.tsx`
+
+~~Issue: Max level was offset by 10 (showing 50 instead of 40 for ascension 1)~~
+- [x] Created `MAX_LEVEL_BY_ASCENSION = [20, 40, 50, 60, 70, 80, 90]` constant
+- [x] Replaced formula `ascension * 10 + 20` with lookup table
+- [x] Fixed in CharacterCard, CharacterDetailPage, TeamCard, TeamForm
 
 #### 3.2 Historical Pulls & Projection Charts
 **Files:** New: `src/features/wishes/components/PullHistoryChart.tsx`, `src/features/ledger/components/ProjectionChart.tsx`
