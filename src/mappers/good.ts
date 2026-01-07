@@ -8,9 +8,17 @@ export interface GOODFormat {
   format: 'GOOD';
   version: number;
   source: string;
+  active?: string | null;
+  targets?: GOODTarget[];
   characters?: GOODCharacter[];
   artifacts?: GOODArtifact[];
   weapons?: GOODWeapon[];
+}
+
+export interface GOODTarget {
+  level: number;
+  pos: [number, number];
+  radius: number;
 }
 
 export interface GOODCharacter {
@@ -98,10 +106,24 @@ export function toGOOD(characters: Character[]): GOODFormat {
     }
   }
 
+  const active = goodCharacters.length > 0 ? goodCharacters[0].key : undefined;
+  const targets: GOODTarget[] =
+    goodCharacters.length > 0
+      ? [
+          {
+            level: 1,
+            pos: [0, 0],
+            radius: 1,
+          },
+        ]
+      : [];
+
   return {
     format: 'GOOD',
     version: 2,
     source: 'Genshin Progress Tracker',
+    ...(active ? { active } : {}),
+    targets,
     characters: goodCharacters,
     weapons: goodWeapons,
     artifacts: goodArtifacts,
@@ -183,6 +205,19 @@ export function validateGOOD(data: any): data is GOODFormat {
     return false;
   }
 
+  if (data.active !== undefined && data.active !== null && typeof data.active !== 'string') {
+    return false;
+  }
+
+  const isValidTarget = (target: any): target is GOODTarget =>
+    typeof target === 'object' &&
+    target !== null &&
+    typeof target.level === 'number' &&
+    Array.isArray(target.pos) &&
+    target.pos.length === 2 &&
+    target.pos.every((value: any) => typeof value === 'number') &&
+    typeof target.radius === 'number';
+
   const isValidSubstat = (substat: any): substat is { key: string; value: number } =>
     typeof substat === 'object' &&
     substat !== null &&
@@ -232,6 +267,16 @@ export function validateGOOD(data: any): data is GOODFormat {
     }
 
     if (!data.characters.every(isValidCharacter)) {
+      return false;
+    }
+  }
+
+  if (data.targets !== undefined) {
+    if (!Array.isArray(data.targets)) {
+      return false;
+    }
+
+    if (!data.targets.every(isValidTarget)) {
       return false;
     }
   }
