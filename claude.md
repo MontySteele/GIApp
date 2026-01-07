@@ -237,6 +237,202 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 
 ---
 
+## Bug Fixes & Enhancements Queue
+
+### Priority 1: Calculator Accuracy (Critical)
+
+These bugs affect core probability calculations and mislead users.
+
+#### 1.1 Fix Capturing Radiance Mechanics
+**Files:** `src/features/calculator/domain/pityEngine.ts`, `src/lib/constants.ts`
+
+Current implementation is incorrect:
+- ❌ Uses 50% base win rate (should be **55%**)
+- ❌ Uses 75% after 2 losses (should be **100% guarantee after 3 losses**)
+
+Correct mechanics (post-5.0):
+- Base win rate: 55% (10% "recovery" chance on loss)
+- After losing 3 consecutive 50/50s, the 4th 5-star is guaranteed (radiantStreak >= 3 → 100%)
+
+Changes needed:
+- [ ] Update `getFeaturedProbability()` to return 0.55 base rate
+- [ ] Update `radianceThreshold` to 3 in GACHA_RULES
+- [ ] Return 1.0 when radiantStreak >= 3 (guaranteed)
+- [ ] Update tests for new probabilities
+- [ ] Update pity engine DP to handle new mechanics
+
+#### 1.2 Fix Calculator Probability Display
+**Files:** `src/features/calculator/components/SingleTargetCalculator.tsx`
+
+User reports: "50% probability shows ~80 pity, should be ~75"
+- Verify calculations after Capturing Radiance fix
+- May be a cascading effect from incorrect base rate
+
+#### 1.3 Fix Multi-Target Calculator
+**Files:** `src/features/calculator/components/MultiTargetCalculator.tsx`, `src/workers/montecarlo.worker.ts`
+
+Current issues:
+- Uses only first target's pity state for all simulations
+- UI allows per-target pity/guarantee but values are ignored
+- Pity carryover between targets not properly modeled
+
+Fixes needed:
+- [ ] Pass per-target starting states to worker
+- [ ] Update worker to accept array of target states
+- [ ] Track pity carryover between sequential banners
+- [ ] Show per-target probability breakdown
+
+#### 1.4 Fix Reverse Calculator
+**Files:** `src/features/calculator/domain/analyticalCalc.ts`, `src/features/calculator/components/ReverseCalculator.tsx`
+
+Current issue: Linear approximation (pulls × targets) is inaccurate
+- For 2 targets at 80%: shows ~160 pulls needed
+- Reality: 80% × 80% = 64% for both with that many pulls
+
+Fixes needed:
+- [ ] Use Monte Carlo simulation for multi-target calculations
+- [ ] Or implement proper compound probability math
+- [ ] Account for pity carryover benefits when failing earlier targets
+- [ ] Show confidence intervals, not just point estimates
+
+### Priority 2: Display Bugs (High)
+
+#### 2.1 Fix Wish Sum Partial Values
+**Files:** `src/features/ledger/pages/LedgerPage.tsx`, `src/features/calculator/components/ReverseCalculator.tsx`
+
+Issue: Displaying fractional pulls like "12.35" instead of whole numbers
+
+Root cause: `primogems / 160` produces floats, then `.toFixed(2)` rounds
+- Fates should be integers (you can't have 0.35 of a wish)
+
+Fixes:
+- [ ] Use `Math.floor()` for available pulls calculation
+- [ ] Display as whole numbers in UI
+- [ ] Keep fractional primogems separate (e.g., "12 wishes + 80 primos")
+
+#### 2.2 Fix Enka Duplicate Character Imports
+**Files:** `src/features/roster/components/EnkaImport.tsx`, `src/features/roster/repo/characterRepo.ts`
+
+Issue: Importing same UID twice creates duplicate character entries
+
+Root cause:
+- No deduplication check before `bulkCreate()`
+- No unique constraint on character `key` in database
+
+Fixes:
+- [ ] Before import, check for existing characters by `key`
+- [ ] Offer user choice: Update existing / Skip duplicates / Create new
+- [ ] Add `getByKey()` lookup before insert
+- [ ] Consider adding unique constraint on `key` field
+
+### Priority 3: Feature Enhancements (Medium)
+
+#### 3.1 Add Character Portraits
+**Files:** `src/features/roster/components/CharacterCard.tsx`, `src/features/roster/components/CharacterListItem.tsx`
+
+Add character portrait images to roster display:
+- [ ] Use Enka asset URLs or local sprite sheet
+- [ ] Add portrait field to Character type (optional, populated on import)
+- [ ] Fallback to placeholder/element icon if no portrait
+- [ ] Consider using Enka's CDN: `https://enka.network/ui/{assetId}.png`
+
+#### 3.2 Historical Pulls & Projection Charts
+**Files:** New: `src/features/wishes/components/PullHistoryChart.tsx`, `src/features/ledger/components/ProjectionChart.tsx`
+
+User wants:
+- Historical pull visualization over time (when did I pull, cumulative)
+- Primogem gain projection (based on tracked income patterns)
+
+Implementation:
+- [ ] Add time-series chart for pull history (Recharts area chart)
+- [ ] Group pulls by day/week/month
+- [ ] Add projection chart showing expected future primogems
+- [ ] Reconcile projected vs. actual (show divergence)
+
+#### 3.3 Hide Manual Entry Sections
+**Files:** `src/features/wishes/pages/WishesPage.tsx`, `src/features/ledger/pages/LedgerPage.tsx`
+
+User prefers automated import over manual entry:
+- [ ] Make manual wish entry collapsible/hidden by default
+- [ ] Make manual primogem entry collapsible/hidden by default
+- [ ] Add settings toggle to show/hide manual sections
+
+#### 3.4 Add Real Money Purchase Ledger
+**Files:** New: `src/features/ledger/components/PurchaseLedger.tsx`, `src/db/schema.ts`
+
+Track real money spending (Welkin, BP, Genesis Crystals):
+- [ ] Add `purchases` table to schema
+- [ ] Fields: date, type (welkin/bp/crystals), amount (USD), notes
+- [ ] Add purchase entry form
+- [ ] Show total spending, spending by type
+- [ ] Optional: convert to pulls equivalent
+
+### Priority 4: UX Improvements (Medium)
+
+#### 4.1 Redesign Goals as Simple Notepad/Stickies
+**Files:** `src/features/notes/pages/NotesPage.tsx`, `src/features/notes/components/*`
+
+Current Goals section is over-engineered. User wants simple stickies:
+- [ ] Simplify to quick notes/stickies format
+- [ ] Remove complex goal tracking, checklists, category filtering
+- [ ] Add quick-add button for new note
+- [ ] Keep tags for basic organization
+- [ ] Consider sticky-note visual style
+
+### Priority 5: New Features (Lower)
+
+#### 5.1 Artifact Optimizer for GOOD Format
+**Files:** New: `src/features/artifacts/*`
+
+Evaluate artifacts from GOOD-format Irminsul dumps:
+- [ ] Import artifacts from GOOD JSON
+- [ ] Score artifacts based on substat rolls
+- [ ] Identify promising level-0 artifacts worth upgrading
+- [ ] Filter by set, slot, main stat
+- [ ] Show roll efficiency (actual rolls vs. max possible)
+
+#### 5.2 Spiral Abyss Log (from roadmap)
+Complete the Abyss tracking feature:
+- [ ] Abyss run entry (cycle, floor, chamber, stars, teams)
+- [ ] History view by cycle
+- [ ] Progress tracking over time
+- [ ] Team usage statistics
+
+#### 5.3 Sync Features (from roadmap)
+- [ ] Import with merge strategies
+- [ ] Compression (lz-string)
+- [ ] Encryption (AES-GCM)
+- [ ] QR code generation for small payloads
+
+### Implementation Order
+
+**Sprint 1 - Calculator Fixes (Critical Path)**
+1. Fix Capturing Radiance (1.1) - blocks all other calculator fixes
+2. Verify single-target calculator (1.2)
+3. Fix wish sum partial values (2.1) - quick win
+4. Fix Enka duplicates (2.2) - quick win
+
+**Sprint 2 - Multi-Target & Reverse Calculator**
+1. Fix multi-target calculator (1.3)
+2. Fix reverse calculator (1.4)
+3. Add character portraits (3.1)
+
+**Sprint 3 - Charts & Visualization**
+1. Historical pulls chart (3.2)
+2. Primogem projection chart (3.2)
+3. Hide manual entry sections (3.3)
+
+**Sprint 4 - UX Polish**
+1. Redesign goals as stickies (4.1)
+2. Add purchase ledger (3.4)
+
+**Sprint 5 - New Features**
+1. Artifact optimizer (5.1)
+2. Spiral Abyss log (5.2)
+3. Sync features (5.3)
+
+---
+
 ## Open Questions / Ambiguities
 
 1. **UI Framework Details**: Should we use a component library (e.g., shadcn/ui, Radix) or build custom components with Tailwind?
