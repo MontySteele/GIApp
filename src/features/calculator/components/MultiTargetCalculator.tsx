@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { proxy } from 'comlink';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -8,7 +8,7 @@ import { ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react';
 import { GACHA_RULES } from '@/lib/constants';
 import type { BannerType } from '@/types';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
-import { createMonteCarloWorker } from '@/workers/montecarloClient';
+import { createMonteCarloWorker, type MonteCarloWorkerHandle } from '@/workers/montecarloClient';
 import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
 
 interface Target {
@@ -30,14 +30,26 @@ export function MultiTargetCalculator() {
   const [iterations, setIterations] = useState(5000);
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
-  const workerRef = useRef(createMonteCarloWorker());
+  const workerRef = useRef<MonteCarloWorkerHandle | null>(null);
   const rules = GACHA_RULES[bannerType];
 
-  useEffect(() => {
-    const currentWorker = workerRef.current;
+  // Lazy worker initialization - only create once
+  const getWorker = useCallback(() => {
+    if (!workerRef.current) {
+      console.log('[Main] Creating worker (lazy init)...');
+      workerRef.current = createMonteCarloWorker();
+    }
+    return workerRef.current;
+  }, []);
 
+  useEffect(() => {
     return () => {
-      currentWorker.worker.terminate();
+      // Cleanup on unmount
+      if (workerRef.current) {
+        console.log('[Main] Terminating worker on unmount');
+        workerRef.current.worker.terminate();
+        workerRef.current = null;
+      }
     };
   }, []);
 
@@ -213,14 +225,15 @@ export function MultiTargetCalculator() {
         perTargetStates, // Pass per-target pity overrides
       };
 
+      const worker = getWorker();
       console.log('[Main] Waiting for worker to be ready...');
-      console.log('[Main] workerRef.current:', workerRef.current);
-      console.log('[Main] workerRef.current.ready:', workerRef.current.ready);
-      await workerRef.current.ready;
+      console.log('[Main] worker:', worker);
+      console.log('[Main] worker.ready:', worker.ready);
+      await worker.ready;
       console.log('[Main] Worker ready, calling runSimulation...');
       console.log('[Main] simulationInput:', JSON.stringify(simulationInput, null, 2));
       try {
-        const result = await workerRef.current.api.runSimulation(
+        const result = await worker.api.runSimulation(
           simulationInput,
           proxy((value: number) => {
             console.log('[Main] Progress callback received:', value);
