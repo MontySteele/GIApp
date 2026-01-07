@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { proxy } from 'comlink';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -208,7 +209,7 @@ export function MultiTargetCalculator() {
 
       const result = await workerRef.current.api.runSimulation(
         simulationInput,
-        (value: number) => setProgress(value)
+        proxy((value: number) => setProgress(value))
       );
       setResults(result);
     } catch (error) {
