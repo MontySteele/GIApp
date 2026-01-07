@@ -65,6 +65,7 @@ export function MultiTargetCalculator() {
 
   const validateTargets = (targetsToValidate: Target[], bannerRules = rules): Map<string, string> => {
     const newErrors = new Map<string, string>();
+    if (!bannerRules) return newErrors;
 
     targetsToValidate.forEach((target) => {
       if (target.pity < 0 || target.pity >= bannerRules.hardPity) {
@@ -88,10 +89,11 @@ export function MultiTargetCalculator() {
   const prefillFromCurrentPity = () => {
     if (!pitySnapshot) return;
 
+    const weaponRules = GACHA_RULES.weapon;
     const nextTargetValues = {
       pity: pitySnapshot.pity,
       guaranteed: pitySnapshot.banner === 'weapon'
-        ? (pitySnapshot.fatePoints ?? 0) >= (GACHA_RULES.weapon.maxFatePoints ?? 2)
+        ? (pitySnapshot.fatePoints ?? 0) >= (weaponRules?.maxFatePoints ?? 2)
         : pitySnapshot.guaranteed,
       radiantStreak: pitySnapshot.radiantStreak,
     };
@@ -117,7 +119,12 @@ export function MultiTargetCalculator() {
   const moveTargetUp = (index: number) => {
     if (index === 0) return;
     const newTargets = [...targets];
-    [newTargets[index - 1], newTargets[index]] = [newTargets[index], newTargets[index - 1]];
+    const current = newTargets[index];
+    const prev = newTargets[index - 1];
+    if (current && prev) {
+      newTargets[index - 1] = current;
+      newTargets[index] = prev;
+    }
     setTargets(newTargets);
     setResults(null);
   };
@@ -125,7 +132,12 @@ export function MultiTargetCalculator() {
   const moveTargetDown = (index: number) => {
     if (index === targets.length - 1) return;
     const newTargets = [...targets];
-    [newTargets[index], newTargets[index + 1]] = [newTargets[index + 1], newTargets[index]];
+    const current = newTargets[index];
+    const next = newTargets[index + 1];
+    if (current && next) {
+      newTargets[index] = next;
+      newTargets[index + 1] = current;
+    }
     setTargets(newTargets);
     setResults(null);
   };
@@ -137,7 +149,7 @@ export function MultiTargetCalculator() {
   };
 
   const handleCalculate = async () => {
-    if (!validate()) return;
+    if (!validate() || !rules) return;
 
     setIsCalculating(true);
     setProgress(0);
@@ -160,9 +172,9 @@ export function MultiTargetCalculator() {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })),
-        startingPity: targets[0]?.pity || 0,
-        startingGuaranteed: targets[0]?.guaranteed || false,
-        startingRadiantStreak: targets[0]?.radiantStreak || 0,
+        startingPity: targets[0]?.pity ?? 0,
+        startingGuaranteed: targets[0]?.guaranteed ?? false,
+        startingRadiantStreak: targets[0]?.radiantStreak ?? 0,
         startingPulls: availablePulls,
         incomePerDay: 0, // No daily income for this calculation
         rules,
@@ -217,12 +229,12 @@ export function MultiTargetCalculator() {
         <CardContent className="space-y-2">
           <Select
             label="Simulation Count"
-            value={iterations}
+            value={String(iterations)}
             onChange={(e) => setIterations(Number(e.target.value))}
             options={[
-              { value: 5000, label: '5,000 (fast)' },
-              { value: 20000, label: '20,000 (balanced)' },
-              { value: 100000, label: '100,000 (slow, more accurate)' },
+              { value: '5000', label: '5,000 (fast)' },
+              { value: '20000', label: '20,000 (balanced)' },
+              { value: '100000', label: '100,000 (slow, more accurate)' },
             ]}
           />
           <p className="text-sm text-amber-300">

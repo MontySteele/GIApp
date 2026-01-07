@@ -1,7 +1,7 @@
 import { db } from '@/db/schema';
 import type { FateEntry } from '@/types';
 
-type FateEntryInput = Omit<FateEntry, 'id' | 'createdAt' | 'updatedAt'> & {
+type FateEntryInput = Omit<FateEntry, 'id' | 'createdAt' | 'updatedAt' | 'timestamp'> & {
   timestamp?: string;
 };
 

@@ -11,6 +11,10 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
   const rules = GACHA_RULES[bannerType];
   const { fiveStarPity, fourStarPity, guaranteed } = pityState;
 
+  if (!rules) {
+    return <div className="text-slate-400">Unknown banner type</div>;
+  }
+
   // Calculate progress percentages
   const fiveStarProgress = (fiveStarPity / rules.hardPity) * 100;
   const fourStarProgress = (fourStarPity / 10) * 100; // 4-star hard pity is always 10

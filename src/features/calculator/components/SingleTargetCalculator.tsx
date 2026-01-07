@@ -18,12 +18,15 @@ export default function SingleTargetCalculator() {
   const [result, setResult] = useState<AnalyticalResult | null>(null);
 
   const handleCalculate = () => {
+    const characterRules = GACHA_RULES.character;
+    if (!characterRules) return;
+
     const res = calculateSingleTarget(
       currentPity,
       isGuaranteed,
       radiantStreak,
       availablePulls,
-      GACHA_RULES.character
+      characterRules
     );
     setResult(res);
   };

@@ -154,9 +154,10 @@ export async function runSimulation(
     const probability = stats.successes / config.iterations;
 
     const sortedPulls = stats.totalPullsUsed.sort((a, b) => a - b);
+    const medianIndex = Math.floor(sortedPulls.length / 2);
     const medianPullsUsed =
       sortedPulls.length > 0
-        ? sortedPulls[Math.floor(sortedPulls.length / 2)]
+        ? sortedPulls[medianIndex] ?? 0
         : 0;
 
     const averagePullsUsed =
@@ -172,13 +173,11 @@ export async function runSimulation(
 
   // Build timeline
   const pullTimeline = sortedTargets.map((target, index) => {
-    const targetDate = new Date(target.expectedStartDate);
-    const daysUntil = Math.max(0, (targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-    const earnedPulls = Math.floor(daysUntil * incomePerDay);
-
     let totalPullsAvailable = startingPulls;
     for (let i = 0; i <= index; i++) {
       const prevTarget = sortedTargets[i];
+      if (!prevTarget) continue;
+
       const prevDate = new Date(prevTarget.expectedStartDate);
       const prevDays = Math.max(0, (prevDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       totalPullsAvailable += Math.floor(prevDays * incomePerDay);
@@ -211,6 +210,3 @@ const workerApi = {
 };
 
 expose(workerApi);
-
-// Expose functions to main thread
-export type { SimulationInput, SimulationResult, SimulationConfig };

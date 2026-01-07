@@ -1,7 +1,7 @@
 import { db } from '@/db/schema';
 import type { ResourceSnapshot } from '@/types';
 
-type ResourceSnapshotInput = Omit<ResourceSnapshot, 'id' | 'createdAt'> & {
+type ResourceSnapshotInput = Omit<ResourceSnapshot, 'id' | 'createdAt' | 'timestamp'> & {
   timestamp?: string;
 };
 

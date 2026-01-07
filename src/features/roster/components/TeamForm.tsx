@@ -50,7 +50,12 @@ export default function TeamForm({ characters, initialData, onSubmit, onCancel }
       const swapIndex = direction === 'up' ? index - 1 : index + 1;
       if (swapIndex < 0 || swapIndex >= next.length) return prev;
 
-      [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+      const current = next[index];
+      const swap = next[swapIndex];
+      if (current !== undefined && swap !== undefined) {
+        next[index] = swap;
+        next[swapIndex] = current;
+      }
       return next;
     });
   };

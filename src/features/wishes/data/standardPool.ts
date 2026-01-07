@@ -37,7 +37,7 @@ export const isStandardWeapon = (name: string): boolean =>
 export const resolveIsFeatured = (
   name: string,
   banner: BannerType,
-  itemType: 'character' | 'weapon',
+  _itemType: 'character' | 'weapon',
   rarity: number
 ): boolean | undefined => {
   if (rarity !== 5) return undefined;

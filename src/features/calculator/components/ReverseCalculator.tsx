@@ -44,7 +44,7 @@ export function ReverseCalculator() {
     if (daysAvailable < 1) {
       newErrors.set('daysAvailable', 'Must be at least 1');
     }
-    if (currentPity < 0 || currentPity >= rules.hardPity) {
+    if (rules && (currentPity < 0 || currentPity >= rules.hardPity)) {
       newErrors.set('currentPity', `Pity must be between 0 and ${rules.hardPity - 1}`);
     }
     if (radiantStreak < 0 || radiantStreak > 3) {
@@ -62,7 +62,8 @@ export function ReverseCalculator() {
   };
 
   const calculate = () => {
-    if (!validate()) return;
+    const rules = GACHA_RULES[bannerType];
+    if (!validate() || !rules) return;
 
     const result = calculateRequiredIncome(
       numTargets,
@@ -71,7 +72,7 @@ export function ReverseCalculator() {
       currentPity,
       isGuaranteed,
       radiantStreak,
-      GACHA_RULES[bannerType],
+      rules,
       currentAvailablePulls,
       customDailyPrimogemIncome
     );
@@ -147,9 +148,10 @@ export function ReverseCalculator() {
   const handleUseCurrentPity = () => {
     if (!pitySnapshot) return;
 
+    const weaponRules = GACHA_RULES.weapon;
     const nextGuaranteed =
       pitySnapshot.banner === 'weapon'
-        ? (pitySnapshot.fatePoints ?? 0) >= (GACHA_RULES.weapon.maxFatePoints ?? 2)
+        ? (pitySnapshot.fatePoints ?? 0) >= (weaponRules?.maxFatePoints ?? 2)
         : pitySnapshot.guaranteed;
 
     setCurrentPity(pitySnapshot.pity);

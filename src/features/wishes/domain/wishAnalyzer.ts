@@ -72,6 +72,18 @@ function sortHistoryForReplay(history: WishHistoryItem[], bannerType: BannerType
 
 function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): ReplayResult {
   const rules = GACHA_RULES[bannerType];
+  if (!rules) {
+    return {
+      bannerHistory: [],
+      fiveStarPulls: [],
+      fourStarPulls: [],
+      fiveStarPityValues: [],
+      fourStarPityValues: [],
+      pityState: { fiveStarPity: 0, fourStarPity: 0, guaranteed: false, fatePoints: 0, radiantStreak: 0, radianceActive: false },
+      fiftyFiftyWon: 0,
+      fiftyFiftyLost: 0,
+    };
+  }
   const bannerHistory = sortHistoryForReplay(history, bannerType);
 
   const fiveStarPulls: FiveStarPull[] = [];

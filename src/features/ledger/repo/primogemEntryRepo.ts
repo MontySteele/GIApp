@@ -1,7 +1,7 @@
 import { db } from '@/db/schema';
 import type { PrimogemEntry } from '@/types';
 
-type PrimogemEntryInput = Omit<PrimogemEntry, 'id' | 'createdAt' | 'updatedAt'> & {
+type PrimogemEntryInput = Omit<PrimogemEntry, 'id' | 'createdAt' | 'updatedAt' | 'timestamp'> & {
   timestamp?: string;
 };
 

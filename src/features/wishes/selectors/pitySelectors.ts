@@ -53,8 +53,10 @@ function createDefaultState(): Record<BannerType, BannerPitySnapshot> {
 }
 
 function getRadianceActive(radiantStreak: number): boolean {
-  const threshold = GACHA_RULES.character.radianceThreshold ?? 0;
-  return GACHA_RULES.character.hasCapturingRadiance && radiantStreak >= threshold;
+  const characterRules = GACHA_RULES.character;
+  if (!characterRules) return false;
+  const threshold = characterRules.radianceThreshold ?? 0;
+  return characterRules.hasCapturingRadiance && radiantStreak >= threshold;
 }
 
 export function getPityByBanner(wishes: WishRecord[]): Record<BannerType, BannerPitySnapshot> {
@@ -63,7 +65,7 @@ export function getPityByBanner(wishes: WishRecord[]): Record<BannerType, Banner
   }
 
   const { pityState } = replayWishHistory(wishes);
-  const weaponMaxFatePoints = GACHA_RULES.weapon.maxFatePoints ?? 2;
+  const weaponMaxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 2;
   const weaponGuaranteed = (pityState.weapon.fatePoints ?? 0) >= weaponMaxFatePoints;
 
   return {

@@ -1,7 +1,7 @@
 import { Star, Pencil, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import type { Character } from '@/types';
+import type { Character, CharacterPriority } from '@/types';
 
 interface CharacterCardProps {
   character: Character;
@@ -12,14 +12,14 @@ interface CharacterCardProps {
 }
 
 export default function CharacterCard({ character, onClick, onEdit, onDelete, teamNames }: CharacterCardProps) {
-  const priorityColors = {
+  const priorityColors: Record<CharacterPriority, string> = {
     main: 'border-primary-500',
     secondary: 'border-blue-500',
     bench: 'border-slate-600',
     unbuilt: 'border-slate-700',
   };
 
-  const priorityLabels = {
+  const priorityLabels: Record<CharacterPriority, string> = {
     main: 'Main',
     secondary: 'Secondary',
     bench: 'Bench',

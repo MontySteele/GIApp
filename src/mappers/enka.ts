@@ -74,8 +74,9 @@ async function fetchWithRetry(url: string) {
   let response: Response | null = null;
 
   for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt++) {
-    if (attempt > 0) {
-      await sleep(RETRY_DELAYS_MS[attempt]);
+    const delayMs = RETRY_DELAYS_MS[attempt];
+    if (attempt > 0 && delayMs !== undefined) {
+      await sleep(delayMs);
     }
 
     try {
@@ -293,9 +294,8 @@ const WEAPON_ID_MAP: { [key: number]: string } = {
   11516: 'Peak Patrol Song',
   11517: 'Azurelight',
   11518: 'Athame Artis',
-  12501: 'Aquila Favonia',
-  12502: 'Skyward Blade',
-  12505: 'Primordial Jade Greatsword',
+  // Note: 11501 Aquila Favonia and 11502 Skyward Blade were previously duplicated
+  // They should use correct sword IDs (5-star swords start at 11501)
   // 4-Star Swords
   11401: 'Favonius Sword',
   11402: 'The Flute',
@@ -544,11 +544,13 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
       }
 
       const weaponName = WEAPON_ID_MAP[weaponEquip.itemId] || `Unknown Weapon (ID: ${weaponEquip.itemId})`;
+      const affixValues = Object.values(weaponEquip.weapon.affixMap || {});
+      const affixLevel = affixValues[0];
       const weapon = {
         key: weaponName,
         level: weaponEquip.weapon.level || 1,
         ascension: weaponEquip.weapon.promoteLevel || 0,
-        refinement: Object.values(weaponEquip.weapon.affixMap || {})[0] + 1 || 1,
+        refinement: typeof affixLevel === 'number' ? affixLevel + 1 : 1,
       };
 
       // Extract artifacts

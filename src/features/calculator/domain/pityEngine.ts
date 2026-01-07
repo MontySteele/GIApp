@@ -1,5 +1,4 @@
-import type { BannerType, GachaRules, BannerPityState } from '@/types';
-import { GACHA_RULES } from '@/lib/constants';
+import type { GachaRules } from '@/types';
 
 /**
  * Calculate 5-star pull probability at a given pity count
@@ -124,9 +123,9 @@ export function calculateDistribution(
     for (const [key, prob] of currentStates) {
       const [pityStr, guaranteedStr, radiantStreakStr] = key.split('-');
       const state = {
-        pity: parseInt(pityStr),
+        pity: parseInt(pityStr ?? '0'),
         guaranteed: guaranteedStr === '1',
-        radiantStreak: parseInt(radiantStreakStr),
+        radiantStreak: parseInt(radiantStreakStr ?? '0'),
       };
 
       const pullProb = getPullProbability(state.pity, rules);

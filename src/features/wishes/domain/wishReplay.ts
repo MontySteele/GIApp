@@ -59,7 +59,7 @@ function handleCharacterWish(
   const wasGuaranteed = state.character.guaranteed;
   const triggeredRadiance =
     !wasGuaranteed &&
-    typeof characterRules.radianceThreshold === 'number' &&
+    typeof characterRules?.radianceThreshold === 'number' &&
     state.character.radiantStreak >= characterRules.radianceThreshold;
 
   if (wish.rarity === 5) {
@@ -101,7 +101,7 @@ function handleWeaponWish(
   chartedWeapon: string | null
 ) {
   const pityCount = state.weapon.pity + 1;
-  const maxFatePoints = GACHA_RULES.weapon.maxFatePoints ?? 2;
+  const maxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 2;
   const wasGuaranteed = state.weapon.fatePoints >= maxFatePoints;
 
   state.weapon.chartedWeapon = chartedWeapon;
