@@ -81,6 +81,43 @@ export const characterRepo = {
     await db.characters.bulkAdd(withMetadata);
   },
 
+  /**
+   * Bulk upsert characters - update existing by key, create new ones
+   * Returns counts for created and updated characters
+   */
+  async bulkUpsert(
+    characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[]
+  ): Promise<{ created: number; updated: number }> {
+    const now = new Date().toISOString();
+    let created = 0;
+    let updated = 0;
+
+    for (const char of characters) {
+      const existing = await db.characters.where('key').equals(char.key).first();
+
+      if (existing) {
+        // Update existing character, preserving teamIds and other user data
+        await db.characters.update(existing.id, {
+          ...char,
+          teamIds: existing.teamIds, // Preserve team associations
+          updatedAt: now,
+        });
+        updated++;
+      } else {
+        // Create new character
+        await db.characters.add({
+          ...char,
+          id: crypto.randomUUID(),
+          createdAt: now,
+          updatedAt: now,
+        });
+        created++;
+      }
+    }
+
+    return { created, updated };
+  },
+
   async getByPriority(priority: Character['priority']): Promise<Character[]> {
     return db.characters.where('priority').equals(priority).toArray();
   },

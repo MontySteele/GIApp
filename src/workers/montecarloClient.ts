@@ -6,11 +6,13 @@ export interface MonteCarloWorkerApi {
     input: SimulationInput,
     reportProgress?: (progress: number) => void
   ): Promise<SimulationResult>;
+  ping(): Promise<string>;
 }
 
 export interface MonteCarloWorkerHandle {
   worker: Worker;
   api: Remote<MonteCarloWorkerApi>;
+  ready: Promise<void>;
 }
 
 export const createMonteCarloWorker = (): MonteCarloWorkerHandle => {
@@ -20,5 +22,10 @@ export const createMonteCarloWorker = (): MonteCarloWorkerHandle => {
 
   const api = wrap<MonteCarloWorkerApi>(worker);
 
-  return { worker, api };
+  // Create a promise that resolves when the worker responds to ping
+  const ready = (async () => {
+    await api.ping();
+  })();
+
+  return { worker, api, ready };
 };

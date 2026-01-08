@@ -1,4 +1,4 @@
-import type { GachaRules } from '@/types';
+import type { GachaRules } from '../../../types';
 
 /**
  * Calculate 5-star pull probability at a given pity count
@@ -17,16 +17,17 @@ export function getPullProbability(pity: number, rules: GachaRules): number {
 
 /**
  * Calculate featured character probability (50/50 or Capturing Radiance)
+ * Base rate is 55% (not 50%), with 100% guarantee after 3 consecutive losses
  */
 export function getFeaturedProbability(radiantStreak: number, rules: GachaRules): number {
   if (!rules.hasCapturingRadiance) return 0.5;
 
-  // Capturing Radiance activates after losing 50/50 twice consecutively
-  if (radiantStreak >= (rules.radianceThreshold || 2)) {
-    return 0.75; // Reported rate with Capturing Radiance
+  // Capturing Radiance activates after losing 50/50 three times consecutively
+  if (radiantStreak >= (rules.radianceThreshold || 3)) {
+    return 1.0; // Guaranteed featured after 3 losses
   }
 
-  return 0.5; // Normal 50/50
+  return 0.55; // Base 55% win rate (not 50%)
 }
 
 /**

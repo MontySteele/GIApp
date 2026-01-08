@@ -1,78 +1,166 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { proxy } from 'comlink';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, Plus, Download, RotateCcw } from 'lucide-react';
 import { GACHA_RULES } from '@/lib/constants';
 import type { BannerType } from '@/types';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
-import { createMonteCarloWorker } from '@/workers/montecarloClient';
-import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
+import { createMonteCarloWorker, type MonteCarloWorkerHandle } from '@/workers/montecarloClient';
+import { getAvailablePullsFromTracker } from '@/features/calculator/selectors/availablePulls';
 
 interface Target {
   id: string;
   characterName: string;
+  bannerType: BannerType;
+  constellation: number; // 0-6, how many copies (C0 = 1 copy, C6 = 7 copies)
   pity: number;
   guaranteed: boolean;
   radiantStreak: number;
+  fatePoints: number; // For weapon banner
+  useInheritedPity: boolean; // If true, inherit pity from previous target's simulation result
+}
+
+const STORAGE_KEY = 'multi-target-calculator-state';
+
+interface PersistedState {
+  targets: Target[];
+  availablePulls: number;
+  iterations: number;
+}
+
+function loadPersistedState(): PersistedState | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored) as PersistedState;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+function savePersistedState(state: PersistedState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function clearPersistedState(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 export function MultiTargetCalculator() {
-  const [bannerType, setBannerType] = useState<BannerType>('character');
-  const pitySnapshot = useCurrentPity(bannerType);
-  const [targets, setTargets] = useState<Target[]>([]);
-  const [availablePulls, setAvailablePulls] = useState(0);
+  // Load initial state from localStorage
+  const initialState = useRef(loadPersistedState());
+
+  const [targets, setTargets] = useState<Target[]>(initialState.current?.targets ?? []);
+  const [availablePulls, setAvailablePulls] = useState(initialState.current?.availablePulls ?? 0);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isLoadingPulls, setIsLoadingPulls] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [iterations, setIterations] = useState(5000);
+  const [iterations, setIterations] = useState(initialState.current?.iterations ?? 5000);
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
-  const workerRef = useRef(createMonteCarloWorker());
-  const rules = GACHA_RULES[bannerType];
+  const workerRef = useRef<MonteCarloWorkerHandle | null>(null);
 
-  useEffect(() => {
-    const currentWorker = workerRef.current;
-
-    return () => {
-      currentWorker.worker.terminate();
-    };
+  // Lazy worker initialization - only create once
+  const getWorker = useCallback(() => {
+    if (!workerRef.current) {
+      workerRef.current = createMonteCarloWorker();
+    }
+    return workerRef.current;
   }, []);
 
   useEffect(() => {
-    setErrors(validateTargets(targets, GACHA_RULES[bannerType]));
-  }, [bannerType]);
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.worker.terminate();
+        workerRef.current = null;
+      }
+    };
+  }, []);
 
-  const addTarget = () => {
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    savePersistedState({ targets, availablePulls, iterations });
+  }, [targets, availablePulls, iterations]);
+
+  // Reset all state to defaults
+  const handleReset = () => {
+    setTargets([]);
+    setAvailablePulls(0);
+    setIterations(5000);
+    setResults(null);
+    setErrors(new Map());
+    clearPersistedState();
+  };
+
+  // Import available pulls from tracked resources
+  const importAvailablePulls = async () => {
+    setIsLoadingPulls(true);
+    try {
+      const result = await getAvailablePullsFromTracker();
+      setAvailablePulls(result.availablePulls);
+    } catch (error) {
+      console.error('Failed to load available pulls:', error);
+    } finally {
+      setIsLoadingPulls(false);
+    }
+  };
+
+  const addTarget = (bannerType: BannerType = 'character') => {
+    const isFirstTarget = targets.length === 0;
     const newTarget: Target = {
       id: crypto.randomUUID(),
       characterName: '',
+      bannerType,
+      constellation: 0, // C0 = 1 copy
       pity: 0,
       guaranteed: false,
       radiantStreak: 0,
+      fatePoints: 0,
+      useInheritedPity: !isFirstTarget, // First target uses specified pity, others inherit
     };
     setTargets([...targets, newTarget]);
-    setErrors(validateTargets([...targets, newTarget], rules));
+    setErrors(validateTargets([...targets, newTarget]));
     setResults(null); // Clear results when adding target
   };
 
   const removeTarget = (id: string) => {
     const updatedTargets = targets.filter((t) => t.id !== id);
     setTargets(updatedTargets);
-    setErrors(validateTargets(updatedTargets, rules));
+    setErrors(validateTargets(updatedTargets));
     setResults(null); // Clear results when removing target
   };
 
-  const validateTargets = (targetsToValidate: Target[], bannerRules = rules): Map<string, string> => {
+  const validateTargets = (targetsToValidate: Target[]): Map<string, string> => {
     const newErrors = new Map<string, string>();
-    if (!bannerRules) return newErrors;
 
     targetsToValidate.forEach((target) => {
+      const bannerRules = GACHA_RULES[target.bannerType];
+      if (!bannerRules) return;
+
       if (target.pity < 0 || target.pity >= bannerRules.hardPity) {
         newErrors.set(`pity-${target.id}`, `Pity must be between 0 and ${bannerRules.hardPity - 1}`);
       }
-      if (target.radiantStreak < 0 || target.radiantStreak > 3) {
+      if (target.bannerType === 'character' && (target.radiantStreak < 0 || target.radiantStreak > 3)) {
         newErrors.set(`radiant-${target.id}`, 'Radiant streak should be 0-2');
+      }
+      if (target.bannerType === 'weapon' && (target.fatePoints < 0 || target.fatePoints > 2)) {
+        newErrors.set(`fatePoints-${target.id}`, 'Fate points should be 0-2');
+      }
+      if (target.constellation < 0 || target.constellation > 6) {
+        newErrors.set(`constellation-${target.id}`, 'Constellation must be C0-C6');
       }
     });
 
@@ -82,38 +170,8 @@ export function MultiTargetCalculator() {
   const updateTarget = (id: string, updates: Partial<Target>) => {
     const updatedTargets = targets.map((t) => (t.id === id ? { ...t, ...updates } : t));
     setTargets(updatedTargets);
-    setErrors(validateTargets(updatedTargets, rules));
+    setErrors(validateTargets(updatedTargets));
     setResults(null); // Clear results when updating target
-  };
-
-  const prefillFromCurrentPity = () => {
-    if (!pitySnapshot) return;
-
-    const weaponRules = GACHA_RULES.weapon;
-    const nextTargetValues = {
-      pity: pitySnapshot.pity,
-      guaranteed: pitySnapshot.banner === 'weapon'
-        ? (pitySnapshot.fatePoints ?? 0) >= (weaponRules?.maxFatePoints ?? 2)
-        : pitySnapshot.guaranteed,
-      radiantStreak: pitySnapshot.radiantStreak,
-    };
-
-    if (targets.length === 0) {
-      setTargets([
-        {
-          id: crypto.randomUUID(),
-          characterName: '',
-          ...nextTargetValues,
-        },
-      ]);
-      return;
-    }
-
-    setTargets(
-      targets.map((target, index) =>
-        index === 0 ? { ...target, ...nextTargetValues } : target
-      )
-    );
   };
 
   const moveTargetUp = (index: number) => {
@@ -125,7 +183,12 @@ export function MultiTargetCalculator() {
       newTargets[index - 1] = current;
       newTargets[index] = prev;
     }
-    setTargets(newTargets);
+    // Update useInheritedPity based on new positions
+    const updatedTargets = newTargets.map((t, i) => ({
+      ...t,
+      useInheritedPity: i === 0 ? false : t.useInheritedPity,
+    }));
+    setTargets(updatedTargets);
     setResults(null);
   };
 
@@ -138,18 +201,23 @@ export function MultiTargetCalculator() {
       newTargets[index] = next;
       newTargets[index + 1] = current;
     }
-    setTargets(newTargets);
+    // Update useInheritedPity based on new positions
+    const updatedTargets = newTargets.map((t, i) => ({
+      ...t,
+      useInheritedPity: i === 0 ? false : t.useInheritedPity,
+    }));
+    setTargets(updatedTargets);
     setResults(null);
   };
 
   const validate = (): boolean => {
     const newErrors = validateTargets(targets);
     setErrors(newErrors);
-    return newErrors.size === 0;
+    return newErrors.size === 0 && targets.length > 0;
   };
 
   const handleCalculate = async () => {
-    if (!validate() || !rules) return;
+    if (!validate()) return;
 
     setIsCalculating(true);
     setProgress(0);
@@ -157,41 +225,55 @@ export function MultiTargetCalculator() {
     const minimumLoadingDuration = new Promise((resolve) => setTimeout(resolve, 25));
 
     try {
-      // For multi-target, we'll use current state for all targets
-      // In a real implementation, each target might have different states
+      // Build per-target pity states for more accurate simulation
+      const perTargetStates = targets.map((target) => ({
+        pity: target.useInheritedPity ? null : target.pity,
+        guaranteed: target.useInheritedPity ? null : target.guaranteed,
+        radiantStreak: target.useInheritedPity ? null : target.radiantStreak,
+        fatePoints: target.useInheritedPity ? null : target.fatePoints,
+      }));
+
       const simulationInput: SimulationInput = {
         targets: targets.map((target, index) => ({
           id: target.id,
           characterKey: target.characterName || `Target ${index + 1}`,
-          expectedStartDate: new Date().toISOString(), // Immediate
-          expectedEndDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(), // 21 days
+          expectedStartDate: new Date().toISOString(),
+          expectedEndDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
           priority: 1,
           maxPullBudget: null,
           isConfirmed: true,
           notes: '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          // Extended fields for multi-banner support
+          bannerType: target.bannerType,
+          copiesNeeded: target.constellation + 1, // C0 = 1, C1 = 2, ..., C6 = 7
         })),
         startingPity: targets[0]?.pity ?? 0,
         startingGuaranteed: targets[0]?.guaranteed ?? false,
         startingRadiantStreak: targets[0]?.radiantStreak ?? 0,
+        startingFatePoints: targets[0]?.fatePoints ?? 0,
         startingPulls: availablePulls,
-        incomePerDay: 0, // No daily income for this calculation
-        rules,
+        incomePerDay: 0,
         config: {
           iterations,
           seed: Date.now(),
           chunkSize: 500,
         },
+        perTargetStates,
       };
 
-      const result = await workerRef.current.api.runSimulation(
+      const worker = getWorker();
+      await worker.ready;
+      const result = await worker.api.runSimulation(
         simulationInput,
-        (value: number) => setProgress(value)
+        proxy((value: number) => setProgress(value))
       );
       setResults(result);
     } catch (error) {
       console.error('Simulation error:', error);
+      // Show user-visible error
+      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // Ensure the loading state is visible for at least a brief moment
       await minimumLoadingDuration;
@@ -205,20 +287,15 @@ export function MultiTargetCalculator() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Multi-Target Planner</h2>
-        <Select
-          label="Banner Type"
-          value={bannerType}
-          onChange={(e) => setBannerType(e.target.value as BannerType)}
-          options={[
-            { value: 'character', label: 'Character Event' },
-            { value: 'weapon', label: 'Weapon Event' },
-            { value: 'standard', label: 'Standard' },
-          ]}
-        />
-      </div>
-      <div className="flex justify-end">
-        <Button size="sm" variant="secondary" onClick={prefillFromCurrentPity} disabled={!pitySnapshot}>
-          Use current pity
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleReset}
+          disabled={targets.length === 0 && availablePulls === 0}
+          title="Reset all settings"
+        >
+          <RotateCcw className="w-4 h-4 mr-1" />
+          Reset
         </Button>
       </div>
 
@@ -258,7 +335,12 @@ export function MultiTargetCalculator() {
             <Card key={target.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold">Target {index + 1}</span>
+                  <span className="font-semibold">
+                    Target {index + 1}
+                    <span className="ml-2 text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">
+                      {target.bannerType === 'character' ? 'Character' : target.bannerType === 'weapon' ? 'Weapon' : 'Standard'}
+                    </span>
+                  </span>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -290,47 +372,168 @@ export function MultiTargetCalculator() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Character Name"
-                    value={target.characterName}
-                    onChange={(e) => updateTarget(target.id, { characterName: e.target.value })}
-                    placeholder="Character name"
-                  />
-                  <Input
-                    label="Current Pity"
-                    type="number"
-                    value={target.pity}
-                    onChange={(e) =>
-                      updateTarget(target.id, { pity: Number(e.target.value) })
-                    }
-                    error={errors.get(`pity-${target.id}`)}
-                    min={0}
-                    max={89}
-                  />
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`guaranteed-${target.id}`}
-                      checked={target.guaranteed}
-                      onChange={(e) =>
-                        updateTarget(target.id, { guaranteed: e.target.checked })
-                      }
-                      className="rounded"
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label={target.bannerType === 'weapon' ? 'Weapon Name' : 'Character Name'}
+                      value={target.characterName}
+                      onChange={(e) => updateTarget(target.id, { characterName: e.target.value })}
+                      placeholder={target.bannerType === 'weapon' ? 'Weapon name' : 'Character name'}
                     />
-                    <label htmlFor={`guaranteed-${target.id}`}>Guaranteed</label>
+                    <Select
+                      label={target.bannerType === 'weapon' ? 'Refinement' : 'Constellation'}
+                      value={String(target.constellation)}
+                      onChange={(e) => updateTarget(target.id, { constellation: Number(e.target.value) })}
+                      options={
+                        target.bannerType === 'weapon'
+                          ? [
+                              { value: '0', label: 'R1 (1 copy)' },
+                              { value: '1', label: 'R2 (2 copies)' },
+                              { value: '2', label: 'R3 (3 copies)' },
+                              { value: '3', label: 'R4 (4 copies)' },
+                              { value: '4', label: 'R5 (5 copies)' },
+                            ]
+                          : [
+                              { value: '0', label: 'C0 (1 copy)' },
+                              { value: '1', label: 'C1 (2 copies)' },
+                              { value: '2', label: 'C2 (3 copies)' },
+                              { value: '3', label: 'C3 (4 copies)' },
+                              { value: '4', label: 'C4 (5 copies)' },
+                              { value: '5', label: 'C5 (6 copies)' },
+                              { value: '6', label: 'C6 (7 copies)' },
+                            ]
+                      }
+                      error={errors.get(`constellation-${target.id}`)}
+                    />
                   </div>
-                  <Input
-                    label="Radiant Streak"
-                    type="number"
-                    value={target.radiantStreak}
-                    onChange={(e) =>
-                      updateTarget(target.id, { radiantStreak: Number(e.target.value) })
-                    }
-                    error={errors.get(`radiant-${target.id}`)}
-                    min={0}
-                    max={3}
-                  />
+
+                  {/* First target always shows pity inputs; subsequent targets have inherit option */}
+                  {index === 0 ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="Current Pity"
+                        type="number"
+                        value={target.pity}
+                        onChange={(e) =>
+                          updateTarget(target.id, { pity: Number(e.target.value) })
+                        }
+                        error={errors.get(`pity-${target.id}`)}
+                        min={0}
+                        max={target.bannerType === 'weapon' ? 79 : 89}
+                      />
+                      {target.bannerType === 'character' ? (
+                        <Input
+                          label="Radiant Streak"
+                          type="number"
+                          value={target.radiantStreak}
+                          onChange={(e) =>
+                            updateTarget(target.id, { radiantStreak: Number(e.target.value) })
+                          }
+                          error={errors.get(`radiant-${target.id}`)}
+                          min={0}
+                          max={3}
+                        />
+                      ) : target.bannerType === 'weapon' ? (
+                        <Input
+                          label="Fate Points"
+                          type="number"
+                          value={target.fatePoints}
+                          onChange={(e) =>
+                            updateTarget(target.id, { fatePoints: Number(e.target.value) })
+                          }
+                          error={errors.get(`fatePoints-${target.id}`)}
+                          min={0}
+                          max={2}
+                        />
+                      ) : null}
+                      <div className="flex items-center gap-2 col-span-2">
+                        <input
+                          type="checkbox"
+                          id={`guaranteed-${target.id}`}
+                          checked={target.guaranteed}
+                          onChange={(e) =>
+                            updateTarget(target.id, { guaranteed: e.target.checked })
+                          }
+                          className="rounded"
+                        />
+                        <label htmlFor={`guaranteed-${target.id}`}>Guaranteed 5★</label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`inherit-${target.id}`}
+                          checked={target.useInheritedPity}
+                          onChange={(e) =>
+                            updateTarget(target.id, { useInheritedPity: e.target.checked })
+                          }
+                          className="rounded"
+                        />
+                        <label htmlFor={`inherit-${target.id}`} className="text-sm">
+                          Inherit pity from previous target&apos;s pulls
+                        </label>
+                      </div>
+
+                      {target.useInheritedPity ? (
+                        <p className="text-sm text-slate-400 pl-6">
+                          Pity state will carry over from simulation results of previous target(s)
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4 pl-6 border-l-2 border-slate-700">
+                          <Input
+                            label="Starting Pity"
+                            type="number"
+                            value={target.pity}
+                            onChange={(e) =>
+                              updateTarget(target.id, { pity: Number(e.target.value) })
+                            }
+                            error={errors.get(`pity-${target.id}`)}
+                            min={0}
+                            max={target.bannerType === 'weapon' ? 79 : 89}
+                          />
+                          {target.bannerType === 'character' ? (
+                            <Input
+                              label="Radiant Streak"
+                              type="number"
+                              value={target.radiantStreak}
+                              onChange={(e) =>
+                                updateTarget(target.id, { radiantStreak: Number(e.target.value) })
+                              }
+                              error={errors.get(`radiant-${target.id}`)}
+                              min={0}
+                              max={3}
+                            />
+                          ) : target.bannerType === 'weapon' ? (
+                            <Input
+                              label="Fate Points"
+                              type="number"
+                              value={target.fatePoints}
+                              onChange={(e) =>
+                                updateTarget(target.id, { fatePoints: Number(e.target.value) })
+                              }
+                              error={errors.get(`fatePoints-${target.id}`)}
+                              min={0}
+                              max={2}
+                            />
+                          ) : null}
+                          <div className="flex items-center gap-2 col-span-2">
+                            <input
+                              type="checkbox"
+                              id={`guaranteed-${target.id}`}
+                              checked={target.guaranteed}
+                              onChange={(e) =>
+                                updateTarget(target.id, { guaranteed: e.target.checked })
+                              }
+                              className="rounded"
+                            />
+                            <label htmlFor={`guaranteed-${target.id}`}>Guaranteed 5★</label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -338,16 +541,30 @@ export function MultiTargetCalculator() {
         </div>
       )}
 
-      <Button onClick={addTarget} variant={targets.length === 0 ? 'primary' : 'secondary'} className="w-full">
-        <Plus className="w-4 h-4 mr-2" />
-        Add Target
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          onClick={() => addTarget('character')}
+          variant={targets.length === 0 ? 'primary' : 'secondary'}
+          className="flex-1"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Character
+        </Button>
+        <Button
+          onClick={() => addTarget('weapon')}
+          variant="secondary"
+          className="flex-1"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Weapon
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
           <h3 className="font-semibold">Available Resources</h3>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <Input
             label="Available Pulls"
             type="number"
@@ -355,6 +572,19 @@ export function MultiTargetCalculator() {
             onChange={(e) => setAvailablePulls(Number(e.target.value))}
             min={0}
           />
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={importAvailablePulls}
+            disabled={isLoadingPulls}
+            className="w-full"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {isLoadingPulls ? 'Loading...' : 'Import from Tracker'}
+          </Button>
+          <p className="text-xs text-slate-400">
+            Imports your current primogems and fates from the resource tracker.
+          </p>
         </CardContent>
       </Card>
 
@@ -386,32 +616,67 @@ export function MultiTargetCalculator() {
             </div>
 
             <div className="space-y-3">
-              <div className="text-sm font-semibold text-slate-300">Per-Character Results</div>
-              {results.perCharacter.map((char) => (
-                <div
-                  key={char.characterKey}
-                  className="p-4 bg-slate-800 border border-slate-700 rounded-lg"
-                >
-                  <div className="font-medium mb-2 text-slate-100">{char.characterKey}</div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <div className="text-slate-400">Success Rate</div>
-                      <div className="font-semibold text-slate-100" aria-hidden="true">
-                        {(char.probability * 100).toFixed(1)}
-                      </div>
-                      <span className="sr-only">
-                        {`${(char.probability * 100).toFixed(1)} percent success rate`}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">Average Pulls</div>
-                      <div className="font-semibold text-slate-100">{char.averagePullsUsed.toFixed(1)}</div>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">Median Pulls</div>
-                      <div className="font-semibold text-slate-100">{char.medianPullsUsed}</div>
-                    </div>
+              <div className="text-sm font-semibold text-slate-300">Per-Target Breakdown</div>
+
+              {/* Nothing result - probability of getting zero copies from all targets */}
+              <div className="p-4 bg-slate-900 border border-slate-600 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-slate-300">Nothing</div>
+                  <div className="text-2xl font-bold text-slate-400">
+                    {(results.nothingProbability * 100).toFixed(1)}%
                   </div>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  Probability of not getting any target
+                </div>
+              </div>
+
+              {/* Per-character constellation breakdown */}
+              {results.perCharacter.map((char, charIndex) => (
+                <div key={`${char.characterKey}-${charIndex}`} className="space-y-2">
+                  <div className="text-sm font-medium text-slate-200 px-1">
+                    {char.characterKey || `Target ${charIndex + 1}`}
+                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
+                      {char.bannerType === 'weapon' ? 'Weapon' : 'Character'}
+                    </span>
+                  </div>
+                  {char.constellations.map((cons) => (
+                    <div
+                      key={`${char.characterKey}-${cons.label}`}
+                      className="p-3 bg-slate-800 border border-slate-700 rounded-lg ml-2"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium text-slate-100">{cons.label}</div>
+                        <div
+                          className={`text-lg font-bold ${
+                            cons.probability >= 0.8
+                              ? 'text-green-400'
+                              : cons.probability >= 0.5
+                                ? 'text-yellow-400'
+                                : cons.probability >= 0.2
+                                  ? 'text-orange-400'
+                                  : 'text-red-400'
+                          }`}
+                        >
+                          {(cons.probability * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="text-slate-400">Avg Pulls</div>
+                          <div className="font-semibold text-slate-100">
+                            {cons.averagePullsUsed > 0 ? cons.averagePullsUsed.toFixed(0) : '-'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Median</div>
+                          <div className="font-semibold text-slate-100">
+                            {cons.medianPullsUsed > 0 ? cons.medianPullsUsed : '-'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

@@ -78,6 +78,8 @@ describe('replayWishHistory', () => {
   });
 
   it('activates Capturing Radiance streak after consecutive 50/50 losses', () => {
+    // With threshold=3, need 3 consecutive 50/50 losses to trigger radiance
+    // Guaranteed wins do NOT reset streak, only 50/50 wins do
     const wishes: TestWish[] = [
       createWish({ id: 'loss-1', rarity: 5, isFeatured: false }),
       createWish({
@@ -99,10 +101,22 @@ describe('replayWishHistory', () => {
         timestamp: '2024-01-01T00:03:00.000Z',
       }),
       createWish({
+        id: 'loss-3',
+        rarity: 5,
+        isFeatured: false,
+        timestamp: '2024-01-01T00:04:00.000Z',
+      }),
+      createWish({
+        id: 'guaranteed-reset-3',
+        rarity: 5,
+        isFeatured: true,
+        timestamp: '2024-01-01T00:05:00.000Z',
+      }),
+      createWish({
         id: 'radiance-pull',
         rarity: 5,
         isFeatured: true,
-        timestamp: '2024-01-01T00:04:00.000Z',
+        timestamp: '2024-01-01T00:06:00.000Z',
       }),
     ];
 

@@ -16,7 +16,8 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState<{
     success: boolean;
-    count: number;
+    created: number;
+    updated: number;
     skipped?: number;
   } | null>(null);
 
@@ -43,12 +44,13 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
         throw new Error('No characters found in showcase. Make sure you have characters displayed in your showcase in-game.');
       }
 
-      // Import characters
-      await characterRepo.bulkCreate(characters);
+      // Import characters (upsert to avoid duplicates)
+      const { created, updated } = await characterRepo.bulkUpsert(characters);
 
       setImportResult({
         success: true,
-        count: characters.length,
+        created,
+        updated,
         skipped: Math.max(0, showcaseCount - characters.length),
       });
 
@@ -60,7 +62,8 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
       setError(err instanceof Error ? err.message : 'Import failed');
       setImportResult({
         success: false,
-        count: 0,
+        created: 0,
+        updated: 0,
       });
     } finally {
       setLoading(false);
@@ -122,8 +125,17 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
           <div className="flex items-start gap-2 p-3 bg-green-900/20 border border-green-700 rounded-lg mb-4">
             <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-green-200">
-              Successfully imported {importResult.count}{' '}
-              {importResult.count === 1 ? 'character' : 'characters'} from your showcase!
+              Successfully imported from your showcase!
+              {importResult.created > 0 && (
+                <span className="block">
+                  Added {importResult.created} new {importResult.created === 1 ? 'character' : 'characters'}
+                </span>
+              )}
+              {importResult.updated > 0 && (
+                <span className="block">
+                  Updated {importResult.updated} existing {importResult.updated === 1 ? 'character' : 'characters'}
+                </span>
+              )}
               {!!importResult.skipped && importResult.skipped > 0 && (
                 <span className="block text-yellow-200">
                   Some characters were skipped due to missing or incomplete data ({importResult.skipped}).

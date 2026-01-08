@@ -9,6 +9,10 @@ export const STARGLITTER_PER_4STAR_DUPE = 5;
 export const STARGLITTER_PER_5STAR_DUPE = 25;
 export const PULLS_FROM_STARGLITTER = 5; // Cost in shop
 
+// Character/Weapon max level by ascension phase (0-6)
+// Ascension 0: 20, 1: 40, 2: 50, 3: 60, 4: 70, 5: 80, 6: 90
+export const MAX_LEVEL_BY_ASCENSION = [20, 40, 50, 60, 70, 80, 90] as const;
+
 // Income benchmarks (approximate primos/day)
 export const INCOME_F2P = 60; // Commissions only
 export const INCOME_WELKIN = 150; // Commissions + Welkin
@@ -24,7 +28,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
     baseRate: 0.006,
     softPityRateIncrease: 0.06,
     hasCapturingRadiance: true,
-    radianceThreshold: 2,
+    radianceThreshold: 3,
   },
   weapon: {
     version: '5.0+',

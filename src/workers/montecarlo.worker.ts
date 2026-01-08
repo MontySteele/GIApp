@@ -1,6 +1,44 @@
 import { expose } from 'comlink';
-import { simulatePull } from '@/features/calculator/domain/pityEngine';
-import type { GachaRules, PlannedBanner } from '@/types';
+import { simulatePull } from '../features/calculator/domain/pityEngine';
+import type { BannerType, GachaRules } from '../types';
+// Import GACHA_RULES inline to avoid path resolution issues in worker context
+const GACHA_RULES: Record<string, GachaRules> = {
+  character: {
+    version: '5.0+',
+    softPityStart: 74,
+    hardPity: 90,
+    baseRate: 0.006,
+    softPityRateIncrease: 0.06,
+    hasCapturingRadiance: true,
+    radianceThreshold: 2,
+  },
+  weapon: {
+    version: '5.0+',
+    softPityStart: 63,
+    hardPity: 80,
+    baseRate: 0.007,
+    softPityRateIncrease: 0.07,
+    hasCapturingRadiance: false,
+    hasFatePoints: true,
+    maxFatePoints: 2,
+  },
+  standard: {
+    version: '5.0+',
+    softPityStart: 74,
+    hardPity: 90,
+    baseRate: 0.006,
+    softPityRateIncrease: 0.06,
+    hasCapturingRadiance: false,
+  },
+  chronicled: {
+    version: '5.0+',
+    softPityStart: 74,
+    hardPity: 90,
+    baseRate: 0.006,
+    softPityRateIncrease: 0.06,
+    hasCapturingRadiance: false,
+  },
+};
 
 export interface SimulationConfig {
   iterations: number;
@@ -8,24 +46,56 @@ export interface SimulationConfig {
   chunkSize?: number;
 }
 
+export interface TargetPityState {
+  pity: number | null; // null means inherit from previous target
+  guaranteed: boolean | null;
+  radiantStreak: number | null;
+  fatePoints: number | null;
+}
+
+// Extended PlannedBanner for multi-banner support
+export interface SimulationTarget {
+  id: string;
+  characterKey: string;
+  expectedStartDate: string;
+  expectedEndDate: string;
+  priority: 1 | 2 | 3 | 4 | 5;
+  maxPullBudget: number | null;
+  isConfirmed: boolean;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  // Extended fields
+  bannerType?: BannerType;
+  copiesNeeded?: number; // How many copies to get (1 = C0, 7 = C6)
+}
+
 export interface SimulationInput {
-  targets: PlannedBanner[];
+  targets: SimulationTarget[];
   startingPity: number;
   startingGuaranteed: boolean;
   startingRadiantStreak: number;
+  startingFatePoints?: number;
   startingPulls: number;
   incomePerDay: number;
-  rules: GachaRules;
   config: SimulationConfig;
+  perTargetStates?: TargetPityState[];
+}
+
+export interface ConstellationResult {
+  label: string; // e.g., "C0", "C1", "R1", "R2"
+  probability: number;
+  averagePullsUsed: number;
+  medianPullsUsed: number;
 }
 
 export interface SimulationResult {
   perCharacter: Array<{
-    characterKey: string;
-    probability: number;
-    averagePullsUsed: number;
-    medianPullsUsed: number;
+    characterKey: string; // Base name without constellation
+    bannerType: BannerType;
+    constellations: ConstellationResult[];
   }>;
+  nothingProbability: number; // Probability of getting 0 copies from ALL targets
   allMustHavesProbability: number;
   pullTimeline: Array<{
     date: string;
@@ -43,6 +113,14 @@ function seededRandom(seed: number): () => number {
   };
 }
 
+// Per-banner pity state tracking
+interface BannerPityState {
+  pity: number;
+  guaranteed: boolean;
+  radiantStreak: number;
+  fatePoints: number;
+}
+
 /**
  * Run Monte Carlo simulation for multi-target planning
  */
@@ -55,10 +133,11 @@ export async function runSimulation(
     startingPity,
     startingGuaranteed,
     startingRadiantStreak,
+    startingFatePoints = 0,
     startingPulls,
     incomePerDay,
-    rules,
     config,
+    perTargetStates,
   } = input;
 
   // Sort targets by expected start date
@@ -66,75 +145,113 @@ export async function runSimulation(
     (a, b) => new Date(a.expectedStartDate).getTime() - new Date(b.expectedStartDate).getTime()
   );
 
+  // Track copies obtained and pulls used per simulation run for each target
   const characterStats = new Map<
     string,
     {
-      successes: number;
-      totalPullsUsed: number[];
+      copiesNeeded: number;
+      bannerType: BannerType;
+      baseName: string;
+      // Per-run tracking: pullsAtCopy[i] = pulls used when copy i+1 was obtained (or null if not obtained)
+      runsData: Array<{ pullsAtCopy: (number | null)[] }>;
     }
   >();
 
   for (const target of sortedTargets) {
-    characterStats.set(target.characterKey, {
-      successes: 0,
-      totalPullsUsed: [],
+    characterStats.set(target.id, {
+      copiesNeeded: target.copiesNeeded || 1,
+      bannerType: (target.bannerType || 'character') as BannerType,
+      baseName: target.characterKey.replace(/\s*\(C\d+\)$/, '').replace(/\s*\(R\d+\)$/, ''),
+      runsData: [],
     });
   }
 
   let allMustHavesSuccesses = 0;
-
+  let nothingCount = 0; // Count simulations where no target got any copies
   const chunkSize = Math.max(1, config.chunkSize ?? 1000);
 
   // Run simulations
   for (let sim = 0; sim < config.iterations; sim++) {
     const rng = config.seed !== undefined ? seededRandom(config.seed + sim) : Math.random;
 
-    let pity = startingPity;
-    let guaranteed = startingGuaranteed;
-    let radiantStreak = startingRadiantStreak;
-    let availablePulls = startingPulls;
+    // Track pity state separately for each banner type
+    const bannerStates: Record<string, BannerPityState> = {
+      character: { pity: startingPity, guaranteed: startingGuaranteed, radiantStreak: startingRadiantStreak, fatePoints: 0 },
+      weapon: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: startingFatePoints },
+      standard: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: 0 },
+    };
 
+    let availablePulls = startingPulls;
     const now = new Date();
     let allMustHavesSucceeded = true;
+    let gotAnythingThisRun = false;
 
-    for (const target of sortedTargets) {
+    for (let targetIndex = 0; targetIndex < sortedTargets.length; targetIndex++) {
+      const target = sortedTargets[targetIndex]!;
+      const bannerType = target.bannerType || 'character';
+      const rules = GACHA_RULES[bannerType];
+      if (!rules) continue;
+
       const targetDate = new Date(target.expectedStartDate);
       const daysUntil = Math.max(0, (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const earnedPulls = Math.floor(daysUntil * incomePerDay);
       availablePulls += earnedPulls;
 
+      // Get current banner state
+      let state = bannerStates[bannerType]!;
+
+      // Apply per-target pity overrides if provided (null means inherit from previous)
+      const targetState = perTargetStates?.[targetIndex];
+      if (targetState) {
+        if (targetState.pity !== null) state.pity = targetState.pity;
+        if (targetState.guaranteed !== null) state.guaranteed = targetState.guaranteed;
+        if (targetState.radiantStreak !== null) state.radiantStreak = targetState.radiantStreak;
+        if (targetState.fatePoints !== null) state.fatePoints = targetState.fatePoints;
+      }
+
       const maxBudget = target.maxPullBudget ?? Infinity;
-      const budgetForThis = Math.min(availablePulls, maxBudget);
+      // Clamp budget to zero - can't use negative pulls
+      const budgetForThis = Math.max(0, Math.min(availablePulls, maxBudget));
+      const copiesNeeded = target.copiesNeeded || 1;
 
       let pullsUsed = 0;
-      let gotCharacter = false;
+      let copiesObtained = 0;
+      // Track cumulative pulls at each copy milestone
+      const pullsAtCopy: (number | null)[] = new Array(copiesNeeded).fill(null);
 
-      // Simulate pulling until we get the character or run out of budget
-      while (pullsUsed < budgetForThis && !gotCharacter) {
-        const result = simulatePull(pity, guaranteed, radiantStreak, rules, rng);
+      // Simulate pulling until we get all copies or run out of budget
+      while (pullsUsed < budgetForThis && copiesObtained < copiesNeeded) {
+        const result = simulatePull(state.pity, state.guaranteed, state.radiantStreak, rules, rng);
 
-        pity = result.newPity;
-        guaranteed = result.newGuaranteed;
-        radiantStreak = result.newRadiantStreak;
+        state.pity = result.newPity;
+        state.guaranteed = result.newGuaranteed;
+        state.radiantStreak = result.newRadiantStreak;
         pullsUsed++;
 
         if (result.got5Star && result.wasFeatured) {
-          gotCharacter = true;
+          // Record cumulative pulls when this copy was obtained
+          pullsAtCopy[copiesObtained] = pullsUsed;
+          copiesObtained++;
         }
       }
 
       availablePulls -= pullsUsed;
 
-      const stats = characterStats.get(target.characterKey)!;
-      if (gotCharacter) {
-        stats.successes++;
-        stats.totalPullsUsed.push(pullsUsed);
-      } else {
-        stats.totalPullsUsed.push(budgetForThis);
-        if (target.priority === 1) {
-          allMustHavesSucceeded = false;
-        }
+      // Track this run's data
+      const stats = characterStats.get(target.id)!;
+      stats.runsData.push({ pullsAtCopy });
+
+      if (copiesObtained > 0) {
+        gotAnythingThisRun = true;
       }
+
+      if (copiesObtained < copiesNeeded && target.priority === 1) {
+        allMustHavesSucceeded = false;
+      }
+    }
+
+    if (!gotAnythingThisRun) {
+      nothingCount++;
     }
 
     if (allMustHavesSucceeded) {
@@ -142,32 +259,60 @@ export async function runSimulation(
     }
 
     if ((sim + 1) % chunkSize === 0 || sim === config.iterations - 1) {
-      reportProgress?.(Math.min(1, (sim + 1) / config.iterations));
+      const progressValue = Math.min(1, (sim + 1) / config.iterations);
+      if (reportProgress) {
+        try {
+          await reportProgress(progressValue);
+        } catch {
+          // Ignore progress callback errors
+        }
+      }
       // Yield control to keep the worker responsive during long runs
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
 
-  // Calculate results
+  // Calculate results with per-constellation breakdown
   const perCharacter = sortedTargets.map((target) => {
-    const stats = characterStats.get(target.characterKey)!;
-    const probability = stats.successes / config.iterations;
+    const stats = characterStats.get(target.id)!;
+    const { copiesNeeded, bannerType, baseName, runsData } = stats;
 
-    const sortedPulls = stats.totalPullsUsed.sort((a, b) => a - b);
-    const medianIndex = Math.floor(sortedPulls.length / 2);
-    const medianPullsUsed =
-      sortedPulls.length > 0
-        ? sortedPulls[medianIndex] ?? 0
-        : 0;
+    // Generate constellation results for each copy level (C0, C1, C2, etc.)
+    const constellations: ConstellationResult[] = [];
 
-    const averagePullsUsed =
-      stats.totalPullsUsed.reduce((sum, p) => sum + p, 0) / stats.totalPullsUsed.length || 0;
+    for (let copyIndex = 0; copyIndex < copiesNeeded; copyIndex++) {
+      // Get pulls at this copy milestone for runs that achieved it
+      const pullsAtThisCopy = runsData
+        .map((r) => r.pullsAtCopy[copyIndex])
+        .filter((p): p is number => p !== null);
+
+      const probability = pullsAtThisCopy.length / config.iterations;
+
+      // Calculate average and median pulls to reach this constellation
+      const averagePullsUsed =
+        pullsAtThisCopy.length > 0
+          ? pullsAtThisCopy.reduce((sum, p) => sum + p, 0) / pullsAtThisCopy.length
+          : 0;
+
+      const sortedPulls = [...pullsAtThisCopy].sort((a, b) => a - b);
+      const medianPullsUsed =
+        sortedPulls.length > 0 ? sortedPulls[Math.floor(sortedPulls.length / 2)] ?? 0 : 0;
+
+      // Label: C0, C1, C2... for characters; R1, R2, R3... for weapons
+      const label = bannerType === 'weapon' ? `R${copyIndex + 1}` : `C${copyIndex}`;
+
+      constellations.push({
+        label,
+        probability,
+        averagePullsUsed,
+        medianPullsUsed,
+      });
+    }
 
     return {
-      characterKey: target.characterKey,
-      probability,
-      averagePullsUsed,
-      medianPullsUsed,
+      characterKey: baseName || `Target`,
+      bannerType,
+      constellations,
     };
   });
 
@@ -182,31 +327,42 @@ export async function runSimulation(
       const prevDays = Math.max(0, (prevDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       totalPullsAvailable += Math.floor(prevDays * incomePerDay);
 
-      // Subtract average pulls used for previous targets
+      // Subtract average pulls used for previous targets (use last constellation's average)
       if (i < index) {
-        const prevStats = perCharacter.find((p) => p.characterKey === prevTarget.characterKey);
-        if (prevStats) {
-          totalPullsAvailable -= prevStats.averagePullsUsed;
+        const prevStats = perCharacter.find((p) => p.characterKey === characterStats.get(prevTarget.id)?.baseName);
+        if (prevStats && prevStats.constellations.length > 0) {
+          const lastConstellation = prevStats.constellations[prevStats.constellations.length - 1];
+          if (lastConstellation) {
+            totalPullsAvailable -= lastConstellation.averagePullsUsed;
+          }
         }
       }
     }
 
     return {
       date: target.expectedStartDate,
-      event: `${target.characterKey} banner`,
+      event: `${characterStats.get(target.id)?.baseName || target.characterKey} banner`,
       projectedPulls: Math.max(0, Math.floor(totalPullsAvailable)),
     };
   });
 
-  return {
+  const result: SimulationResult = {
     perCharacter,
+    nothingProbability: nothingCount / config.iterations,
     allMustHavesProbability: allMustHavesSuccesses / config.iterations,
     pullTimeline,
   };
+
+  return result;
+}
+
+function ping(): string {
+  return 'pong';
 }
 
 const workerApi = {
   runSimulation,
+  ping,
 };
 
 expose(workerApi);

@@ -243,98 +243,120 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 
 These bugs affect core probability calculations and mislead users.
 
-#### 1.1 Fix Capturing Radiance Mechanics
+#### 1.1 Fix Capturing Radiance Mechanics ✅ COMPLETED
 **Files:** `src/features/calculator/domain/pityEngine.ts`, `src/lib/constants.ts`
 
-Current implementation is incorrect:
-- ❌ Uses 50% base win rate (should be **55%**)
-- ❌ Uses 75% after 2 losses (should be **100% guarantee after 3 losses**)
+~~Current implementation is incorrect:~~
+- ~~❌ Uses 50% base win rate (should be **55%**)~~
+- ~~❌ Uses 75% after 2 losses (should be **100% guarantee after 3 losses**)~~
 
 Correct mechanics (post-5.0):
 - Base win rate: 55% (10% "recovery" chance on loss)
 - After losing 3 consecutive 50/50s, the 4th 5-star is guaranteed (radiantStreak >= 3 → 100%)
 
-Changes needed:
-- [ ] Update `getFeaturedProbability()` to return 0.55 base rate
-- [ ] Update `radianceThreshold` to 3 in GACHA_RULES
-- [ ] Return 1.0 when radiantStreak >= 3 (guaranteed)
-- [ ] Update tests for new probabilities
-- [ ] Update pity engine DP to handle new mechanics
+Changes completed:
+- [x] Update `getFeaturedProbability()` to return 0.55 base rate
+- [x] Update `radianceThreshold` to 3 in GACHA_RULES
+- [x] Return 1.0 when radiantStreak >= 3 (guaranteed)
+- [x] Update tests for new probabilities (pityEngine, wishReplay, wishAnalyzer, pitySelectors)
+- [x] Verified 50% probability shows ~79 pulls (in soft pity range)
 
-#### 1.2 Fix Calculator Probability Display
+#### 1.2 Fix Calculator Probability Display ✅ VERIFIED
 **Files:** `src/features/calculator/components/SingleTargetCalculator.tsx`
 
-User reports: "50% probability shows ~80 pity, should be ~75"
-- Verify calculations after Capturing Radiance fix
-- May be a cascading effect from incorrect base rate
+~~User reports: "50% probability shows ~80 pity, should be ~75"~~
+- [x] Verified after Capturing Radiance fix: 50% probability shows ~79 pulls
+- [x] This is in the expected soft pity range (73-90) with 55% base rate
 
-#### 1.3 Fix Multi-Target Calculator
+#### 1.3 Fix Multi-Target Calculator ✅ COMPLETED
 **Files:** `src/features/calculator/components/MultiTargetCalculator.tsx`, `src/workers/montecarlo.worker.ts`
 
-Current issues:
-- Uses only first target's pity state for all simulations
-- UI allows per-target pity/guarantee but values are ignored
-- Pity carryover between targets not properly modeled
+~~Current issues:~~
+~~- Uses only first target's pity state for all simulations~~
+~~- UI allows per-target pity/guarantee but values are ignored~~
+~~- Pity carryover between targets not properly modeled~~
 
-Fixes needed:
-- [ ] Pass per-target starting states to worker
-- [ ] Update worker to accept array of target states
-- [ ] Track pity carryover between sequential banners
-- [ ] Show per-target probability breakdown
+Changes completed:
+- [x] Added `TargetPityState` interface and `perTargetStates` array to `SimulationInput`
+- [x] Updated worker to apply per-target pity states during simulation
+- [x] Added UI option to inherit pity from previous target or specify custom
+- [x] First target uses full pity inputs, subsequent targets can inherit or customize
+- [x] Pity carryover between sequential banners properly modeled
 
-#### 1.4 Fix Reverse Calculator
+**Additional Enhancements (Sprint 2.5):**
+- [x] Per-constellation breakdown (C0, C1, C2... for characters; R1, R2... for weapons)
+- [x] "Nothing" probability display (chance of getting 0 copies from all targets)
+- [x] Mixed character + weapon banner targeting in single simulation
+- [x] Separate pity tracking per banner type (character/weapon/standard)
+- [x] State persistence across tab navigation with localStorage
+- [x] Reset button to clear calculator state
+- [x] Import pulls from resource tracker button
+- [x] Fixed negative values bug (clamp budget to zero)
+- [x] Fixed cumulative pulls tracking at each constellation milestone
+
+#### 1.4 Fix Reverse Calculator ✅ COMPLETED
 **Files:** `src/features/calculator/domain/analyticalCalc.ts`, `src/features/calculator/components/ReverseCalculator.tsx`
 
-Current issue: Linear approximation (pulls × targets) is inaccurate
-- For 2 targets at 80%: shows ~160 pulls needed
-- Reality: 80% × 80% = 64% for both with that many pulls
+~~Current issue: Linear approximation (pulls × targets) is inaccurate~~
+~~- For 2 targets at 80%: shows ~160 pulls needed~~
+~~- Reality: 80% × 80% = 64% for both with that many pulls~~
 
-Fixes needed:
-- [ ] Use Monte Carlo simulation for multi-target calculations
-- [ ] Or implement proper compound probability math
-- [ ] Account for pity carryover benefits when failing earlier targets
-- [ ] Show confidence intervals, not just point estimates
+Changes completed:
+- [x] Implemented compound probability math: P(all) = P(each)^N → P(each) = P(all)^(1/N)
+- [x] Shows per-target probability required for multi-target calculations
+- [x] Added explanatory UI panel for multi-target calculations
+- [x] Note directing users to Monte Carlo for more accurate results
 
 ### Priority 2: Display Bugs (High)
 
-#### 2.1 Fix Wish Sum Partial Values
+#### 2.1 Fix Wish Sum Partial Values ✅ COMPLETED
 **Files:** `src/features/ledger/pages/LedgerPage.tsx`, `src/features/calculator/components/ReverseCalculator.tsx`
 
-Issue: Displaying fractional pulls like "12.35" instead of whole numbers
+~~Issue: Displaying fractional pulls like "12.35" instead of whole numbers~~
 
-Root cause: `primogems / 160` produces floats, then `.toFixed(2)` rounds
-- Fates should be integers (you can't have 0.35 of a wish)
+~~Root cause: `primogems / 160` produces floats, then `.toFixed(2)` rounds~~
+- ~~Fates should be integers (you can't have 0.35 of a wish)~~
 
-Fixes:
-- [ ] Use `Math.floor()` for available pulls calculation
-- [ ] Display as whole numbers in UI
-- [ ] Keep fractional primogems separate (e.g., "12 wishes + 80 primos")
+Fixes completed:
+- [x] Use `Math.floor()` for available pulls in LedgerPage.tsx
+- [x] Use `Math.floor()` for synced pulls in ReverseCalculator.tsx
+- [x] Display as whole numbers in UI
 
-#### 2.2 Fix Enka Duplicate Character Imports
+#### 2.2 Fix Enka Duplicate Character Imports ✅ COMPLETED
 **Files:** `src/features/roster/components/EnkaImport.tsx`, `src/features/roster/repo/characterRepo.ts`
 
-Issue: Importing same UID twice creates duplicate character entries
+~~Issue: Importing same UID twice creates duplicate character entries~~
 
-Root cause:
-- No deduplication check before `bulkCreate()`
-- No unique constraint on character `key` in database
+~~Root cause:~~
+- ~~No deduplication check before `bulkCreate()`~~
+- ~~No unique constraint on character `key` in database~~
 
-Fixes:
-- [ ] Before import, check for existing characters by `key`
-- [ ] Offer user choice: Update existing / Skip duplicates / Create new
-- [ ] Add `getByKey()` lookup before insert
-- [ ] Consider adding unique constraint on `key` field
+Fixes completed:
+- [x] Added `bulkUpsert()` method to characterRepo that checks for existing characters by `key`
+- [x] Update existing characters instead of creating duplicates
+- [x] Preserve team associations when updating
+- [x] Show separate counts for created vs updated characters in UI
 
 ### Priority 3: Feature Enhancements (Medium)
 
-#### 3.1 Add Character Portraits
-**Files:** `src/features/roster/components/CharacterCard.tsx`, `src/features/roster/components/CharacterListItem.tsx`
+#### 3.1 Add Character Portraits ✅ COMPLETED
+**Files:** `src/features/roster/components/CharacterCard.tsx`, `src/types/index.ts`, `src/lib/gameData.ts`, `src/mappers/enka.ts`
 
-Add character portrait images to roster display:
-- [ ] Use Enka asset URLs or local sprite sheet
-- [ ] Add portrait field to Character type (optional, populated on import)
-- [ ] Fallback to placeholder/element icon if no portrait
-- [ ] Consider using Enka's CDN: `https://enka.network/ui/{assetId}.png`
+~~Add character portrait images to roster display:~~
+- [x] Added `avatarId` field to Character type (optional, populated on Enka import)
+- [x] Created `CHARACTER_ICON_NAMES` mapping (avatarId → Enka icon name)
+- [x] Added `getCharacterPortraitUrl()` and `getCharacterGachaArtUrl()` utilities
+- [x] Updated CharacterCard to display portraits with fallback placeholder
+- [x] Using Enka's CDN: `https://enka.network/ui/UI_AvatarIcon_Side_{name}.png`
+- [x] Updated fromEnka mapper to include avatarId when importing characters
+
+#### 3.1b Fix Character Max Level Display ✅ COMPLETED
+**Files:** `src/lib/constants.ts`, `src/features/roster/components/CharacterCard.tsx`, `CharacterDetailPage.tsx`, `TeamCard.tsx`, `TeamForm.tsx`
+
+~~Issue: Max level was offset by 10 (showing 50 instead of 40 for ascension 1)~~
+- [x] Created `MAX_LEVEL_BY_ASCENSION = [20, 40, 50, 60, 70, 80, 90]` constant
+- [x] Replaced formula `ascension * 10 + 20` with lookup table
+- [x] Fixed in CharacterCard, CharacterDetailPage, TeamCard, TeamForm
 
 #### 3.2 Historical Pulls & Projection Charts
 **Files:** New: `src/features/wishes/components/PullHistoryChart.tsx`, `src/features/ledger/components/ProjectionChart.tsx`
@@ -406,18 +428,18 @@ Complete the Abyss tracking feature:
 
 ### Implementation Order
 
-**Sprint 1 - Calculator Fixes (Critical Path)**
-1. Fix Capturing Radiance (1.1) - blocks all other calculator fixes
-2. Verify single-target calculator (1.2)
-3. Fix wish sum partial values (2.1) - quick win
-4. Fix Enka duplicates (2.2) - quick win
+**Sprint 1 - Calculator Fixes (Critical Path)** ✅ COMPLETED
+1. ~~Fix Capturing Radiance (1.1) - blocks all other calculator fixes~~ ✅
+2. ~~Verify single-target calculator (1.2)~~ ✅
+3. ~~Fix wish sum partial values (2.1) - quick win~~ ✅
+4. ~~Fix Enka duplicates (2.2) - quick win~~ ✅
 
-**Sprint 2 - Multi-Target & Reverse Calculator**
-1. Fix multi-target calculator (1.3)
-2. Fix reverse calculator (1.4)
-3. Add character portraits (3.1)
+**Sprint 2 - Multi-Target & Reverse Calculator** ✅ COMPLETED
+1. ~~Fix multi-target calculator (1.3)~~ ✅
+2. ~~Fix reverse calculator (1.4)~~ ✅
+3. ~~Add character portraits (3.1)~~ ✅
 
-**Sprint 3 - Charts & Visualization**
+**Sprint 3 - Charts & Visualization** ← CURRENT
 1. Historical pulls chart (3.2)
 2. Primogem projection chart (3.2)
 3. Hide manual entry sections (3.3)

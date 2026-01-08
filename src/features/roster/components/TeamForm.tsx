@@ -4,6 +4,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import type { Character, Team } from '@/types';
+import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
 
 interface TeamFormProps {
   characters: Character[];
@@ -162,7 +163,7 @@ export default function TeamForm({ characters, initialData, onSubmit, onCancel }
                       <div>
                         <div className="font-medium text-slate-100">{character.key}</div>
                         <div className="text-xs text-slate-500">
-                          Lv. {character.level}/{character.ascension * 10 + 20} • {character.priority}
+                          Lv. {character.level}/{MAX_LEVEL_BY_ASCENSION[character.ascension] ?? 90} • {character.priority}
                         </div>
                       </div>
                       <input

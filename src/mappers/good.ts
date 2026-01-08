@@ -125,7 +125,7 @@ export function toGOOD(characters: Character[]): GOODFormat {
     }
   }
 
-  const active = goodCharacters.length > 0 ? goodCharacters[0].key : undefined;
+  const active = goodCharacters[0]?.key;
   const targets: GOODTarget[] =
     goodCharacters.length > 0
       ? [

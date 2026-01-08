@@ -2,6 +2,7 @@ import { Pencil, Trash2, Users } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, Team } from '@/types';
+import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
 
 interface TeamCardProps {
   team: Team;
@@ -73,7 +74,7 @@ export default function TeamCard({ team, members, onEdit, onDelete }: TeamCardPr
                     <div className="text-sm font-medium text-slate-100">{member?.key ?? key}</div>
                     {member && (
                       <div className="text-xs text-slate-500">
-                        Lv. {member.level}/{member.ascension * 10 + 20} • {member.priority}
+                        Lv. {member.level}/{MAX_LEVEL_BY_ASCENSION[member.ascension] ?? 90} • {member.priority}
                       </div>
                     )}
                   </div>

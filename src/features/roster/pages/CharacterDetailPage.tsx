@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import CharacterForm from '../components/CharacterForm';
 import { formatArtifactSetName, formatSlotName, formatStatName, formatStatValue } from '@/lib/gameData';
+import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
 
 export default function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,7 +78,7 @@ export default function CharacterDetailPage() {
           <div>
             <h1 className="text-3xl font-bold mb-1">{character.key}</h1>
             <p className="text-slate-400">
-              Level {character.level}/{character.ascension * 10 + 20} • C{character.constellation}
+              Level {character.level}/{MAX_LEVEL_BY_ASCENSION[character.ascension] ?? 90} • C{character.constellation}
             </p>
           </div>
         </div>
@@ -104,7 +105,7 @@ export default function CharacterDetailPage() {
               <div>
                 <div className="text-sm text-slate-400 mb-1">Level</div>
                 <div className="text-lg font-medium">
-                  {character.level}/{character.ascension * 10 + 20}
+                  {character.level}/{MAX_LEVEL_BY_ASCENSION[character.ascension] ?? 90}
                 </div>
               </div>
               <div>
@@ -218,7 +219,7 @@ export default function CharacterDetailPage() {
                     {character.weapon.key}
                   </h3>
                   <p className="text-sm text-slate-400">
-                    Level {character.weapon.level}/{character.weapon.ascension * 10 + 20}
+                    Level {character.weapon.level}/{MAX_LEVEL_BY_ASCENSION[character.weapon.ascension] ?? 90}
                   </p>
                 </div>
                 <Badge variant="primary">R{character.weapon.refinement}</Badge>

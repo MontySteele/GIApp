@@ -68,6 +68,7 @@ export interface Character {
   notes: string;
   priority: CharacterPriority;
   teamIds: string[]; // References to Team.id
+  avatarId?: number; // Enka avatarId for portrait lookup (optional)
   createdAt: string; // ISO date
   updatedAt: string;
 }
