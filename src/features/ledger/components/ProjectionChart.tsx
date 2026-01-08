@@ -10,7 +10,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
-import { format, addDays, parseISO, differenceInDays, startOfDay, isAfter, isBefore } from 'date-fns';
+import { format, addDays, parseISO, differenceInDays, isAfter, isBefore } from 'date-fns';
 import Select from '@/components/ui/Select';
 import Input from '@/components/ui/Input';
 import type { PrimogemEntry } from '@/types';
@@ -26,9 +26,8 @@ type ProjectionDays = 30 | 60 | 90 | 180;
 interface ChartDataPoint {
   date: string;
   label: string;
-  actual?: number;
   projected: number;
-  dailyRate: number;
+  isToday?: boolean;
 }
 
 function calculateDailyIncomeRate(entries: PrimogemEntry[], lookbackDays: number = 30): number {
@@ -37,12 +36,12 @@ function calculateDailyIncomeRate(entries: PrimogemEntry[], lookbackDays: number
   const now = new Date();
   const cutoffDate = addDays(now, -lookbackDays);
 
-  // Filter to earned entries (not purchases) within lookback period
+  // Filter to earned entries (not purchases) within lookback period with positive amounts
   const recentEntries = entries.filter((entry) => {
     const entryDate = parseISO(entry.timestamp);
     return (
       isAfter(entryDate, cutoffDate) &&
-      isBefore(entryDate, now) &&
+      isBefore(entryDate, addDays(now, 1)) &&
       entry.source !== 'purchase' &&
       entry.amount > 0
     );
@@ -58,80 +57,30 @@ function calculateDailyIncomeRate(entries: PrimogemEntry[], lookbackDays: number
   const minDate = dates.reduce((a, b) => (a < b ? a : b));
   const maxDate = dates.reduce((a, b) => (a > b ? a : b));
 
+  // Use the span of days with data, or at least 1 day
   const actualDays = Math.max(1, differenceInDays(maxDate, minDate) + 1);
 
   return totalEarned / actualDays;
 }
 
 function buildChartData(
-  entries: PrimogemEntry[],
   currentPrimogems: number,
   projectionDays: ProjectionDays,
   dailyRate: number
 ): ChartDataPoint[] {
-  const now = startOfDay(new Date());
+  const now = new Date();
   const data: ChartDataPoint[] = [];
 
-  // Build historical data (last 30 days of actual values)
-  const historicalDays = 30;
-  const historicalStart = addDays(now, -historicalDays);
-
-  // Compute cumulative primogems backwards from current
-  // We need to subtract entries that happened after each historical date
-  const sortedEntries = [...entries].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
-
-  // Calculate primogems at historical start by working backwards
-  let primogemsAtHistoricalStart = currentPrimogems;
-  for (const entry of sortedEntries) {
-    const entryDate = parseISO(entry.timestamp);
-    if (isAfter(entryDate, historicalStart) && isBefore(entryDate, addDays(now, 1))) {
-      primogemsAtHistoricalStart -= entry.amount;
-    }
-  }
-
-  // Now build forward from historical start
-  let runningTotal = primogemsAtHistoricalStart;
-
-  for (let i = 0; i <= historicalDays; i++) {
-    const date = addDays(historicalStart, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-
-    // Add entries for this day
-    const dayEntries = sortedEntries.filter((e) => {
-      const entryDate = startOfDay(parseISO(e.timestamp));
-      return format(entryDate, 'yyyy-MM-dd') === dateStr;
-    });
-
-    for (const entry of dayEntries) {
-      runningTotal += entry.amount;
-    }
-
-    // Calculate what projected value would have been
-    const daysFromStart = i;
-    const projectedFromStart = primogemsAtHistoricalStart + dailyRate * daysFromStart;
-
-    data.push({
-      date: dateStr,
-      label: format(date, 'MMM d'),
-      actual: Math.max(0, runningTotal),
-      projected: Math.max(0, projectedFromStart),
-      dailyRate,
-    });
-  }
-
-  // Add projection data (future days)
-  for (let i = 1; i <= projectionDays; i++) {
+  // Start from today and project forward
+  for (let i = 0; i <= projectionDays; i++) {
     const date = addDays(now, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
     const projectedValue = currentPrimogems + dailyRate * i;
 
     data.push({
-      date: dateStr,
+      date: format(date, 'yyyy-MM-dd'),
       label: format(date, 'MMM d'),
       projected: Math.max(0, projectedValue),
-      dailyRate,
+      isToday: i === 0,
     });
   }
 
@@ -150,38 +99,38 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
   const effectiveDailyRate = customDailyRate ?? calculatedDailyRate;
 
   const chartData = useMemo(
-    () => buildChartData(entries, currentPrimogems, projectionDays, effectiveDailyRate),
-    [entries, currentPrimogems, projectionDays, effectiveDailyRate]
+    () => buildChartData(currentPrimogems, projectionDays, effectiveDailyRate),
+    [currentPrimogems, projectionDays, effectiveDailyRate]
   );
 
-  const projectedPulls = Math.floor((currentPrimogems + effectiveDailyRate * projectionDays) / PRIMOS_PER_PULL);
+  // Calculate summary stats
+  const projectedPrimogems = currentPrimogems + effectiveDailyRate * projectionDays;
+  const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL);
   const currentPulls = Math.floor(currentPrimogems / PRIMOS_PER_PULL);
   const daysForOnePity = effectiveDailyRate > 0 ? Math.ceil((90 * PRIMOS_PER_PULL) / effectiveDailyRate) : Infinity;
 
-  // Calculate divergence (difference between actual and projected at today)
-  const todayData = chartData.find((d) => d.actual !== undefined && d.date === format(new Date(), 'yyyy-MM-dd'));
-  const divergence = todayData ? (todayData.actual ?? 0) - todayData.projected : 0;
+  // Count recent entries for display
+  const recentEntriesCount = entries.filter((e) => {
+    const entryDate = parseISO(e.timestamp);
+    return isAfter(entryDate, addDays(new Date(), -30)) && e.source !== 'purchase' && e.amount > 0;
+  }).length;
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload as ChartDataPoint;
+      const pullsAtPoint = Math.floor(data.projected / PRIMOS_PER_PULL);
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
-          <p className="text-slate-100 font-semibold mb-2">{data.label}</p>
+          <p className="text-slate-100 font-semibold mb-2">
+            {data.label} {data.isToday && <span className="text-amber-400">(Today)</span>}
+          </p>
           <div className="space-y-1 text-sm">
-            {data.actual !== undefined && (
-              <p className="text-green-400">
-                Actual: <span className="font-semibold">{data.actual.toLocaleString()}</span>
-              </p>
-            )}
             <p className="text-primary-400">
-              Projected: <span className="font-semibold">{Math.round(data.projected).toLocaleString()}</span>
+              Primogems: <span className="font-semibold">{Math.round(data.projected).toLocaleString()}</span>
             </p>
-            {data.actual !== undefined && (
-              <p className={divergence >= 0 ? 'text-green-300' : 'text-red-300'}>
-                Divergence: {divergence >= 0 ? '+' : ''}{Math.round(data.actual - data.projected).toLocaleString()}
-              </p>
-            )}
+            <p className="text-amber-400">
+              Pulls: <span className="font-semibold">{pullsAtPoint}</span>
+            </p>
           </div>
         </div>
       );
@@ -206,7 +155,7 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
         <Input
           label="Daily rate override"
           type="number"
-          placeholder={`Auto: ${Math.round(calculatedDailyRate)}`}
+          placeholder={calculatedDailyRate > 0 ? `Auto: ${Math.round(calculatedDailyRate)}` : 'Enter rate'}
           value={customDailyRate ?? ''}
           onChange={(e) => {
             const val = e.target.value;
@@ -215,13 +164,26 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
         />
       </div>
 
+      {calculatedDailyRate === 0 && customDailyRate === null && (
+        <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-3">
+          <p className="text-sm text-amber-300">
+            No primogem entries found in the last 30 days. Enter a daily rate manually to see projections.
+          </p>
+          <p className="text-xs text-amber-400/70 mt-1">
+            Typical rates: ~60/day (commissions only), ~150/day (with Welkin), ~200+/day (active events)
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
           <p className="text-xs text-slate-400">Daily Income Rate</p>
           <p className="text-xl font-bold text-primary-400">
             {Math.round(effectiveDailyRate).toLocaleString()}
           </p>
-          <p className="text-xs text-slate-500">primogems/day</p>
+          <p className="text-xs text-slate-500">
+            {customDailyRate !== null ? 'manual override' : `from ${recentEntriesCount} entries`}
+          </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
           <p className="text-xs text-slate-400">Current Pulls</p>
@@ -238,19 +200,9 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
           <p className="text-xl font-bold text-purple-400">
             {daysForOnePity === Infinity ? '∞' : daysForOnePity}
           </p>
-          <p className="text-xs text-slate-500">{Math.round((90 * PRIMOS_PER_PULL)).toLocaleString()} primos needed</p>
+          <p className="text-xs text-slate-500">{(90 * PRIMOS_PER_PULL).toLocaleString()} primos needed</p>
         </div>
       </div>
-
-      {divergence !== 0 && (
-        <div className={`border rounded-lg p-3 ${divergence >= 0 ? 'bg-green-900/20 border-green-800' : 'bg-red-900/20 border-red-800'}`}>
-          <p className={`text-sm ${divergence >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-            {divergence >= 0 ? '📈 Ahead of projection' : '📉 Behind projection'} by{' '}
-            <span className="font-semibold">{Math.abs(Math.round(divergence)).toLocaleString()}</span> primogems
-            {' '}({Math.abs(Math.floor(divergence / PRIMOS_PER_PULL))} pulls)
-          </p>
-        </div>
-      )}
 
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
         <div className="h-80">
@@ -266,32 +218,22 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
               <YAxis
                 stroke="#94a3b8"
                 tick={{ fill: '#94a3b8' }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               <ReferenceLine
                 x={format(new Date(), 'MMM d')}
                 stroke="#f59e0b"
-                strokeDasharray="5 5"
+                strokeWidth={2}
                 label={{ value: 'Today', fill: '#f59e0b', fontSize: 12 }}
               />
               <Line
                 type="monotone"
-                dataKey="actual"
-                name="Actual"
-                stroke="#22c55e"
-                strokeWidth={2}
-                dot={false}
-                connectNulls={false}
-              />
-              <Line
-                type="monotone"
                 dataKey="projected"
-                name="Projected"
+                name="Projected Primogems"
                 stroke="#0ea5e9"
                 strokeWidth={2}
-                strokeDasharray="5 5"
                 dot={false}
               />
             </LineChart>
@@ -301,8 +243,8 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
 
       <div className="text-xs text-slate-500 space-y-1">
         <p>• Daily rate calculated from your last 30 days of earned primogems (excluding purchases)</p>
-        <p>• Projection assumes consistent daily income at the calculated rate</p>
-        <p>• Use the override field to model different income scenarios (e.g., 60 for commissions-only, 150 for Welkin)</p>
+        <p>• Projection assumes consistent daily income at the calculated/entered rate</p>
+        <p>• Use the override field to model different scenarios (e.g., 60 for commissions-only, 150 for Welkin)</p>
       </div>
     </div>
   );

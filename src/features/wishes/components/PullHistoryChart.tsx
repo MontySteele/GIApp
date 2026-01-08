@@ -11,7 +11,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { format, parseISO, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
+import { format, parseISO, startOfDay, startOfWeek, startOfMonth, addDays, addWeeks, addMonths, isBefore, isEqual } from 'date-fns';
 import Select from '@/components/ui/Select';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import type { BannerType } from '@/types';
@@ -45,6 +45,17 @@ function getIntervalStart(date: Date, interval: GroupInterval): Date {
   }
 }
 
+function addInterval(date: Date, interval: GroupInterval): Date {
+  switch (interval) {
+    case 'day':
+      return addDays(date, 1);
+    case 'week':
+      return addWeeks(date, 1);
+    case 'month':
+      return addMonths(date, 1);
+  }
+}
+
 function formatLabel(date: Date, interval: GroupInterval): string {
   switch (interval) {
     case 'day':
@@ -72,49 +83,52 @@ export function PullHistoryChart({ history, bannerType = 'all' }: PullHistoryCha
       (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
     );
 
-    // Group by interval
-    const buckets = new Map<string, ChartDataPoint>();
+    // Find date range
+    const firstDate = getIntervalStart(parseISO(sorted[0].time), interval);
+    const lastDate = getIntervalStart(parseISO(sorted[sorted.length - 1].time), interval);
 
-    let cumulativeTotal = 0;
+    // Group wishes by interval
+    const wishBuckets = new Map<string, { fiveStars: number; fourStars: number; threeStars: number }>();
 
     for (const wish of sorted) {
       const wishDate = parseISO(wish.time);
       const bucketStart = getIntervalStart(wishDate, interval);
       const bucketKey = bucketStart.toISOString();
 
-      let bucket = buckets.get(bucketKey);
+      let bucket = wishBuckets.get(bucketKey);
       if (!bucket) {
-        bucket = {
-          label: formatLabel(bucketStart, interval),
-          date: bucketStart,
-          pulls: 0,
-          cumulativePulls: 0,
-          fiveStars: 0,
-          fourStars: 0,
-          threeStars: 0,
-        };
-        buckets.set(bucketKey, bucket);
+        bucket = { fiveStars: 0, fourStars: 0, threeStars: 0 };
+        wishBuckets.set(bucketKey, bucket);
       }
-
-      bucket.pulls += 1;
-      cumulativeTotal += 1;
-      bucket.cumulativePulls = cumulativeTotal;
 
       if (wish.rarity === 5) bucket.fiveStars += 1;
       else if (wish.rarity === 4) bucket.fourStars += 1;
       else bucket.threeStars += 1;
     }
 
-    // Convert to array and ensure cumulative values are correct
-    const result = Array.from(buckets.values()).sort(
-      (a, b) => a.date.getTime() - b.date.getTime()
-    );
+    // Generate all intervals between first and last date (including empty ones)
+    const result: ChartDataPoint[] = [];
+    let currentDate = firstDate;
+    let cumulativeTotal = 0;
 
-    // Recalculate cumulative to ensure continuity
-    let running = 0;
-    for (const point of result) {
-      running += point.pulls;
-      point.cumulativePulls = running;
+    while (isBefore(currentDate, lastDate) || isEqual(currentDate, lastDate)) {
+      const bucketKey = currentDate.toISOString();
+      const wishData = wishBuckets.get(bucketKey);
+
+      const pulls = wishData ? wishData.fiveStars + wishData.fourStars + wishData.threeStars : 0;
+      cumulativeTotal += pulls;
+
+      result.push({
+        label: formatLabel(currentDate, interval),
+        date: new Date(currentDate),
+        pulls,
+        cumulativePulls: cumulativeTotal,
+        fiveStars: wishData?.fiveStars ?? 0,
+        fourStars: wishData?.fourStars ?? 0,
+        threeStars: wishData?.threeStars ?? 0,
+      });
+
+      currentDate = addInterval(currentDate, interval);
     }
 
     return result;
