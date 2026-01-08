@@ -358,7 +358,7 @@ Fixes completed:
 - [x] Replaced formula `ascension * 10 + 20` with lookup table
 - [x] Fixed in CharacterCard, CharacterDetailPage, TeamCard, TeamForm
 
-#### 3.2 Historical Pulls & Projection Charts
+#### 3.2 Historical Pulls & Projection Charts ✅ COMPLETED
 **Files:** New: `src/features/wishes/components/PullHistoryChart.tsx`, `src/features/ledger/components/ProjectionChart.tsx`
 
 User wants:
@@ -366,18 +366,18 @@ User wants:
 - Primogem gain projection (based on tracked income patterns)
 
 Implementation:
-- [ ] Add time-series chart for pull history (Recharts area chart)
-- [ ] Group pulls by day/week/month
-- [ ] Add projection chart showing expected future primogems
-- [ ] Reconcile projected vs. actual (show divergence)
+- [x] Add time-series chart for pull history (Recharts area chart)
+- [x] Group pulls by day/week/month
+- [x] Add projection chart showing expected future primogems
+- [x] Reconcile projected vs. actual (show divergence)
 
-#### 3.3 Hide Manual Entry Sections
+#### 3.3 Hide Manual Entry Sections ✅ COMPLETED
 **Files:** `src/features/wishes/pages/WishesPage.tsx`, `src/features/ledger/pages/LedgerPage.tsx`
 
 User prefers automated import over manual entry:
-- [ ] Make manual wish entry collapsible/hidden by default
-- [ ] Make manual primogem entry collapsible/hidden by default
-- [ ] Add settings toggle to show/hide manual sections
+- [x] Make manual wish entry collapsible/hidden by default
+- [x] Make manual primogem entry collapsible/hidden by default
+- [x] Add settings toggle to show/hide manual sections
 
 #### 3.4 Add Real Money Purchase Ledger
 **Files:** New: `src/features/ledger/components/PurchaseLedger.tsx`, `src/db/schema.ts`
@@ -439,12 +439,12 @@ Complete the Abyss tracking feature:
 2. ~~Fix reverse calculator (1.4)~~ ✅
 3. ~~Add character portraits (3.1)~~ ✅
 
-**Sprint 3 - Charts & Visualization** ← CURRENT
-1. Historical pulls chart (3.2)
-2. Primogem projection chart (3.2)
-3. Hide manual entry sections (3.3)
+**Sprint 3 - Charts & Visualization** ✅ COMPLETED
+1. ~~Historical pulls chart (3.2)~~ ✅
+2. ~~Primogem projection chart (3.2)~~ ✅
+3. ~~Hide manual entry sections (3.3)~~ ✅
 
-**Sprint 4 - UX Polish**
+**Sprint 4 - UX Polish** ← CURRENT
 1. Redesign goals as stickies (4.1)
 2. Add purchase ledger (3.4)
 

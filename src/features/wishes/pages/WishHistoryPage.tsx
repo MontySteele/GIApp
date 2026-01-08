@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import { analyzeWishHistory } from '../domain/wishAnalyzer';
@@ -7,13 +8,23 @@ import { WishHistoryList } from '../components/WishHistoryList';
 import { WishStatistics } from '../components/WishStatistics';
 import { PityTracker } from '../components/PityTracker';
 import { WishManualEntry } from '../components/WishManualEntry';
+import { PullHistoryChart } from '../components/PullHistoryChart';
 import { loadWishHistoryFromRepo } from '../utils/wishHistory';
+import { useUIStore } from '@/stores/uiStore';
 
 export function WishHistoryPage() {
   const [wishHistory, setWishHistory] = useState<WishHistoryItem[]>([]);
   const [selectedBanner, setSelectedBanner] = useState<BannerType>('character');
   const [showImport, setShowImport] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [manualEntryExpanded, setManualEntryExpanded] = useState(false);
+
+  const { settings } = useUIStore();
+
+  // Sync with settings when they change
+  useEffect(() => {
+    setManualEntryExpanded(settings.showManualWishEntry);
+  }, [settings.showManualWishEntry]);
 
   const loadHistory = async () => {
     const history = await loadWishHistoryFromRepo();
@@ -85,8 +96,24 @@ export function WishHistoryPage() {
             </button>
           </div>
 
-          <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
-            <WishManualEntry onEntrySaved={handleManualEntrySaved} />
+          {/* Collapsible Manual Entry Section */}
+          <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg shadow">
+            <button
+              className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-750 transition-colors rounded-lg"
+              onClick={() => setManualEntryExpanded(!manualEntryExpanded)}
+            >
+              <span className="text-lg font-semibold text-slate-200">Manual Wish Entry</span>
+              {manualEntryExpanded ? (
+                <ChevronUp className="w-5 h-5 text-slate-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-slate-400" />
+              )}
+            </button>
+            {manualEntryExpanded && (
+              <div className="px-6 pb-6 border-t border-slate-700">
+                <WishManualEntry onEntrySaved={handleManualEntrySaved} />
+              </div>
+            )}
           </div>
 
           {/* Banner tabs */}
@@ -114,6 +141,12 @@ export function WishHistoryPage() {
           <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Current Pity</h2>
             <PityTracker pityState={analysis.pityState} bannerType={selectedBanner} />
+          </div>
+
+          {/* Pull History Chart */}
+          <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4">Pull History</h2>
+            <PullHistoryChart history={wishHistory} bannerType={selectedBanner} />
           </div>
 
           {/* Statistics */}

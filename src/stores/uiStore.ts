@@ -4,6 +4,8 @@ interface UISettings {
   dateFormat: string;
   defaultTheme: 'light' | 'dark' | 'system';
   backupReminderCadenceDays: number;
+  showManualWishEntry: boolean;
+  showManualPrimogemEntry: boolean;
 }
 
 interface UIState {
@@ -38,6 +40,8 @@ export const DEFAULT_SETTINGS: UISettings = {
   dateFormat: 'MM/dd/yyyy',
   defaultTheme: 'system',
   backupReminderCadenceDays: 14,
+  showManualWishEntry: false,
+  showManualPrimogemEntry: false,
 };
 
 export const useUIStore = create<UIState>((set) => ({

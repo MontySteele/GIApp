@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Coins, Sparkles, RefreshCw } from 'lucide-react';
+import { Plus, Coins, Sparkles, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -9,6 +9,7 @@ import { fateEntryRepo } from '../repo/fateEntryRepo';
 import { resourceSnapshotRepo } from '../repo/resourceSnapshotRepo';
 import { wishRepo } from '@/features/wishes/repo/wishRepo';
 import IncomeTimeline from '../components/IncomeTimeline';
+import { ProjectionChart } from '../components/ProjectionChart';
 import {
   bucketPrimogemEntries,
   calculateAvailablePulls,
@@ -17,6 +18,7 @@ import {
   type IncomeBucketFilters,
 } from '../domain/resourceCalculations';
 import type { FateType, PrimogemSource, FateSource } from '@/types';
+import { useUIStore } from '@/stores/uiStore';
 
 const FAR_FUTURE = '9999-12-31T23:59:59.999Z';
 
@@ -57,6 +59,18 @@ export default function LedgerPage() {
     includePurchases: true,
     source: 'all',
   });
+
+  // Collapsible state for manual entry sections
+  const [primogemEntryExpanded, setPrimogemEntryExpanded] = useState(false);
+  const [fateEntryExpanded, setFateEntryExpanded] = useState(false);
+
+  const { settings } = useUIStore();
+
+  // Sync with settings when they change
+  useEffect(() => {
+    setPrimogemEntryExpanded(settings.showManualPrimogemEntry);
+    setFateEntryExpanded(settings.showManualPrimogemEntry);
+  }, [settings.showManualPrimogemEntry]);
 
   useEffect(() => {
     if (!latestSnapshot) return;
@@ -283,185 +297,225 @@ export default function LedgerPage() {
           <p className="text-sm text-slate-400">Primogem-equivalent spent</p>
           <p className="text-3xl font-bold text-slate-100">{wishSpendingTotals.primogemEquivalent.toLocaleString()}</p>
           <p className="text-sm text-slate-500">
-            Deducted so snapshots + pulls don’t double count
+            Deducted so snapshots + pulls don't double count
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Add Primogem Entry</h2>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="secondary" onClick={() => setPrimogemAmount(60)}>
-                Commission
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setPrimogemAmount(90)}>
-                Welkin
-              </Button>
-            </div>
-          </div>
-          <form
-            className="space-y-3"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              await primogemEntryRepo.create({
-                amount: primogemAmount,
-                source: primogemSource,
-                notes: primogemNotes,
-              });
-              setPrimogemAmount(0);
-              setPrimogemNotes('');
-            }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Input
-                label="Amount"
-                type="number"
-                value={primogemAmount}
-                onChange={(e) => setPrimogemAmount(Number(e.target.value))}
-                required
-              />
-              <Select
-                label="Source"
-                value={primogemSource}
-                onChange={(e) => setPrimogemSource(e.target.value as PrimogemSource)}
-                options={[
-                  { value: 'daily_commission', label: 'Daily Commission' },
-                  { value: 'welkin', label: 'Welkin' },
-                  { value: 'event', label: 'Event' },
-                  { value: 'exploration', label: 'Exploration' },
-                  { value: 'abyss', label: 'Abyss' },
-                  { value: 'quest', label: 'Quest' },
-                  { value: 'achievement', label: 'Achievement' },
-                  { value: 'codes', label: 'Codes' },
-                  { value: 'battle_pass', label: 'Battle Pass' },
-                  { value: 'purchase', label: 'Purchase' },
-                  { value: 'wish_conversion', label: 'Wish Conversion' },
-                  { value: 'other', label: 'Other' },
-                ]}
-              />
-              <Input
-                label="Notes"
-                placeholder="Optional"
-                value={primogemNotes}
-                onChange={(e) => setPrimogemNotes(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit">
-                <Plus className="w-4 h-4" />
-                Add Entry
-              </Button>
-            </div>
-          </form>
+      {/* Primogem Projection Chart */}
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Primogem Projection</h2>
+          <p className="text-slate-400 text-sm">
+            Project future primogem income based on your tracked patterns.
+          </p>
+        </div>
+        <ProjectionChart entries={primogemEntries ?? []} currentPrimogems={effectivePrimogems} />
+      </section>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Recent Entries</h3>
-            <div className="space-y-2">
-              {(primogemEntries ?? []).map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-3"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {entry.amount > 0 ? '+' : ''}
-                      {entry.amount} primogems
-                    </p>
-                    <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
-                  </div>
-                  <div className="text-sm text-slate-500 text-right">
-                    <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
-                    {entry.notes && <p className="text-slate-400">{entry.notes}</p>}
-                  </div>
+      {/* Collapsible Manual Entry Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Primogem Entry Section */}
+        <section className="bg-slate-900 border border-slate-800 rounded-xl">
+          <button
+            className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
+            onClick={() => setPrimogemEntryExpanded(!primogemEntryExpanded)}
+          >
+            <h2 className="text-xl font-semibold">Add Primogem Entry</h2>
+            {primogemEntryExpanded ? (
+              <ChevronUp className="w-5 h-5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-400" />
+            )}
+          </button>
+          {primogemEntryExpanded && (
+            <div className="px-4 pb-4 space-y-4 border-t border-slate-800">
+              <div className="flex items-center gap-2 pt-4">
+                <Button size="sm" variant="secondary" onClick={() => setPrimogemAmount(60)}>
+                  Commission
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setPrimogemAmount(90)}>
+                  Welkin
+                </Button>
+              </div>
+              <form
+                className="space-y-3"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  await primogemEntryRepo.create({
+                    amount: primogemAmount,
+                    source: primogemSource,
+                    notes: primogemNotes,
+                  });
+                  setPrimogemAmount(0);
+                  setPrimogemNotes('');
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input
+                    label="Amount"
+                    type="number"
+                    value={primogemAmount}
+                    onChange={(e) => setPrimogemAmount(Number(e.target.value))}
+                    required
+                  />
+                  <Select
+                    label="Source"
+                    value={primogemSource}
+                    onChange={(e) => setPrimogemSource(e.target.value as PrimogemSource)}
+                    options={[
+                      { value: 'daily_commission', label: 'Daily Commission' },
+                      { value: 'welkin', label: 'Welkin' },
+                      { value: 'event', label: 'Event' },
+                      { value: 'exploration', label: 'Exploration' },
+                      { value: 'abyss', label: 'Abyss' },
+                      { value: 'quest', label: 'Quest' },
+                      { value: 'achievement', label: 'Achievement' },
+                      { value: 'codes', label: 'Codes' },
+                      { value: 'battle_pass', label: 'Battle Pass' },
+                      { value: 'purchase', label: 'Purchase' },
+                      { value: 'wish_conversion', label: 'Wish Conversion' },
+                      { value: 'other', label: 'Other' },
+                    ]}
+                  />
+                  <Input
+                    label="Notes"
+                    placeholder="Optional"
+                    value={primogemNotes}
+                    onChange={(e) => setPrimogemNotes(e.target.value)}
+                  />
                 </div>
-              ))}
-              {(primogemEntries?.length ?? 0) === 0 && (
-                <p className="text-sm text-slate-500">No primogem entries yet.</p>
-              )}
+                <div className="flex justify-end">
+                  <Button type="submit">
+                    <Plus className="w-4 h-4" />
+                    Add Entry
+                  </Button>
+                </div>
+              </form>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Recent Entries</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {(primogemEntries ?? []).slice(0, 10).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-3"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {entry.amount > 0 ? '+' : ''}
+                          {entry.amount} primogems
+                        </p>
+                        <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
+                      </div>
+                      <div className="text-sm text-slate-500 text-right">
+                        <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
+                        {entry.notes && <p className="text-slate-400">{entry.notes}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {(primogemEntries?.length ?? 0) === 0 && (
+                    <p className="text-sm text-slate-500">No primogem entries yet.</p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
-        <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
-          <h2 className="text-xl font-semibold">Add Fate Entry</h2>
-          <form
-            className="space-y-3"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              await fateEntryRepo.create({
-                amount: fateAmount,
-                fateType,
-                source: fateSource,
-              });
-              setFateAmount(1);
-            }}
+        {/* Fate Entry Section */}
+        <section className="bg-slate-900 border border-slate-800 rounded-xl">
+          <button
+            className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
+            onClick={() => setFateEntryExpanded(!fateEntryExpanded)}
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Input
-                label="Amount"
-                type="number"
-                value={fateAmount}
-                onChange={(e) => setFateAmount(Number(e.target.value))}
-                required
-              />
-              <Select
-                label="Type"
-                value={fateType}
-                onChange={(e) => setFateType(e.target.value as FateType)}
-                options={[
-                  { value: 'intertwined', label: 'Intertwined Fate' },
-                  { value: 'acquaint', label: 'Acquaint Fate' },
-                ]}
-              />
-              <Select
-                label="Source"
-                value={fateSource}
-                onChange={(e) => setFateSource(e.target.value as FateSource)}
-                options={[
-                  { value: 'primogem_conversion', label: 'Primogem Conversion' },
-                  { value: 'battle_pass', label: 'Battle Pass' },
-                  { value: 'paimon_shop', label: 'Paimon’s Bargains' },
-                  { value: 'event', label: 'Event' },
-                  { value: 'ascension', label: 'Ascension' },
-                  { value: 'other', label: 'Other' },
-                ]}
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit">
-                <Plus className="w-4 h-4" />
-                Add Entry
-              </Button>
-            </div>
-          </form>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Recent Entries</h3>
-            <div className="space-y-2">
-              {(fateEntries ?? []).map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-3"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {entry.amount > 0 ? '+' : ''}
-                      {entry.amount} {entry.fateType === 'intertwined' ? 'Intertwined' : 'Acquaint'} Fate
-                    </p>
-                    <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
-                  </div>
-                  <div className="text-sm text-slate-500 text-right">
-                    <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
-                  </div>
+            <h2 className="text-xl font-semibold">Add Fate Entry</h2>
+            {fateEntryExpanded ? (
+              <ChevronUp className="w-5 h-5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-400" />
+            )}
+          </button>
+          {fateEntryExpanded && (
+            <div className="px-4 pb-4 space-y-4 border-t border-slate-800">
+              <form
+                className="space-y-3 pt-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  await fateEntryRepo.create({
+                    amount: fateAmount,
+                    fateType,
+                    source: fateSource,
+                  });
+                  setFateAmount(1);
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input
+                    label="Amount"
+                    type="number"
+                    value={fateAmount}
+                    onChange={(e) => setFateAmount(Number(e.target.value))}
+                    required
+                  />
+                  <Select
+                    label="Type"
+                    value={fateType}
+                    onChange={(e) => setFateType(e.target.value as FateType)}
+                    options={[
+                      { value: 'intertwined', label: 'Intertwined Fate' },
+                      { value: 'acquaint', label: 'Acquaint Fate' },
+                    ]}
+                  />
+                  <Select
+                    label="Source"
+                    value={fateSource}
+                    onChange={(e) => setFateSource(e.target.value as FateSource)}
+                    options={[
+                      { value: 'primogem_conversion', label: 'Primogem Conversion' },
+                      { value: 'battle_pass', label: 'Battle Pass' },
+                      { value: 'paimon_shop', label: "Paimon's Bargains" },
+                      { value: 'event', label: 'Event' },
+                      { value: 'ascension', label: 'Ascension' },
+                      { value: 'other', label: 'Other' },
+                    ]}
+                  />
                 </div>
-              ))}
-              {(fateEntries?.length ?? 0) === 0 && (
-                <p className="text-sm text-slate-500">No fate entries yet.</p>
-              )}
+                <div className="flex justify-end">
+                  <Button type="submit">
+                    <Plus className="w-4 h-4" />
+                    Add Entry
+                  </Button>
+                </div>
+              </form>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Recent Entries</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {(fateEntries ?? []).slice(0, 10).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-3"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {entry.amount > 0 ? '+' : ''}
+                          {entry.amount} {entry.fateType === 'intertwined' ? 'Intertwined' : 'Acquaint'} Fate
+                        </p>
+                        <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
+                      </div>
+                      <div className="text-sm text-slate-500 text-right">
+                        <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {(fateEntries?.length ?? 0) === 0 && (
+                    <p className="text-sm text-slate-500">No fate entries yet.</p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </section>
       </div>
 
