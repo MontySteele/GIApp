@@ -412,3 +412,9 @@ src/
 - Removed manual primogem tracking complexity
 - Fixed pull history chart empty week gaps
 - Fixed purchased primogems display bug
+
+**2024-01 (Sprint 3 Bug Fixes):**
+- Fixed: Standard banner pulls now excluded from all calculations (only intertwined fates counted)
+- Fixed: Daily rate calculation uses full lookback period as denominator (not just wish span)
+- Added: Configurable "Rate window" selector (14/30/60/90 days) for daily income calculation
+- Fixed: Purchase ledger delete functionality (browser was blocking confirm dialog)
