@@ -1,18 +1,18 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface UISettings {
   dateFormat: string;
-  defaultTheme: 'light' | 'dark' | 'system';
+  theme: ThemeMode;
   backupReminderCadenceDays: number;
   showManualWishEntry: boolean;
   showManualPrimogemEntry: boolean;
 }
 
 interface UIState {
-  theme: 'light' | 'dark' | 'system';
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
-
-  // Settings surface
+  // Settings surface (persisted)
   settings: UISettings;
   updateSettings: (settings: Partial<UISettings>) => void;
   resetSettings: () => void;
@@ -38,42 +38,47 @@ interface UIState {
 
 export const DEFAULT_SETTINGS: UISettings = {
   dateFormat: 'MM/dd/yyyy',
-  defaultTheme: 'system',
+  theme: 'dark',
   backupReminderCadenceDays: 14,
   showManualWishEntry: false,
   showManualPrimogemEntry: false,
 };
 
-export const useUIStore = create<UIState>((set) => ({
-  theme: 'system',
-  setTheme: (theme) => set({ theme }),
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      settings: { ...DEFAULT_SETTINGS },
+      updateSettings: (settings) =>
+        set((state) => ({
+          settings: { ...state.settings, ...settings },
+        })),
+      resetSettings: () => set({ settings: { ...DEFAULT_SETTINGS } }),
 
-  settings: { ...DEFAULT_SETTINGS },
-  updateSettings: (settings) =>
-    set((state) => ({
-      settings: { ...state.settings, ...settings },
-    })),
-  resetSettings: () => set({ settings: { ...DEFAULT_SETTINGS } }),
+      rosterFilter: {
+        element: null,
+        weaponType: null,
+        rarity: null,
+        priority: null,
+        search: '',
+      },
+      setRosterFilter: (filter) =>
+        set((state) => ({
+          rosterFilter: { ...state.rosterFilter, ...filter },
+        })),
 
-  rosterFilter: {
-    element: null,
-    weaponType: null,
-    rarity: null,
-    priority: null,
-    search: '',
-  },
-  setRosterFilter: (filter) =>
-    set((state) => ({
-      rosterFilter: { ...state.rosterFilter, ...filter },
-    })),
-
-  wishesFilter: {
-    bannerType: null,
-    rarity: null,
-    dateRange: null,
-  },
-  setWishesFilter: (filter) =>
-    set((state) => ({
-      wishesFilter: { ...state.wishesFilter, ...filter },
-    })),
-}));
+      wishesFilter: {
+        bannerType: null,
+        rarity: null,
+        dateRange: null,
+      },
+      setWishesFilter: (filter) =>
+        set((state) => ({
+          wishesFilter: { ...state.wishesFilter, ...filter },
+        })),
+    }),
+    {
+      name: 'giapp-ui-settings',
+      partialize: (state) => ({ settings: state.settings }),
+    }
+  )
+);

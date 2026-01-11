@@ -12,6 +12,7 @@ import type {
   PlannedBanner,
   ExternalCache,
   AppMeta,
+  CalculatorScenario,
 } from '@/types';
 
 export const SCHEMA_STORES = {
@@ -30,6 +31,11 @@ export const SCHEMA_STORES = {
   appMeta: 'key',
 };
 
+export const SCHEMA_STORES_V2 = {
+  ...SCHEMA_STORES,
+  calculatorScenarios: 'id, name, updatedAt',
+};
+
 export class GenshinTrackerDB extends Dexie {
   characters!: EntityTable<Character, 'id'>;
   teams!: EntityTable<Team, 'id'>;
@@ -43,11 +49,13 @@ export class GenshinTrackerDB extends Dexie {
   plannedBanners!: EntityTable<PlannedBanner, 'id'>;
   externalCache!: EntityTable<ExternalCache, 'id'>;
   appMeta!: EntityTable<AppMeta, 'key'>;
+  calculatorScenarios!: EntityTable<CalculatorScenario, 'id'>;
 
   constructor(databaseName = 'GenshinTracker') {
     super(databaseName);
 
     this.version(1).stores(SCHEMA_STORES);
+    this.version(2).stores(SCHEMA_STORES_V2);
   }
 }
 

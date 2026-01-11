@@ -1,11 +1,12 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
-import { CheckCircle2, Clock3, Download, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle2, Clock3, Download, RefreshCw, Eye, EyeOff, Sun, Moon, Monitor } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useAppMetaStatus } from '../hooks/useAppMetaStatus';
 import { appMetaService, parseDateString, resolveBackupCadenceDays } from '../services/appMetaService';
-import { useUIStore } from '@/stores/uiStore';
+import { useUIStore, type ThemeMode } from '@/stores/uiStore';
+import { useTheme } from '@/hooks/useTheme';
 
 function formatDate(dateString?: string | null) {
   const parsed = parseDateString(dateString ?? undefined);
@@ -14,9 +15,16 @@ function formatDate(dateString?: string | null) {
   return parsed.toLocaleString();
 }
 
+const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: Monitor },
+];
+
 export default function SyncPage() {
   const { status, isLoading } = useAppMetaStatus();
   const { settings, updateSettings, resetSettings } = useUIStore();
+  const { theme, setTheme } = useTheme();
   const [isMarking, setIsMarking] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -87,6 +95,47 @@ export default function SyncPage() {
           Manage backup reminders, export your data, and keep your progress safe.
         </p>
       </div>
+
+      {/* Theme Selection */}
+      <Card>
+        <CardHeader className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            {theme === 'dark' ? (
+              <Moon className="w-5 h-5 text-primary-400" />
+            ) : theme === 'light' ? (
+              <Sun className="w-5 h-5 text-primary-400" />
+            ) : (
+              <Monitor className="w-5 h-5 text-primary-400" />
+            )}
+            <h2 className="text-xl font-semibold text-slate-100">Theme</h2>
+          </div>
+          <p className="text-slate-400 text-sm">
+            Choose your preferred color scheme.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {themeOptions.map((option) => {
+              const Icon = option.icon;
+              const isActive = theme === option.value;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => setTheme(option.value)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all ${
+                    isActive
+                      ? 'bg-primary-600 border-primary-500 text-white'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="font-medium">{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Display Preferences */}
       <Card>

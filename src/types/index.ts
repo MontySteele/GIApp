@@ -249,3 +249,26 @@ export interface GachaRules {
   hasFatePoints?: boolean;
   maxFatePoints?: number;
 }
+
+// Calculator Scenarios
+export interface CalculatorScenarioTarget {
+  characterName: string;
+  bannerType: BannerType;
+  constellation: number;
+  pity: number;
+  guaranteed: boolean;
+  radiantStreak: number;
+  fatePoints: number;
+  useInheritedPity: boolean;
+}
+
+export interface CalculatorScenario {
+  id: string;
+  name: string;
+  targets: CalculatorScenarioTarget[];
+  availablePulls: number;
+  iterations: number;
+  resultProbability?: number; // Overall probability from last calculation
+  createdAt: string;
+  updatedAt: string;
+}
