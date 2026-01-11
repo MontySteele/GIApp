@@ -122,11 +122,19 @@ export function getNextMonthlyReset(): Date {
 }
 
 /**
- * Get the next Battle Pass reset (estimated)
- * Battle Pass typically resets with each version update (~6 weeks)
- * This returns an approximate based on the 6-week cycle
+ * Get the next Imaginarium Theatre reset
+ * Resets on the 1st of each month at 4:00 AM server time
  */
-export function getNextBattlePassReset(): Date {
+export function getNextImaginariumReset(): Date {
+  // Same as monthly reset - 1st of each month
+  return getNextMonthlyReset();
+}
+
+/**
+ * Get the next patch/version update
+ * Patches occur approximately every 42 days (6 weeks)
+ */
+export function getNextPatchReset(): Date {
   // Version 6.3 starts January 14, 2026
   // Each version is ~42 days (6 weeks)
   const knownVersionStart = new Date('2026-01-14T09:00:00Z'); // 4 AM server = 9 AM UTC
@@ -136,6 +144,15 @@ export function getNextBattlePassReset(): Date {
 
   // Find the next version start after now
   let nextVersionStart = new Date(knownVersionStart);
+
+  // Go backwards if needed to find the anchor point
+  while (nextVersionStart > now) {
+    const prev = new Date(nextVersionStart.getTime() - versionLength);
+    if (prev <= now) break;
+    nextVersionStart = prev;
+  }
+
+  // Now go forwards to find the next patch after now
   while (nextVersionStart <= now) {
     nextVersionStart = new Date(nextVersionStart.getTime() + versionLength);
   }
@@ -191,10 +208,22 @@ export function getAllResetTimers(): ResetInfo[] {
       description: 'Floors 9-12 reset (1st & 16th)',
     },
     {
+      name: 'Imaginarium Theatre',
+      nextReset: getNextImaginariumReset(),
+      timeUntil: formatTimeUntil(getNextImaginariumReset()),
+      description: 'Monthly season reset (1st of month)',
+    },
+    {
+      name: 'Next Patch',
+      nextReset: getNextPatchReset(),
+      timeUntil: formatTimeUntil(getNextPatchReset()),
+      description: 'Version update (~42 day cycle)',
+    },
+    {
       name: 'Monthly Shop',
       nextReset: getNextMonthlyReset(),
       timeUntil: formatTimeUntil(getNextMonthlyReset()),
-      description: "Paimon's Bargains, Stardust/Starglitter Exchange",
+      description: "Paimon's Bargains, Stardust/Starglitter",
     },
   ];
 }

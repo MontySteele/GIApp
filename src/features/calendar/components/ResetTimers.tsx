@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, RefreshCw, Swords, ShoppingBag, Calendar } from 'lucide-react';
+import { Clock, RefreshCw, Swords, ShoppingBag, Calendar, Theater, Sparkles } from 'lucide-react';
 import {
   getAllResetTimers,
   formatTimeUntil,
@@ -11,6 +11,8 @@ const TIMER_ICONS = {
   'Daily Reset': Clock,
   'Weekly Reset': RefreshCw,
   'Spiral Abyss': Swords,
+  'Imaginarium Theatre': Theater,
+  'Next Patch': Sparkles,
   'Monthly Shop': ShoppingBag,
 };
 
@@ -68,7 +70,7 @@ export default function ResetTimers() {
         <h2 className="text-lg font-semibold text-slate-200">Reset Timers</h2>
         <span className="text-xs text-slate-500">US Server (UTC-5)</span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {timers.map((timer) => (
           <TimerCard key={timer.name} timer={timer} />
         ))}

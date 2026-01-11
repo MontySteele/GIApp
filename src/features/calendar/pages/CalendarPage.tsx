@@ -1,114 +1,103 @@
-import { RefreshCw, AlertTriangle, Info } from 'lucide-react';
+import { ExternalLink, Info, Calendar as CalendarIcon } from 'lucide-react';
 import ResetTimers from '../components/ResetTimers';
-import EventList from '../components/EventList';
-import { useEvents } from '../hooks/useEvents';
 
 export default function CalendarPage() {
-  const {
-    activeEvents,
-    upcomingEvents,
-    activeBanners,
-    isLoading,
-    error,
-    lastUpdated,
-    refresh,
-  } = useEvents();
-
-  // Separate active events by type for better organization
-  const activeInGameEvents = activeEvents.filter((e) => e.type === 'In-game');
-  const activeWebEvents = activeEvents.filter((e) => e.type === 'Web');
-
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Calendar</h1>
-        <button
-          onClick={refresh}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 bg-slate-800 rounded-lg border border-slate-700 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
-      {/* Error message */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-red-400 font-medium">Failed to fetch events</p>
-            <p className="text-sm text-red-400/70 mt-1">{error}</p>
-            {lastUpdated && (
-              <p className="text-xs text-slate-500 mt-2">
-                Showing cached data from {lastUpdated.toLocaleString()}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+      <h1 className="text-3xl font-bold">Calendar</h1>
 
       {/* Reset Timers */}
       <ResetTimers />
 
-      {/* Active Banners */}
-      {activeBanners.length > 0 && (
-        <EventList
-          title="Current Banners"
-          events={activeBanners}
-          showImages
-          emptyMessage="No active banners"
-        />
-      )}
+      {/* Events Link Card */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-200">Current Events</h2>
+        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-primary-500/20 rounded-lg">
+              <CalendarIcon className="w-6 h-6 text-primary-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-medium text-slate-200 mb-2">
+                View Current Events & Banners
+              </h3>
+              <p className="text-sm text-slate-400 mb-4">
+                For the most up-to-date event information, banners, and timelines,
+                visit Paimon.moe's calendar which is maintained by the community.
+              </p>
+              <a
+                href="https://paimon.moe/timeline"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors"
+              >
+                Open Paimon.moe Timeline
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Active In-Game Events */}
-      <EventList
-        title="Active Events"
-        events={activeInGameEvents}
-        showImages
-        emptyMessage="No active in-game events"
-      />
+      {/* Additional Resources */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-200">Quick Links</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <ResourceLink
+            title="Paimon.moe Calendar"
+            description="Events, banners, birthdays"
+            url="https://paimon.moe/timeline"
+          />
+          <ResourceLink
+            title="HoYoLAB Events"
+            description="Official event announcements"
+            url="https://www.hoyolab.com/home"
+          />
+          <ResourceLink
+            title="Daily Check-In"
+            description="Claim daily login rewards"
+            url="https://act.hoyolab.com/ys/event/signin-sea-v3/index.html?act_id=e202102251931481"
+          />
+        </div>
+      </div>
 
-      {/* Active Web Events */}
-      {activeWebEvents.length > 0 && (
-        <EventList
-          title="Web Events"
-          events={activeWebEvents}
-          emptyMessage="No active web events"
-        />
-      )}
-
-      {/* Upcoming Events */}
-      <EventList
-        title="Upcoming Events"
-        events={upcomingEvents}
-        maxItems={6}
-        emptyMessage="No upcoming events scheduled"
-      />
-
-      {/* Data source attribution */}
+      {/* Info footer */}
       <div className="bg-slate-800/30 rounded-lg p-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-slate-500">
           <p>
-            Event data from{' '}
-            <a
-              href="https://github.com/Tibowl/HuTao"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary-400 hover:underline"
-            >
-              HuTao bot
-            </a>
-            . Reset times based on US Server (UTC-5).
+            Reset times are calculated for <strong>US Server (UTC-5)</strong>.
+            All timers update automatically.
           </p>
-          {lastUpdated && !error && (
-            <p className="mt-1 text-slate-600">
-              Last updated: {lastUpdated.toLocaleString()}
-            </p>
-          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function ResourceLink({
+  title,
+  description,
+  url,
+}: {
+  title: string;
+  description: string;
+  url: string;
+}) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 hover:border-primary-500/50 transition-colors group"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium text-slate-200 group-hover:text-primary-400 transition-colors">
+          {title}
+        </h3>
+        <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-primary-400 transition-colors" />
+      </div>
+      <p className="text-sm text-slate-400 mt-1">{description}</p>
+    </a>
   );
 }
