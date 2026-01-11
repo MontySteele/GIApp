@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { proxy } from 'comlink';
+import { useLiveQuery } from 'dexie-react-hooks';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
+import Modal from '@/components/ui/Modal';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { ChevronUp, ChevronDown, Trash2, Plus, Download, RotateCcw } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, Plus, Download, RotateCcw, Save, FolderOpen, BarChart3 } from 'lucide-react';
 import { GACHA_RULES } from '@/lib/constants';
-import type { BannerType } from '@/types';
+import type { BannerType, CalculatorScenario, CalculatorScenarioTarget } from '@/types';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
 import { createMonteCarloWorker, type MonteCarloWorkerHandle } from '@/workers/montecarloClient';
 import { getAvailablePullsFromTracker } from '@/features/calculator/selectors/availablePulls';
+import { scenarioRepo } from '../repo/scenarioRepo';
 
 interface Target {
   id: string;
@@ -21,6 +24,28 @@ interface Target {
   radiantStreak: number;
   fatePoints: number; // For weapon banner
   useInheritedPity: boolean; // If true, inherit pity from previous target's simulation result
+}
+
+// Convert internal Target to CalculatorScenarioTarget (without id)
+function targetToScenarioTarget(target: Target): CalculatorScenarioTarget {
+  return {
+    characterName: target.characterName,
+    bannerType: target.bannerType,
+    constellation: target.constellation,
+    pity: target.pity,
+    guaranteed: target.guaranteed,
+    radiantStreak: target.radiantStreak,
+    fatePoints: target.fatePoints,
+    useInheritedPity: target.useInheritedPity,
+  };
+}
+
+// Convert CalculatorScenarioTarget to internal Target (add id)
+function scenarioTargetToTarget(target: CalculatorScenarioTarget): Target {
+  return {
+    ...target,
+    id: crypto.randomUUID(),
+  };
 }
 
 const STORAGE_KEY = 'multi-target-calculator-state';
@@ -72,6 +97,17 @@ export function MultiTargetCalculator() {
   const [results, setResults] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const workerRef = useRef<MonteCarloWorkerHandle | null>(null);
+
+  // Scenario management state
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [scenarioName, setScenarioName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [compareScenarios, setCompareScenarios] = useState<CalculatorScenario[]>([]);
+
+  // Load saved scenarios from database
+  const savedScenarios = useLiveQuery(() => scenarioRepo.getAll(), []);
 
   // Lazy worker initialization - only create once
   const getWorker = useCallback(() => {
@@ -283,20 +319,101 @@ export function MultiTargetCalculator() {
 
   const canCalculate = targets.length > 0 && !isCalculating;
 
+  // Scenario management handlers
+  const handleSaveScenario = async () => {
+    if (!scenarioName.trim() || targets.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      await scenarioRepo.saveScenario(
+        scenarioName.trim(),
+        targets.map(targetToScenarioTarget),
+        availablePulls,
+        iterations,
+        results?.allMustHavesProbability
+      );
+      setShowSaveModal(false);
+      setScenarioName('');
+    } catch (error) {
+      console.error('Failed to save scenario:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLoadScenario = (scenario: CalculatorScenario) => {
+    setTargets(scenario.targets.map(scenarioTargetToTarget));
+    setAvailablePulls(scenario.availablePulls);
+    setIterations(scenario.iterations);
+    setResults(null);
+    setShowLoadModal(false);
+  };
+
+  const handleDeleteScenario = async (id: string) => {
+    try {
+      await scenarioRepo.delete(id);
+      setCompareScenarios((prev) => prev.filter((s) => s.id !== id));
+    } catch (error) {
+      console.error('Failed to delete scenario:', error);
+    }
+  };
+
+  const toggleCompareScenario = (scenario: CalculatorScenario) => {
+    setCompareScenarios((prev) => {
+      const exists = prev.find((s) => s.id === scenario.id);
+      if (exists) {
+        return prev.filter((s) => s.id !== scenario.id);
+      }
+      return [...prev, scenario];
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Multi-Target Planner</h2>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleReset}
-          disabled={targets.length === 0 && availablePulls === 0}
-          title="Reset all settings"
-        >
-          <RotateCcw className="w-4 h-4 mr-1" />
-          Reset
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setShowLoadModal(true)}
+            disabled={!savedScenarios || savedScenarios.length === 0}
+            title="Load scenario"
+          >
+            <FolderOpen className="w-4 h-4 mr-1" />
+            Load
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setShowSaveModal(true)}
+            disabled={targets.length === 0}
+            title="Save scenario"
+          >
+            <Save className="w-4 h-4 mr-1" />
+            Save
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setShowCompareModal(true)}
+            disabled={!savedScenarios || savedScenarios.length < 2}
+            title="Compare scenarios"
+          >
+            <BarChart3 className="w-4 h-4 mr-1" />
+            Compare
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleReset}
+            disabled={targets.length === 0 && availablePulls === 0}
+            title="Reset all settings"
+          >
+            <RotateCcw className="w-4 h-4 mr-1" />
+            Reset
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -683,6 +800,156 @@ export function MultiTargetCalculator() {
           </CardContent>
         </Card>
       )}
+
+      {/* Save Scenario Modal */}
+      <Modal isOpen={showSaveModal} onClose={() => setShowSaveModal(false)} title="Save Scenario" size="sm">
+        <div className="space-y-4">
+          <Input
+            label="Scenario Name"
+            placeholder="e.g., Furina + Neuvillette plan"
+            value={scenarioName}
+            onChange={(e) => setScenarioName(e.target.value)}
+            autoFocus
+          />
+          <div className="text-sm text-slate-400">
+            <p>{targets.length} target(s), {availablePulls} pulls available</p>
+            {results && <p>Last result: {(results.allMustHavesProbability * 100).toFixed(1)}% success</p>}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowSaveModal(false)}>Cancel</Button>
+            <Button onClick={handleSaveScenario} loading={isSaving} disabled={!scenarioName.trim()}>
+              Save
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Load Scenario Modal */}
+      <Modal isOpen={showLoadModal} onClose={() => setShowLoadModal(false)} title="Load Scenario" size="md">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {savedScenarios?.length === 0 ? (
+            <p className="text-slate-400 text-center py-4">No saved scenarios yet.</p>
+          ) : (
+            savedScenarios?.map((scenario) => (
+              <div
+                key={scenario.id}
+                className="p-3 bg-slate-800 border border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-slate-100 truncate">{scenario.name}</h4>
+                    <div className="text-sm text-slate-400 mt-1">
+                      <span>{scenario.targets.length} target(s)</span>
+                      <span className="mx-2">•</span>
+                      <span>{scenario.availablePulls} pulls</span>
+                      {scenario.resultProbability !== undefined && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span className="text-primary-400">{(scenario.resultProbability * 100).toFixed(1)}%</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      {scenario.targets.map((t) => t.characterName || 'Unnamed').join(', ')}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="primary" onClick={() => handleLoadScenario(scenario)}>
+                      Load
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDeleteScenario(scenario.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Modal>
+
+      {/* Compare Scenarios Modal */}
+      <Modal isOpen={showCompareModal} onClose={() => { setShowCompareModal(false); setCompareScenarios([]); }} title="Compare Scenarios" size="lg">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-400">Select scenarios to compare side by side.</p>
+
+          {/* Scenario Selection */}
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {savedScenarios?.map((scenario) => {
+              const isSelected = compareScenarios.some((s) => s.id === scenario.id);
+              return (
+                <button
+                  key={scenario.id}
+                  onClick={() => toggleCompareScenario(scenario)}
+                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                    isSelected
+                      ? 'bg-primary-600/20 border-primary-500'
+                      : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium text-slate-100">{scenario.name}</span>
+                      <span className="ml-2 text-sm text-slate-400">
+                        ({scenario.targets.length} targets, {scenario.availablePulls} pulls)
+                      </span>
+                    </div>
+                    {scenario.resultProbability !== undefined && (
+                      <span className="text-primary-400 font-semibold">
+                        {(scenario.resultProbability * 100).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Comparison Table */}
+          {compareScenarios.length >= 2 && (
+            <div className="mt-4 border border-slate-700 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-800">
+                  <tr>
+                    <th className="p-2 text-left text-slate-300">Scenario</th>
+                    <th className="p-2 text-right text-slate-300">Pulls</th>
+                    <th className="p-2 text-right text-slate-300">Targets</th>
+                    <th className="p-2 text-right text-slate-300">Probability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {compareScenarios.map((scenario, idx) => (
+                    <tr key={scenario.id} className={idx % 2 === 0 ? 'bg-slate-900' : 'bg-slate-800/50'}>
+                      <td className="p-2 font-medium text-slate-100">{scenario.name}</td>
+                      <td className="p-2 text-right text-slate-300">{scenario.availablePulls}</td>
+                      <td className="p-2 text-right text-slate-300">{scenario.targets.length}</td>
+                      <td className="p-2 text-right">
+                        {scenario.resultProbability !== undefined ? (
+                          <span className={
+                            scenario.resultProbability >= 0.8 ? 'text-green-400' :
+                            scenario.resultProbability >= 0.5 ? 'text-yellow-400' :
+                            'text-red-400'
+                          }>
+                            {(scenario.resultProbability * 100).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {compareScenarios.length < 2 && (
+            <p className="text-sm text-slate-500 text-center py-2">
+              Select at least 2 scenarios to compare.
+            </p>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

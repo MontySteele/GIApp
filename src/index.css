@@ -8,8 +8,64 @@
     --foreground: 210 40% 98%;
   }
 
+  /* Dark mode (default) */
+  .dark body,
   body {
     @apply bg-slate-950 text-slate-50 antialiased;
+  }
+
+  /* Light mode */
+  .light body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  /* Light mode overrides for common components */
+  .light .bg-slate-900 {
+    @apply bg-white;
+  }
+
+  .light .bg-slate-800 {
+    @apply bg-slate-100;
+  }
+
+  .light .bg-slate-950 {
+    @apply bg-slate-50;
+  }
+
+  .light .border-slate-700 {
+    @apply border-slate-200;
+  }
+
+  .light .border-slate-800 {
+    @apply border-slate-300;
+  }
+
+  .light .text-slate-100 {
+    @apply text-slate-900;
+  }
+
+  .light .text-slate-200 {
+    @apply text-slate-800;
+  }
+
+  .light .text-slate-300 {
+    @apply text-slate-700;
+  }
+
+  .light .text-slate-400 {
+    @apply text-slate-600;
+  }
+
+  .light .hover\:bg-slate-700:hover {
+    @apply hover:bg-slate-200;
+  }
+
+  .light .hover\:bg-slate-800:hover {
+    @apply hover:bg-slate-100;
+  }
+
+  .light .hover\:bg-slate-800\/50:hover {
+    @apply hover:bg-slate-100/50;
   }
 }
 

@@ -83,7 +83,7 @@ The Primogem Tracker uses a **snapshot-based workflow**:
   - [x] Per-target pity state (inherit from previous or custom)
   - [x] Mixed character + weapon targeting
 - [x] Reverse calculator (required income for target confidence)
-- [ ] Scenario comparison (save & compare plans)
+- [x] Scenario comparison (save & compare plans)
 
 ### 5. Spiral Abyss Log
 - [ ] Abyss run entry (cycle, floor, chamber, stars, teams)
@@ -113,7 +113,7 @@ The Primogem Tracker uses a **snapshot-based workflow**:
 - [x] Offline caching for static assets
 - [x] Installability
 - [x] Display preferences (show/hide manual entry sections)
-- [ ] Theme (light/dark/system)
+- [x] Theme (light/dark/system)
 - [ ] Date format preferences
 - [ ] Default calculator settings
 - [x] Backup reminders
@@ -323,9 +323,11 @@ Mechanics (post-5.0 Capturing Radiance):
 
 ## Future Work
 
-### Sprint 4 - UX Polish (Next)
-1. Redesign goals as simple notepad/stickies
-2. Additional UI refinements
+### Sprint 4 - UX Polish & Features ✅ COMPLETED
+1. Redesigned Goals as simple sticky notes (colored, minimal UI)
+2. Added theme support (light/dark/system) with persistence
+3. Added scenario save/compare for multi-target calculator
+4. Removed debug console.log statements from PurchaseLedger and LedgerPage
 
 ### Sprint 5 - New Features
 1. Artifact optimizer for GOOD format
@@ -403,6 +405,13 @@ src/
 ---
 
 ## Recent Changes Log
+
+**2024-01 (Sprint 4 Completion):**
+- Redesigned Goals section as simple colored sticky notes
+- Added theme support (light/dark/system) with localStorage persistence
+- Added scenario save/compare feature for multi-target calculator
+- Removed debug console.log statements from PurchaseLedger and LedgerPage
+- Database schema updated to v2 with calculatorScenarios table
 
 **2024-01 (Sprint 3 Completion):**
 - Redesigned Primogem Tracker with unified snapshot-based workflow
