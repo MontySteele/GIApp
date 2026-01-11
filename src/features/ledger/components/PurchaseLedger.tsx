@@ -71,13 +71,17 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
   };
 
   const handleDelete = async (id: string, amount: number) => {
+    console.log('PurchaseLedger: handleDelete called with id:', id, 'amount:', amount);
     const confirmed = window.confirm(`Delete purchase of ${amount.toLocaleString()} primogems?`);
+    console.log('PurchaseLedger: confirm result:', confirmed);
     if (!confirmed) return;
 
     try {
+      console.log('PurchaseLedger: calling onDelete...');
       await onDelete(id);
+      console.log('PurchaseLedger: onDelete completed successfully');
     } catch (error) {
-      console.error('Failed to delete purchase:', error);
+      console.error('PurchaseLedger: Failed to delete purchase:', error);
       window.alert('Failed to delete purchase. Please try again.');
     }
   };
@@ -205,6 +209,7 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
 
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   onClick={() => startEditing(purchase)}
                   className="p-2 text-slate-400 hover:text-primary-400 hover:bg-slate-700 rounded"
                   title="Edit"
@@ -212,7 +217,12 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(purchase.id, purchase.amount)}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDelete(purchase.id, purchase.amount);
+                  }}
                   className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded"
                   title="Delete"
                 >

@@ -170,7 +170,14 @@ export default function LedgerPage() {
   };
 
   const handleDeletePurchase = async (id: string) => {
-    await primogemEntryRepo.delete(id);
+    console.log('LedgerPage: handleDeletePurchase called with id:', id);
+    try {
+      await primogemEntryRepo.delete(id);
+      console.log('LedgerPage: delete successful');
+    } catch (error) {
+      console.error('LedgerPage: delete failed:', error);
+      throw error;
+    }
   };
 
   return (
