@@ -1,50 +1,42 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Coins, Sparkles, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import Select from '@/components/ui/Select';
 import { primogemEntryRepo } from '../repo/primogemEntryRepo';
 import { fateEntryRepo } from '../repo/fateEntryRepo';
 import { resourceSnapshotRepo } from '../repo/resourceSnapshotRepo';
 import { wishRepo } from '@/features/wishes/repo/wishRepo';
-import IncomeTimeline from '../components/IncomeTimeline';
-import { ProjectionChart } from '../components/ProjectionChart';
+import { UnifiedChart } from '../components/UnifiedChart';
+import { TransactionLog } from '../components/TransactionLog';
+import { PurchaseLedger } from '../components/PurchaseLedger';
 import {
-  bucketPrimogemEntries,
   calculateAvailablePulls,
   calculateWishSpending,
-  splitPrimogemIncome,
-  type IncomeBucketFilters,
 } from '../domain/resourceCalculations';
-import type { FateType, PrimogemSource, FateSource } from '@/types';
-import { useUIStore } from '@/stores/uiStore';
+import type { FateType, PrimogemEntry } from '@/types';
 
 const FAR_FUTURE = '9999-12-31T23:59:59.999Z';
 
 export default function LedgerPage() {
-  const primogemEntries = useLiveQuery(() => primogemEntryRepo.getAll(), []);
+  // Data queries
+  const allPrimogemEntries = useLiveQuery(() => primogemEntryRepo.getAll(), []);
   const fateEntries = useLiveQuery(() => fateEntryRepo.getAll(), []);
-  const latestSnapshot = useLiveQuery(() => resourceSnapshotRepo.getLatest(), []);
+  const allSnapshots = useLiveQuery(() => resourceSnapshotRepo.getAll(), []);
+  const latestSnapshot = allSnapshots?.[0]; // Already sorted desc by timestamp
   const snapshotTimestamp = latestSnapshot?.timestamp;
+
   const postSnapshotPrimogemEntries = useLiveQuery(
-    () => (snapshotTimestamp ? primogemEntryRepo.getByDateRange(snapshotTimestamp, FAR_FUTURE) : primogemEntryRepo.getAll()),
+    () => (snapshotTimestamp ? primogemEntryRepo.getByDateRange(snapshotTimestamp, FAR_FUTURE) : []),
     [snapshotTimestamp]
   );
   const postSnapshotFateEntries = useLiveQuery(
-    () => (snapshotTimestamp ? fateEntryRepo.getByDateRange(snapshotTimestamp, FAR_FUTURE) : fateEntryRepo.getAll()),
+    () => (snapshotTimestamp ? fateEntryRepo.getByDateRange(snapshotTimestamp, FAR_FUTURE) : []),
     [snapshotTimestamp]
   );
   const wishRecords = useLiveQuery(() => wishRepo.getAll(), []);
 
-  const [primogemAmount, setPrimogemAmount] = useState<number>(0);
-  const [primogemSource, setPrimogemSource] = useState<PrimogemSource>('daily_commission');
-  const [primogemNotes, setPrimogemNotes] = useState('');
-
-  const [fateAmount, setFateAmount] = useState<number>(1);
-  const [fateType, setFateType] = useState<FateType>('intertwined');
-  const [fateSource, setFateSource] = useState<FateSource>('event');
-
+  // Snapshot form state
   const [snapshotValues, setSnapshotValues] = useState({
     primogems: latestSnapshot?.primogems ?? 0,
     genesisCrystals: latestSnapshot?.genesisCrystals ?? 0,
@@ -53,25 +45,16 @@ export default function LedgerPage() {
     starglitter: latestSnapshot?.starglitter ?? 0,
     stardust: latestSnapshot?.stardust ?? 0,
   });
-  const [includePurchases, setIncludePurchases] = useState(true);
-  const [timelineFilters, setTimelineFilters] = useState<IncomeBucketFilters>({
-    interval: 'week',
-    includePurchases: true,
-    source: 'all',
-  });
 
-  // Collapsible state for manual entry sections
-  const [primogemEntryExpanded, setPrimogemEntryExpanded] = useState(false);
-  const [fateEntryExpanded, setFateEntryExpanded] = useState(false);
+  // Collapsible states
+  const [snapshotExpanded, setSnapshotExpanded] = useState(true);
+  const [purchaseLedgerExpanded, setPurchaseLedgerExpanded] = useState(true);
+  const [transactionLogExpanded, setTransactionLogExpanded] = useState(false);
 
-  const { settings } = useUIStore();
+  // Editing purchase state (used for scrolling to purchase ledger when editing from transaction log)
+  const [, setEditingPurchase] = useState<PrimogemEntry | null>(null);
 
-  // Sync with settings when they change
-  useEffect(() => {
-    setPrimogemEntryExpanded(settings.showManualPrimogemEntry);
-    setFateEntryExpanded(settings.showManualPrimogemEntry);
-  }, [settings.showManualPrimogemEntry]);
-
+  // Sync snapshot values when latest snapshot changes
   useEffect(() => {
     if (!latestSnapshot) return;
     setSnapshotValues({
@@ -84,18 +67,27 @@ export default function LedgerPage() {
     });
   }, [latestSnapshot]);
 
-  useEffect(() => {
-    setTimelineFilters((prev) => ({ ...prev, includePurchases }));
-  }, [includePurchases]);
-
-  const primogemTotal = useMemo(
-    () => primogemEntries?.reduce((sum, entry) => sum + entry.amount, 0) ?? 0,
-    [primogemEntries]
+  // Calculate purchase entries (source === 'purchase')
+  const purchaseEntries = useMemo(
+    () => (allPrimogemEntries ?? []).filter((e) => e.source === 'purchase'),
+    [allPrimogemEntries]
   );
 
-  const primogemDelta = useMemo(
-    () => postSnapshotPrimogemEntries?.reduce((sum, entry) => sum + entry.amount, 0) ?? 0,
+  // Calculate post-snapshot purchases
+  const postSnapshotPurchases = useMemo(
+    () => (postSnapshotPrimogemEntries ?? []).filter((e) => e.source === 'purchase'),
     [postSnapshotPrimogemEntries]
+  );
+
+  // Calculate totals
+  const totalPurchased = useMemo(
+    () => purchaseEntries.reduce((sum, e) => sum + e.amount, 0),
+    [purchaseEntries]
+  );
+
+  const postSnapshotPurchasedTotal = useMemo(
+    () => postSnapshotPurchases.reduce((sum, e) => sum + e.amount, 0),
+    [postSnapshotPurchases]
   );
 
   const fateTotals = useMemo(() => {
@@ -119,13 +111,9 @@ export default function LedgerPage() {
     [snapshotTimestamp, wishRecords]
   );
 
-  const primogemIncomeSplit = useMemo(
-    () => splitPrimogemIncome((snapshotTimestamp ? postSnapshotPrimogemEntries : primogemEntries) ?? []),
-    [postSnapshotPrimogemEntries, primogemEntries, snapshotTimestamp]
-  );
-
-  const basePrimogems = latestSnapshot?.primogems ?? primogemTotal;
-  const primogemGross = latestSnapshot ? basePrimogems + primogemDelta : primogemTotal;
+  // Calculate effective current values
+  const basePrimogems = latestSnapshot?.primogems ?? 0;
+  const primogemGross = basePrimogems + postSnapshotPurchasedTotal;
   const primogemAfterSpending = primogemGross - (wishSpending?.primogemEquivalent ?? 0);
   const effectivePrimogems = Math.max(0, primogemAfterSpending);
 
@@ -154,429 +142,223 @@ export default function LedgerPage() {
     [effectiveAcquaint, effectiveGenesis, effectiveIntertwined, effectivePrimogems, effectiveStarglitter]
   );
 
-  const netChangePrimogems = latestSnapshot ? primogemDelta - (wishSpending?.primogemEquivalent ?? 0) : primogemTotal;
-  const netChangeIntertwined = latestSnapshot
-    ? fateDeltas.intertwined - (wishSpending?.pullsByFate.intertwined ?? 0)
-    : fateTotals.intertwined;
-  const netChangeAcquaint = latestSnapshot
-    ? fateDeltas.acquaint - (wishSpending?.pullsByFate.acquaint ?? 0)
-    : fateTotals.acquaint;
-
-  const filteredNetChangePrimogems = includePurchases
-    ? netChangePrimogems
-    : netChangePrimogems - primogemIncomeSplit.purchased;
-
-  const incomeBuckets = useMemo(
-    () => bucketPrimogemEntries(primogemEntries ?? [], timelineFilters),
-    [primogemEntries, timelineFilters]
-  );
-
   const wishSpendingTotals =
     wishSpending ?? { totalPulls: 0, primogemEquivalent: 0, pullsByFate: { intertwined: 0, acquaint: 0 } };
 
-  const handleAddPrimogems = async (amount: number, source: PrimogemSource, notes = '') => {
-    await primogemEntryRepo.create({ amount, source, notes });
-    setPrimogemAmount(0);
-    setPrimogemNotes('');
-  };
-
+  // Handlers
   const handleSnapshotSave = async () => {
     await resourceSnapshotRepo.create({
       ...snapshotValues,
     });
   };
 
-  const handleTimelineFiltersChange = (next: IncomeBucketFilters) => {
-    setTimelineFilters(next);
-    if (next.includePurchases !== includePurchases) {
-      setIncludePurchases(next.includePurchases);
-    }
+  const handleAddPurchase = async (amount: number, timestamp: string, notes: string) => {
+    await primogemEntryRepo.create({
+      amount,
+      source: 'purchase',
+      notes,
+      timestamp,
+    });
+  };
+
+  const handleUpdatePurchase = async (id: string, amount: number, timestamp: string, notes: string) => {
+    await primogemEntryRepo.update(id, {
+      amount,
+      timestamp,
+      notes,
+    });
+  };
+
+  const handleDeletePurchase = async (id: string) => {
+    await primogemEntryRepo.delete(id);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Primogem Tracker</h1>
-          <p className="text-slate-400">Track your currency gains, spending, and current stash.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={() => handleAddPrimogems(60, 'daily_commission', 'Daily commissions')}>
-            <Sparkles className="w-4 h-4" />
-            Commission +60
-          </Button>
-          <Button variant="secondary" onClick={() => handleAddPrimogems(90, 'welkin', 'Blessing of the Welkin Moon')}>
-            <Coins className="w-4 h-4" />
-            Welkin +90
-          </Button>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Primogem Tracker</h1>
+        <p className="text-slate-400">
+          Track your primogem stash with snapshots and see historical + projected values.
+        </p>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <label className="flex items-center gap-2 text-sm text-slate-200">
-          <input
-            type="checkbox"
-            checked={includePurchases}
-            onChange={(e) => setIncludePurchases(e.target.checked)}
-            className="rounded border-slate-600 bg-slate-800"
-          />
-          Include purchased primogems in summaries
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Current primogem stash</p>
-          <p className="text-3xl font-bold text-primary-400">{effectivePrimogems.toLocaleString()} Primogems</p>
-          <p className="text-sm text-slate-500">
-            {latestSnapshot
-              ? 'Snapshot + ledger deltas - wish spending'
-              : 'Based on your logged entries'}
+          <p className="text-sm text-slate-400">Current Primogems</p>
+          <p className="text-3xl font-bold text-primary-400">{effectivePrimogems.toLocaleString()}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            {latestSnapshot ? 'Snapshot + purchases - wish spending' : 'Add a snapshot to track'}
           </p>
-          {latestSnapshot && (
-            <p className="text-xs text-slate-400 mt-1">
-              Net Δ since snapshot: {filteredNetChangePrimogems >= 0 ? '+' : ''}
-              {filteredNetChangePrimogems.toLocaleString()}
-            </p>
-          )}
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Earned primogems</p>
-          <p className="text-3xl font-bold text-green-300">{primogemIncomeSplit.earned.toLocaleString()}</p>
-          <p className="text-sm text-slate-500">Ledger deltas (excludes purchases)</p>
-        </div>
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Purchased primogems</p>
-          <p className="text-3xl font-bold text-indigo-300">{primogemIncomeSplit.purchased.toLocaleString()}</p>
-          <p className="text-sm text-slate-500">Tracked separately from earned income</p>
-        </div>
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Fates (Intertwined)</p>
-          <p className="text-3xl font-bold text-indigo-300">{effectiveIntertwined}</p>
-          <p className="text-sm text-slate-500">
-            {latestSnapshot ? 'Snapshot + ledger deltas - pulls' : 'Logged across all sources'}
+          <p className="text-sm text-slate-400">Purchased Primogems</p>
+          <p className="text-3xl font-bold text-indigo-400">{totalPurchased.toLocaleString()}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            {postSnapshotPurchasedTotal > 0 && latestSnapshot
+              ? `+${postSnapshotPurchasedTotal.toLocaleString()} since snapshot`
+              : 'Track separately from earned'}
           </p>
-          {latestSnapshot && (
-            <p className="text-xs text-slate-400 mt-1">
-              Net Δ: {netChangeIntertwined >= 0 ? '+' : ''}
-              {netChangeIntertwined}
-            </p>
-          )}
         </div>
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Fates (Acquaint)</p>
-          <p className="text-3xl font-bold text-cyan-300">{effectiveAcquaint}</p>
-          <p className="text-sm text-slate-500">
-            {latestSnapshot ? 'Snapshot + ledger deltas - pulls' : 'Logged across all sources'}
-          </p>
-          {latestSnapshot && (
-            <p className="text-xs text-slate-400 mt-1">
-              Net Δ: {netChangeAcquaint >= 0 ? '+' : ''}
-              {netChangeAcquaint}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Wishes Available</p>
-          <p className="text-3xl font-bold text-amber-300">{Math.floor(wishesAvailable)}</p>
-          <p className="text-sm text-slate-500">
-            Snapshot + ledger deltas + starglitter (5 per wish)
+          <p className="text-3xl font-bold text-amber-400">{Math.floor(wishesAvailable)}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Including fates ({effectiveIntertwined} intertwined, {effectiveAcquaint} acquaint)
           </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Total pulls spent since snapshot</p>
+          <p className="text-sm text-slate-400">Pulls Since Snapshot</p>
           <p className="text-3xl font-bold text-slate-100">{wishSpendingTotals.totalPulls}</p>
-          <p className="text-sm text-slate-500">
-            {latestSnapshot ? 'Counted from wish history after your snapshot' : 'Add a snapshot to reconcile pulls'}
-          </p>
-        </div>
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Primogem-equivalent spent</p>
-          <p className="text-3xl font-bold text-slate-100">{wishSpendingTotals.primogemEquivalent.toLocaleString()}</p>
-          <p className="text-sm text-slate-500">
-            Deducted so snapshots + pulls don't double count
+          <p className="text-xs text-slate-500 mt-1">
+            {wishSpendingTotals.primogemEquivalent.toLocaleString()} primos equivalent
           </p>
         </div>
       </div>
 
-      {/* Primogem Projection Chart */}
+      {/* Snapshot Logger (moved higher) */}
+      <section className="bg-slate-900 border border-slate-800 rounded-xl">
+        <button
+          className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
+          onClick={() => setSnapshotExpanded(!snapshotExpanded)}
+        >
+          <div className="flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 text-green-400" />
+            <div>
+              <h2 className="text-xl font-semibold">Resource Snapshot</h2>
+              <p className="text-sm text-slate-400">
+                {latestSnapshot
+                  ? `Last: ${new Date(latestSnapshot.timestamp).toLocaleString()}`
+                  : 'No snapshots yet - add one to start tracking'}
+              </p>
+            </div>
+          </div>
+          {snapshotExpanded ? (
+            <ChevronUp className="w-5 h-5 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-slate-400" />
+          )}
+        </button>
+
+        {snapshotExpanded && (
+          <div className="px-4 pb-4 space-y-4 border-t border-slate-800">
+            <p className="text-sm text-slate-400 pt-4">
+              Enter your current in-game values. This becomes the ground truth for calculations.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { key: 'primogems', label: 'Primogems' },
+                { key: 'genesisCrystals', label: 'Genesis Crystals' },
+                { key: 'intertwined', label: 'Intertwined Fates' },
+                { key: 'acquaint', label: 'Acquaint Fates' },
+                { key: 'starglitter', label: 'Starglitter' },
+                { key: 'stardust', label: 'Stardust' },
+              ].map((field) => (
+                <Input
+                  key={field.key}
+                  label={field.label}
+                  type="number"
+                  value={snapshotValues[field.key as keyof typeof snapshotValues]}
+                  onChange={(e) =>
+                    setSnapshotValues((prev) => ({
+                      ...prev,
+                      [field.key]: Number(e.target.value),
+                    }))
+                  }
+                />
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleSnapshotSave}>
+                <Plus className="w-4 h-4" />
+                Save Snapshot
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Unified Chart */}
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
         <div>
-          <h2 className="text-xl font-semibold">Primogem Projection</h2>
+          <h2 className="text-xl font-semibold">Primogem History & Projection</h2>
           <p className="text-slate-400 text-sm">
-            Project future primogem income based on your tracked patterns.
+            Historical values reconstructed from snapshots + wish spending. Future projection based on pull frequency.
           </p>
         </div>
-        <ProjectionChart entries={primogemEntries ?? []} currentPrimogems={effectivePrimogems} />
+        <UnifiedChart
+          snapshots={allSnapshots ?? []}
+          wishes={wishRecords ?? []}
+          purchases={purchaseEntries}
+          currentPrimogems={effectivePrimogems}
+        />
       </section>
 
-      {/* Collapsible Manual Entry Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Primogem Entry Section */}
-        <section className="bg-slate-900 border border-slate-800 rounded-xl">
-          <button
-            className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
-            onClick={() => setPrimogemEntryExpanded(!primogemEntryExpanded)}
-          >
-            <h2 className="text-xl font-semibold">Add Primogem Entry</h2>
-            {primogemEntryExpanded ? (
-              <ChevronUp className="w-5 h-5 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-slate-400" />
-            )}
-          </button>
-          {primogemEntryExpanded && (
-            <div className="px-4 pb-4 space-y-4 border-t border-slate-800">
-              <div className="flex items-center gap-2 pt-4">
-                <Button size="sm" variant="secondary" onClick={() => setPrimogemAmount(60)}>
-                  Commission
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setPrimogemAmount(90)}>
-                  Welkin
-                </Button>
-              </div>
-              <form
-                className="space-y-3"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  await primogemEntryRepo.create({
-                    amount: primogemAmount,
-                    source: primogemSource,
-                    notes: primogemNotes,
-                  });
-                  setPrimogemAmount(0);
-                  setPrimogemNotes('');
-                }}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Input
-                    label="Amount"
-                    type="number"
-                    value={primogemAmount}
-                    onChange={(e) => setPrimogemAmount(Number(e.target.value))}
-                    required
-                  />
-                  <Select
-                    label="Source"
-                    value={primogemSource}
-                    onChange={(e) => setPrimogemSource(e.target.value as PrimogemSource)}
-                    options={[
-                      { value: 'daily_commission', label: 'Daily Commission' },
-                      { value: 'welkin', label: 'Welkin' },
-                      { value: 'event', label: 'Event' },
-                      { value: 'exploration', label: 'Exploration' },
-                      { value: 'abyss', label: 'Abyss' },
-                      { value: 'quest', label: 'Quest' },
-                      { value: 'achievement', label: 'Achievement' },
-                      { value: 'codes', label: 'Codes' },
-                      { value: 'battle_pass', label: 'Battle Pass' },
-                      { value: 'purchase', label: 'Purchase' },
-                      { value: 'wish_conversion', label: 'Wish Conversion' },
-                      { value: 'other', label: 'Other' },
-                    ]}
-                  />
-                  <Input
-                    label="Notes"
-                    placeholder="Optional"
-                    value={primogemNotes}
-                    onChange={(e) => setPrimogemNotes(e.target.value)}
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button type="submit">
-                    <Plus className="w-4 h-4" />
-                    Add Entry
-                  </Button>
-                </div>
-              </form>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Recent Entries</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {(primogemEntries ?? []).slice(0, 10).map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-3"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {entry.amount > 0 ? '+' : ''}
-                          {entry.amount} primogems
-                        </p>
-                        <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
-                      </div>
-                      <div className="text-sm text-slate-500 text-right">
-                        <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
-                        {entry.notes && <p className="text-slate-400">{entry.notes}</p>}
-                      </div>
-                    </div>
-                  ))}
-                  {(primogemEntries?.length ?? 0) === 0 && (
-                    <p className="text-sm text-slate-500">No primogem entries yet.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Fate Entry Section */}
-        <section className="bg-slate-900 border border-slate-800 rounded-xl">
-          <button
-            className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
-            onClick={() => setFateEntryExpanded(!fateEntryExpanded)}
-          >
-            <h2 className="text-xl font-semibold">Add Fate Entry</h2>
-            {fateEntryExpanded ? (
-              <ChevronUp className="w-5 h-5 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-slate-400" />
-            )}
-          </button>
-          {fateEntryExpanded && (
-            <div className="px-4 pb-4 space-y-4 border-t border-slate-800">
-              <form
-                className="space-y-3 pt-4"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  await fateEntryRepo.create({
-                    amount: fateAmount,
-                    fateType,
-                    source: fateSource,
-                  });
-                  setFateAmount(1);
-                }}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Input
-                    label="Amount"
-                    type="number"
-                    value={fateAmount}
-                    onChange={(e) => setFateAmount(Number(e.target.value))}
-                    required
-                  />
-                  <Select
-                    label="Type"
-                    value={fateType}
-                    onChange={(e) => setFateType(e.target.value as FateType)}
-                    options={[
-                      { value: 'intertwined', label: 'Intertwined Fate' },
-                      { value: 'acquaint', label: 'Acquaint Fate' },
-                    ]}
-                  />
-                  <Select
-                    label="Source"
-                    value={fateSource}
-                    onChange={(e) => setFateSource(e.target.value as FateSource)}
-                    options={[
-                      { value: 'primogem_conversion', label: 'Primogem Conversion' },
-                      { value: 'battle_pass', label: 'Battle Pass' },
-                      { value: 'paimon_shop', label: "Paimon's Bargains" },
-                      { value: 'event', label: 'Event' },
-                      { value: 'ascension', label: 'Ascension' },
-                      { value: 'other', label: 'Other' },
-                    ]}
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button type="submit">
-                    <Plus className="w-4 h-4" />
-                    Add Entry
-                  </Button>
-                </div>
-              </form>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Recent Entries</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {(fateEntries ?? []).slice(0, 10).map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-3"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {entry.amount > 0 ? '+' : ''}
-                          {entry.amount} {entry.fateType === 'intertwined' ? 'Intertwined' : 'Acquaint'} Fate
-                        </p>
-                        <p className="text-sm text-slate-400 capitalize">{entry.source.replace(/_/g, ' ')}</p>
-                      </div>
-                      <div className="text-sm text-slate-500 text-right">
-                        <p>{new Date(entry.timestamp).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {(fateEntries?.length ?? 0) === 0 && (
-                    <p className="text-sm text-slate-500">No fate entries yet.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+      {/* Purchase Ledger */}
+      <section className="bg-slate-900 border border-slate-800 rounded-xl">
+        <button
+          className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
+          onClick={() => setPurchaseLedgerExpanded(!purchaseLedgerExpanded)}
+        >
           <div>
-            <h2 className="text-xl font-semibold">Income Timeline</h2>
-            <p className="text-slate-400 text-sm">
-              Bucket primogem income by week/month with earned vs purchased breakdowns.
+            <h2 className="text-xl font-semibold">Purchase Ledger</h2>
+            <p className="text-sm text-slate-400">
+              Track primogem purchases separately from earned income
             </p>
           </div>
-          <p className="text-xs text-slate-500">
-            Toggle purchases to include/exclude paid primogems from analytics.
-          </p>
-        </div>
-        <IncomeTimeline buckets={incomeBuckets} filters={timelineFilters} onFiltersChange={handleTimelineFiltersChange} />
-      </section>
+          {purchaseLedgerExpanded ? (
+            <ChevronUp className="w-5 h-5 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-slate-400" />
+          )}
+        </button>
 
-      <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">Current Stash</h2>
-            <p className="text-slate-400 text-sm">
-              Snapshot baseline (ledger deltas and wish spending are applied on top automatically)
-            </p>
-          </div>
-          <div className="text-sm text-slate-500 flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" />
-            {latestSnapshot ? new Date(latestSnapshot.timestamp).toLocaleString() : 'No snapshot yet'}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          {[
-            { key: 'primogems', label: 'Primogems' },
-            { key: 'genesisCrystals', label: 'Genesis Crystals' },
-            { key: 'intertwined', label: 'Intertwined' },
-            { key: 'acquaint', label: 'Acquaint' },
-            { key: 'starglitter', label: 'Starglitter' },
-            { key: 'stardust', label: 'Stardust' },
-          ].map((field) => (
-            <Input
-              key={field.key}
-              label={field.label}
-              type="number"
-              value={snapshotValues[field.key as keyof typeof snapshotValues]}
-              onChange={(e) =>
-                setSnapshotValues((prev) => ({
-                  ...prev,
-                  [field.key]: Number(e.target.value),
-                }))
-              }
+        {purchaseLedgerExpanded && (
+          <div className="px-4 pb-4 border-t border-slate-800 pt-4">
+            <PurchaseLedger
+              purchases={purchaseEntries}
+              onAdd={handleAddPurchase}
+              onUpdate={handleUpdatePurchase}
+              onDelete={handleDeletePurchase}
             />
-          ))}
-        </div>
-        <div className="flex justify-end">
-          <Button onClick={handleSnapshotSave}>
-            <Plus className="w-4 h-4" />
-            Save Snapshot
-          </Button>
-        </div>
+          </div>
+        )}
+      </section>
+
+      {/* Transaction Log */}
+      <section className="bg-slate-900 border border-slate-800 rounded-xl">
+        <button
+          className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
+          onClick={() => setTransactionLogExpanded(!transactionLogExpanded)}
+        >
+          <div>
+            <h2 className="text-xl font-semibold">Transaction Log</h2>
+            <p className="text-sm text-slate-400">
+              Unified view of snapshots, purchases, and wish spending
+            </p>
+          </div>
+          {transactionLogExpanded ? (
+            <ChevronUp className="w-5 h-5 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-slate-400" />
+          )}
+        </button>
+
+        {transactionLogExpanded && (
+          <div className="px-4 pb-4 border-t border-slate-800 pt-4">
+            <TransactionLog
+              snapshots={allSnapshots ?? []}
+              wishes={wishRecords ?? []}
+              purchases={purchaseEntries}
+              onEditPurchase={(entry) => {
+                setPurchaseLedgerExpanded(true);
+                setEditingPurchase(entry);
+              }}
+              onDeletePurchase={handleDeletePurchase}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

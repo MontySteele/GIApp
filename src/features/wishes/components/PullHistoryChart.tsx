@@ -84,8 +84,12 @@ export function PullHistoryChart({ history, bannerType = 'all' }: PullHistoryCha
     );
 
     // Find date range
-    const firstDate = getIntervalStart(parseISO(sorted[0].time), interval);
-    const lastDate = getIntervalStart(parseISO(sorted[sorted.length - 1].time), interval);
+    const firstItem = sorted[0];
+    const lastItem = sorted[sorted.length - 1];
+    if (!firstItem || !lastItem) return [];
+
+    const firstDate = getIntervalStart(parseISO(firstItem.time), interval);
+    const lastDate = getIntervalStart(parseISO(lastItem.time), interval);
 
     // Group wishes by interval
     const wishBuckets = new Map<string, { fiveStars: number; fourStars: number; threeStars: number }>();
@@ -134,7 +138,8 @@ export function PullHistoryChart({ history, bannerType = 'all' }: PullHistoryCha
     return result;
   }, [history, bannerType, interval]);
 
-  const totalPulls = chartData.length > 0 ? chartData[chartData.length - 1].cumulativePulls : 0;
+  const lastDataPoint = chartData[chartData.length - 1];
+  const totalPulls = lastDataPoint?.cumulativePulls ?? 0;
   const totalFiveStars = chartData.reduce((sum, p) => sum + p.fiveStars, 0);
   const totalFourStars = chartData.reduce((sum, p) => sum + p.fourStars, 0);
 
