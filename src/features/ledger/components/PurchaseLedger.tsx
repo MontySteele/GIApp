@@ -71,8 +71,15 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
   };
 
   const handleDelete = async (id: string, amount: number) => {
-    if (!confirm(`Delete purchase of ${amount.toLocaleString()} primogems?`)) return;
-    await onDelete(id);
+    const confirmed = window.confirm(`Delete purchase of ${amount.toLocaleString()} primogems?`);
+    if (!confirmed) return;
+
+    try {
+      await onDelete(id);
+    } catch (error) {
+      console.error('Failed to delete purchase:', error);
+      window.alert('Failed to delete purchase. Please try again.');
+    }
   };
 
   // Sort purchases by date descending

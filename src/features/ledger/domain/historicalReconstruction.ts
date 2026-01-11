@@ -1,7 +1,20 @@
 import { parseISO, format, addDays, isBefore, isAfter, startOfDay, differenceInDays } from 'date-fns';
-import type { ResourceSnapshot, WishRecord, PrimogemEntry } from '@/types';
+import type { ResourceSnapshot, WishRecord, PrimogemEntry, BannerType } from '@/types';
 
 const PRIMOGEMS_PER_PULL = 160;
+
+/**
+ * Banner types that use intertwined fates (cost primogems)
+ * Standard banner uses acquaint fates which are obtained separately
+ */
+const INTERTWINED_FATE_BANNERS: BannerType[] = ['character', 'weapon', 'chronicled'];
+
+/**
+ * Filter wishes to only include those that cost primogems (intertwined fates)
+ */
+export function filterToIntertwinedWishes(wishes: WishRecord[]): WishRecord[] {
+  return wishes.filter(w => INTERTWINED_FATE_BANNERS.includes(w.bannerType));
+}
 
 export interface HistoricalDataPoint {
   date: string;
@@ -73,8 +86,9 @@ export function buildHistoricalData(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
-  // Sort wishes by date ascending
-  const sortedWishes = [...wishes].sort(
+  // Sort wishes by date ascending - only include intertwined fate banners (cost primogems)
+  const intertwinedWishes = filterToIntertwinedWishes(wishes);
+  const sortedWishes = [...intertwinedWishes].sort(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
@@ -356,8 +370,10 @@ export function buildTransactionLog(
   }
 
   // Group wishes by day and add as spending events
+  // Only include intertwined fate banners (standard banner uses acquaint fates)
+  const intertwinedWishes = filterToIntertwinedWishes(wishes);
   const wishesByDay = new Map<string, WishRecord[]>();
-  for (const wish of wishes) {
+  for (const wish of intertwinedWishes) {
     const dateKey = format(parseISO(wish.timestamp), 'yyyy-MM-dd');
     const existing = wishesByDay.get(dateKey) ?? [];
     existing.push(wish);
@@ -397,28 +413,28 @@ export function buildTransactionLog(
 
 /**
  * Calculate daily income rate from wish history
+ * Only counts intertwined fate banners (character/weapon/chronicled) since standard uses acquaint fates
  * Assumes user maintains roughly constant primogem stash, so pulls ≈ income
  */
 export function calculateDailyRateFromWishes(
   wishes: WishRecord[],
   lookbackDays: number = 30
 ): number {
-  if (wishes.length === 0) return 0;
+  // Only count intertwined fate wishes (standard banner uses acquaint fates, not primogems)
+  const intertwinedWishes = filterToIntertwinedWishes(wishes);
+
+  if (intertwinedWishes.length === 0) return 0;
 
   const now = new Date();
   const cutoffDate = addDays(now, -lookbackDays);
 
-  const recentWishes = wishes.filter(w => isAfter(parseISO(w.timestamp), cutoffDate));
+  const recentWishes = intertwinedWishes.filter(w => isAfter(parseISO(w.timestamp), cutoffDate));
 
   if (recentWishes.length === 0) return 0;
 
-  // Find actual date range
-  const dates = recentWishes.map(w => parseISO(w.timestamp));
-  const minDate = dates.reduce((a, b) => (a < b ? a : b));
-  const maxDate = dates.reduce((a, b) => (a > b ? a : b));
-
-  const actualDays = Math.max(1, differenceInDays(maxDate, minDate) + 1);
+  // Use the full lookback period as denominator for consistent rate calculation
+  // This gives a more accurate daily average over the specified period
   const totalPrimogems = recentWishes.length * PRIMOGEMS_PER_PULL;
 
-  return totalPrimogems / actualDays;
+  return totalPrimogems / lookbackDays;
 }
