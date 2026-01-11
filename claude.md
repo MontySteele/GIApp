@@ -31,26 +31,43 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [x] GOOD format import/export
 - [x] Team snapshot export
 - [x] Manual character entry
+- [x] Character portraits from Enka CDN
 
 ### 2. Wish History & Pity Tracking
 - [x] Wish record storage (minimal raw data)
 - [x] Pity computation engine (replay-based, not stored per-record)
-- [x] Capturing Radiance support (post-5.0 mechanic)
+- [x] Capturing Radiance support (post-5.0 mechanic, 55% base rate, guarantee after 3 losses)
 - [x] Versioned gacha rules engine
 - [x] Pity dashboard (progress bars, guarantee status, radiant streak)
 - [x] Wish history table with computed pity display
 - [x] Wish URL import (with session-only authkey storage)
-- [x] Manual wish entry
+- [x] Manual wish entry (collapsible, hidden by default)
 - [x] Statistics (average pity, 50/50 win rate, total pulls)
+- [x] Pull history chart (time-series visualization by day/week/month)
 
 ### 3. Primogem & Resource Tracking
-- [x] Primogem ledger (gains/spending with categorized sources)
-- [x] Fate tracking (Intertwined/Acquaint)
-- [x] Resource snapshots (primos, fates, starglitter, stardust)
-- [x] Daily checklist (quick-log commissions, Welkin)
-- [x] Income analytics (daily/weekly/monthly averages, source breakdown)
-- [x] Pull accumulation rate & projections
-- [x] Transaction history with filters
+The Primogem Tracker uses a **snapshot-based workflow**:
+
+**Core Concept:**
+- Take periodic **resource snapshots** (ground truth from in-game values)
+- Track **purchases** separately with full CRUD operations
+- Historical values **reconstructed** from snapshots + wish spending (160 primos per pull)
+- Forward projection based on pull frequency (pulls ≈ income)
+
+**Features:**
+- [x] Resource snapshots (primogems, genesis crystals, fates, starglitter, stardust)
+- [x] Purchase ledger with add/edit/delete and historical date picker
+- [x] Unified transaction log (snapshots, purchases, wish spending)
+- [x] Historical + projection chart (reconstructs past, projects future)
+- [x] F2P view toggle (exclude purchases from chart)
+- [x] Daily income rate calculation from wish frequency
+- [x] Current stash summary (snapshot + purchases - wish spending)
+
+**Removed (simplified):**
+- ~~Manual primogem entry by source~~
+- ~~Commission/Welkin quick buttons~~
+- ~~Income Timeline component~~
+- ~~Separate earned vs purchased tracking~~
 
 ### 4. Pull Probability Calculator
 - [x] Web Worker setup for heavy computation
@@ -61,8 +78,10 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [x] Multi-target planner (Monte Carlo simulation)
   - [x] Multiple characters with banner dates
   - [x] Pull timeline visualization
-  - [x] Per-character probabilities
+  - [x] Per-character and per-constellation probabilities
   - [x] Configurable simulation count (5k/20k/100k)
+  - [x] Per-target pity state (inherit from previous or custom)
+  - [x] Mixed character + weapon targeting
 - [x] Reverse calculator (required income for target confidence)
 - [ ] Scenario comparison (save & compare plans)
 
@@ -93,6 +112,7 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [x] PWA manifest & service worker
 - [x] Offline caching for static assets
 - [x] Installability
+- [x] Display preferences (show/hide manual entry sections)
 - [ ] Theme (light/dark/system)
 - [ ] Date format preferences
 - [ ] Default calculator settings
@@ -106,9 +126,9 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - `characters` - Character roster with builds
 - `teams` - Team compositions with rotation notes
 - `wishRecords` - Raw wish data (pity computed at runtime)
-- `primogemEntries` - Income/spending ledger
+- `primogemEntries` - Purchase ledger (source='purchase' for purchases)
 - `fateEntries` - Fate acquisition tracking
-- `resourceSnapshots` - Point-in-time resource counts
+- `resourceSnapshots` - Point-in-time resource counts (ground truth)
 - `abyssRuns` - Spiral Abyss run logs
 - `goals` - User goals with checklists
 - `notes` - Markdown notes with tags
@@ -122,12 +142,37 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - Pity/guarantee computed by replaying pulls, not stored
 - Gacha rules versioned and configurable
 - Mappers for external formats (GOOD, Enka) - internal schema separate
+- Historical primogems reconstructed from snapshots + wish spending
+- Purchases tracked separately for F2P view toggle
+
+---
+
+## Key Domain Logic
+
+### Historical Primogem Reconstruction
+**File:** `src/features/ledger/domain/historicalReconstruction.ts`
+
+Algorithm:
+1. Start from latest snapshot (ground truth)
+2. For each day going backwards: add back wish spending (160 primos × pulls)
+3. For each day going forwards: subtract wish spending, add purchases
+4. Interpolate between multiple snapshots
+5. Forward projection uses daily rate calculated from pull frequency
+
+### Gacha Probability Engine
+**File:** `src/features/calculator/domain/pityEngine.ts`
+
+Mechanics (post-5.0 Capturing Radiance):
+- Base featured rate: 55% (not 50%)
+- Soft pity starts at pull 74 (0.6% → 6% incremental increase)
+- Hard pity at 90 (guaranteed 5★)
+- After 3 consecutive 50/50 losses, 4th is guaranteed featured
 
 ---
 
 ## Implementation Tasks
 
-### Phase 1: Foundation & Setup
+### Phase 1: Foundation & Setup ✅
 - [x] Initialize Vite + React + TypeScript project
 - [x] Configure Tailwind CSS
 - [x] Set up Dexie schema with version 1 stores
@@ -137,7 +182,7 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [x] Set up PWA manifest and Vite PWA plugin
 - [x] Initialize Zustand stores (UI state, calculator state)
 
-### Phase 2: Character Roster
+### Phase 2: Character Roster ✅
 - [x] Character data models & repository
 - [x] Character list page (grid/list view)
 - [x] Character filters & sorting
@@ -149,34 +194,37 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [x] Enka mapper & API integration
 - [x] Team snapshot export format
 - [x] Manual character entry form
+- [x] Character portraits from Enka CDN
 
-### Phase 3: Wish Tracking
+### Phase 3: Wish Tracking ✅
 - [x] Wish record models & repository
 - [x] Gacha rules configuration (all banner types)
 - [x] Pity computation engine
   - [x] Basic pity counting
   - [x] Guarantee tracking
-  - [x] Capturing Radiance (radiant streak)
+  - [x] Capturing Radiance (radiant streak, 55% base, guarantee after 3)
   - [x] Weapon fate points
 - [x] Unit tests for pity engine (edge cases)
 - [x] Pity dashboard UI
 - [x] Wish history table with computed columns
 - [x] Wish URL import flow
 - [x] Authkey session management
-- [x] Manual wish entry
+- [x] Manual wish entry (collapsible)
 - [x] Statistics dashboard
+- [x] Pull history chart (time-series by day/week/month)
 
-### Phase 4: Primogem Ledger
+### Phase 4: Primogem Ledger ✅
 - [x] Ledger models & repository
-- [x] Quick entry panel with presets
-- [x] Daily checklist component
-- [x] Transaction history table
-- [x] Income analytics calculations
-- [x] Charts (income by source, cumulative over time)
-- [x] Pull rate projections
-- [ ] Bulk import
+- [x] Resource snapshot system (ground truth)
+- [x] Purchase ledger with CRUD operations
+- [x] Historical date picker for purchases
+- [x] Transaction log (unified view)
+- [x] Historical reconstruction from snapshots + wishes
+- [x] Unified chart (historical + projection)
+- [x] F2P view toggle
+- [x] Daily rate calculation from wish frequency
 
-### Phase 5: Pull Calculator
+### Phase 5: Pull Calculator ✅
 - [x] Web Worker setup with Comlink
 - [x] Analytical calculator (single target)
   - [x] Probability model implementation
@@ -185,10 +233,12 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 - [x] Monte Carlo simulator
   - [x] Simulation engine with seeded RNG
   - [x] Multi-target timeline builder
+  - [x] Per-target pity states
   - [x] Progress reporting
 - [x] Calculator UI components
   - [x] Single target form & results
   - [x] Multi-target planner interface
+  - [x] Per-constellation breakdown
   - [x] Reverse calculator
   - [x] Probability charts (Recharts)
 - [ ] Scenario save/compare feature
@@ -237,239 +287,108 @@ React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedD
 
 ---
 
-## Bug Fixes & Enhancements Queue
+## Sprint History
 
-### Priority 1: Calculator Accuracy (Critical)
+### Sprint 1 - Calculator Fixes (Critical Path) ✅ COMPLETED
+1. Fixed Capturing Radiance mechanics (55% base rate, guarantee after 3 losses)
+2. Verified single-target calculator accuracy
+3. Fixed wish sum partial values (use Math.floor)
+4. Fixed Enka duplicate character imports (bulkUpsert)
 
-These bugs affect core probability calculations and mislead users.
+### Sprint 2 - Multi-Target & Reverse Calculator ✅ COMPLETED
+1. Fixed multi-target calculator (per-target pity states)
+2. Fixed reverse calculator (compound probability math)
+3. Added character portraits
+4. Added per-constellation breakdown
+5. Added "Nothing" probability display
+6. Fixed max level display offset
 
-#### 1.1 Fix Capturing Radiance Mechanics ✅ COMPLETED
-**Files:** `src/features/calculator/domain/pityEngine.ts`, `src/lib/constants.ts`
+### Sprint 3 - Charts & Visualization ✅ COMPLETED
+1. Historical pulls chart (PullHistoryChart.tsx)
+   - Time-series by day/week/month
+   - Cumulative and per-period modes
+   - Fixed empty week gaps
+2. Primogem projection chart
+   - Forward projection based on daily rate
+3. Hide manual entry sections (collapsible by default)
+4. **Major Primogem Tracker Redesign:**
+   - Unified workflow (snapshots + purchases + wish reconstruction)
+   - Purchase ledger with add/edit/delete
+   - Transaction log
+   - Historical + projection unified chart
+   - F2P view toggle
+   - Removed manual primogem entry, commission/welkin buttons, IncomeTimeline
 
-~~Current implementation is incorrect:~~
-- ~~❌ Uses 50% base win rate (should be **55%**)~~
-- ~~❌ Uses 75% after 2 losses (should be **100% guarantee after 3 losses**)~~
+---
 
-Correct mechanics (post-5.0):
-- Base win rate: 55% (10% "recovery" chance on loss)
-- After losing 3 consecutive 50/50s, the 4th 5-star is guaranteed (radiantStreak >= 3 → 100%)
+## Future Work
 
-Changes completed:
-- [x] Update `getFeaturedProbability()` to return 0.55 base rate
-- [x] Update `radianceThreshold` to 3 in GACHA_RULES
-- [x] Return 1.0 when radiantStreak >= 3 (guaranteed)
-- [x] Update tests for new probabilities (pityEngine, wishReplay, wishAnalyzer, pitySelectors)
-- [x] Verified 50% probability shows ~79 pulls (in soft pity range)
+### Sprint 4 - UX Polish (Next)
+1. Redesign goals as simple notepad/stickies
+2. Additional UI refinements
 
-#### 1.2 Fix Calculator Probability Display ✅ VERIFIED
-**Files:** `src/features/calculator/components/SingleTargetCalculator.tsx`
+### Sprint 5 - New Features
+1. Artifact optimizer for GOOD format
+2. Spiral Abyss log
+3. Sync features (compression, encryption, QR)
 
-~~User reports: "50% probability shows ~80 pity, should be ~75"~~
-- [x] Verified after Capturing Radiance fix: 50% probability shows ~79 pulls
-- [x] This is in the expected soft pity range (73-90) with 55% base rate
+---
 
-#### 1.3 Fix Multi-Target Calculator ✅ COMPLETED
-**Files:** `src/features/calculator/components/MultiTargetCalculator.tsx`, `src/workers/montecarlo.worker.ts`
+## File Structure
 
-~~Current issues:~~
-~~- Uses only first target's pity state for all simulations~~
-~~- UI allows per-target pity/guarantee but values are ignored~~
-~~- Pity carryover between targets not properly modeled~~
-
-Changes completed:
-- [x] Added `TargetPityState` interface and `perTargetStates` array to `SimulationInput`
-- [x] Updated worker to apply per-target pity states during simulation
-- [x] Added UI option to inherit pity from previous target or specify custom
-- [x] First target uses full pity inputs, subsequent targets can inherit or customize
-- [x] Pity carryover between sequential banners properly modeled
-
-**Additional Enhancements (Sprint 2.5):**
-- [x] Per-constellation breakdown (C0, C1, C2... for characters; R1, R2... for weapons)
-- [x] "Nothing" probability display (chance of getting 0 copies from all targets)
-- [x] Mixed character + weapon banner targeting in single simulation
-- [x] Separate pity tracking per banner type (character/weapon/standard)
-- [x] State persistence across tab navigation with localStorage
-- [x] Reset button to clear calculator state
-- [x] Import pulls from resource tracker button
-- [x] Fixed negative values bug (clamp budget to zero)
-- [x] Fixed cumulative pulls tracking at each constellation milestone
-
-#### 1.4 Fix Reverse Calculator ✅ COMPLETED
-**Files:** `src/features/calculator/domain/analyticalCalc.ts`, `src/features/calculator/components/ReverseCalculator.tsx`
-
-~~Current issue: Linear approximation (pulls × targets) is inaccurate~~
-~~- For 2 targets at 80%: shows ~160 pulls needed~~
-~~- Reality: 80% × 80% = 64% for both with that many pulls~~
-
-Changes completed:
-- [x] Implemented compound probability math: P(all) = P(each)^N → P(each) = P(all)^(1/N)
-- [x] Shows per-target probability required for multi-target calculations
-- [x] Added explanatory UI panel for multi-target calculations
-- [x] Note directing users to Monte Carlo for more accurate results
-
-### Priority 2: Display Bugs (High)
-
-#### 2.1 Fix Wish Sum Partial Values ✅ COMPLETED
-**Files:** `src/features/ledger/pages/LedgerPage.tsx`, `src/features/calculator/components/ReverseCalculator.tsx`
-
-~~Issue: Displaying fractional pulls like "12.35" instead of whole numbers~~
-
-~~Root cause: `primogems / 160` produces floats, then `.toFixed(2)` rounds~~
-- ~~Fates should be integers (you can't have 0.35 of a wish)~~
-
-Fixes completed:
-- [x] Use `Math.floor()` for available pulls in LedgerPage.tsx
-- [x] Use `Math.floor()` for synced pulls in ReverseCalculator.tsx
-- [x] Display as whole numbers in UI
-
-#### 2.2 Fix Enka Duplicate Character Imports ✅ COMPLETED
-**Files:** `src/features/roster/components/EnkaImport.tsx`, `src/features/roster/repo/characterRepo.ts`
-
-~~Issue: Importing same UID twice creates duplicate character entries~~
-
-~~Root cause:~~
-- ~~No deduplication check before `bulkCreate()`~~
-- ~~No unique constraint on character `key` in database~~
-
-Fixes completed:
-- [x] Added `bulkUpsert()` method to characterRepo that checks for existing characters by `key`
-- [x] Update existing characters instead of creating duplicates
-- [x] Preserve team associations when updating
-- [x] Show separate counts for created vs updated characters in UI
-
-### Priority 3: Feature Enhancements (Medium)
-
-#### 3.1 Add Character Portraits ✅ COMPLETED
-**Files:** `src/features/roster/components/CharacterCard.tsx`, `src/types/index.ts`, `src/lib/gameData.ts`, `src/mappers/enka.ts`
-
-~~Add character portrait images to roster display:~~
-- [x] Added `avatarId` field to Character type (optional, populated on Enka import)
-- [x] Created `CHARACTER_ICON_NAMES` mapping (avatarId → Enka icon name)
-- [x] Added `getCharacterPortraitUrl()` and `getCharacterGachaArtUrl()` utilities
-- [x] Updated CharacterCard to display portraits with fallback placeholder
-- [x] Using Enka's CDN: `https://enka.network/ui/UI_AvatarIcon_Side_{name}.png`
-- [x] Updated fromEnka mapper to include avatarId when importing characters
-
-#### 3.1b Fix Character Max Level Display ✅ COMPLETED
-**Files:** `src/lib/constants.ts`, `src/features/roster/components/CharacterCard.tsx`, `CharacterDetailPage.tsx`, `TeamCard.tsx`, `TeamForm.tsx`
-
-~~Issue: Max level was offset by 10 (showing 50 instead of 40 for ascension 1)~~
-- [x] Created `MAX_LEVEL_BY_ASCENSION = [20, 40, 50, 60, 70, 80, 90]` constant
-- [x] Replaced formula `ascension * 10 + 20` with lookup table
-- [x] Fixed in CharacterCard, CharacterDetailPage, TeamCard, TeamForm
-
-#### 3.2 Historical Pulls & Projection Charts ✅ COMPLETED
-**Files:** New: `src/features/wishes/components/PullHistoryChart.tsx`, `src/features/ledger/components/ProjectionChart.tsx`
-
-User wants:
-- Historical pull visualization over time (when did I pull, cumulative)
-- Primogem gain projection (based on tracked income patterns)
-
-Implementation:
-- [x] Add time-series chart for pull history (Recharts area chart)
-- [x] Group pulls by day/week/month
-- [x] Add projection chart showing expected future primogems
-- [x] Reconcile projected vs. actual (show divergence)
-
-#### 3.3 Hide Manual Entry Sections ✅ COMPLETED
-**Files:** `src/features/wishes/pages/WishesPage.tsx`, `src/features/ledger/pages/LedgerPage.tsx`
-
-User prefers automated import over manual entry:
-- [x] Make manual wish entry collapsible/hidden by default
-- [x] Make manual primogem entry collapsible/hidden by default
-- [x] Add settings toggle to show/hide manual sections
-
-#### 3.4 Add Real Money Purchase Ledger
-**Files:** New: `src/features/ledger/components/PurchaseLedger.tsx`, `src/db/schema.ts`
-
-Track real money spending (Welkin, BP, Genesis Crystals):
-- [ ] Add `purchases` table to schema
-- [ ] Fields: date, type (welkin/bp/crystals), amount (USD), notes
-- [ ] Add purchase entry form
-- [ ] Show total spending, spending by type
-- [ ] Optional: convert to pulls equivalent
-
-### Priority 4: UX Improvements (Medium)
-
-#### 4.1 Redesign Goals as Simple Notepad/Stickies
-**Files:** `src/features/notes/pages/NotesPage.tsx`, `src/features/notes/components/*`
-
-Current Goals section is over-engineered. User wants simple stickies:
-- [ ] Simplify to quick notes/stickies format
-- [ ] Remove complex goal tracking, checklists, category filtering
-- [ ] Add quick-add button for new note
-- [ ] Keep tags for basic organization
-- [ ] Consider sticky-note visual style
-
-### Priority 5: New Features (Lower)
-
-#### 5.1 Artifact Optimizer for GOOD Format
-**Files:** New: `src/features/artifacts/*`
-
-Evaluate artifacts from GOOD-format Irminsul dumps:
-- [ ] Import artifacts from GOOD JSON
-- [ ] Score artifacts based on substat rolls
-- [ ] Identify promising level-0 artifacts worth upgrading
-- [ ] Filter by set, slot, main stat
-- [ ] Show roll efficiency (actual rolls vs. max possible)
-
-#### 5.2 Spiral Abyss Log (from roadmap)
-Complete the Abyss tracking feature:
-- [ ] Abyss run entry (cycle, floor, chamber, stars, teams)
-- [ ] History view by cycle
-- [ ] Progress tracking over time
-- [ ] Team usage statistics
-
-#### 5.3 Sync Features (from roadmap)
-- [ ] Import with merge strategies
-- [ ] Compression (lz-string)
-- [ ] Encryption (AES-GCM)
-- [ ] QR code generation for small payloads
-
-### Implementation Order
-
-**Sprint 1 - Calculator Fixes (Critical Path)** ✅ COMPLETED
-1. ~~Fix Capturing Radiance (1.1) - blocks all other calculator fixes~~ ✅
-2. ~~Verify single-target calculator (1.2)~~ ✅
-3. ~~Fix wish sum partial values (2.1) - quick win~~ ✅
-4. ~~Fix Enka duplicates (2.2) - quick win~~ ✅
-
-**Sprint 2 - Multi-Target & Reverse Calculator** ✅ COMPLETED
-1. ~~Fix multi-target calculator (1.3)~~ ✅
-2. ~~Fix reverse calculator (1.4)~~ ✅
-3. ~~Add character portraits (3.1)~~ ✅
-
-**Sprint 3 - Charts & Visualization** ✅ COMPLETED
-1. ~~Historical pulls chart (3.2)~~ ✅
-2. ~~Primogem projection chart (3.2)~~ ✅
-3. ~~Hide manual entry sections (3.3)~~ ✅
-
-**Sprint 4 - UX Polish** ← CURRENT
-1. Redesign goals as stickies (4.1)
-2. Add purchase ledger (3.4)
-
-**Sprint 5 - New Features**
-1. Artifact optimizer (5.1)
-2. Spiral Abyss log (5.2)
-3. Sync features (5.3)
+```
+src/
+├── app/                    # App shell, routing, layout
+├── components/
+│   ├── common/            # Header, TabNav, etc.
+│   └── ui/                # Button, Input, Select, Modal, etc.
+├── db/
+│   └── schema.ts          # Dexie database schema
+├── features/
+│   ├── calculator/        # Pull probability calculators
+│   │   ├── components/    # SingleTarget, MultiTarget, Reverse calculators
+│   │   ├── domain/        # pityEngine, analyticalCalc
+│   │   └── store/         # calculatorStore (Zustand)
+│   ├── ledger/            # Primogem tracking
+│   │   ├── components/    # UnifiedChart, TransactionLog, PurchaseLedger
+│   │   ├── domain/        # resourceCalculations, historicalReconstruction
+│   │   ├── pages/         # LedgerPage
+│   │   └── repo/          # primogemEntryRepo, resourceSnapshotRepo, etc.
+│   ├── roster/            # Character management
+│   │   ├── components/    # CharacterCard, CharacterForm, EnkaImport, etc.
+│   │   ├── pages/         # CharacterListPage, CharacterDetailPage
+│   │   └── repo/          # characterRepo, teamRepo
+│   ├── wishes/            # Wish history
+│   │   ├── components/    # WishHistory, PityDashboard, PullHistoryChart
+│   │   ├── domain/        # wishReplay, wishAnalyzer, wishStatistics
+│   │   ├── pages/         # WishHistoryPage
+│   │   └── repo/          # wishRepo
+│   ├── notes/             # Goals & Notes
+│   └── sync/              # Settings & Sync
+├── lib/
+│   ├── constants.ts       # Game constants, gacha rules
+│   └── gameData.ts        # Character data, icon mappings
+├── mappers/               # External format mappers (GOOD, Enka)
+├── stores/                # Global Zustand stores
+├── types/                 # TypeScript types
+└── workers/               # Web Workers (Monte Carlo)
+```
 
 ---
 
 ## Open Questions / Ambiguities
 
-1. **UI Framework Details**: Should we use a component library (e.g., shadcn/ui, Radix) or build custom components with Tailwind?
+1. **UI Framework Details**: Currently using custom Tailwind components. Consider shadcn/ui for more polished components.
 
-2. **Markdown Editor**: Which library for markdown editing? (e.g., react-markdown + textarea, or full editor like TipTap?)
+2. **Markdown Editor**: Using basic textarea + react-markdown. Could upgrade to TipTap for richer editing.
 
-3. **Date Handling**: Confirm timezone handling - store all as UTC, display in user's local time?
+3. **Date Handling**: All dates stored as ISO 8601 UTC strings, displayed in user's local time.
 
-4. **Gacha Rules Updates**: How to handle rule updates when game mechanics change? Auto-migrate or require user confirmation?
+4. **Gacha Rules Updates**: Rules are versioned. Future game updates would require adding new version.
 
-5. **Mobile UX**: Any specific mobile-first considerations or gestures needed?
+5. **Mobile UX**: Responsive design implemented. Consider swipe gestures for tab navigation.
 
-6. **Error Handling**: Strategy for API failures (Enka down, wish URL expired)?
-
-7. **Character Data Source**: Do we need a static character database (names, elements, weapon types) or rely on imports?
+6. **Error Handling**: Basic error states for API failures. Could add retry logic and offline queue.
 
 ---
 
@@ -479,4 +398,17 @@ Complete the Abyss tracking feature:
 - **Offline First**: Full functionality without internet
 - **Performance**: Web Workers mandatory for simulations (don't block UI)
 - **Versioning**: Schema migrations via Dexie versions
-- **Security**: Authkeys session-only by default, encrypted if persisted
+- **Security**: Authkeys session-only by default
+
+---
+
+## Recent Changes Log
+
+**2024-01 (Sprint 3 Completion):**
+- Redesigned Primogem Tracker with unified snapshot-based workflow
+- Added historical reconstruction from wish spending
+- Added purchase ledger with CRUD
+- Added unified chart (historical + projection)
+- Removed manual primogem tracking complexity
+- Fixed pull history chart empty week gaps
+- Fixed purchased primogems display bug
