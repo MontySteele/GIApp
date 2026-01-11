@@ -3,10 +3,17 @@ import ResetTimers from '../components/ResetTimers';
 
 /**
  * Open external URL in browser
- * Uses window.open for better Electron compatibility
+ * Creates a temporary anchor and clicks it for better compatibility
+ * with various browser contexts (PWA, Electron, etc.)
  */
 function openExternal(url: string) {
-  window.open(url, '_blank', 'noopener,noreferrer');
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 export default function CalendarPage() {
