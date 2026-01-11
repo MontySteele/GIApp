@@ -272,3 +272,78 @@ export interface CalculatorScenario {
   createdAt: string;
   updatedAt: string;
 }
+
+// ============================================
+// Inventory Models (for Irminsul/GOOD imports)
+// ============================================
+
+/**
+ * Extended substat with roll tracking (from Irminsul)
+ */
+export interface ExtendedSubstat {
+  key: string;
+  value: number;
+  initialValue?: number; // Value before any rolls
+}
+
+/**
+ * Standalone artifact entity (can be unequipped)
+ * Supports full Irminsul/GOOD format
+ */
+export interface InventoryArtifact {
+  id: string;
+  setKey: string;
+  slotKey: SlotKey;
+  level: number;
+  rarity: number; // 1-5
+  mainStatKey: string;
+  substats: ExtendedSubstat[];
+  location: string; // Character key or empty string if unequipped
+  lock: boolean;
+  // Irminsul-specific fields
+  totalRolls?: number;
+  astralMark?: boolean;
+  elixerCrafted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Standalone weapon entity (can be unequipped)
+ * Supports full Irminsul/GOOD format
+ */
+export interface InventoryWeapon {
+  id: string;
+  key: string;
+  level: number;
+  ascension: number;
+  refinement: number; // 1-5
+  location: string; // Character key or empty string if unequipped
+  lock: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Material inventory counts
+ */
+export interface MaterialInventory {
+  id: string; // 'materials' singleton
+  materials: Record<string, number>; // MaterialKey -> count
+  updatedAt: string;
+}
+
+/**
+ * Import metadata for tracking data sources
+ */
+export interface ImportRecord {
+  id: string;
+  source: string; // 'Irminsul', 'Enka', 'GOOD', etc.
+  filename?: string;
+  importedAt: string;
+  characterCount: number;
+  artifactCount: number;
+  weaponCount: number;
+  materialCount: number;
+}
+

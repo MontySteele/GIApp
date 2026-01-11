@@ -13,6 +13,10 @@ import type {
   ExternalCache,
   AppMeta,
   CalculatorScenario,
+  InventoryArtifact,
+  InventoryWeapon,
+  MaterialInventory,
+  ImportRecord,
 } from '@/types';
 
 export const SCHEMA_STORES = {
@@ -36,6 +40,20 @@ export const SCHEMA_STORES_V2 = {
   calculatorScenarios: 'id, name, updatedAt',
 };
 
+// V3: Add inventory tables for Irminsul/GOOD imports
+export const SCHEMA_STORES_V3 = {
+  ...SCHEMA_STORES_V2,
+  // Standalone artifacts (can be equipped or unequipped)
+  // Indexed by location for quick character lookups
+  inventoryArtifacts: 'id, setKey, slotKey, location, rarity, updatedAt',
+  // Standalone weapons (can be equipped or unequipped)
+  inventoryWeapons: 'id, key, location, updatedAt',
+  // Material counts (singleton document)
+  materialInventory: 'id',
+  // Import history for tracking data sources
+  importRecords: 'id, source, importedAt',
+};
+
 export class GenshinTrackerDB extends Dexie {
   characters!: EntityTable<Character, 'id'>;
   teams!: EntityTable<Team, 'id'>;
@@ -50,12 +68,18 @@ export class GenshinTrackerDB extends Dexie {
   externalCache!: EntityTable<ExternalCache, 'id'>;
   appMeta!: EntityTable<AppMeta, 'key'>;
   calculatorScenarios!: EntityTable<CalculatorScenario, 'id'>;
+  // V3 tables
+  inventoryArtifacts!: EntityTable<InventoryArtifact, 'id'>;
+  inventoryWeapons!: EntityTable<InventoryWeapon, 'id'>;
+  materialInventory!: EntityTable<MaterialInventory, 'id'>;
+  importRecords!: EntityTable<ImportRecord, 'id'>;
 
   constructor(databaseName = 'GenshinTracker') {
     super(databaseName);
 
     this.version(1).stores(SCHEMA_STORES);
     this.version(2).stores(SCHEMA_STORES_V2);
+    this.version(3).stores(SCHEMA_STORES_V3);
   }
 }
 
