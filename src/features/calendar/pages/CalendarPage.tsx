@@ -1,19 +1,16 @@
 import { ExternalLink, Info, Calendar as CalendarIcon } from 'lucide-react';
+import { open } from '@tauri-apps/plugin-shell';
 import ResetTimers from '../components/ResetTimers';
 
 /**
- * Open external URL in browser
- * Creates a temporary anchor and clicks it for better compatibility
- * with various browser contexts (PWA, Electron, etc.)
+ * Open external URL in browser using Tauri's shell plugin
  */
 function openExternal(url: string) {
-  const link = document.createElement('a');
-  link.href = url;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  open(url).catch((err) => {
+    console.error('Failed to open URL:', err);
+    // Fallback for non-Tauri environments (e.g., browser dev mode)
+    window.open(url, '_blank', 'noopener,noreferrer');
+  });
 }
 
 export default function CalendarPage() {
