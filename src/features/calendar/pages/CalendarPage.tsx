@@ -1,6 +1,14 @@
 import { ExternalLink, Info, Calendar as CalendarIcon } from 'lucide-react';
 import ResetTimers from '../components/ResetTimers';
 
+/**
+ * Open external URL in browser
+ * Uses window.open for better Electron compatibility
+ */
+function openExternal(url: string) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 export default function CalendarPage() {
   return (
     <div className="space-y-8">
@@ -25,15 +33,13 @@ export default function CalendarPage() {
                 For the most up-to-date event information, banners, and timelines,
                 visit Paimon.moe's calendar which is maintained by the community.
               </p>
-              <a
-                href="https://paimon.moe/timeline"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => openExternal('https://paimon.moe/timeline')}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors"
               >
                 Open Paimon.moe Timeline
                 <ExternalLink className="w-4 h-4" />
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -85,11 +91,9 @@ function ResourceLink({
   url: string;
 }) {
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 hover:border-primary-500/50 transition-colors group"
+    <button
+      onClick={() => openExternal(url)}
+      className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 hover:border-primary-500/50 transition-colors group text-left w-full"
     >
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-slate-200 group-hover:text-primary-400 transition-colors">
@@ -98,6 +102,6 @@ function ResourceLink({
         <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-primary-400 transition-colors" />
       </div>
       <p className="text-sm text-slate-400 mt-1">{description}</p>
-    </a>
+    </button>
   );
 }

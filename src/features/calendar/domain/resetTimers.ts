@@ -133,11 +133,13 @@ export function getNextImaginariumReset(): Date {
 /**
  * Get the next patch/version update
  * Patches occur approximately every 42 days (6 weeks)
+ * Maintenance typically starts around 6 PM Eastern (11 PM UTC) on Tuesday
+ * but varies - using 4 PM Eastern as banner end time anchor
  */
 export function getNextPatchReset(): Date {
-  // Version 6.3 starts January 14, 2026
-  // Each version is ~42 days (6 weeks)
-  const knownVersionStart = new Date('2026-01-14T09:00:00Z'); // 4 AM server = 9 AM UTC
+  // Version 6.3 maintenance starts Tuesday Jan 13, 2026
+  // Banners end around 4 PM Eastern = 9 PM UTC
+  const knownVersionStart = new Date('2026-01-13T21:00:00Z'); // 4 PM Eastern
   const versionLength = 42 * 24 * 60 * 60 * 1000; // 42 days in ms
 
   const now = new Date();
