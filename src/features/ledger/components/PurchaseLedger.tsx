@@ -72,17 +72,14 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
 
   const handleDelete = async (id: string, amount: number) => {
     console.log('PurchaseLedger: handleDelete called with id:', id, 'amount:', amount);
-    const confirmed = window.confirm(`Delete purchase of ${amount.toLocaleString()} primogems?`);
-    console.log('PurchaseLedger: confirm result:', confirmed);
-    if (!confirmed) return;
 
+    // Skip confirmation for now - just delete directly
     try {
       console.log('PurchaseLedger: calling onDelete...');
       await onDelete(id);
       console.log('PurchaseLedger: onDelete completed successfully');
     } catch (error) {
       console.error('PurchaseLedger: Failed to delete purchase:', error);
-      window.alert('Failed to delete purchase. Please try again.');
     }
   };
 
