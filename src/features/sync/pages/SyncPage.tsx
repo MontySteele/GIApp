@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
-import { CheckCircle2, Clock3, Download, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Clock3, Download, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
@@ -87,6 +87,55 @@ export default function SyncPage() {
           Manage backup reminders, export your data, and keep your progress safe.
         </p>
       </div>
+
+      {/* Display Preferences */}
+      <Card>
+        <CardHeader className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            {settings.showManualWishEntry || settings.showManualPrimogemEntry ? (
+              <Eye className="w-5 h-5 text-primary-400" />
+            ) : (
+              <EyeOff className="w-5 h-5 text-primary-400" />
+            )}
+            <h2 className="text-xl font-semibold text-slate-100">Display preferences</h2>
+          </div>
+          <p className="text-slate-400 text-sm">
+            Control which sections are expanded by default across the app.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <label className="flex items-center justify-between p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-800/50 transition-colors">
+              <div>
+                <p className="text-slate-100 font-medium">Show manual wish entry</p>
+                <p className="text-slate-400 text-sm">Expand manual wish entry section by default on Wishes page</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.showManualWishEntry}
+                onChange={(e) => updateSettings({ showManualWishEntry: e.target.checked })}
+                className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-slate-900"
+              />
+            </label>
+
+            <label className="flex items-center justify-between p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-800/50 transition-colors">
+              <div>
+                <p className="text-slate-100 font-medium">Show manual primogem entry</p>
+                <p className="text-slate-400 text-sm">Expand manual primogem/fate entry sections by default on Primogems page</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.showManualPrimogemEntry}
+                onChange={(e) => updateSettings({ showManualPrimogemEntry: e.target.checked })}
+                className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-slate-900"
+              />
+            </label>
+          </div>
+          <p className="text-xs text-slate-500">
+            When disabled, manual entry sections are collapsed by default. You can still expand them manually on each page.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
