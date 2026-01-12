@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Header from '@/components/common/Header';
 import TabNav from '@/components/common/TabNav';
 import BackupReminderBanner from '@/features/sync/components/BackupReminderBanner';
+import ToastContainer from '@/components/ui/Toast';
 import { useTheme } from '@/hooks/useTheme';
 
 /** Skip link component for keyboard navigation */
@@ -35,6 +36,7 @@ export default function Layout() {
         <BackupReminderBanner />
         <Outlet />
       </main>
+      <ToastContainer />
     </div>
   );
 }
