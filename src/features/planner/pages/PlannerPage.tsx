@@ -9,6 +9,7 @@ import { useMaterials } from '../hooks/useMaterials';
 import { useMultiCharacterPlan, type GoalType } from '../hooks/useMultiCharacterPlan';
 import { useWeaponPlan, type WeaponGoalType } from '../hooks/useWeaponPlan';
 import ResinTracker from '../components/ResinTracker';
+import TodaysFarmingRecommendations from '../components/TodaysFarmingRecommendations';
 import {
   calculateAscensionSummary,
   createGoalFromCharacter,
@@ -857,6 +858,20 @@ export default function PlannerPage() {
       {/* Sidebar */}
       <div className="space-y-4">
         <ResinTracker />
+
+        {/* Today's Farming Recommendations */}
+        {plannerMode === 'single' && summary?.materials && (
+          <TodaysFarmingRecommendations
+            talentMaterials={summary.materials.filter((m) => m.category === 'talent')}
+            compact
+          />
+        )}
+        {plannerMode === 'multi' && multiPlan.summary?.groupedMaterials?.talent && (
+          <TodaysFarmingRecommendations
+            talentMaterials={multiPlan.summary.groupedMaterials.talent}
+            compact
+          />
+        )}
 
         {/* Today's Domain Schedule */}
         <DomainScheduleCard />
