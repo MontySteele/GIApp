@@ -106,6 +106,15 @@ export function MultiTargetCalculator() {
   const [isSaving, setIsSaving] = useState(false);
   const [compareScenarios, setCompareScenarios] = useState<CalculatorScenario[]>([]);
 
+  // Track component mount state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Load saved scenarios from database
   const savedScenarios = useLiveQuery(() => scenarioRepo.getAll(), []);
 
@@ -317,9 +326,13 @@ export function MultiTargetCalculator() {
       await worker.ready;
       const result = await worker.api.runSimulation(
         simulationInput,
-        proxy((value: number) => setProgress(value))
+        proxy((value: number) => {
+          if (isMountedRef.current) setProgress(value);
+        })
       );
-      setResults(result);
+      if (isMountedRef.current) {
+        setResults(result);
+      }
     } catch (error) {
       console.error('Simulation error:', error);
       // Show user-visible error
@@ -327,7 +340,10 @@ export function MultiTargetCalculator() {
     } finally {
       // Ensure the loading state is visible for at least a brief moment
       await minimumLoadingDuration;
-      setIsCalculating(false);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setIsCalculating(false);
+      }
     }
   }, [validate, targets, availablePulls, iterations, getWorker]);
 
