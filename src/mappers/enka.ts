@@ -1,5 +1,5 @@
 import { db } from '@/db/schema';
-import type { Character } from '@/types';
+import type { Character, SlotKey } from '@/types';
 
 // Enka.network API types (simplified)
 export interface EnkaResponse {
@@ -498,14 +498,21 @@ const PROP_TYPES = {
   EXP: 1001,
 };
 
-// Slot mapping
-const EQUIP_TYPE_MAP: { [key: string]: string } = {
+// Slot mapping with type-safe values
+const EQUIP_TYPE_MAP: Record<string, SlotKey> = {
   EQUIP_BRACER: 'flower',
   EQUIP_NECKLACE: 'plume',
   EQUIP_SHOES: 'sands',
   EQUIP_RING: 'goblet',
   EQUIP_DRESS: 'circlet',
 };
+
+/**
+ * Safely converts Enka equip type to SlotKey
+ */
+function toSlotKey(equipType: string | undefined): SlotKey {
+  return EQUIP_TYPE_MAP[equipType || ''] || 'flower';
+}
 
 /**
  * Convert Enka.network response to internal Character format
@@ -557,7 +564,7 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
       const artifactEquips = avatar.equipList.filter((e) => e.reliquary);
       const artifacts = artifactEquips.map((equip) => ({
         setKey: equip.flat.setNameTextMapHash || 'Unknown Set',
-        slotKey: (EQUIP_TYPE_MAP[equip.flat.equipType || ''] || 'flower') as any,
+        slotKey: toSlotKey(equip.flat.equipType),
         level: equip.reliquary?.level || 0,
         rarity: equip.flat.rankLevel || 5,
         mainStatKey: equip.flat.reliquaryMainstat?.mainPropId || 'hp',
