@@ -279,7 +279,7 @@ async function buildMaterialsWithApiData(
 
   // Add boss material
   if (ascensionMats.bossMat > 0) {
-    const bossName = characterData?.ascensionMaterials.boss.name || 'Boss Material';
+    const bossName = characterData?.ascensionMaterials?.boss?.name || 'Boss Material';
     addMaterial(bossName, bossName, 'boss', ascensionMats.bossMat);
   }
 
@@ -287,7 +287,7 @@ async function buildMaterialsWithApiData(
   const gemTierNames = ['Sliver', 'Fragment', 'Chunk', 'Gemstone'];
   ascensionMats.gem.forEach((amt, tier) => {
     if (amt > 0) {
-      const gemBaseName = characterData?.ascensionMaterials.gem.baseName || 'Elemental';
+      const gemBaseName = characterData?.ascensionMaterials?.gem?.baseName || 'Elemental';
       const gemFullName = `${gemBaseName} ${gemTierNames[tier]}`;
       addMaterial(gemFullName, gemFullName, 'gem', amt, tier + 1);
     }
@@ -295,8 +295,8 @@ async function buildMaterialsWithApiData(
 
   // Add local specialty
   if (ascensionMats.localSpecialty > 0) {
-    const specialtyName = characterData?.ascensionMaterials.localSpecialty.name || 'Local Specialty';
-    const region = characterData?.ascensionMaterials.localSpecialty.region;
+    const specialtyName = characterData?.ascensionMaterials?.localSpecialty?.name || 'Local Specialty';
+    const region = characterData?.ascensionMaterials?.localSpecialty?.region;
     addMaterial(specialtyName, specialtyName, 'localSpecialty', ascensionMats.localSpecialty, undefined, region);
   }
 
@@ -309,9 +309,9 @@ async function buildMaterialsWithApiData(
   ascensionMats.commonMat.forEach((amt, tier) => {
     const tierInfo = commonTierInfo[tier];
     if (amt > 0 && tierInfo) {
-      // Use actual tier names from API data if available
-      const actualName = characterData?.ascensionMaterials.common.tierNames[tierInfo.key];
-      const fallbackName = characterData?.ascensionMaterials.common.baseName || 'Common Material';
+      // Use actual tier names from API data if available (with defensive checks for older cached data)
+      const actualName = characterData?.ascensionMaterials?.common?.tierNames?.[tierInfo.key];
+      const fallbackName = characterData?.ascensionMaterials?.common?.baseName || 'Common Material';
       const materialName = actualName || `${fallbackName} (${tierInfo.label})`;
       addMaterial(
         materialName,
@@ -327,10 +327,10 @@ async function buildMaterialsWithApiData(
   const bookTierPrefixes = ['Teachings of', 'Guide to', 'Philosophies of'];
   talentMats.books.forEach((amt, tier) => {
     if (amt > 0) {
-      const bookSeries = characterData?.talentMaterials.books.series || 'Talent';
+      const bookSeries = characterData?.talentMaterials?.books?.series || 'Talent';
       const bookFullName = `${bookTierPrefixes[tier]} ${bookSeries}`;
-      const days = characterData?.talentMaterials.books.days;
-      const domain = characterData?.talentMaterials.books.region;
+      const days = characterData?.talentMaterials?.books?.days;
+      const domain = characterData?.talentMaterials?.books?.region;
       addMaterial(
         bookFullName,
         bookFullName,
@@ -344,15 +344,15 @@ async function buildMaterialsWithApiData(
   });
 
   // Add talent common materials (if different from ascension)
-  if (characterData?.talentMaterials.common.baseName) {
+  if (characterData?.talentMaterials?.common?.baseName) {
     const talentCommon = characterData.talentMaterials.common;
-    const tiers = [talentCommon.byTier.gray, talentCommon.byTier.green, talentCommon.byTier.blue];
+    const tiers = [talentCommon.byTier?.gray ?? 0, talentCommon.byTier?.green ?? 0, talentCommon.byTier?.blue ?? 0];
 
     tiers.forEach((amt, tier) => {
       const tierInfo = commonTierInfo[tier];
       if (amt > 0 && tierInfo) {
-        // Use actual tier names from API data if available
-        const actualName = talentCommon.tierNames[tierInfo.key];
+        // Use actual tier names from API data if available (with defensive checks)
+        const actualName = talentCommon.tierNames?.[tierInfo.key];
         const materialName = actualName || `${talentCommon.baseName} (${tierInfo.label})`;
         addMaterial(
           materialName,
@@ -367,8 +367,8 @@ async function buildMaterialsWithApiData(
 
   // Add weekly boss material
   if (talentMats.weeklyBoss > 0) {
-    const weeklyName = characterData?.talentMaterials.weekly.name || 'Weekly Boss Material';
-    const boss = characterData?.talentMaterials.weekly.boss;
+    const weeklyName = characterData?.talentMaterials?.weekly?.name || 'Weekly Boss Material';
+    const boss = characterData?.talentMaterials?.weekly?.boss;
     addMaterial(weeklyName, weeklyName, 'weekly', talentMats.weeklyBoss, undefined, boss);
   }
 
