@@ -10,7 +10,9 @@ import {
   Coins,
   Calendar,
   StickyNote,
-  Settings
+  Settings,
+  Hammer,
+  Skull,
 } from 'lucide-react';
 import { TABS } from '@/lib/constants';
 
@@ -19,10 +21,12 @@ const icons = {
   roster: Users,
   artifacts: Gem,
   weapons: Sword,
+  builds: Hammer,
   planner: Target,
   wishes: Sparkles,
   calculator: Calculator,
   ledger: Coins,
+  bosses: Skull,
   calendar: Calendar,
   notes: StickyNote,
   settings: Settings,
