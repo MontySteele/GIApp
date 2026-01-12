@@ -111,17 +111,54 @@ The Primogem Tracker uses a **snapshot-based workflow**:
 - [ ] QR code generation (for small payloads <1.5KB)
 - [ ] Merge strategies (replace, newer wins, keep local)
 
-### 8. PWA & Settings
-- [x] PWA manifest & service worker
-- [x] Offline caching for static assets
-- [x] Installability
-- [x] Display preferences (show/hide manual entry sections)
-- [x] Theme (light/dark/system)
-- [ ] Date format preferences
-- [ ] Default calculator settings
-- [x] Backup reminders
+### 9. Artifact Inventory
+- [x] Artifact storage schema (set, slot, main stat, substats, location)
+- [x] Artifact list page with filtering and sorting
+- [x] Artifact card component with roll value display
+- [x] Set grouping and statistics
+- [x] Import from Irminsul (GOOD format)
+
+### 10. Weapon Inventory
+- [x] Weapon storage schema (key, level, ascension, refinement, location)
+- [x] Weapon list page with filtering
+- [x] Weapon card with refinement display
+- [x] Rarity-based filtering (3★/4★/5★)
+- [x] Import from Irminsul (GOOD format)
+
+### 11. Ascension Planner
+- [x] Generic ascension cost calculations
+- [x] Talent level cost calculations
+- [x] Resin tracker (current resin, time to full)
+- [x] Domain schedule (today's available talent materials)
+- [x] Material inventory display from Irminsul import
+- [ ] **Character-specific material mapping** (blocked - needs genshin-db API)
+- [ ] Inventory comparison against requirements
+
+### 12. Dashboard
+- [x] Account overview (characters, artifacts, weapons)
+- [x] Resin status with progress bar
+- [x] Primogem/fate summary (from ledger snapshots)
+- [x] Quick links to major features
+
+### 13. Irminsul Import
+- [x] GOOD format v3 parser
+- [x] Character data with equipment reconciliation
+- [x] Artifact inventory with deterministic IDs
+- [x] Weapon inventory import
+- [x] Material counts import
+- [x] Import validation and error handling
 
 ---
+
+## External Data Sources
+
+### Current Integrations
+- **Enka.network**: Character showcase data, artifacts, weapons (via UID lookup)
+- **HuTao bot GitHub**: Event schedule data (cached with 1-hour TTL)
+- **Irminsul**: GOOD format export for bulk data import
+
+### Planned Integrations
+- **genshin-db API**: Character material requirements (which boss drops, talent books, local specialties each character needs)
 
 ## Data Models Summary
 
@@ -361,35 +398,54 @@ src/
 ├── db/
 │   └── schema.ts          # Dexie database schema
 ├── features/
+│   ├── artifacts/         # Artifact inventory
+│   │   ├── components/    # ArtifactCard, ArtifactFilters
+│   │   ├── hooks/         # useArtifacts
+│   │   └── pages/         # ArtifactsPage
 │   ├── calculator/        # Pull probability calculators
 │   │   ├── components/    # SingleTarget, MultiTarget, Reverse calculators
 │   │   ├── domain/        # pityEngine, analyticalCalc
 │   │   └── store/         # calculatorStore (Zustand)
-│   ├── ledger/            # Primogem tracking
-│   │   ├── components/    # UnifiedChart, TransactionLog, PurchaseLedger
-│   │   ├── domain/        # resourceCalculations, historicalReconstruction
-│   │   ├── pages/         # LedgerPage
-│   │   └── repo/          # primogemEntryRepo, resourceSnapshotRepo, etc.
-│   ├── roster/            # Character management
-│   │   ├── components/    # CharacterCard, CharacterForm, EnkaImport, etc.
-│   │   ├── pages/         # CharacterListPage, CharacterDetailPage
-│   │   └── repo/          # characterRepo, teamRepo
-│   ├── wishes/            # Wish history
-│   │   ├── components/    # WishHistory, PityDashboard, PullHistoryChart
-│   │   ├── domain/        # wishReplay, wishAnalyzer, wishStatistics
-│   │   ├── pages/         # WishHistoryPage
-│   │   └── repo/          # wishRepo
 │   ├── calendar/          # Calendar & Timers
 │   │   ├── components/    # ResetTimers, EventList
 │   │   ├── domain/        # resetTimers, eventTypes
 │   │   ├── hooks/         # useEvents
 │   │   └── pages/         # CalendarPage
+│   ├── dashboard/         # Dashboard home page
+│   │   └── pages/         # DashboardPage
+│   ├── ledger/            # Primogem tracking
+│   │   ├── components/    # UnifiedChart, TransactionLog, PurchaseLedger
+│   │   ├── domain/        # resourceCalculations, historicalReconstruction
+│   │   ├── hooks/         # useResources
+│   │   ├── pages/         # LedgerPage
+│   │   └── repo/          # primogemEntryRepo, resourceSnapshotRepo, etc.
 │   ├── notes/             # Goals & Notes
-│   └── sync/              # Settings & Sync
+│   ├── planner/           # Ascension planner
+│   │   ├── components/    # ResinTracker
+│   │   ├── domain/        # ascensionCalculator, materialConstants, resinCalculator
+│   │   ├── hooks/         # useMaterials
+│   │   └── pages/         # PlannerPage
+│   ├── roster/            # Character management
+│   │   ├── components/    # CharacterCard, CharacterForm, EnkaImport, IrminsulImport
+│   │   ├── data/          # characterMetadata
+│   │   ├── pages/         # CharacterListPage, CharacterDetailPage
+│   │   ├── repo/          # characterRepo, teamRepo, inventoryRepo
+│   │   └── services/      # irminsulImport
+│   ├── sync/              # Settings & Sync
+│   ├── weapons/           # Weapon inventory
+│   │   ├── components/    # WeaponCard, WeaponFilters
+│   │   ├── data/          # weaponConstants
+│   │   ├── hooks/         # useWeapons
+│   │   └── pages/         # WeaponsPage
+│   └── wishes/            # Wish history
+│       ├── components/    # WishHistory, PityDashboard, PullHistoryChart
+│       ├── domain/        # wishReplay, wishAnalyzer, wishStatistics
+│       ├── pages/         # WishHistoryPage
+│       └── repo/          # wishRepo
 ├── lib/
 │   ├── constants.ts       # Game constants, gacha rules
 │   └── gameData.ts        # Character data, icon mappings
-├── mappers/               # External format mappers (GOOD, Enka)
+├── mappers/               # External format mappers (GOOD, Enka, Irminsul)
 ├── stores/                # Global Zustand stores
 ├── types/                 # TypeScript types
 └── workers/               # Web Workers (Monte Carlo)
@@ -424,6 +480,19 @@ src/
 ---
 
 ## Recent Changes Log
+
+**2026-01 (Sprint 6 - Inventory & Planner):**
+- Added Artifact Inventory page with filtering, sorting, roll value display
+- Added Weapon Inventory page with refinement tracking
+- Added Dashboard home page with account overview
+- Added Ascension Planner with generic cost calculations
+- Added Resin Tracker component (current resin, time to full)
+- Added Domain Schedule showing today's available talent materials
+- Added Irminsul import for characters, artifacts, weapons, materials
+- Added useResources hook for centralized primogem/fate data
+- Removed redundant Banner Planner (consolidated with Calculator)
+- Fixed material key lookups with flexible matching (handles API key variations)
+- **Known limitation**: Planner shows generic material names (not character-specific) pending genshin-db integration
 
 **2026-01 (Sprint 5 Completion):**
 - Removed Spiral Abyss feature (replaced with Calendar)
