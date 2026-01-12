@@ -35,6 +35,17 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs camera access to scan QR codes from Enka.network for importing character data."
+      },
+      "minimumSystemVersion": "",
+      "providerShortName": null,
+      "signingIdentity": null
+    }
   }
 }
