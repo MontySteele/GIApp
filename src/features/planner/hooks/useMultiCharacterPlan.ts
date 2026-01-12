@@ -68,6 +68,11 @@ const EMPTY_SUMMARY: AggregatedMaterialSummary = {
   totalExp: 0,
   totalEstimatedResin: 0,
   totalEstimatedDays: 0,
+  resinBreakdown: {
+    talentBoss: 0,
+    expMora: 0,
+    total: 0,
+  },
   allCanAscend: true,
   anyStale: false,
   errors: [],
@@ -171,9 +176,12 @@ export function useMultiCharacterPlan({
   }, [selectedCharacters, goalType, inventory]);
 
   // Auto-calculate when dependencies change
+  // Note: we include selectedCharacterKeys directly to ensure the effect fires
+  // when selection changes, even if React's reference comparison on the
+  // memoized selectedCharacters array doesn't trigger properly
   useEffect(() => {
-    calculateSummary();
-  }, [calculateSummary]);
+    void calculateSummary();
+  }, [calculateSummary, selectedCharacterKeys]);
 
   return {
     // Selection state
