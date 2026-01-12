@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Download, CheckCircle, AlertCircle, Info, Camera, Keyboard } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useToast } from '@/hooks/useToast';
 import { fetchEnkaData, fromEnka } from '@/mappers/enka';
 import { characterRepo } from '../repo/characterRepo';
 import QRCameraScanner from './QRCameraScanner';
@@ -15,6 +16,7 @@ interface EnkaImportProps {
 }
 
 export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
+  const toast = useToast();
   const [inputMode, setInputMode] = useState<InputMode>('manual');
   const [uid, setUid] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,12 +61,21 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
         skipped: Math.max(0, showcaseCount - characters.length),
       });
 
+      // Show toast notification
+      const message = [
+        created > 0 ? `${created} added` : null,
+        updated > 0 ? `${updated} updated` : null,
+      ].filter(Boolean).join(', ');
+      toast.success('Import Successful', message || 'Characters imported from Enka.network');
+
       // Auto-close after 2 seconds
       setTimeout(() => {
         onSuccess();
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      const errorMessage = err instanceof Error ? err.message : 'Import failed';
+      setError(errorMessage);
+      toast.error('Import Failed', errorMessage);
       setImportResult({
         success: false,
         created: 0,
@@ -121,11 +132,20 @@ export default function EnkaImport({ onSuccess, onCancel }: EnkaImportProps) {
         skipped: Math.max(0, showcaseCount - characters.length),
       });
 
+      // Show toast notification
+      const message = [
+        created > 0 ? `${created} added` : null,
+        updated > 0 ? `${updated} updated` : null,
+      ].filter(Boolean).join(', ');
+      toast.success('Import Successful', message || 'Characters imported from Enka.network');
+
       setTimeout(() => {
         onSuccess();
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      const errorMessage = err instanceof Error ? err.message : 'Import failed';
+      setError(errorMessage);
+      toast.error('Import Failed', errorMessage);
       setImportResult({
         success: false,
         created: 0,

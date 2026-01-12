@@ -4,6 +4,7 @@ import { Plus, Download, Search } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
 import { useRosterModals } from '../hooks/useRosterModals';
+import { useToast } from '@/hooks/useToast';
 import Button from '@/components/ui/Button';
 import { CharacterCardSkeleton } from '@/components/ui/Skeleton';
 import Modal from '@/components/ui/Modal';
@@ -28,6 +29,7 @@ interface RosterPageProps {
 export default function RosterPage({ enableFilters = true, enableSorting = true }: RosterPageProps) {
   const navigate = useNavigate();
   const modals = useRosterModals();
+  const toast = useToast();
 
   // Filter and sort state
   const [sortField, setSortField] = useState<CharacterSortField>('name');
@@ -55,27 +57,66 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
   // Memoized lookups
   const teamNameById = useMemo(() => new Map(teams.map((team) => [team.id, team.name])), [teams]);
 
-  // Handlers
+  // Handlers with toast notifications
   const handleTeamSubmit = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (modals.teamModalMode === 'create') {
-      await createTeam(teamData);
-    } else if (modals.activeTeam) {
-      await updateTeam(modals.activeTeam.id, teamData);
+    try {
+      if (modals.teamModalMode === 'create') {
+        await createTeam(teamData);
+        toast.success('Team Created', `${teamData.name} has been added to your roster.`);
+      } else if (modals.activeTeam) {
+        await updateTeam(modals.activeTeam.id, teamData);
+        toast.success('Team Updated', `${teamData.name} has been updated.`);
+      }
+      modals.closeTeamModal();
+    } catch (err) {
+      toast.error('Error', err instanceof Error ? err.message : 'Failed to save team.');
     }
-    modals.closeTeamModal();
+  };
+
+  const handleCreateCharacter = async (data: Parameters<typeof createCharacter>[0]) => {
+    try {
+      const id = await createCharacter(data);
+      toast.success('Character Added', `${data.key} has been added to your roster.`);
+      return id;
+    } catch (err) {
+      toast.error('Error', err instanceof Error ? err.message : 'Failed to add character.');
+      throw err;
+    }
+  };
+
+  const handleUpdateCharacter = async (id: string, data: Parameters<typeof updateCharacter>[1]) => {
+    try {
+      await updateCharacter(id, data);
+      toast.success('Character Updated', 'Character has been updated.');
+      modals.closeEditModal();
+    } catch (err) {
+      toast.error('Error', err instanceof Error ? err.message : 'Failed to update character.');
+    }
   };
 
   const confirmCharacterDelete = async () => {
     if (modals.deletingCharacter) {
-      await deleteCharacter(modals.deletingCharacter.id);
-      modals.closeDeleteModal();
+      try {
+        const name = modals.deletingCharacter.key;
+        await deleteCharacter(modals.deletingCharacter.id);
+        toast.success('Character Deleted', `${name} has been removed from your roster.`);
+        modals.closeDeleteModal();
+      } catch (err) {
+        toast.error('Error', err instanceof Error ? err.message : 'Failed to delete character.');
+      }
     }
   };
 
   const confirmTeamDelete = async () => {
     if (modals.deletingTeam) {
-      await deleteTeam(modals.deletingTeam.id);
-      modals.closeDeleteTeamModal();
+      try {
+        const name = modals.deletingTeam.name;
+        await deleteTeam(modals.deletingTeam.id);
+        toast.success('Team Deleted', `${name} has been removed.`);
+        modals.closeDeleteTeamModal();
+      } catch (err) {
+        toast.error('Error', err instanceof Error ? err.message : 'Failed to delete team.');
+      }
     }
   };
 
@@ -191,7 +232,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
       <AddCharacterModal
         isOpen={modals.showAddModal}
         onClose={modals.closeAddModal}
-        onCreateCharacter={createCharacter}
+        onCreateCharacter={handleCreateCharacter}
       />
 
       <Modal
@@ -217,10 +258,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         {modals.editingCharacter && (
           <CharacterForm
             initialData={modals.editingCharacter}
-            onSubmit={async (data) => {
-              await updateCharacter(modals.editingCharacter!.id, data);
-              modals.closeEditModal();
-            }}
+            onSubmit={(data) => handleUpdateCharacter(modals.editingCharacter!.id, data)}
             onCancel={modals.closeEditModal}
           />
         )}
