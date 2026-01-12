@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { proxy } from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Button from '@/components/ui/Button';
@@ -131,55 +131,8 @@ export function MultiTargetCalculator() {
     savePersistedState({ targets, availablePulls, iterations });
   }, [targets, availablePulls, iterations]);
 
-  // Reset all state to defaults
-  const handleReset = () => {
-    setTargets([]);
-    setAvailablePulls(0);
-    setIterations(5000);
-    setResults(null);
-    setErrors(new Map());
-    clearPersistedState();
-  };
-
-  // Import available pulls from tracked resources
-  const importAvailablePulls = async () => {
-    setIsLoadingPulls(true);
-    try {
-      const result = await getAvailablePullsFromTracker();
-      setAvailablePulls(result.availablePulls);
-    } catch (error) {
-      console.error('Failed to load available pulls:', error);
-    } finally {
-      setIsLoadingPulls(false);
-    }
-  };
-
-  const addTarget = (bannerType: BannerType = 'character') => {
-    const isFirstTarget = targets.length === 0;
-    const newTarget: Target = {
-      id: crypto.randomUUID(),
-      characterName: '',
-      bannerType,
-      constellation: 0, // C0 = 1 copy
-      pity: 0,
-      guaranteed: false,
-      radiantStreak: 0,
-      fatePoints: 0,
-      useInheritedPity: !isFirstTarget, // First target uses specified pity, others inherit
-    };
-    setTargets([...targets, newTarget]);
-    setErrors(validateTargets([...targets, newTarget]));
-    setResults(null); // Clear results when adding target
-  };
-
-  const removeTarget = (id: string) => {
-    const updatedTargets = targets.filter((t) => t.id !== id);
-    setTargets(updatedTargets);
-    setErrors(validateTargets(updatedTargets));
-    setResults(null); // Clear results when removing target
-  };
-
-  const validateTargets = (targetsToValidate: Target[]): Map<string, string> => {
+  // Memoize validation function
+  const validateTargets = useCallback((targetsToValidate: Target[]): Map<string, string> => {
     const newErrors = new Map<string, string>();
 
     targetsToValidate.forEach((target) => {
@@ -201,58 +154,119 @@ export function MultiTargetCalculator() {
     });
 
     return newErrors;
-  };
+  }, []);
 
-  const updateTarget = (id: string, updates: Partial<Target>) => {
-    const updatedTargets = targets.map((t) => (t.id === id ? { ...t, ...updates } : t));
-    setTargets(updatedTargets);
-    setErrors(validateTargets(updatedTargets));
-    setResults(null); // Clear results when updating target
-  };
+  // Reset all state to defaults
+  const handleReset = useCallback(() => {
+    setTargets([]);
+    setAvailablePulls(0);
+    setIterations(5000);
+    setResults(null);
+    setErrors(new Map());
+    clearPersistedState();
+  }, []);
 
-  const moveTargetUp = (index: number) => {
+  // Import available pulls from tracked resources
+  const importAvailablePulls = useCallback(async () => {
+    setIsLoadingPulls(true);
+    try {
+      const result = await getAvailablePullsFromTracker();
+      setAvailablePulls(result.availablePulls);
+    } catch (error) {
+      console.error('Failed to load available pulls:', error);
+    } finally {
+      setIsLoadingPulls(false);
+    }
+  }, []);
+
+  const addTarget = useCallback((bannerType: BannerType = 'character') => {
+    setTargets((currentTargets) => {
+      const isFirstTarget = currentTargets.length === 0;
+      const newTarget: Target = {
+        id: crypto.randomUUID(),
+        characterName: '',
+        bannerType,
+        constellation: 0,
+        pity: 0,
+        guaranteed: false,
+        radiantStreak: 0,
+        fatePoints: 0,
+        useInheritedPity: !isFirstTarget,
+      };
+      const updatedTargets = [...currentTargets, newTarget];
+      setErrors(validateTargets(updatedTargets));
+      return updatedTargets;
+    });
+    setResults(null);
+  }, [validateTargets]);
+
+  const removeTarget = useCallback((id: string) => {
+    setTargets((currentTargets) => {
+      const updatedTargets = currentTargets.filter((t) => t.id !== id);
+      setErrors(validateTargets(updatedTargets));
+      return updatedTargets;
+    });
+    setResults(null);
+  }, [validateTargets]);
+
+  const updateTarget = useCallback((id: string, updates: Partial<Target>) => {
+    setTargets((currentTargets) => {
+      const updatedTargets = currentTargets.map((t) => (t.id === id ? { ...t, ...updates } : t));
+      setErrors(validateTargets(updatedTargets));
+      return updatedTargets;
+    });
+    setResults(null);
+  }, [validateTargets]);
+
+  const moveTargetUp = useCallback((index: number) => {
     if (index === 0) return;
-    const newTargets = [...targets];
-    const current = newTargets[index];
-    const prev = newTargets[index - 1];
-    if (current && prev) {
-      newTargets[index - 1] = current;
-      newTargets[index] = prev;
-    }
-    // Update useInheritedPity based on new positions
-    const updatedTargets = newTargets.map((t, i) => ({
-      ...t,
-      useInheritedPity: i === 0 ? false : t.useInheritedPity,
-    }));
-    setTargets(updatedTargets);
+    setTargets((currentTargets) => {
+      const newTargets = [...currentTargets];
+      const current = newTargets[index];
+      const prev = newTargets[index - 1];
+      if (current && prev) {
+        newTargets[index - 1] = current;
+        newTargets[index] = prev;
+      }
+      return newTargets.map((t, i) => ({
+        ...t,
+        useInheritedPity: i === 0 ? false : t.useInheritedPity,
+      }));
+    });
     setResults(null);
-  };
+  }, []);
 
-  const moveTargetDown = (index: number) => {
-    if (index === targets.length - 1) return;
-    const newTargets = [...targets];
-    const current = newTargets[index];
-    const next = newTargets[index + 1];
-    if (current && next) {
-      newTargets[index] = next;
-      newTargets[index + 1] = current;
-    }
-    // Update useInheritedPity based on new positions
-    const updatedTargets = newTargets.map((t, i) => ({
-      ...t,
-      useInheritedPity: i === 0 ? false : t.useInheritedPity,
-    }));
-    setTargets(updatedTargets);
+  const moveTargetDown = useCallback((index: number) => {
+    setTargets((currentTargets) => {
+      if (index === currentTargets.length - 1) return currentTargets;
+      const newTargets = [...currentTargets];
+      const current = newTargets[index];
+      const next = newTargets[index + 1];
+      if (current && next) {
+        newTargets[index] = next;
+        newTargets[index + 1] = current;
+      }
+      return newTargets.map((t, i) => ({
+        ...t,
+        useInheritedPity: i === 0 ? false : t.useInheritedPity,
+      }));
+    });
     setResults(null);
-  };
+  }, []);
 
-  const validate = (): boolean => {
+  // Validate and update errors
+  const validate = useCallback((): boolean => {
     const newErrors = validateTargets(targets);
     setErrors(newErrors);
     return newErrors.size === 0 && targets.length > 0;
-  };
+  }, [targets, validateTargets]);
 
-  const handleCalculate = async () => {
+  // Memoize whether form is valid
+  const canCalculate = useMemo(() => {
+    return targets.length > 0 && errors.size === 0;
+  }, [targets.length, errors.size]);
+
+  const handleCalculate = useCallback(async () => {
     if (!validate()) return;
 
     setIsCalculating(true);
@@ -315,12 +329,10 @@ export function MultiTargetCalculator() {
       await minimumLoadingDuration;
       setIsCalculating(false);
     }
-  };
-
-  const canCalculate = targets.length > 0 && !isCalculating;
+  }, [validate, targets, availablePulls, iterations, getWorker]);
 
   // Scenario management handlers
-  const handleSaveScenario = async () => {
+  const handleSaveScenario = useCallback(async () => {
     if (!scenarioName.trim() || targets.length === 0) return;
 
     setIsSaving(true);
@@ -339,26 +351,26 @@ export function MultiTargetCalculator() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [scenarioName, targets, availablePulls, iterations, results]);
 
-  const handleLoadScenario = (scenario: CalculatorScenario) => {
+  const handleLoadScenario = useCallback((scenario: CalculatorScenario) => {
     setTargets(scenario.targets.map(scenarioTargetToTarget));
     setAvailablePulls(scenario.availablePulls);
     setIterations(scenario.iterations);
     setResults(null);
     setShowLoadModal(false);
-  };
+  }, []);
 
-  const handleDeleteScenario = async (id: string) => {
+  const handleDeleteScenario = useCallback(async (id: string) => {
     try {
       await scenarioRepo.delete(id);
       setCompareScenarios((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
       console.error('Failed to delete scenario:', error);
     }
-  };
+  }, []);
 
-  const toggleCompareScenario = (scenario: CalculatorScenario) => {
+  const toggleCompareScenario = useCallback((scenario: CalculatorScenario) => {
     setCompareScenarios((prev) => {
       const exists = prev.find((s) => s.id === scenario.id);
       if (exists) {
@@ -366,7 +378,7 @@ export function MultiTargetCalculator() {
       }
       return [...prev, scenario];
     });
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
