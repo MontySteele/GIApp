@@ -117,28 +117,31 @@ export class QRScannerManager {
       aspectRatio: 1.0,
     };
 
+    const successCallback = (decodedText: string) => {
+      const result = parseQRResult(decodedText);
+      onScan(result);
+    };
+    const errorCallback = () => {}; // Ignore QR not found
+
     try {
       if (cameraId) {
-        await this.scanner.start(
-          cameraId,
-          config,
-          (decodedText) => {
-            const result = parseQRResult(decodedText);
-            onScan(result);
-          },
-          () => {} // Ignore QR not found
-        );
+        await this.scanner.start(cameraId, config, successCallback, errorCallback);
       } else {
-        // Use back camera by default on mobile
-        await this.scanner.start(
-          { facingMode: 'environment' },
-          config,
-          (decodedText) => {
-            const result = parseQRResult(decodedText);
-            onScan(result);
-          },
-          () => {}
-        );
+        // Try to get the first available camera
+        try {
+          const cameras = await Html5Qrcode.getCameras();
+          const firstCamera = cameras[0];
+          if (firstCamera) {
+            // Use the first camera directly by ID
+            await this.scanner.start(firstCamera.id, config, successCallback, errorCallback);
+          } else {
+            // Fallback: try user-facing camera (front camera on laptops)
+            await this.scanner.start({ facingMode: 'user' }, config, successCallback, errorCallback);
+          }
+        } catch {
+          // Last resort: try environment facing (back camera)
+          await this.scanner.start({ facingMode: 'environment' }, config, successCallback, errorCallback);
+        }
       }
       this.isScanning = true;
     } catch (error) {
