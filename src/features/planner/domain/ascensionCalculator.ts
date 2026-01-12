@@ -251,7 +251,7 @@ async function buildMaterialsWithApiData(
     error = 'Using generic material names (API data unavailable)';
   }
 
-  // Helper to add material with inventory lookup
+  // Helper to add material with inventory lookup and aggregation
   const addMaterial = (
     apiName: string,
     displayName: string,
@@ -264,17 +264,30 @@ async function buildMaterialsWithApiData(
     const inventoryKey = findInventoryKey(apiName, inventory);
     const owned = inventory[inventoryKey] ?? 0;
 
-    materials.push({
-      key: inventoryKey,
-      name: displayName,
-      category,
-      tier,
-      required,
-      owned,
-      deficit: Math.max(0, required - owned),
-      source,
-      availability,
-    });
+    // Check if this material already exists (aggregate by key + tier)
+    const existingIndex = materials.findIndex(
+      (m) => m.key === inventoryKey && m.tier === tier
+    );
+
+    if (existingIndex >= 0) {
+      // Aggregate: add to existing entry
+      const existing = materials[existingIndex];
+      existing.required += required;
+      existing.deficit = Math.max(0, existing.required - existing.owned);
+    } else {
+      // Add new entry
+      materials.push({
+        key: inventoryKey,
+        name: displayName,
+        category,
+        tier,
+        required,
+        owned,
+        deficit: Math.max(0, required - owned),
+        source,
+        availability,
+      });
+    }
   };
 
   // Add boss material
