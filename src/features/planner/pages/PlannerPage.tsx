@@ -722,22 +722,24 @@ export default function PlannerPage() {
                   </div>
                 </div>
                 {/* Resin Breakdown */}
-                <div className="mt-4 pt-4 border-t border-slate-700/50">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="bg-slate-900/50 rounded-lg p-3">
-                      <div className="text-lg font-bold text-blue-400">
-                        {summary.resinBreakdown.talentBoss.toLocaleString()}
+                {summary.resinBreakdown && (
+                  <div className="mt-4 pt-4 border-t border-slate-700/50">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div className="bg-slate-900/50 rounded-lg p-3">
+                        <div className="text-lg font-bold text-blue-400">
+                          {summary.resinBreakdown.talentBoss.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-slate-400">Talents / Boss</div>
                       </div>
-                      <div className="text-xs text-slate-400">Talents / Boss</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-3">
-                      <div className="text-lg font-bold text-green-400">
-                        {summary.resinBreakdown.expMora.toLocaleString()}
+                      <div className="bg-slate-900/50 rounded-lg p-3">
+                        <div className="text-lg font-bold text-green-400">
+                          {summary.resinBreakdown.expMora.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-slate-400">EXP / Mora</div>
                       </div>
-                      <div className="text-xs text-slate-400">EXP / Mora</div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           )}
@@ -801,22 +803,24 @@ export default function PlannerPage() {
                   </div>
                 </div>
                 {/* Resin Breakdown */}
-                <div className="mt-4 pt-4 border-t border-slate-700/50">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="bg-slate-900/50 rounded-lg p-3">
-                      <div className="text-lg font-bold text-blue-400">
-                        {multiPlan.summary.resinBreakdown.talentBoss.toLocaleString()}
+                {multiPlan.summary.resinBreakdown && (
+                  <div className="mt-4 pt-4 border-t border-slate-700/50">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div className="bg-slate-900/50 rounded-lg p-3">
+                        <div className="text-lg font-bold text-blue-400">
+                          {multiPlan.summary.resinBreakdown.talentBoss.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-slate-400">Talents / Boss</div>
                       </div>
-                      <div className="text-xs text-slate-400">Talents / Boss</div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-lg p-3">
-                      <div className="text-lg font-bold text-green-400">
-                        {multiPlan.summary.resinBreakdown.expMora.toLocaleString()}
+                      <div className="bg-slate-900/50 rounded-lg p-3">
+                        <div className="text-lg font-bold text-green-400">
+                          {multiPlan.summary.resinBreakdown.expMora.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-slate-400">EXP / Mora</div>
                       </div>
-                      <div className="text-xs text-slate-400">EXP / Mora</div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           )}
