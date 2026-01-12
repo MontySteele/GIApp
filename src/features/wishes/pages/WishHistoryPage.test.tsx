@@ -292,6 +292,12 @@ describe('WishHistoryPage', () => {
   });
 
   describe('import completion', () => {
+    beforeEach(async () => {
+      // Reset the mock to return empty array (no history) for import tests
+      const { loadWishHistoryFromRepo } = await import('../utils/wishHistory');
+      vi.mocked(loadWishHistoryFromRepo).mockResolvedValue([]);
+    });
+
     it('updates wish history after import', async () => {
       const user = userEvent.setup();
       render(<WishHistoryPage />);

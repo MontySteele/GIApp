@@ -1,8 +1,8 @@
 # Team DPS Comparison - Technical Design Document
 
-> **Status**: ⚠️ Pivoted to wfpsim Integration (see SPRINT_12_PLAN.md)
+> **Status**: ✅ Phase 1 Complete (wfpsim Export Integration)
 > **Priority**: High
-> **Estimated Effort**: ~700 lines, 50-65 tests
+> **Actual Effort**: ~1,300 lines, 67 tests
 
 ---
 
@@ -18,15 +18,16 @@ After evaluating the complexity of building a custom DPS calculator, we decided 
 |--------|-------------------|-------------------|
 | **Accuracy** | Approximate formulas | Frame-perfect Monte Carlo |
 | **Maintenance** | Track every patch | Community-maintained |
-| **Dev Effort** | ~40k+ lines (see gcsim) | ~700 lines |
+| **Dev Effort** | ~40k+ lines (see gcsim) | ~1,300 lines |
 | **Rotation Handling** | Auto-estimated (inaccurate) | User-defined scripts |
 
 ### Chosen Approach
 
-**Phase 1 (Sprint 12)**: Export team configs to wfpsim format
+**Phase 1 (Sprint 12)**: Export team configs to wfpsim format ✅ COMPLETE
 - Generate config text from team data
 - User pastes into wfpsim.com and adds rotation
 - Low effort, high accuracy
+- **Implementation**: See `src/features/teams/domain/gcsimKeyMappings.ts` and `gcsimConfigGenerator.ts`
 
 **Phase 2 (Future)**: Embedded wfpsim binary
 - Bundle wfpsim with Tauri app

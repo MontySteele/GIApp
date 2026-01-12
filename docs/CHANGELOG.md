@@ -1,5 +1,54 @@
 # Changelog
 
+## 2026-01-12 (Sprint 12 - Phase 1 Complete)
+
+### wfpsim Export Integration
+- **gcsim Key Mappings** (~670 lines) - Comprehensive character, weapon, artifact, and stat mappings
+  - 100+ character keys with special handling (Raiden Shogun, Hu Tao, Traveler variants)
+  - 150+ weapon keys (unique per weapon, not shared by type)
+  - 40+ artifact set keys
+  - 25 stat keys with percentage conversion
+- **Config Generator** (~410 lines) - Generates wfpsim-compatible team configurations
+  - Full team export with options (iterations, duration, target settings)
+  - Validation with error messages for incomplete data
+  - Artifact stat aggregation (main stats + substats)
+- **Export UI Modal** (~220 lines) - User-friendly export interface
+  - Config preview with adjustable options
+  - Copy to clipboard with visual feedback
+  - Open wfpsim.com button
+  - Step-by-step instructions
+- **UI Integration** - Zap icon button on team cards, modal state management
+
+### Tests
+- 67 new tests (32 key mappings, 20 config generator, 15 modal UI)
+- Total test count: 1,169+
+
+See `docs/SPRINT_12_PLAN.md` for full details.
+
+---
+
+## 2026-01 (Sprint 11 - Complete)
+
+### Phase 1: Test Coverage Expansion
+- Test count increased from 545 → 1,102 tests (102% growth)
+- Added comprehensive page component tests
+- Added custom hook tests
+- Improved assertion quality
+
+### Phase 2: Technical Debt Reduction
+- **PlannerPage refactoring** - 1,096 → 296 lines (73% reduction)
+- **MultiTargetCalculator refactoring** - 983 → 247 lines (75% reduction)
+- **gameData modularization** - Split into focused modules
+- **Type safety** - Fixed mappers with proper type assertions
+- Added barrel exports for all features
+
+### Key Decision
+- Pivoted from custom DPS calculator to wfpsim integration (see Sprint 12)
+
+See `docs/SPRINT_11_PLAN.md` for full details.
+
+---
+
 ## 2026-01 (Sprint 11 - Planning)
 
 ### Codebase Review
@@ -7,22 +56,6 @@
 - Assessed architecture patterns, test coverage, and UI/UX
 - Identified critical gaps in test coverage (page components, hooks)
 - Documented technical debt areas (large components, type safety)
-
-### Sprint 11 Plan Created
-- **Phase 1: Test Coverage Expansion** - Target 80%+ coverage
-  - Page component tests (11 untested pages)
-  - Custom hook tests (14 untested hooks)
-  - E2E test suite for critical workflows
-- **Phase 2: Technical Debt Reduction**
-  - PlannerPage refactoring (1,096 → <300 lines)
-  - MultiTargetCalculator refactoring (983 → <250 lines)
-  - gameData modularization
-  - Type safety improvements (eliminate `any` types)
-  - Barrel exports for all features
-- **Phase 3: New Features**
-  - Team DPS Comparisons
-  - Build Templates (save/share)
-  - Weekly Boss Tracker
 
 See `docs/SPRINT_11_PLAN.md` for full details.
 

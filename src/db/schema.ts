@@ -17,6 +17,7 @@ import type {
   InventoryWeapon,
   MaterialInventory,
   ImportRecord,
+  BuildTemplate,
 } from '@/types';
 
 export const SCHEMA_STORES = {
@@ -54,6 +55,14 @@ export const SCHEMA_STORES_V3 = {
   importRecords: 'id, source, importedAt',
 };
 
+// V4: Add build templates
+export const SCHEMA_STORES_V4 = {
+  ...SCHEMA_STORES_V3,
+  // Build templates for characters
+  // Indexed for filtering by character, role, difficulty, budget
+  buildTemplates: 'id, characterKey, role, difficulty, budget, isOfficial, updatedAt, *tags',
+};
+
 export class GenshinTrackerDB extends Dexie {
   characters!: EntityTable<Character, 'id'>;
   teams!: EntityTable<Team, 'id'>;
@@ -73,6 +82,8 @@ export class GenshinTrackerDB extends Dexie {
   inventoryWeapons!: EntityTable<InventoryWeapon, 'id'>;
   materialInventory!: EntityTable<MaterialInventory, 'id'>;
   importRecords!: EntityTable<ImportRecord, 'id'>;
+  // V4 tables
+  buildTemplates!: EntityTable<BuildTemplate, 'id'>;
 
   constructor(databaseName = 'GenshinTracker') {
     super(databaseName);
@@ -80,6 +91,7 @@ export class GenshinTrackerDB extends Dexie {
     this.version(1).stores(SCHEMA_STORES);
     this.version(2).stores(SCHEMA_STORES_V2);
     this.version(3).stores(SCHEMA_STORES_V3);
+    this.version(4).stores(SCHEMA_STORES_V4);
   }
 }
 
