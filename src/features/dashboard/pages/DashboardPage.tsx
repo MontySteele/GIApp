@@ -4,20 +4,19 @@ import {
   Users,
   Gem,
   Sword,
-  Target,
-  Flag,
   Sparkles,
   Zap,
   TrendingUp,
   Calendar,
   ArrowRight,
+  Target,
 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
-import { useBannerPlanner, formatPrimos } from '@/features/banners/hooks/useBannerPlanner';
+import { useResources } from '@/features/ledger/hooks/useResources';
 import {
   calculateCurrentResin,
   timeUntilFull,
@@ -26,11 +25,24 @@ import {
   type ResinBudget,
 } from '@/features/planner/domain/resinCalculator';
 
+/**
+ * Format primogems to readable string
+ */
+function formatPrimos(primos: number): string {
+  if (primos >= 1000000) {
+    return `${(primos / 1000000).toFixed(1)}M`;
+  }
+  if (primos >= 1000) {
+    return `${(primos / 1000).toFixed(1)}K`;
+  }
+  return primos.toLocaleString();
+}
+
 export default function DashboardPage() {
   const { characters, isLoading: loadingChars } = useCharacters();
   const { stats: artifactStats, isLoading: loadingArtifacts } = useArtifacts();
   const { stats: weaponStats, isLoading: loadingWeapons } = useWeapons();
-  const { banners, plan, currentPrimos, currentFates, isLoading: loadingBanners } = useBannerPlanner();
+  const { primogems, intertwined, totalPulls, isLoading: loadingResources } = useResources();
 
   // Load resin from localStorage
   const resinBudget = useMemo<ResinBudget>(() => {
@@ -51,20 +63,10 @@ export default function DashboardPage() {
     const total = characters.length;
     const maxLevel = characters.filter((c) => c.level === 90).length;
     const maxConst = characters.filter((c) => c.constellation === 6).length;
-    const fiveStars = characters.filter((c) => {
-      // Simplified check - in real app would use character data
-      return c.key.length > 0; // Placeholder
-    }).length;
-    return { total, maxLevel, maxConst, fiveStars };
+    return { total, maxLevel, maxConst };
   }, [characters]);
 
-  // Next banner
-  const nextBanner = useMemo(() => {
-    if (plan.bannerForecasts.length === 0) return null;
-    return plan.bannerForecasts[0];
-  }, [plan]);
-
-  const isLoading = loadingChars || loadingArtifacts || loadingWeapons || loadingBanners;
+  const isLoading = loadingChars || loadingArtifacts || loadingWeapons || loadingResources;
 
   if (isLoading) {
     return (
@@ -109,12 +111,12 @@ export default function DashboardPage() {
           to="/weapons"
         />
         <StatCard
-          icon={<Flag className="w-5 h-5" />}
-          label="Planned Banners"
-          value={banners.length}
-          subtext={`${plan.totalPullsNeeded} pulls needed`}
+          icon={<Sparkles className="w-5 h-5" />}
+          label="Available Pulls"
+          value={totalPulls}
+          subtext={`${formatPrimos(primogems)} primogems`}
           color="text-green-400"
-          to="/banners"
+          to="/ledger"
         />
       </div>
 
@@ -176,71 +178,28 @@ export default function DashboardPage() {
               <h3 className="font-semibold">Primogems</h3>
             </div>
             <Link
-              to="/banners"
+              to="/ledger"
               className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
             >
-              Plan <ArrowRight className="w-3 h-3" />
+              Ledger <ArrowRight className="w-3 h-3" />
             </Link>
           </CardHeader>
           <CardContent>
             <div className="flex items-end justify-between">
               <div>
-                <div className="text-3xl font-bold text-yellow-400">{formatPrimos(currentPrimos)}</div>
-                <div className="text-sm text-slate-400">+ {currentFates} Fates</div>
+                <div className="text-3xl font-bold text-yellow-400">{formatPrimos(primogems)}</div>
+                <div className="text-sm text-slate-400">+ {intertwined} Fates</div>
               </div>
               <div className="text-right">
                 <div className="text-sm text-slate-400">Available Pulls</div>
                 <div className="text-lg font-medium text-slate-200">
-                  {currentFates + Math.floor(currentPrimos / 160)}
+                  {totalPulls}
                 </div>
               </div>
             </div>
-            {plan.totalPullsNeeded > 0 && (
-              <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="text-slate-400">Progress to goal:</span>
-                <span className="text-slate-200">
-                  {Math.min(100, Math.round(((currentFates + Math.floor(currentPrimos / 160)) / plan.totalPullsNeeded) * 100))}%
-                </span>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Upcoming Banner */}
-      {nextBanner && (
-        <Card>
-          <CardHeader className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary-400" />
-              <h3 className="font-semibold">Next Banner</h3>
-            </div>
-            <Badge variant={nextBanner.canReachGoal ? 'success' : 'danger'}>
-              {nextBanner.canReachGoal ? 'On Track' : `Need ${nextBanner.pullDeficit} more`}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xl font-bold text-slate-100">
-                  {nextBanner.banner.characterKey}
-                </div>
-                <div className="text-sm text-slate-400">
-                  {nextBanner.daysUntilBanner > 0
-                    ? `Starts in ${nextBanner.daysUntilBanner} days`
-                    : 'Active now'}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-slate-400">Pulls by then</div>
-                <div className="text-lg font-medium text-slate-200">
-                  {nextBanner.pullsAvailable}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Quick Links */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

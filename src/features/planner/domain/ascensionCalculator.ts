@@ -16,6 +16,40 @@ import {
   MATERIAL_CONVERSION_RATE,
 } from './materialConstants';
 
+/**
+ * Normalize a material key for lookup by converting to lowercase and removing special chars
+ */
+function normalizeKey(key: string): string {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Look up a material count from inventory with flexible key matching
+ * Handles variations like "Hero's Wit", "HeroesWit", "HerosWit"
+ */
+function getMaterialCount(
+  inventory: Record<string, number>,
+  ...possibleKeys: string[]
+): number {
+  // Try exact key matches first
+  for (const key of possibleKeys) {
+    if (inventory[key] !== undefined) {
+      return inventory[key];
+    }
+  }
+
+  // Try normalized lookups
+  const normalizedTargets = possibleKeys.map(normalizeKey);
+  for (const [key, value] of Object.entries(inventory)) {
+    const normalizedKey = normalizeKey(key);
+    if (normalizedTargets.includes(normalizedKey)) {
+      return value;
+    }
+  }
+
+  return 0;
+}
+
 export interface AscensionGoal {
   characterKey: string;
   currentLevel: number;
@@ -238,7 +272,7 @@ export function calculateAscensionSummary(
   const totalMora = ascensionMats.mora + talentMats.mora + levelingMora;
 
   // Add Mora requirement
-  const ownedMora = inventory['Mora'] || 0;
+  const ownedMora = getMaterialCount(inventory, 'Mora', 'mora');
   materials.push({
     key: 'Mora',
     name: 'Mora',
@@ -249,9 +283,15 @@ export function calculateAscensionSummary(
   });
 
   // Add EXP requirement
-  const ownedHerosWit = inventory['HerosWit'] || inventory["Hero's Wit"] || 0;
+  const ownedHerosWit = getMaterialCount(
+    inventory,
+    'HeroesWit',
+    'HerosWit',
+    "Hero's Wit",
+    'heros_wit'
+  );
   materials.push({
-    key: 'HerosWit',
+    key: 'HeroesWit',
     name: "Hero's Wit",
     category: 'exp',
     required: herosWitNeeded,
@@ -346,7 +386,12 @@ export function calculateAscensionSummary(
 
   // Add crown
   if (talentMats.crown > 0) {
-    const ownedCrowns = inventory['CrownOfInsight'] || inventory['Crown of Insight'] || 0;
+    const ownedCrowns = getMaterialCount(
+      inventory,
+      'CrownOfInsight',
+      'Crown of Insight',
+      'crown_of_insight'
+    );
     materials.push({
       key: 'CrownOfInsight',
       name: 'Crown of Insight',

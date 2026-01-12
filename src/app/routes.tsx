@@ -6,7 +6,6 @@ import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
 import ArtifactsPage from '@/features/artifacts/pages/ArtifactsPage';
 import WeaponsPage from '@/features/weapons/pages/WeaponsPage';
 import PlannerPage from '@/features/planner/pages/PlannerPage';
-import BannerPlannerPage from '@/features/banners/pages/BannerPlannerPage';
 import WishesPage from '@/features/wishes/pages/WishesPage';
 import LedgerPage from '@/features/ledger/pages/LedgerPage';
 import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
@@ -42,10 +41,6 @@ export const router = createBrowserRouter([
       {
         path: 'planner',
         element: <PlannerPage />,
-      },
-      {
-        path: 'banners',
-        element: <BannerPlannerPage />,
       },
       {
         path: 'wishes',
