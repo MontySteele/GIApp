@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Target, Package, Clock, ChevronDown, ChevronUp, Check, AlertCircle, Calendar } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Target, Package, Clock, ChevronDown, ChevronUp, Check, AlertCircle, Calendar, WifiOff } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Select from '@/components/ui/Select';
@@ -47,6 +47,8 @@ export default function PlannerPage() {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [goalType, setGoalType] = useState<'full' | 'next'>('next');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']));
+  const [summary, setSummary] = useState<AscensionSummary | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   const selectedCharacter = useMemo(
     () => characters.find((c) => c.id === selectedCharacterId),
@@ -60,9 +62,39 @@ export default function PlannerPage() {
       : createNextAscensionGoal(selectedCharacter);
   }, [selectedCharacter, goalType]);
 
-  const summary = useMemo<AscensionSummary | null>(() => {
-    if (!goal) return null;
-    return calculateAscensionSummary(goal, materials);
+  // Calculate summary asynchronously when goal or materials change
+  useEffect(() => {
+    if (!goal) {
+      setSummary(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const calculate = async () => {
+      setIsCalculating(true);
+      try {
+        const result = await calculateAscensionSummary(goal, materials);
+        if (!isCancelled) {
+          setSummary(result);
+        }
+      } catch (error) {
+        console.error('Failed to calculate ascension summary:', error);
+        if (!isCancelled) {
+          setSummary(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsCalculating(false);
+        }
+      }
+    };
+
+    void calculate();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [goal, materials]);
 
   const toggleSection = (section: string) => {
@@ -215,6 +247,23 @@ export default function PlannerPage() {
         </Card>
       )}
 
+      {/* Data Status Warning */}
+      {summary?.isStale && (
+        <Card className="mb-6 border-yellow-900/30 bg-yellow-900/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <WifiOff className="w-5 h-5 text-yellow-500" />
+              <div>
+                <div className="text-sm font-medium text-yellow-200">Using Cached Data</div>
+                <div className="text-xs text-yellow-400">
+                  {summary.error || 'Material data may be outdated. Check your internet connection.'}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Materials Breakdown */}
       {summary && (
         <Card>
@@ -223,7 +272,15 @@ export default function PlannerPage() {
               className="flex items-center justify-between w-full"
               onClick={() => toggleSection('materials')}
             >
-              <h2 className="text-lg font-semibold">Materials Required</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold">Materials Required</h2>
+                {isCalculating && (
+                  <div className="text-xs text-slate-500 flex items-center gap-1">
+                    <div className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                    Loading...
+                  </div>
+                )}
+              </div>
               {expandedSections.has('materials') ? (
                 <ChevronUp className="w-5 h-5 text-slate-400" />
               ) : (
@@ -237,19 +294,40 @@ export default function PlannerPage() {
                 {summary.materials.map((mat) => (
                   <div
                     key={mat.key}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
+                    className={`flex items-start justify-between p-3 rounded-lg ${
                       mat.deficit > 0 ? 'bg-red-900/20 border border-red-900/30' : 'bg-slate-900'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3 flex-1">
                       <div
-                        className={`w-2 h-2 rounded-full ${
+                        className={`w-2 h-2 rounded-full mt-1.5 ${
                           mat.deficit > 0 ? 'bg-red-500' : 'bg-green-500'
                         }`}
                       />
-                      <div>
+                      <div className="flex-1">
                         <div className="text-sm font-medium text-slate-200">{mat.name}</div>
-                        <div className="text-xs text-slate-500 capitalize">{mat.category}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-slate-500 capitalize">{mat.category}</span>
+                          {mat.tier && (
+                            <span className="text-xs text-slate-600">• Tier {mat.tier}</span>
+                          )}
+                        </div>
+                        {/* Source and availability info */}
+                        {(mat.source || mat.availability) && (
+                          <div className="mt-1 flex items-center gap-2">
+                            {mat.availability && mat.availability.length > 0 && (
+                              <div className="flex items-center gap-1 text-xs text-blue-400">
+                                <Calendar className="w-3 h-3" />
+                                <span>{mat.availability.join(', ')}</span>
+                              </div>
+                            )}
+                            {mat.source && !mat.availability && (
+                              <div className="text-xs text-slate-500">
+                                {mat.source}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
