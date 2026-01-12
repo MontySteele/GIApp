@@ -16,6 +16,7 @@ import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
+const CACHE_SCHEMA_VERSION = 2; // Increment when cache structure changes
 
 /**
  * Known local specialties (region-specific gathering items)
@@ -513,6 +514,14 @@ function processCharacterMaterials(
 }
 
 /**
+ * Cache entry structure with schema versioning
+ */
+interface CacheEntry {
+  data: CharacterMaterialData;
+  schemaVersion?: number;
+}
+
+/**
  * Get character materials from cache or API
  */
 export async function getCharacterMaterials(
@@ -528,17 +537,26 @@ export async function getCharacterMaterials(
     try {
       const cached = await db.externalCache.get(cacheKey);
       if (cached) {
-        cachedData = cached.data as CharacterMaterialData;
+        const cacheEntry = cached.data as CacheEntry | CharacterMaterialData;
         const cacheExpiresAt = new Date(cached.expiresAt).getTime();
 
-        // Return fresh cache data
-        if (Date.now() < cacheExpiresAt) {
+        // Detect cache format - new format has schemaVersion, old format is raw CharacterMaterialData
+        const schemaVersion = 'schemaVersion' in cacheEntry ? cacheEntry.schemaVersion : 0;
+        const materialData = 'schemaVersion' in cacheEntry ? cacheEntry.data : cacheEntry;
+
+        // Cache is valid if not expired AND schema version matches
+        const isSchemaValid = schemaVersion === CACHE_SCHEMA_VERSION;
+        const isNotExpired = Date.now() < cacheExpiresAt;
+
+        if (isNotExpired && isSchemaValid) {
           return {
-            data: cachedData,
+            data: materialData,
             isStale: false,
           };
         }
-        // Cache is stale - we'll try to refresh, but keep as fallback
+
+        // Cache is stale (expired or old schema) - we'll try to refresh, but keep as fallback
+        cachedData = materialData;
       }
     } catch (dbError) {
       console.warn('Failed to read from cache:', dbError);
@@ -559,10 +577,15 @@ export async function getCharacterMaterials(
     try {
       const now = new Date().toISOString();
       const expiresAt = new Date(Date.now() + CACHE_TTL).toISOString();
+      // Store with schema version for cache invalidation on structure changes
+      const cacheEntry: CacheEntry = {
+        data: materials,
+        schemaVersion: CACHE_SCHEMA_VERSION,
+      };
       await db.externalCache.put({
         id: cacheKey,
         cacheKey,
-        data: materials,
+        data: cacheEntry,
         fetchedAt: now,
         expiresAt,
       });
