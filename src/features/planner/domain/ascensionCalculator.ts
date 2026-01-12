@@ -301,15 +301,21 @@ async function buildMaterialsWithApiData(
   }
 
   // Add common enemy materials (ascension) by tier
-  const commonTierNames = ['Gray', 'Green', 'Blue'];
+  const commonTierInfo: Array<{ label: string; key: 'gray' | 'green' | 'blue' }> = [
+    { label: 'Gray', key: 'gray' },
+    { label: 'Green', key: 'green' },
+    { label: 'Blue', key: 'blue' },
+  ];
   ascensionMats.commonMat.forEach((amt, tier) => {
-    if (amt > 0) {
-      const commonBaseName = characterData?.ascensionMaterials.common.baseName || 'Common Material';
-      const tierSuffixes = ['', 'Stained', 'Ominous']; // Simplified
-      const commonFullName = tier === 0 ? commonBaseName : `${tierSuffixes[tier]} ${commonBaseName}`;
+    const tierInfo = commonTierInfo[tier];
+    if (amt > 0 && tierInfo) {
+      // Use actual tier names from API data if available
+      const actualName = characterData?.ascensionMaterials.common.tierNames[tierInfo.key];
+      const fallbackName = characterData?.ascensionMaterials.common.baseName || 'Common Material';
+      const materialName = actualName || `${fallbackName} (${tierInfo.label})`;
       addMaterial(
-        commonFullName,
-        `${commonFullName} (${commonTierNames[tier]})`,
+        materialName,
+        materialName,
         'common',
         amt,
         tier + 1
@@ -343,12 +349,14 @@ async function buildMaterialsWithApiData(
     const tiers = [talentCommon.byTier.gray, talentCommon.byTier.green, talentCommon.byTier.blue];
 
     tiers.forEach((amt, tier) => {
-      if (amt > 0) {
-        const tierSuffixes = ['', 'Stained', 'Ominous'];
-        const commonFullName = tier === 0 ? talentCommon.baseName : `${tierSuffixes[tier]} ${talentCommon.baseName}`;
+      const tierInfo = commonTierInfo[tier];
+      if (amt > 0 && tierInfo) {
+        // Use actual tier names from API data if available
+        const actualName = talentCommon.tierNames[tierInfo.key];
+        const materialName = actualName || `${talentCommon.baseName} (${tierInfo.label})`;
         addMaterial(
-          commonFullName,
-          `${commonFullName} (${commonTierNames[tier]})`,
+          materialName,
+          materialName,
           'common',
           amt,
           tier + 1

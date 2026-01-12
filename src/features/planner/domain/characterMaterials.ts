@@ -30,8 +30,13 @@ export interface CharacterMaterialData {
       region?: string; // e.g., "Fontaine"
     };
     common: {
-      name: string; // e.g., "Whopperflower Nectar"
-      baseName: string; // e.g., "Whopperflower Nectar" (for all tiers)
+      name: string; // e.g., "Whopperflower Nectar" (last seen name)
+      baseName: string; // e.g., "Nectar" (family name)
+      tierNames: {
+        gray: string; // e.g., "Slime Condensate"
+        green: string; // e.g., "Slime Secretions"
+        blue: string; // e.g., "Slime Concentrate"
+      };
       byTier: {
         gray: number; // Tier 1
         green: number; // Tier 2
@@ -55,6 +60,11 @@ export interface CharacterMaterialData {
     common: {
       name: string; // Same as ascension common mats
       baseName: string;
+      tierNames: {
+        gray: string;
+        green: string;
+        blue: string;
+      };
       byTier: {
         gray: number;
         green: number;
