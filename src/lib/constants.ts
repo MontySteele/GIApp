@@ -60,6 +60,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
 
 // App Navigation
 export const TABS = [
+  { id: 'dashboard', label: 'Dashboard', path: '/' },
   { id: 'roster', label: 'Roster', path: '/roster' },
   { id: 'artifacts', label: 'Artifacts', path: '/artifacts' },
   { id: 'weapons', label: 'Weapons', path: '/weapons' },

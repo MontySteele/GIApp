@@ -1,5 +1,6 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import Layout from './Layout';
+import DashboardPage from '@/features/dashboard/pages/DashboardPage';
 import RosterPage from '@/features/roster/pages/RosterPage';
 import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
 import ArtifactsPage from '@/features/artifacts/pages/ArtifactsPage';
@@ -20,7 +21,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/roster" replace />,
+        element: <DashboardPage />,
       },
       {
         path: 'roster',
