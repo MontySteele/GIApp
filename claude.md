@@ -52,21 +52,21 @@ React Components → Hooks → Repository Layer → Dexie (IndexedDB)
 
 ---
 
-## Current Sprint: 8.1 (January 2026) - COMPLETED
+## Current Sprint: 9 (January 2026)
 
-### Completed
-- Genshin-DB API integration for character-specific materials
-- Fixed material categorization (LOCAL_SPECIALTIES whitelist, COMMON_TIER_PATTERNS)
-- Fixed API response type parsing (arrays, not objects)
-- **All 390 tests passing** (down from 35 failures)
-- Fixed resource calculation double-counting bug in resourceService.ts
-- Added cache schema versioning to invalidate stale material data
-- Added material aggregation (same materials for ascension + talents combined)
-- Added manual Mora input field in planner
-- Added "Comfortable Build" goal option (80/8/8/8)
+### Goals
+1. **Multi-character planner** - Select multiple characters, aggregate all material needs
+2. **Weapon material planner** - Extend planner to include weapon ascension
 
-### Sprint 9 Candidates
-See bottom of this file for prioritized backlog
+### Requirements
+- **TDD**: Write tests BEFORE implementation
+- **Coverage**: Maintain 80%+ test coverage
+- Run `npm test -- --run` before committing
+
+### Previous Sprint (8.1) - Completed
+- All 390 tests passing
+- Genshin-DB API integration with cache versioning
+- Material aggregation, manual Mora input, Comfortable Build goal
 
 ---
 
@@ -112,24 +112,20 @@ See [Contributing Guide](docs/CONTRIBUTING.md) for details.
 
 ---
 
-## Sprint 9 Backlog (Prioritized)
+## Future Sprint Backlog
 
-### High Priority
-1. **Multi-character planner** - Select multiple characters and aggregate all material needs
-2. **Weapon material planner** - Extend planner to include weapon ascension materials
-3. **Artifact optimizer** - Basic artifact scoring and set recommendations
+### Sprint 10 Candidates
+1. **Artifact optimizer** - Basic artifact scoring and set recommendations
+2. **QR code camera import** - Scan Enka QR codes directly from camera
+3. **Farming route suggestions** - Show optimal domains/bosses based on needed materials
 
-### Medium Priority
-4. **QR code camera import** - Scan Enka QR codes directly from camera
-5. **Farming route suggestions** - Show optimal domains/bosses based on needed materials
-6. **Resin efficiency calculator** - Recommend best use of daily resin
+### Sprint 11+ Candidates
+4. **Resin efficiency calculator** - Recommend best use of daily resin
+5. **Team DPS comparisons** - Compare team compositions
+6. **Build templates** - Save and share character build templates
+7. **Achievement tracker** - Track in-game achievements
 
-### Lower Priority
-7. **Team DPS comparisons** - Compare team compositions
-8. **Build templates** - Save and share character build templates
-9. **Achievement tracker** - Track in-game achievements
-
-### Technical Debt
-- Increase test coverage to 80% target
+### Technical Debt (Ongoing)
+- Maintain 80%+ test coverage
 - Add E2E tests for critical user flows
 - Performance profiling for large inventories
