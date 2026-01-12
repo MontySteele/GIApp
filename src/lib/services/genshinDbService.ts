@@ -16,7 +16,7 @@ import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
-const CACHE_SCHEMA_VERSION = 3; // Increment when cache structure changes - v3: improved boss material detection
+const CACHE_SCHEMA_VERSION = 4; // Increment when cache structure changes - v4: added Natlan common materials
 
 /**
  * Known local specialties (region-specific gathering items)
@@ -59,6 +59,9 @@ const COMMON_TIER_PATTERNS = {
     'Faded Red Satin', 'Transoceanic Pearl', 'Juvenile Fang', 'A Flower Yet to Bloom',
     'Shard of a Shattered Will', 'Old Operative\'s Pocket Watch', 'Feathery Fin',
     'Ruined Hilt', 'Axis of the Secret Source',
+    // Natlan materials (5.0+)
+    'Saurian Claw', 'Ignited Stone', 'Blazing Sacrificial Heart\'s Terror',
+    'Meshing Gear', 'Foreigners\' Deciphered Notes',
   ],
   // Tier 2 (Green) patterns
   tier2: [
@@ -70,6 +73,9 @@ const COMMON_TIER_PATTERNS = {
     'Trimmed Red Silk', 'Transoceanic Chunk', 'Seasoned Fang', 'Budding Greenery',
     'Shard of a Foul Legacy', 'Operative\'s Standard Pocket Watch', 'Lunar Fin',
     'Splintered Hilt', 'Sheath of the Secret Source',
+    // Natlan materials (5.0+)
+    'Sturdy Saurian Claw', 'Blazing Core', 'Blazing Sacrificial Heart\'s Resolve',
+    'Mechanical Spur Gear', 'Foreigners\'Erta',
   ],
   // Tier 3 (Blue) patterns
   tier3: [
@@ -81,6 +87,9 @@ const COMMON_TIER_PATTERNS = {
     'Rich Red Brocade', 'Xenochromatic Crystal', 'Tyrant\'s Fang', 'Wilting Glory',
     'Shard of a Conquered Will', 'Operative\'s Constancy', 'Chasmlight Fin',
     'Still-Smoldering Hilt', 'Heart of the Secret Source',
+    // Natlan materials (5.0+)
+    'Tempered Saurian Claw', 'Roiling Magma Drop', 'Blazing Sacrificial Heart\'s Splendor',
+    'Artificed Dynamic Gear', 'Foreigners\' Zekhava',
   ],
 };
 
