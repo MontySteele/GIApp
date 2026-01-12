@@ -80,12 +80,12 @@ describe('gcsimKeyMappings', () => {
     });
 
     it('converts common 4-star weapons', () => {
-      expect(toGcsimWeaponKey('TheCatch')).toBe('catch');
-      expect(toGcsimWeaponKey('The Catch')).toBe('catch');
-      expect(toGcsimWeaponKey('SacrificialSword')).toBe('sacrifical');
-      expect(toGcsimWeaponKey('FavoniusSword')).toBe('favonius');
+      expect(toGcsimWeaponKey('TheCatch')).toBe('thecatch');
+      expect(toGcsimWeaponKey('The Catch')).toBe('thecatch');
+      expect(toGcsimWeaponKey('SacrificialSword')).toBe('sacrificialsword');
+      expect(toGcsimWeaponKey('FavoniusSword')).toBe('favoniussword');
       expect(toGcsimWeaponKey('TheStringless')).toBe('stringless');
-      expect(toGcsimWeaponKey('TheWidsith')).toBe('widsith');
+      expect(toGcsimWeaponKey('TheWidsith')).toBe('thewidsith');
     });
 
     it('converts 3-star weapons', () => {
