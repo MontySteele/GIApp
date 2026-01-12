@@ -266,7 +266,7 @@ export function createWeaponGoal(
     ascension: number;
     rarity: 4 | 5;
   },
-  goalType: 'full' | 'next' = 'full'
+  goalType: 'full' | 'comfortable' | 'next' = 'full'
 ): WeaponAscensionGoal {
   const levelCaps = [20, 40, 50, 60, 70, 80, 90];
 
@@ -284,7 +284,19 @@ export function createWeaponGoal(
     };
   }
 
-  // Full ascension
+  if (goalType === 'comfortable') {
+    // 80/80 build - A5
+    return {
+      weaponKey: weapon.key,
+      currentLevel: weapon.level,
+      targetLevel: 80,
+      currentAscension: weapon.ascension,
+      targetAscension: 5,
+      rarity: weapon.rarity,
+    };
+  }
+
+  // Full ascension (90)
   return {
     weaponKey: weapon.key,
     currentLevel: weapon.level,

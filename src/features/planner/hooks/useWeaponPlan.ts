@@ -12,7 +12,7 @@ import {
   type WeaponAscensionSummary,
 } from '../domain/weaponCalculator';
 
-export type WeaponGoalType = 'full' | 'next';
+export type WeaponGoalType = 'full' | 'comfortable' | 'next';
 
 export interface Weapon {
   id: string;

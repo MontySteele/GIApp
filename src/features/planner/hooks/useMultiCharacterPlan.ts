@@ -13,7 +13,7 @@ import {
 } from '../domain/multiCharacterCalculator';
 import type { Character } from '@/types';
 
-export type GoalType = 'full' | 'comfortable' | 'next';
+export type GoalType = 'full' | 'comfortable' | 'functional' | 'next';
 
 interface UseMultiCharacterPlanOptions {
   characters: Character[];

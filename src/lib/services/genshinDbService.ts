@@ -16,7 +16,7 @@ import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
-const CACHE_SCHEMA_VERSION = 2; // Increment when cache structure changes
+const CACHE_SCHEMA_VERSION = 3; // Increment when cache structure changes - v3: improved boss material detection
 
 /**
  * Known local specialties (region-specific gathering items)
@@ -29,6 +29,8 @@ const LOCAL_SPECIALTIES = new Set([
   // Liyue
   'Cor Lapis', 'Glaze Lily', 'Jueyun Chili', 'Noctilucous Jade',
   'Qingxin', 'Silk Flower', 'Starconch', 'Violetgrass',
+  // Chenyu Vale (Liyue sub-region)
+  'Chenyu Adeptus Berry', 'Clearwater Jade',
   // Inazuma
   'Amakumo Fruit', 'Crystal Marrow', 'Dendrobium', 'Fluorescent Fungus',
   'Naku Weed', 'Onikabuto', 'Sakura Bloom', 'Sango Pearl', 'Sea Ganoderma',
@@ -383,51 +385,11 @@ function processCharacterMaterials(
               materials.ascensionMaterials.common.byTier.blue += item.count;
             }
           } else {
-            // Unknown material - assume boss drop if significant count, else local specialty
-            // Boss drops typically have higher counts and unique names
-            if (
-              name.includes('Seed') ||
-              name.includes('Core') ||
-              name.includes('Orb') ||
-              name.includes('Scale') ||
-              name.includes('Claw') ||
-              name.includes('Bone') ||
-              name.includes('Cleansing') ||
-              name.includes('Hurricane') ||
-              name.includes('Lightning') ||
-              name.includes('Basalt') ||
-              name.includes('Hoarfrost') ||
-              name.includes('Everflame') ||
-              name.includes('Crystalline') ||
-              name.includes('Juvenile Jade') ||
-              name.includes('Smoldering') ||
-              name.includes('Perpetual') ||
-              name.includes('Runic') ||
-              name.includes('Dew of Repudiation') ||
-              name.includes('Storm Beads') ||
-              name.includes('Dragonheir') ||
-              name.includes('Riftborn') ||
-              name.includes('Puppet Strings') ||
-              name.includes('Quelled') ||
-              name.includes('Thunderclap') ||
-              name.includes('Artificed') ||
-              name.includes('Fontemer') ||
-              name.includes('Water That Failed') ||
-              name.includes('Light Guiding') ||
-              name.includes('Cloudseam') ||
-              name.includes('Fragment of a') ||
-              name.includes('Denial and Judgment') ||
-              name.includes('Overripe') ||
-              name.includes('Gold-Inscribed') ||
-              name.includes('Mark of the Binding')
-            ) {
-              materials.ascensionMaterials.boss.name = name;
-              materials.ascensionMaterials.boss.totalCount += item.count;
-            } else {
-              // Truly unknown - default to local specialty
-              materials.ascensionMaterials.localSpecialty.name = name;
-              materials.ascensionMaterials.localSpecialty.totalCount += item.count;
-            }
+            // Unknown material that's not a gem, local specialty, or common material
+            // In character ascension costs, the only remaining type is boss drop
+            // This is a safer fallback than the previous keyword matching
+            materials.ascensionMaterials.boss.name = name;
+            materials.ascensionMaterials.boss.totalCount += item.count;
           }
         }
       }

@@ -10,6 +10,7 @@ import {
   type AscensionGoal,
   type AscensionSummary,
   type MaterialRequirement,
+  type ResinBreakdown,
 } from './ascensionCalculator';
 
 /**
@@ -45,6 +46,7 @@ export interface AggregatedMaterialSummary {
   totalMora: number;
   totalExp: number;
   totalEstimatedResin: number;
+  resinBreakdown: ResinBreakdown;
   totalEstimatedDays: number;
   allCanAscend: boolean;
   anyStale: boolean;
@@ -141,6 +143,7 @@ export async function calculateMultiCharacterSummary(
       totalMora: 0,
       totalExp: 0,
       totalEstimatedResin: 0,
+      resinBreakdown: { talentBoss: 0, expMora: 0, total: 0 },
       totalEstimatedDays: 0,
       allCanAscend: true,
       anyStale: false,
@@ -172,6 +175,13 @@ export async function calculateMultiCharacterSummary(
     0
   );
 
+  // Aggregate resin breakdown
+  const resinBreakdown: ResinBreakdown = {
+    talentBoss: characterSummaries.reduce((sum, s) => sum + s.resinBreakdown.talentBoss, 0),
+    expMora: characterSummaries.reduce((sum, s) => sum + s.resinBreakdown.expMora, 0),
+    total: totalEstimatedResin,
+  };
+
   // Days should be max of individual, since we can farm for multiple characters simultaneously
   // But we need more resin, so use resin-based calculation
   const totalEstimatedDays = Math.ceil(totalEstimatedResin / 180);
@@ -194,6 +204,7 @@ export async function calculateMultiCharacterSummary(
     totalMora,
     totalExp,
     totalEstimatedResin,
+    resinBreakdown,
     totalEstimatedDays,
     allCanAscend,
     anyStale,
@@ -206,13 +217,13 @@ export async function calculateMultiCharacterSummary(
  */
 export function createGoalsFromCharacters(
   characters: Array<{ key: string; level: number; ascension: number; talent: { auto: number; skill: number; burst: number } }>,
-  goalType: 'full' | 'comfortable' | 'next' = 'full'
+  goalType: 'full' | 'comfortable' | 'functional' | 'next' = 'full'
 ): MultiCharacterGoal[] {
   return characters.map((char) => {
     let goal: AscensionGoal;
 
     if (goalType === 'comfortable') {
-      // 80/8/8/8 build
+      // 80/8/8/8 build with full ascension
       goal = {
         characterKey: char.key,
         currentLevel: char.level,
@@ -224,6 +235,21 @@ export function createGoalsFromCharacters(
           auto: Math.max(char.talent.auto, 8),
           skill: Math.max(char.talent.skill, 8),
           burst: Math.max(char.talent.burst, 8),
+        },
+      };
+    } else if (goalType === 'functional') {
+      // 80/80 A5 with 1/6/6 talents - minimal investment for a working character
+      goal = {
+        characterKey: char.key,
+        currentLevel: char.level,
+        targetLevel: 80,
+        currentAscension: char.ascension,
+        targetAscension: 5, // A5 = 80/80
+        currentTalents: { ...char.talent },
+        targetTalents: {
+          auto: Math.max(char.talent.auto, 1), // Keep auto at 1 (for support characters)
+          skill: Math.max(char.talent.skill, 6),
+          burst: Math.max(char.talent.burst, 6),
         },
       };
     } else if (goalType === 'next') {
@@ -268,7 +294,7 @@ export async function calculateFromRoster(
   selectedCharacterKeys: string[],
   characters: Array<{ key: string; level: number; ascension: number; talent: { auto: number; skill: number; burst: number } }>,
   inventory: Record<string, number>,
-  goalType: 'full' | 'comfortable' | 'next' = 'full'
+  goalType: 'full' | 'comfortable' | 'functional' | 'next' = 'full'
 ): Promise<AggregatedMaterialSummary> {
   const selectedCharacters = characters.filter((c) =>
     selectedCharacterKeys.includes(c.key)

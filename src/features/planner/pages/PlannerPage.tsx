@@ -13,6 +13,7 @@ import {
   calculateAscensionSummary,
   createGoalFromCharacter,
   createComfortableBuildGoal,
+  createFunctionalBuildGoal,
   createNextAscensionGoal,
   type AscensionGoal,
   type AscensionSummary,
@@ -134,6 +135,8 @@ export default function PlannerPage() {
         return createGoalFromCharacter(selectedCharacter);
       case 'comfortable':
         return createComfortableBuildGoal(selectedCharacter);
+      case 'functional':
+        return createFunctionalBuildGoal(selectedCharacter);
       case 'next':
       default:
         return createNextAscensionGoal(selectedCharacter);
@@ -324,6 +327,7 @@ export default function PlannerPage() {
                   onChange={(e) => setGoalType(e.target.value as GoalType)}
                   options={[
                     { value: 'next', label: 'Next Ascension' },
+                    { value: 'functional', label: 'Functional (80/1/6/6)' },
                     { value: 'comfortable', label: 'Comfortable (80/8/8/8)' },
                     { value: 'full', label: 'Full Build (90/10/10/10)' },
                   ]}
@@ -399,6 +403,7 @@ export default function PlannerPage() {
                     onChange={(e) => multiPlan.setGoalType(e.target.value as GoalType)}
                     options={[
                       { value: 'next', label: 'Next Ascension' },
+                      { value: 'functional', label: 'Functional (80/1/6/6)' },
                       { value: 'comfortable', label: 'Comfortable (80/8/8/8)' },
                       { value: 'full', label: 'Full Build (90/10/10/10)' },
                     ]}
@@ -450,7 +455,8 @@ export default function PlannerPage() {
                     onChange={(e) => weaponPlan.setGoalType(e.target.value as WeaponGoalType)}
                     options={[
                       { value: 'next', label: 'Next Ascension' },
-                      { value: 'full', label: 'Full Ascension (90)' },
+                      { value: 'comfortable', label: 'Level 80' },
+                      { value: 'full', label: 'Level 90' },
                     ]}
                   />
                 </div>
@@ -706,13 +712,30 @@ export default function PlannerPage() {
                     <div className="text-2xl font-bold text-primary-400">
                       {summary.estimatedResin.toLocaleString()}
                     </div>
-                    <div className="text-xs text-slate-400">Resin Needed</div>
+                    <div className="text-xs text-slate-400">Total Resin</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-primary-400">
                       {summary.estimatedDays}
                     </div>
                     <div className="text-xs text-slate-400">Days (~{RESIN_REGEN.perDay}/day)</div>
+                  </div>
+                </div>
+                {/* Resin Breakdown */}
+                <div className="mt-4 pt-4 border-t border-slate-700/50">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="bg-slate-900/50 rounded-lg p-3">
+                      <div className="text-lg font-bold text-blue-400">
+                        {summary.resinBreakdown.talentBoss.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-slate-400">Talents / Boss</div>
+                    </div>
+                    <div className="bg-slate-900/50 rounded-lg p-3">
+                      <div className="text-lg font-bold text-green-400">
+                        {summary.resinBreakdown.expMora.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-slate-400">EXP / Mora</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -768,13 +791,30 @@ export default function PlannerPage() {
                     <div className="text-2xl font-bold text-primary-400">
                       {multiPlan.summary.totalEstimatedResin.toLocaleString()}
                     </div>
-                    <div className="text-xs text-slate-400">Resin Needed</div>
+                    <div className="text-xs text-slate-400">Total Resin</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-primary-400">
                       {multiPlan.summary.totalEstimatedDays}
                     </div>
                     <div className="text-xs text-slate-400">Days (~{RESIN_REGEN.perDay}/day)</div>
+                  </div>
+                </div>
+                {/* Resin Breakdown */}
+                <div className="mt-4 pt-4 border-t border-slate-700/50">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="bg-slate-900/50 rounded-lg p-3">
+                      <div className="text-lg font-bold text-blue-400">
+                        {multiPlan.summary.resinBreakdown.talentBoss.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-slate-400">Talents / Boss</div>
+                    </div>
+                    <div className="bg-slate-900/50 rounded-lg p-3">
+                      <div className="text-lg font-bold text-green-400">
+                        {multiPlan.summary.resinBreakdown.expMora.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-slate-400">EXP / Mora</div>
+                    </div>
                   </div>
                 </div>
               </div>
