@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom';
 import {
   Users,
   Gem,
+  Target,
   Sparkles,
   Coins,
-  Calculator,
   Calendar,
   StickyNote,
   Settings
@@ -14,9 +14,9 @@ import { TABS } from '@/lib/constants';
 const icons = {
   roster: Users,
   artifacts: Gem,
+  planner: Target,
   wishes: Sparkles,
   ledger: Coins,
-  calculator: Calculator,
   calendar: Calendar,
   notes: StickyNote,
   settings: Settings,

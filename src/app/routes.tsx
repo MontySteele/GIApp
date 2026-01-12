@@ -3,6 +3,7 @@ import Layout from './Layout';
 import RosterPage from '@/features/roster/pages/RosterPage';
 import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
 import ArtifactsPage from '@/features/artifacts/pages/ArtifactsPage';
+import PlannerPage from '@/features/planner/pages/PlannerPage';
 import WishesPage from '@/features/wishes/pages/WishesPage';
 import LedgerPage from '@/features/ledger/pages/LedgerPage';
 import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
       {
         path: 'artifacts',
         element: <ArtifactsPage />,
+      },
+      {
+        path: 'planner',
+        element: <PlannerPage />,
       },
       {
         path: 'wishes',
