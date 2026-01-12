@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Target, Package, Clock, ChevronDown, ChevronUp, Check, AlertCircle, Calendar, WifiOff } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Target, Package, Clock, ChevronDown, ChevronUp, Check, AlertCircle, Calendar, WifiOff, Coins } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Select from '@/components/ui/Select';
@@ -43,13 +43,33 @@ const TALENT_BOOK_REGIONS: Record<string, string[]> = {
 
 export default function PlannerPage() {
   const { characters, isLoading: loadingChars } = useCharacters();
-  const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes } = useMaterials();
+  const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [goalType, setGoalType] = useState<'full' | 'next'>('next');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview', 'materials']));
   const [summary, setSummary] = useState<AscensionSummary | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
+  const [moraInput, setMoraInput] = useState<string>('');
+
+  // Initialize mora input from materials
+  useEffect(() => {
+    const currentMora = materials['Mora'] ?? materials['mora'] ?? 0;
+    setMoraInput(currentMora > 0 ? currentMora.toString() : '');
+  }, [materials]);
+
+  // Handle mora input change with debounce
+  const handleMoraChange = useCallback((value: string) => {
+    // Allow empty or numbers only
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setMoraInput(numericValue);
+  }, []);
+
+  // Save mora when input loses focus
+  const handleMoraSave = useCallback(async () => {
+    const moraValue = parseInt(moraInput, 10) || 0;
+    await setMaterial('Mora', moraValue);
+  }, [moraInput, setMaterial]);
 
   const selectedCharacter = useMemo(
     () => characters.find((c) => c.id === selectedCharacterId),
@@ -148,7 +168,7 @@ export default function PlannerPage() {
         {/* Material Inventory Status */}
         <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <Package className="w-5 h-5 text-slate-400" />
               <div>
@@ -160,9 +180,31 @@ export default function PlannerPage() {
                 </div>
               </div>
             </div>
-            {!hasMaterials && (
-              <Badge variant="warning">Import from Irminsul to track materials</Badge>
-            )}
+            <div className="flex items-center gap-4">
+              {/* Manual Mora Input */}
+              <div className="flex items-center gap-2">
+                <Coins className="w-4 h-4 text-yellow-500" />
+                <label className="text-sm text-slate-400">Mora:</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={moraInput}
+                  onChange={(e) => handleMoraChange(e.target.value)}
+                  onBlur={handleMoraSave}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      void handleMoraSave();
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  placeholder="Enter mora"
+                  className="w-32 px-2 py-1 text-sm bg-slate-800 border border-slate-700 rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-primary-500"
+                />
+              </div>
+              {!hasMaterials && (
+                <Badge variant="warning">Import from Irminsul to track materials</Badge>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

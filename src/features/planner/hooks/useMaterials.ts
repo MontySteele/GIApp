@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { materialRepo } from '@/features/roster/repo/inventoryRepo';
 
 export function useMaterials() {
@@ -22,6 +22,16 @@ export function useMaterials() {
     loadMaterials();
   }, []);
 
+  // Update a single material count
+  const setMaterial = useCallback(async (key: string, count: number) => {
+    try {
+      await materialRepo.setMaterial(key, count);
+      setMaterials((prev) => ({ ...prev, [key]: count }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update material');
+    }
+  }, []);
+
   const totalMaterialTypes = Object.keys(materials).length;
   const hasMaterials = totalMaterialTypes > 0;
 
@@ -31,5 +41,6 @@ export function useMaterials() {
     error,
     totalMaterialTypes,
     hasMaterials,
+    setMaterial,
   };
 }
