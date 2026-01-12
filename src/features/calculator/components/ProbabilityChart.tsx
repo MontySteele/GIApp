@@ -20,7 +20,17 @@ export default function ProbabilityChart({ data }: ProbabilityChartProps) {
   }));
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipPayload {
+    payload: { pulls: number; probability: number };
+    value: number;
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+  }
+
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
