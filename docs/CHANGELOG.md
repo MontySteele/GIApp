@@ -1,5 +1,50 @@
 # Changelog
 
+## 2026-01 (Sprint 11 - Planning)
+
+### Codebase Review
+- Comprehensive review of 10 sprints of development
+- Assessed architecture patterns, test coverage, and UI/UX
+- Identified critical gaps in test coverage (page components, hooks)
+- Documented technical debt areas (large components, type safety)
+
+### Sprint 11 Plan Created
+- **Phase 1: Test Coverage Expansion** - Target 80%+ coverage
+  - Page component tests (11 untested pages)
+  - Custom hook tests (14 untested hooks)
+  - E2E test suite for critical workflows
+- **Phase 2: Technical Debt Reduction**
+  - PlannerPage refactoring (1,096 → <300 lines)
+  - MultiTargetCalculator refactoring (983 → <250 lines)
+  - gameData modularization
+  - Type safety improvements (eliminate `any` types)
+  - Barrel exports for all features
+- **Phase 3: New Features**
+  - Team DPS Comparisons
+  - Build Templates (save/share)
+  - Weekly Boss Tracker
+
+See `docs/SPRINT_11_PLAN.md` for full details.
+
+## 2026-01 (Sprint 10 - Accessibility & Polish)
+
+### New Features
+- **Artifact Optimizer** - 12 character builds with scoring system
+- **QR Code Camera Import** - Tauri macOS support with camera fallback
+- **Toast Notifications** - User feedback system (bottom-right positioning)
+- **Skeleton Loading** - Loading state improvements across all 11 pages
+
+### Accessibility (WCAG 2.1 AA)
+- Modal focus trap with Tab/Shift+Tab wrapping
+- Skip links for keyboard navigation
+- ARIA attributes on all interactive elements
+- Proper label associations for form inputs
+
+### Technical
+- Component refactoring: RosterPage 645 → 249 lines (62% reduction)
+- Added 96 new tests (449 → 545 total)
+- Tauri camera fixes for macOS Info.plist configuration
+
 ## 2026-01 (Sprint 9 - Multi-Character & Weapon Planner)
 
 ### New Features

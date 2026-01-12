@@ -1,5 +1,17 @@
-import type { Character, InventoryArtifact, InventoryWeapon } from '@/types';
+import type { Character, InventoryArtifact, InventoryWeapon, SlotKey } from '@/types';
 import { toGoodArtifactSetKey, toGoodCharacterKey, toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
+
+const VALID_SLOT_KEYS: readonly SlotKey[] = ['flower', 'plume', 'sands', 'goblet', 'circlet'];
+
+/**
+ * Safely converts a string to SlotKey with validation
+ */
+function toSlotKey(value: string): SlotKey {
+  if (VALID_SLOT_KEYS.includes(value as SlotKey)) {
+    return value as SlotKey;
+  }
+  return 'flower'; // Default fallback
+}
 
 // GOOD Format v2 Specification
 // https://frzyc.github.io/genshin-optimizer/#/doc
@@ -176,7 +188,7 @@ export function fromGOOD(good: GOODFormat): Omit<Character, 'id' | 'createdAt' |
       .filter((a) => a.location === goodChar.key)
       .map((a) => ({
         setKey: a.setKey,
-        slotKey: a.slotKey as any,
+        slotKey: toSlotKey(a.slotKey),
         level: a.level,
         rarity: a.rarity,
         mainStatKey: a.mainStatKey,
@@ -212,111 +224,130 @@ export function fromGOOD(good: GOODFormat): Omit<Character, 'id' | 'createdAt' |
 /**
  * Validate GOOD format JSON
  */
-export function validateGOOD(data: any): data is GOODFormat {
+export function validateGOOD(data: unknown): data is GOODFormat {
   if (typeof data !== 'object' || data === null) {
     return false;
   }
 
-  if (data.format !== 'GOOD') {
+  const obj = data as Record<string, unknown>;
+
+  if (obj.format !== 'GOOD') {
     return false;
   }
 
-  if (typeof data.version !== 'number') {
+  if (typeof obj.version !== 'number') {
     return false;
   }
 
-  if (data.active !== undefined && data.active !== null && typeof data.active !== 'string') {
+  if (obj.active !== undefined && obj.active !== null && typeof obj.active !== 'string') {
     return false;
   }
 
-  const isValidTarget = (target: any): target is GOODTarget =>
-    typeof target === 'object' &&
-    target !== null &&
-    typeof target.level === 'number' &&
-    Array.isArray(target.pos) &&
-    target.pos.length === 2 &&
-    target.pos.every((value: any) => typeof value === 'number') &&
-    typeof target.radius === 'number';
+  const isValidTarget = (target: unknown): target is GOODTarget => {
+    if (typeof target !== 'object' || target === null) return false;
+    const t = target as Record<string, unknown>;
+    return (
+      typeof t.level === 'number' &&
+      Array.isArray(t.pos) &&
+      t.pos.length === 2 &&
+      t.pos.every((value: unknown) => typeof value === 'number') &&
+      typeof t.radius === 'number'
+    );
+  };
 
-  const isValidSubstat = (substat: any): substat is { key: string; value: number } =>
-    typeof substat === 'object' &&
-    substat !== null &&
-    typeof substat.key === 'string' &&
-    typeof substat.value === 'number';
+  const isValidSubstat = (substat: unknown): substat is { key: string; value: number } => {
+    if (typeof substat !== 'object' || substat === null) return false;
+    const s = substat as Record<string, unknown>;
+    return typeof s.key === 'string' && typeof s.value === 'number';
+  };
 
-  const isValidArtifact = (artifact: any): artifact is GOODArtifact =>
-    typeof artifact === 'object' &&
-    artifact !== null &&
-    typeof artifact.setKey === 'string' &&
-    typeof artifact.slotKey === 'string' &&
-    typeof artifact.level === 'number' &&
-    typeof artifact.rarity === 'number' &&
-    typeof artifact.mainStatKey === 'string' &&
-    typeof artifact.location === 'string' &&
-    typeof artifact.lock === 'boolean' &&
-    Array.isArray(artifact.substats) &&
-    artifact.substats.every(isValidSubstat);
+  const isValidArtifact = (artifact: unknown): artifact is GOODArtifact => {
+    if (typeof artifact !== 'object' || artifact === null) return false;
+    const a = artifact as Record<string, unknown>;
+    return (
+      typeof a.setKey === 'string' &&
+      typeof a.slotKey === 'string' &&
+      typeof a.level === 'number' &&
+      typeof a.rarity === 'number' &&
+      typeof a.mainStatKey === 'string' &&
+      typeof a.location === 'string' &&
+      typeof a.lock === 'boolean' &&
+      Array.isArray(a.substats) &&
+      a.substats.every(isValidSubstat)
+    );
+  };
 
-  const isValidWeapon = (weapon: any): weapon is GOODWeapon =>
-    typeof weapon === 'object' &&
-    weapon !== null &&
-    typeof weapon.key === 'string' &&
-    typeof weapon.level === 'number' &&
-    typeof weapon.ascension === 'number' &&
-    typeof weapon.refinement === 'number' &&
-    typeof weapon.location === 'string' &&
-    typeof weapon.lock === 'boolean';
+  const isValidWeapon = (weapon: unknown): weapon is GOODWeapon => {
+    if (typeof weapon !== 'object' || weapon === null) return false;
+    const w = weapon as Record<string, unknown>;
+    return (
+      typeof w.key === 'string' &&
+      typeof w.level === 'number' &&
+      typeof w.ascension === 'number' &&
+      typeof w.refinement === 'number' &&
+      typeof w.location === 'string' &&
+      typeof w.lock === 'boolean'
+    );
+  };
 
-  const isValidCharacter = (character: any): character is GOODCharacter =>
-    typeof character === 'object' &&
-    character !== null &&
-    typeof character.key === 'string' &&
-    typeof character.level === 'number' &&
-    typeof character.constellation === 'number' &&
-    typeof character.ascension === 'number' &&
-    typeof character.talent === 'object' &&
-    character.talent !== null &&
-    typeof character.talent.auto === 'number' &&
-    typeof character.talent.skill === 'number' &&
-    typeof character.talent.burst === 'number';
+  const isValidCharacter = (character: unknown): character is GOODCharacter => {
+    if (typeof character !== 'object' || character === null) return false;
+    const c = character as Record<string, unknown>;
+    if (
+      typeof c.key !== 'string' ||
+      typeof c.level !== 'number' ||
+      typeof c.constellation !== 'number' ||
+      typeof c.ascension !== 'number' ||
+      typeof c.talent !== 'object' ||
+      c.talent === null
+    ) {
+      return false;
+    }
+    const talent = c.talent as Record<string, unknown>;
+    return (
+      typeof talent.auto === 'number' &&
+      typeof talent.skill === 'number' &&
+      typeof talent.burst === 'number'
+    );
+  };
 
   // Characters array is optional but must be valid if present
-  if (data.characters !== undefined) {
-    if (!Array.isArray(data.characters)) {
+  if (obj.characters !== undefined) {
+    if (!Array.isArray(obj.characters)) {
       return false;
     }
 
-    if (!data.characters.every(isValidCharacter)) {
-      return false;
-    }
-  }
-
-  if (data.targets !== undefined) {
-    if (!Array.isArray(data.targets)) {
-      return false;
-    }
-
-    if (!data.targets.every(isValidTarget)) {
+    if (!obj.characters.every(isValidCharacter)) {
       return false;
     }
   }
 
-  if (data.weapons !== undefined) {
-    if (!Array.isArray(data.weapons)) {
+  if (obj.targets !== undefined) {
+    if (!Array.isArray(obj.targets)) {
       return false;
     }
 
-    if (!data.weapons.every(isValidWeapon)) {
+    if (!obj.targets.every(isValidTarget)) {
       return false;
     }
   }
 
-  if (data.artifacts !== undefined) {
-    if (!Array.isArray(data.artifacts)) {
+  if (obj.weapons !== undefined) {
+    if (!Array.isArray(obj.weapons)) {
       return false;
     }
 
-    if (!data.artifacts.every(isValidArtifact)) {
+    if (!obj.weapons.every(isValidWeapon)) {
+      return false;
+    }
+  }
+
+  if (obj.artifacts !== undefined) {
+    if (!Array.isArray(obj.artifacts)) {
+      return false;
+    }
+
+    if (!obj.artifacts.every(isValidArtifact)) {
       return false;
     }
   }

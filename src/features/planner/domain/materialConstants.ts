@@ -157,3 +157,13 @@ export const DOMAIN_DROPS_PER_RUN = {
 
 // Material tier conversion rates (3 lower = 1 higher)
 export const MATERIAL_CONVERSION_RATE = 3;
+
+// Region grouping for talent materials
+export const TALENT_BOOK_REGIONS: Record<string, string[]> = {
+  'Mondstadt': ['Freedom', 'Resistance', 'Ballad'],
+  'Liyue': ['Prosperity', 'Diligence', 'Gold'],
+  'Inazuma': ['Transience', 'Elegance', 'Light'],
+  'Sumeru': ['Admonition', 'Ingenuity', 'Praxis'],
+  'Fontaine': ['Equity', 'Justice', 'Order'],
+  'Natlan': ['Contention', 'Kindling', 'Conflict'],
+};
