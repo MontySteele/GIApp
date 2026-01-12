@@ -16,6 +16,7 @@ import type {
   SlotKey,
   ExtendedSubstat,
 } from '@/types';
+import { getAvatarIdFromKey } from '@/lib/gameData';
 
 // ============================================
 // Irminsul Format Types (extends GOOD v3)
@@ -292,6 +293,7 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
       notes: '',
       priority: 'unbuilt',
       teamIds: [],
+      avatarId: getAvatarIdFromKey(char.key),
     });
   }
 
