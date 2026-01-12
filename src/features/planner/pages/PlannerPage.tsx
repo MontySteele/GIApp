@@ -46,13 +46,20 @@ export default function PlannerPage() {
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes } = useMaterials();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [goalType, setGoalType] = useState<'full' | 'next'>('next');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview', 'materials']));
   const [summary, setSummary] = useState<AscensionSummary | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState<string | null>(null);
 
   const selectedCharacter = useMemo(
     () => characters.find((c) => c.id === selectedCharacterId),
     [characters, selectedCharacterId]
+  );
+
+  // Sort characters alphabetically by name
+  const sortedCharacters = useMemo(
+    () => [...characters].sort((a, b) => a.key.localeCompare(b.key)),
+    [characters]
   );
 
   const goal = useMemo<AscensionGoal | null>(() => {
@@ -66,6 +73,7 @@ export default function PlannerPage() {
   useEffect(() => {
     if (!goal) {
       setSummary(null);
+      setCalculationError(null);
       return;
     }
 
@@ -73,15 +81,19 @@ export default function PlannerPage() {
 
     const calculate = async () => {
       setIsCalculating(true);
+      setCalculationError(null);
       try {
         const result = await calculateAscensionSummary(goal, materials);
         if (!isCancelled) {
           setSummary(result);
+          setCalculationError(null);
         }
       } catch (error) {
         console.error('Failed to calculate ascension summary:', error);
         if (!isCancelled) {
           setSummary(null);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          setCalculationError(`Failed to calculate materials: ${errorMessage}`);
         }
       } finally {
         if (!isCancelled) {
@@ -172,7 +184,7 @@ export default function PlannerPage() {
                 onChange={(e) => setSelectedCharacterId(e.target.value)}
                 options={[
                   { value: '', label: 'Select a character...' },
-                  ...characters.map((c) => ({
+                  ...sortedCharacters.map((c) => ({
                     value: c.id,
                     label: `${c.key} (Lv. ${c.level})`,
                   })),
@@ -241,6 +253,21 @@ export default function PlannerPage() {
                 <div className="text-xs text-slate-500">
                   ~{summary?.estimatedResin || 0} resin
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Calculation Error Display */}
+      {calculationError && (
+        <Card className="mb-6 border-red-900/30 bg-red-900/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <div>
+                <div className="text-sm font-medium text-red-200">Calculation Error</div>
+                <div className="text-xs text-red-400">{calculationError}</div>
               </div>
             </div>
           </CardContent>
