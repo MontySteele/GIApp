@@ -5,7 +5,7 @@ import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
 import WishesPage from '@/features/wishes/pages/WishesPage';
 import LedgerPage from '@/features/ledger/pages/LedgerPage';
 import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
-import AbyssPage from '@/features/abyss/pages/AbyssPage';
+import CalendarPage from '@/features/calendar/pages/CalendarPage';
 import NotesPage from '@/features/notes/pages/NotesPage';
 import SyncPage from '@/features/sync/pages/SyncPage';
 
@@ -39,8 +39,8 @@ export const router = createBrowserRouter([
         element: <CalculatorPage />,
       },
       {
-        path: 'abyss',
-        element: <AbyssPage />,
+        path: 'calendar',
+        element: <CalendarPage />,
       },
       {
         path: 'notes',

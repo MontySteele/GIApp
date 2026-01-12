@@ -4,7 +4,7 @@ import {
   Sparkles,
   Coins,
   Calculator,
-  TrendingUp,
+  Calendar,
   StickyNote,
   Settings
 } from 'lucide-react';
@@ -15,7 +15,7 @@ const icons = {
   wishes: Sparkles,
   ledger: Coins,
   calculator: Calculator,
-  abyss: TrendingUp,
+  calendar: Calendar,
   notes: StickyNote,
   settings: Settings,
 };

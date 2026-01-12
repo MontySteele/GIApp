@@ -11,6 +11,7 @@ import Modal from '@/components/ui/Modal';
 import CharacterForm from '../components/CharacterForm';
 import GOODImport from '../components/GOODImport';
 import GOODExport from '../components/GOODExport';
+import IrminsulImport from '../components/IrminsulImport';
 import TeamForm from '../components/TeamForm';
 import TeamCard from '../components/TeamCard';
 import TeamSnapshotExport from '../components/TeamSnapshotExport';
@@ -20,7 +21,7 @@ import { KNOWN_ELEMENTS, KNOWN_RARITIES, KNOWN_WEAPON_TYPES } from '../data/char
 import type { Character, CharacterPriority, Team } from '@/types';
 import type { CharacterSortField } from '../selectors/characterSelectors';
 
-type AddModalView = 'options' | 'manual' | 'enka' | 'good';
+type AddModalView = 'options' | 'manual' | 'enka' | 'good' | 'irminsul';
 type ExportModalView = null | 'good' | 'teams';
 
 interface RosterPageProps {
@@ -395,7 +396,8 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
           addModalView === 'options' ? 'Add Character' :
           addModalView === 'manual' ? 'Manual Entry' :
           addModalView === 'enka' ? 'Import from Enka.network' :
-          'Import GOOD Format'
+          addModalView === 'good' ? 'Import GOOD Format' :
+          'Import from Irminsul'
         }
         size="lg"
       >
@@ -425,6 +427,13 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
                 onClick={() => setAddModalView('good')}
               >
                 Import GOOD Format (JSON)
+              </Button>
+              <Button
+                variant="secondary"
+                className="justify-start"
+                onClick={() => setAddModalView('irminsul')}
+              >
+                Import from Irminsul
               </Button>
             </div>
           </div>
@@ -481,6 +490,24 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
               Back to options
             </Button>
             <GOODImport
+              onSuccess={handleCloseModal}
+              onCancel={handleCloseModal}
+            />
+          </div>
+        )}
+
+        {addModalView === 'irminsul' && (
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAddModalView('options')}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to options
+            </Button>
+            <IrminsulImport
               onSuccess={handleCloseModal}
               onCancel={handleCloseModal}
             />
