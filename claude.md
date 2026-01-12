@@ -105,11 +105,13 @@ The Primogem Tracker uses a **snapshot-based workflow**:
 
 ### 7. Cross-Device Sync
 - [x] Export all data (JSON backup)
-- [ ] Import/restore with merge strategies
-- [ ] Compression (lz-string)
-- [ ] Encryption (AES-GCM with passphrase)
-- [ ] QR code generation (for small payloads <1.5KB)
-- [ ] Merge strategies (replace, newer wins, keep local)
+- [x] Import/restore with merge strategies
+- [x] Compression (lz-string)
+- [x] Encryption (AES-GCM with passphrase)
+- [x] QR code generation (for small payloads <2KB)
+- [x] Merge strategies (replace, newer wins, keep local)
+- [x] Copy/paste text transfer flow
+- [x] Encrypted passphrase protection
 
 ### 8. PWA & Settings
 - [x] PWA manifest & service worker
@@ -262,13 +264,13 @@ Mechanics (post-5.0 Capturing Radiance):
 
 ### Phase 7: Sync & Polish
 - [x] Export all data function
-- [ ] Import with validation
-- [ ] Compression pipeline (lz-string)
-- [ ] Encryption/decryption (Web Crypto API)
-- [ ] QR code generation (with size limit handling)
+- [x] Import with validation
+- [x] Compression pipeline (lz-string)
+- [x] Encryption/decryption (Web Crypto API)
+- [x] QR code generation (with size limit handling)
 - [ ] QR code scanning
-- [ ] Merge strategy implementations
-- [ ] Conflict resolution UI
+- [x] Merge strategy implementations
+- [x] Import UI with progress
 - [x] Settings page
 - [x] Backup reminders
 - [x] UI polish & responsive design
@@ -331,6 +333,19 @@ Mechanics (post-5.0 Capturing Radiance):
 3. Added scenario save/compare for multi-target calculator
 4. Removed debug console.log statements from PurchaseLedger and LedgerPage
 
+### Sprint 5 - Cross-Device Sync ✅ COMPLETED
+1. Import backup with validation and schema compatibility
+2. Three merge strategies: Replace All, Newer Wins, Keep Local
+3. LZ-String compression for reduced payload size
+4. AES-GCM encryption with passphrase protection (PBKDF2 key derivation)
+5. Copy/paste text transfer with wrapped format
+6. QR code generation for small payloads (<2KB)
+7. Unified DataTransfer UI for export/import between devices
+
+### Sprint 6 - Future Features
+1. Artifact optimizer for GOOD format
+2. Spiral Abyss log
+3. QR code scanning (camera import)
 ### Sprint 5 - Calendar Page ✅ COMPLETED
 1. Removed Spiral Abyss feature (too tedious to maintain)
 2. Added Calendar page with reset timers:
@@ -425,6 +440,15 @@ src/
 
 ## Recent Changes Log
 
+**2025-01 (Sprint 5 Completion):**
+- Added cross-device sync with compression (lz-string) and optional encryption (AES-GCM)
+- Import backup functionality with schema validation and three merge strategies
+- Copy/paste text transfer flow with wrapped format markers
+- QR code generation for small payloads (<2KB)
+- New syncUtils service for compression, encryption, and payload management
+- New importService for backup validation and data reconciliation
+- DataTransfer component for unified export/import UI
+- ImportBackup component with file picker and progress indicator
 **2026-01 (Sprint 5 Completion):**
 - Removed Spiral Abyss feature (replaced with Calendar)
 - Added Calendar page with live reset timers

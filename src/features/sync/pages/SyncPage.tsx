@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
-import { CheckCircle2, Clock3, Download, RefreshCw, Eye, EyeOff, Sun, Moon, Monitor } from 'lucide-react';
+import { CheckCircle2, Clock3, Download, RefreshCw, Eye, EyeOff, Sun, Moon, Monitor, Upload, Share2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
@@ -7,6 +7,8 @@ import { useAppMetaStatus } from '../hooks/useAppMetaStatus';
 import { appMetaService, parseDateString, resolveBackupCadenceDays } from '../services/appMetaService';
 import { useUIStore, type ThemeMode } from '@/stores/uiStore';
 import { useTheme } from '@/hooks/useTheme';
+import ImportBackup from '../components/ImportBackup';
+import DataTransfer from '../components/DataTransfer';
 
 function formatDate(dateString?: string | null) {
   const parsed = parseDateString(dateString ?? undefined);
@@ -270,6 +272,39 @@ export default function SyncPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Cross-Device Sync */}
+      <Card>
+        <CardHeader className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <Share2 className="w-5 h-5 text-primary-400" />
+            <h2 className="text-xl font-semibold text-slate-100">Cross-Device Sync</h2>
+          </div>
+          <p className="text-slate-400 text-sm">
+            Transfer your data between devices using text copy/paste or QR codes.
+            Data is compressed and optionally encrypted for secure transfer.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <DataTransfer />
+        </CardContent>
+      </Card>
+
+      {/* Import Backup */}
+      <Card>
+        <CardHeader className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <Upload className="w-5 h-5 text-primary-400" />
+            <h2 className="text-xl font-semibold text-slate-100">Import Backup</h2>
+          </div>
+          <p className="text-slate-400 text-sm">
+            Restore data from a backup file with configurable merge strategies.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <ImportBackup />
+        </CardContent>
+      </Card>
     </div>
   );
 }
