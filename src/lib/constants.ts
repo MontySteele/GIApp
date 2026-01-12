@@ -62,6 +62,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
 export const TABS = [
   { id: 'roster', label: 'Roster', path: '/roster' },
   { id: 'artifacts', label: 'Artifacts', path: '/artifacts' },
+  { id: 'weapons', label: 'Weapons', path: '/weapons' },
   { id: 'planner', label: 'Planner', path: '/planner' },
   { id: 'wishes', label: 'Wishes', path: '/wishes' },
   { id: 'ledger', label: 'Primogems', path: '/ledger' },

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   Users,
   Gem,
+  Sword,
   Target,
   Sparkles,
   Coins,
@@ -14,6 +15,7 @@ import { TABS } from '@/lib/constants';
 const icons = {
   roster: Users,
   artifacts: Gem,
+  weapons: Sword,
   planner: Target,
   wishes: Sparkles,
   ledger: Coins,
