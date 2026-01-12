@@ -5,6 +5,7 @@ import Badge from '@/components/ui/Badge';
 import Select from '@/components/ui/Select';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useMaterials } from '../hooks/useMaterials';
+import ResinTracker from '../components/ResinTracker';
 import {
   calculateAscensionSummary,
   createGoalFromCharacter,
@@ -61,19 +62,21 @@ export default function PlannerPage() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-1">Ascension Planner</h1>
-          <p className="text-slate-400">
-            Calculate materials needed to level up your characters
-          </p>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      {/* Main Content */}
+      <div>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-1">Ascension Planner</h1>
+            <p className="text-slate-400">
+              Calculate materials needed to level up your characters
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Material Inventory Status */}
-      <Card className="mb-6">
+        {/* Material Inventory Status */}
+        <Card className="mb-6">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -277,18 +280,37 @@ export default function PlannerPage() {
         </Card>
       )}
 
-      {/* Empty State */}
-      {!selectedCharacter && (
+        {/* Empty State */}
+        {!selectedCharacter && (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Target className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-400 mb-2">Select a character to calculate materials</p>
+              <p className="text-sm text-slate-500">
+                Characters are pulled from your roster. Import via Enka or Irminsul first.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Sidebar */}
+      <div className="space-y-4">
+        <ResinTracker />
+
+        {/* Daily Resin Tips */}
         <Card>
-          <CardContent className="py-12 text-center">
-            <Target className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400 mb-2">Select a character to calculate materials</p>
-            <p className="text-sm text-slate-500">
-              Characters are pulled from your roster. Import via Enka or Irminsul first.
-            </p>
+          <CardHeader>
+            <h3 className="font-semibold text-slate-200">Resin Tips</h3>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-400 space-y-2">
+            <p>Daily resin regeneration: {RESIN_REGEN.perDay} resin</p>
+            <p>Condensed resin doubles domain drops</p>
+            <p>Weekly bosses have discounted 30 resin (first 3)</p>
+            <p>Use fragile resin for time-limited events</p>
           </CardContent>
         </Card>
-      )}
+      </div>
     </div>
   );
 }

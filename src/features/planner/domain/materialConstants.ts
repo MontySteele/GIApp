@@ -17,10 +17,12 @@ export const RESIN_COSTS = {
 
 // Resin regeneration
 export const RESIN_REGEN = {
+  minutesPerResin: 8, // 1 resin per 8 minutes
   perMinute: 1 / 8, // 1 resin per 8 minutes
   perHour: 7.5,
   perDay: 180,
   maxResin: 200, // Updated cap
+  fragileResin: 60, // Resin gained per fragile resin
 } as const;
 
 // Character EXP requirements per level
