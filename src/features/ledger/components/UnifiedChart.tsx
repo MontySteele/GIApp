@@ -79,8 +79,9 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems }:
   }
 
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
+    const firstPayload = payload?.[0];
+    if (active && firstPayload) {
+      const data = firstPayload.payload;
       const displayValue = showPurchases
         ? (data.historicalWithPurchases ?? data.projectedWithPurchases ?? data.historical ?? data.projected)
         : (data.historical ?? data.projected);

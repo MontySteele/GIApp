@@ -504,7 +504,9 @@ export async function getCharacterMaterials(
 
         // Detect cache format - new format has schemaVersion, old format is raw CharacterMaterialData
         const schemaVersion = 'schemaVersion' in cacheEntry ? cacheEntry.schemaVersion : 0;
-        const materialData = 'schemaVersion' in cacheEntry ? cacheEntry.data : cacheEntry;
+        const materialData: CharacterMaterialData = 'schemaVersion' in cacheEntry
+          ? cacheEntry.data
+          : (cacheEntry as CharacterMaterialData);
 
         // Cache is valid if not expired AND schema version matches
         const isSchemaValid = schemaVersion === CACHE_SCHEMA_VERSION;
@@ -608,7 +610,6 @@ export async function clearCharacterCache(characterKey?: string): Promise<void> 
 import type {
   WeaponMaterialData,
   GenshinDbWeaponResponse,
-  WEAPON_DOMAIN_SCHEDULE,
 } from '@/features/planner/domain/weaponMaterials';
 
 /**
@@ -871,7 +872,9 @@ export async function getWeaponMaterials(
         const cacheExpiresAt = new Date(cached.expiresAt).getTime();
 
         const schemaVersion = 'schemaVersion' in cacheEntry ? cacheEntry.schemaVersion : 0;
-        const materialData = 'schemaVersion' in cacheEntry ? cacheEntry.data : cacheEntry;
+        const materialData: WeaponMaterialData = 'schemaVersion' in cacheEntry
+          ? cacheEntry.data
+          : (cacheEntry as WeaponMaterialData);
 
         const isSchemaValid = schemaVersion === CACHE_SCHEMA_VERSION;
         const isNotExpired = Date.now() < cacheExpiresAt;

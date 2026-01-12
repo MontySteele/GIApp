@@ -143,7 +143,7 @@ async function buildWeaponMaterialsWithApiData(
     if (amt > 0) {
       const tierKey = domainTierKeys[tier];
       // Get actual name from API data if available
-      const actualName = weaponData?.ascensionMaterials?.domain?.byTier?.[tierKey]
+      const actualName = tierKey && weaponData?.ascensionMaterials?.domain?.byTier?.[tierKey]
         ? weaponData.ascensionMaterials.domain.name
         : null;
       const baseName = weaponData?.ascensionMaterials?.domain?.series || 'Weapon Domain Material';

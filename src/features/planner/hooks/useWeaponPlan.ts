@@ -8,7 +8,6 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   calculateWeaponAscensionSummary,
   createWeaponGoal,
-  type WeaponAscensionGoal,
   type WeaponAscensionSummary,
 } from '../domain/weaponCalculator';
 

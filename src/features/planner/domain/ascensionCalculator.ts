@@ -279,8 +279,10 @@ async function buildMaterialsWithApiData(
     if (existingIndex >= 0) {
       // Aggregate: add to existing entry
       const existing = materials[existingIndex];
-      existing.required += required;
-      existing.deficit = Math.max(0, existing.required - existing.owned);
+      if (existing) {
+        existing.required += required;
+        existing.deficit = Math.max(0, existing.required - existing.owned);
+      }
     } else {
       // Add new entry
       materials.push({

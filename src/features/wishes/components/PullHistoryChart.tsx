@@ -162,8 +162,9 @@ export function PullHistoryChart({ history, bannerType = 'all' }: PullHistoryCha
   }
 
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
+    const firstPayload = payload?.[0];
+    if (active && firstPayload) {
+      const data = firstPayload.payload;
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
           <p className="text-slate-100 font-semibold mb-2">{data.label}</p>

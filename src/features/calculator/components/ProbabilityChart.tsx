@@ -31,14 +31,15 @@ export default function ProbabilityChart({ data }: ProbabilityChartProps) {
   }
 
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
+    const firstPayload = payload?.[0];
+    if (active && firstPayload) {
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
           <p className="text-slate-300 text-sm">
-            <strong className="text-slate-100">{payload[0].payload.pulls} pulls:</strong>
+            <strong className="text-slate-100">{firstPayload.payload.pulls} pulls:</strong>
           </p>
           <p className="text-primary-400 font-semibold">
-            {payload[0].value.toFixed(2)}% chance
+            {firstPayload.value.toFixed(2)}% chance
           </p>
         </div>
       );

@@ -8,7 +8,6 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   calculateMultiCharacterSummary,
   createGoalsFromCharacters,
-  type MultiCharacterGoal,
   type AggregatedMaterialSummary,
 } from '../domain/multiCharacterCalculator';
 import type { Character } from '@/types';
