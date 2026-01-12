@@ -19,6 +19,21 @@ const API_VERSION = 'v5';
 const CACHE_SCHEMA_VERSION = 4; // Increment when cache structure changes - v4: added Natlan common materials
 
 /**
+ * In-memory cache for character materials
+ * Avoids repeated IndexedDB reads which can be slow
+ */
+const characterMemoryCache = new Map<string, { data: CharacterMaterialData; timestamp: number }>();
+const MEMORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes - shorter than IndexedDB cache
+
+/**
+ * Clear the in-memory cache (useful for testing or force refresh)
+ */
+export function clearMemoryCache(): void {
+  characterMemoryCache.clear();
+  weaponMemoryCache.clear();
+}
+
+/**
  * Known local specialties (region-specific gathering items)
  * Used to distinguish from common enemy materials
  */
@@ -500,8 +515,20 @@ export async function getCharacterMaterials(
   options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
 ): Promise<{ data: CharacterMaterialData | null; isStale: boolean; error?: string }> {
   const cacheKey = getCacheKey(characterKey);
+  const memCacheKey = characterKey.toLowerCase();
 
-  // Check cache first (unless force refresh)
+  // Check in-memory cache first (fastest path)
+  if (!options.forceRefresh) {
+    const memCached = characterMemoryCache.get(memCacheKey);
+    if (memCached && Date.now() - memCached.timestamp < MEMORY_CACHE_TTL) {
+      return {
+        data: memCached.data,
+        isStale: false,
+      };
+    }
+  }
+
+  // Check IndexedDB cache (unless force refresh)
   let cachedData: CharacterMaterialData | null = null;
 
   if (!options.forceRefresh) {
@@ -522,6 +549,8 @@ export async function getCharacterMaterials(
         const isNotExpired = Date.now() < cacheExpiresAt;
 
         if (isNotExpired && isSchemaValid) {
+          // Store in memory cache for faster subsequent access
+          characterMemoryCache.set(memCacheKey, { data: materialData, timestamp: Date.now() });
           return {
             data: materialData,
             isStale: false,
@@ -565,6 +594,9 @@ export async function getCharacterMaterials(
     } catch (cacheWriteError) {
       console.warn('Failed to write to cache:', cacheWriteError);
     }
+
+    // Store in memory cache for faster subsequent access
+    characterMemoryCache.set(memCacheKey, { data: materials, timestamp: Date.now() });
 
     return { data: materials, isStale: false };
   } catch (error) {
@@ -620,6 +652,11 @@ import type {
   WeaponMaterialData,
   GenshinDbWeaponResponse,
 } from '@/features/planner/domain/weaponMaterials';
+
+/**
+ * In-memory cache for weapon materials
+ */
+const weaponMemoryCache = new Map<string, { data: WeaponMaterialData; timestamp: number }>();
 
 /**
  * Cache key generator for weapons
@@ -869,8 +906,20 @@ export async function getWeaponMaterials(
   options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
 ): Promise<{ data: WeaponMaterialData | null; isStale: boolean; error?: string }> {
   const cacheKey = getWeaponCacheKey(weaponKey);
+  const memCacheKey = weaponKey.toLowerCase();
 
-  // Check cache first (unless force refresh)
+  // Check in-memory cache first (fastest path)
+  if (!options.forceRefresh) {
+    const memCached = weaponMemoryCache.get(memCacheKey);
+    if (memCached && Date.now() - memCached.timestamp < MEMORY_CACHE_TTL) {
+      return {
+        data: memCached.data,
+        isStale: false,
+      };
+    }
+  }
+
+  // Check IndexedDB cache (unless force refresh)
   let cachedData: WeaponMaterialData | null = null;
 
   if (!options.forceRefresh) {
@@ -889,6 +938,8 @@ export async function getWeaponMaterials(
         const isNotExpired = Date.now() < cacheExpiresAt;
 
         if (isNotExpired && isSchemaValid) {
+          // Store in memory cache for faster subsequent access
+          weaponMemoryCache.set(memCacheKey, { data: materialData, timestamp: Date.now() });
           return {
             data: materialData,
             isStale: false,
@@ -925,6 +976,9 @@ export async function getWeaponMaterials(
     } catch (cacheWriteError) {
       console.warn('Failed to write weapon cache:', cacheWriteError);
     }
+
+    // Store in memory cache for faster subsequent access
+    weaponMemoryCache.set(memCacheKey, { data: materials, timestamp: Date.now() });
 
     return { data: materials, isStale: false };
   } catch (error) {
