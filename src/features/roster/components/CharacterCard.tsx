@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Star, Pencil, Trash2, User } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, CharacterPriority } from '@/types';
 import { getCharacterPortraitUrl } from '@/lib/gameData';
 import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
+import {
+  calculateCharacterArtifactScore,
+  getGradeColor,
+  getGradeBgColor,
+} from '@/features/artifacts/domain/artifactScoring';
 
 interface CharacterCardProps {
   character: Character;
@@ -17,6 +22,12 @@ interface CharacterCardProps {
 export default function CharacterCard({ character, onClick, onEdit, onDelete, teamNames }: CharacterCardProps) {
   const [imageError, setImageError] = useState(false);
   const portraitUrl = getCharacterPortraitUrl(character.avatarId);
+
+  // Calculate artifact score
+  const artifactScore = useMemo(() => {
+    if (character.artifacts.length === 0) return null;
+    return calculateCharacterArtifactScore(character.artifacts);
+  }, [character.artifacts]);
 
   const priorityColors: Record<CharacterPriority, string> = {
     main: 'border-primary-500',
@@ -139,6 +150,23 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
             Lv. {character.weapon.level}/{MAX_LEVEL_BY_ASCENSION[character.weapon.ascension] ?? 90}
           </div>
         </div>
+
+        {/* Artifact Score */}
+        {artifactScore && (
+          <div className="mt-3 flex items-center justify-between">
+            <div className="text-xs text-slate-400">Artifacts</div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">
+                CV: {artifactScore.totalCritValue}
+              </span>
+              <span
+                className={`px-1.5 py-0.5 text-xs font-bold rounded border ${getGradeBgColor(artifactScore.averageGrade)} ${getGradeColor(artifactScore.averageGrade)}`}
+              >
+                {artifactScore.averageGrade}
+              </span>
+            </div>
+          </div>
+        )}
 
         {teamNames && teamNames.length > 0 && (
           <div className="mt-3">
