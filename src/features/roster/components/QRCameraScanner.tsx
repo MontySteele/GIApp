@@ -82,16 +82,22 @@ export default function QRCameraScanner({
     } catch (err) {
       console.error('Failed to start scanner:', err);
       setState('error');
-      if (err instanceof Error) {
-        if (err.message.includes('Permission')) {
-          setError('Camera permission denied. Please allow camera access and try again.');
-        } else if (err.message.includes('NotFoundError')) {
-          setError('No camera found. Please connect a camera and try again.');
-        } else {
-          setError(err.message);
-        }
+
+      const errorMsg = err instanceof Error ? err.message : String(err);
+
+      // Provide specific error messages based on the error type
+      if (errorMsg.includes('NotAllowedError') || errorMsg.includes('Permission denied')) {
+        setError('Camera permission denied. Please click the lock icon in your address bar, allow camera access, and try again.');
+      } else if (errorMsg.includes('NotFoundError') || errorMsg.includes('Requested device not found')) {
+        setError('No camera found. Please connect a camera and try again.');
+      } else if (errorMsg.includes('NotReadableError') || errorMsg.includes('Could not start video source')) {
+        setError('Camera is in use by another application. Please close other apps using the camera and try again.');
+      } else if (errorMsg.includes('OverconstrainedError')) {
+        setError('Camera does not support the required settings. Try selecting a different camera.');
+      } else if (errorMsg.includes('SecurityError')) {
+        setError('Camera access requires HTTPS. If running locally, use http://localhost instead of 127.0.0.1');
       } else {
-        setError('Failed to start camera. Please check permissions and try again.');
+        setError(`Failed to start camera: ${errorMsg}`);
       }
     }
   }, [scannerElementId, selectedCamera, handleScan]);
