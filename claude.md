@@ -52,20 +52,21 @@ React Components → Hooks → Repository Layer → Dexie (IndexedDB)
 
 ---
 
-## Current Sprint: 8.1 (January 2026)
+## Current Sprint: 8.1 (January 2026) - COMPLETED
 
 ### Completed
 - Genshin-DB API integration for character-specific materials
 - Fixed material categorization (LOCAL_SPECIALTIES whitelist, COMMON_TIER_PATTERNS)
 - Fixed API response type parsing (arrays, not objects)
+- **All 390 tests passing** (down from 35 failures)
+- Fixed resource calculation double-counting bug in resourceService.ts
+- Added cache schema versioning to invalidate stale material data
+- Added material aggregation (same materials for ascension + talents combined)
+- Added manual Mora input field in planner
+- Added "Comfortable Build" goal option (80/8/8/8)
 
-### In Progress
-- Test coverage improvement (35 failing, down from 39)
-- See `TEST_COVERAGE_PLAN.md`
-
-### Upcoming (Sprint 9)
-- Artifact optimizer
-- QR code camera import
+### Sprint 9 Candidates
+See bottom of this file for prioritized backlog
 
 ---
 
@@ -107,3 +108,28 @@ See [Contributing Guide](docs/CONTRIBUTING.md) for details.
 - genshin-db API with 7-day cache
 - LOCAL_SPECIALTIES whitelist
 - COMMON_TIER_PATTERNS for material categorization
+- Cache schema versioning for automatic refresh on structure changes
+
+---
+
+## Sprint 9 Backlog (Prioritized)
+
+### High Priority
+1. **Multi-character planner** - Select multiple characters and aggregate all material needs
+2. **Weapon material planner** - Extend planner to include weapon ascension materials
+3. **Artifact optimizer** - Basic artifact scoring and set recommendations
+
+### Medium Priority
+4. **QR code camera import** - Scan Enka QR codes directly from camera
+5. **Farming route suggestions** - Show optimal domains/bosses based on needed materials
+6. **Resin efficiency calculator** - Recommend best use of daily resin
+
+### Lower Priority
+7. **Team DPS comparisons** - Compare team compositions
+8. **Build templates** - Save and share character build templates
+9. **Achievement tracker** - Track in-game achievements
+
+### Technical Debt
+- Increase test coverage to 80% target
+- Add E2E tests for critical user flows
+- Performance profiling for large inventories

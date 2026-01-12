@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-01 (Sprint 8.1 - Planner Polish & Test Fixes)
+
+### Test Suite
+- Fixed all 390 tests (was 35 failures)
+- MultiTargetCalculator: Updated mocks for constellations, bannerType, fixed text assertions
+- ReverseCalculator: Fixed validation tests for min=0, income benchmark assertions
+- EnkaImport: Updated mock for bulkUpsert, fixed success message
+- ledgerRepos: Removed incompatible fake timers
+
+### Bug Fixes
+- Fixed resource calculation double-counting bug in resourceService.ts
+- Fixed tierNames undefined error with defensive optional chaining
+
+### New Features
+- Cache schema versioning to auto-invalidate stale material data
+- Material aggregation by key and tier (no more duplicate entries)
+- Manual Mora input field in planner (for tools that don't export currency)
+- "Comfortable Build" goal option: 80/8/8/8 (between Next Ascension and Full Build)
+
 ## 2026-01 (Sprint 8.1 - Genshin-DB Bug Fix)
 - Fixed API response type mismatch causing placeholder names to appear
 - genshin-db API returns ascend/lvl fields as direct arrays, not {cost, items} objects
