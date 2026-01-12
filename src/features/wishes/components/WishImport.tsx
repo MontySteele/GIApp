@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useReducer, useCallback, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
@@ -40,16 +40,73 @@ const BANNER_NAMES: Record<BannerType, string> = {
   chronicled: 'Chronicled Wish',
 };
 
+// State management with useReducer
+interface WishImportState {
+  url: string;
+  urlError: string;
+  isImporting: boolean;
+  importError: string;
+  currentBanner: string;
+  importSummary: Record<BannerType, number> | null;
+  selectedBanners: Set<BannerType>;
+}
+
+type WishImportAction =
+  | { type: 'SET_URL'; payload: string }
+  | { type: 'SET_URL_ERROR'; payload: string }
+  | { type: 'SET_IS_IMPORTING'; payload: boolean }
+  | { type: 'SET_IMPORT_ERROR'; payload: string }
+  | { type: 'SET_CURRENT_BANNER'; payload: string }
+  | { type: 'SET_IMPORT_SUMMARY'; payload: Record<BannerType, number> | null }
+  | { type: 'TOGGLE_BANNER'; payload: BannerType }
+  | { type: 'RESET_IMPORT_STATE' };
+
+const initialState: WishImportState = {
+  url: '',
+  urlError: '',
+  isImporting: false,
+  importError: '',
+  currentBanner: '',
+  importSummary: null,
+  selectedBanners: new Set(['character', 'weapon', 'standard', 'chronicled']),
+};
+
+function wishImportReducer(state: WishImportState, action: WishImportAction): WishImportState {
+  switch (action.type) {
+    case 'SET_URL':
+      return { ...state, url: action.payload };
+    case 'SET_URL_ERROR':
+      return { ...state, urlError: action.payload };
+    case 'SET_IS_IMPORTING':
+      return { ...state, isImporting: action.payload };
+    case 'SET_IMPORT_ERROR':
+      return { ...state, importError: action.payload };
+    case 'SET_CURRENT_BANNER':
+      return { ...state, currentBanner: action.payload };
+    case 'SET_IMPORT_SUMMARY':
+      return { ...state, importSummary: action.payload };
+    case 'TOGGLE_BANNER': {
+      const newSelection = new Set(state.selectedBanners);
+      if (newSelection.has(action.payload)) {
+        newSelection.delete(action.payload);
+      } else {
+        newSelection.add(action.payload);
+      }
+      return { ...state, selectedBanners: newSelection };
+    }
+    case 'RESET_IMPORT_STATE':
+      return {
+        ...state,
+        importError: '',
+        importSummary: null,
+      };
+    default:
+      return state;
+  }
+}
+
 export function WishImport({ onImportComplete }: WishImportProps) {
-  const [url, setUrl] = useState('');
-  const [urlError, setUrlError] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
-  const [importError, setImportError] = useState('');
-  const [currentBanner, setCurrentBanner] = useState('');
-  const [importSummary, setImportSummary] = useState<Record<BannerType, number> | null>(null);
-  const [selectedBanners, setSelectedBanners] = useState<Set<BannerType>>(
-    new Set(['character', 'weapon', 'standard', 'chronicled'])
-  );
+  const [state, dispatch] = useReducer(wishImportReducer, initialState);
 
   // Normalize URL - convert /index.html to /log
   const normalizeUrl = (inputUrl: string): string => {
@@ -64,9 +121,9 @@ export function WishImport({ onImportComplete }: WishImportProps) {
   };
 
   // Validate URL
-  const validateUrl = (inputUrl: string, options: { normalize?: boolean } = {}) => {
+  const validateUrl = useCallback((inputUrl: string, options: { normalize?: boolean } = {}) => {
     if (!inputUrl) {
-      setUrlError('');
+      dispatch({ type: 'SET_URL_ERROR', payload: '' });
       return false;
     }
 
@@ -74,68 +131,61 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       const normalizedUrl = normalizeUrl(inputUrl);
       const parsedUrl = new URL(normalizedUrl);
       if (options.normalize && normalizedUrl !== inputUrl) {
-        setUrl(normalizedUrl);
+        dispatch({ type: 'SET_URL', payload: normalizedUrl });
       }
 
       if (!parsedUrl.hostname.includes('hoyoverse.com') && !parsedUrl.hostname.includes('mihoyo.com')) {
-        setUrlError('Invalid wish history URL. Please paste the full HoYoverse link from the script.');
+        dispatch({ type: 'SET_URL_ERROR', payload: 'Invalid wish history URL. Please paste the full HoYoverse link from the script.' });
         return false;
       }
 
       if (!parsedUrl.searchParams.has('authkey')) {
-        setUrlError('Missing authkey parameter. Please run the script and copy the complete URL.');
+        dispatch({ type: 'SET_URL_ERROR', payload: 'Missing authkey parameter. Please run the script and copy the complete URL.' });
         return false;
       }
 
-      setUrlError('');
+      dispatch({ type: 'SET_URL_ERROR', payload: '' });
       return true;
     } catch {
-      setUrlError('Invalid wish history URL. Please paste the full HoYoverse link from the script.');
+      dispatch({ type: 'SET_URL_ERROR', payload: 'Invalid wish history URL. Please paste the full HoYoverse link from the script.' });
       return false;
     }
-  };
+  }, []);
 
   // Handle URL change
-  const handleUrlChange = (value: string) => {
-    setUrl(value);
-    setImportError('');
-    setImportSummary(null);
-  };
+  const handleUrlChange = useCallback((value: string) => {
+    dispatch({ type: 'SET_URL', payload: value });
+    dispatch({ type: 'RESET_IMPORT_STATE' });
+  }, []);
 
   // Handle URL blur
-  const handleUrlBlur = () => {
-    validateUrl(url, { normalize: true });
-  };
+  const handleUrlBlur = useCallback(() => {
+    validateUrl(state.url, { normalize: true });
+  }, [state.url, validateUrl]);
 
   // Toggle banner selection
-  const toggleBanner = (banner: BannerType) => {
-    const newSelection = new Set(selectedBanners);
-    if (newSelection.has(banner)) {
-      newSelection.delete(banner);
-    } else {
-      newSelection.add(banner);
-    }
-    setSelectedBanners(newSelection);
-  };
+  const toggleBanner = useCallback((banner: BannerType) => {
+    dispatch({ type: 'TOGGLE_BANNER', payload: banner });
+  }, []);
 
   // Auto-extract wish URL from game logs (Tauri only)
-  const handleAutoExtract = async () => {
+  const handleAutoExtract = useCallback(async () => {
     if (!isTauri) {
-      setUrlError('Auto-extract is only available in the desktop app version.');
+      dispatch({ type: 'SET_URL_ERROR', payload: 'Auto-extract is only available in the desktop app version.' });
       return;
     }
 
     try {
-      setUrlError('');
+      dispatch({ type: 'SET_URL_ERROR', payload: '' });
       const extractedUrl = await invoke<string>('extract_wish_url');
-      setUrl(extractedUrl);
+      dispatch({ type: 'SET_URL', payload: extractedUrl });
     } catch (error) {
-      setUrlError(error as string);
+      dispatch({ type: 'SET_URL_ERROR', payload: error as string });
     }
-  };
+  }, []);
 
   // Copy script to clipboard
-  const copyScript = async (scriptType: 'windows' | 'macos') => {
+  const copyScript = useCallback(async (scriptType: 'windows' | 'macos') => {
     const scriptPath = scriptType === 'windows'
       ? '/scripts/get-wish-url.ps1'
       : '/scripts/get-wish-url.sh';
@@ -145,12 +195,12 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       const script = await response.text();
       await navigator.clipboard.writeText(script);
     } catch (error) {
-      console.error('Failed to copy script:', error);
+      // Failed to copy script - silently ignore
     }
-  };
+  }, []);
 
   // Download script
-  const downloadScript = async (scriptType: 'windows' | 'macos') => {
+  const downloadScript = useCallback(async (scriptType: 'windows' | 'macos') => {
     const scriptPath = scriptType === 'windows'
       ? '/scripts/get-wish-url.ps1'
       : '/scripts/get-wish-url.sh';
@@ -167,12 +217,12 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       a.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to download script:', error);
+      // Failed to download script - silently ignore
     }
-  };
+  }, []);
 
   // Fetch wish history for a specific banner
-  const fetchBannerHistory = async (baseUrl: URL, gachaType: string): Promise<WishHistoryItem[]> => {
+  const fetchBannerHistory = useCallback(async (baseUrl: URL, gachaType: string): Promise<WishHistoryItem[]> => {
     const wishes: WishHistoryItem[] = [];
     const seenIds = new Set<string>();
     let page = 1;
@@ -200,29 +250,8 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       // Check for API errors
       if (data.retcode !== 0 && data.retcode !== undefined) {
         if (data.retcode === -101) {
-          console.warn('[WishImport] Authkey expired or invalid when fetching wishes', {
-            host: apiHost,
-            gachaType: normalizedGachaType,
-          });
           throw new Error('Authkey has expired. Please run the script again to get a new URL.');
         }
-        if (
-          data.message?.toString().toLowerCase().includes('rate') ||
-          data.message?.toString().toLowerCase().includes('limit')
-        ) {
-          console.warn('[WishImport] Possible rate limit detected while fetching wishes', {
-            host: apiHost,
-            gachaType: normalizedGachaType,
-            retcode: data.retcode,
-          });
-        }
-
-        console.error('[WishImport] API error response from wish history endpoint', {
-          host: apiHost,
-          gachaType: normalizedGachaType,
-          retcode: data.retcode,
-          message: data.message,
-        });
         throw new Error(data.message || `API error: ${data.retcode}`);
       }
 
@@ -278,47 +307,37 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     }
 
     return wishes;
-  };
+  }, []);
 
   // Import wish history
-  const handleImport = async () => {
-    if (!validateUrl(url, { normalize: true })) {
+  const handleImport = useCallback(async () => {
+    if (!validateUrl(state.url, { normalize: true })) {
       return;
     }
 
-    setIsImporting(true);
-    setImportError('');
-    setImportSummary(null);
+    dispatch({ type: 'SET_IS_IMPORTING', payload: true });
+    dispatch({ type: 'RESET_IMPORT_STATE' });
 
     try {
       let allWishes: WishHistoryItem[];
 
       // Use Tauri invoke if running in desktop app
       if (isTauri) {
-        setCurrentBanner('Fetching wish history...');
-        const selectedBannersList = Array.from(selectedBanners);
-        console.log('[WishImport] Calling Tauri with selectedBanners:', selectedBannersList);
+        dispatch({ type: 'SET_CURRENT_BANNER', payload: 'Fetching wish history...' });
+        const selectedBannersList = Array.from(state.selectedBanners);
         allWishes = await invoke<WishHistoryItem[]>('fetch_wish_history', {
-          url,
+          url: state.url,
           selectedBanners: selectedBannersList,
         });
-        console.log('[WishImport] Tauri returned', allWishes.length, 'wishes');
-        console.log('[WishImport] Wishes by banner:', allWishes.reduce((acc, w) => {
-          acc[w.banner] = (acc[w.banner] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>));
-        if (allWishes.length > 0) {
-          console.log('[WishImport] First wish:', allWishes[0]);
-        }
       } else {
         // Fallback to browser fetch (will hit CORS)
-        const baseUrl = new URL(url);
+        const baseUrl = new URL(state.url);
         allWishes = [];
-        const bannersToFetch = Array.from(selectedBanners) as BannerType[];
+        const bannersToFetch = Array.from(state.selectedBanners) as BannerType[];
 
         for (const bannerType of bannersToFetch) {
           for (const gachaType of GACHA_TYPES_BY_BANNER[bannerType]) {
-            setCurrentBanner(`Fetching ${BANNER_NAMES[bannerType]} banner...`);
+            dispatch({ type: 'SET_CURRENT_BANNER', payload: `Fetching ${BANNER_NAMES[bannerType]} banner...` });
             const wishes = await fetchBannerHistory(baseUrl, gachaType);
             allWishes.push(...wishes);
           }
@@ -326,27 +345,21 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       }
 
       const existingRecords = await wishRepo.getAll();
-      console.log('[WishImport] Existing records in DB:', existingRecords.length);
       const existingIds = new Set(existingRecords.map((record) => record.gachaId));
       const wishesToStore = allWishes
         .filter((wish) => !existingIds.has(wish.id))
         .map(wishHistoryItemToRecord);
 
-      console.log('[WishImport] New wishes to store:', wishesToStore.length);
       if (wishesToStore.length > 0) {
-        console.log('[WishImport] First wish to store:', wishesToStore[0]);
         await wishRepo.bulkCreate(wishesToStore);
       }
 
       const persistedRecords = await wishRepo.getAll();
-      console.log('[WishImport] Total records after import:', persistedRecords.length);
       const persistedSummary = summarizeWishRecords(persistedRecords);
-      console.log('[WishImport] Summary:', persistedSummary);
       const persistedHistory = await loadWishHistoryFromRepo();
-      console.log('[WishImport] Loaded history:', persistedHistory.length, 'items');
 
-      setImportSummary(persistedSummary);
-      setCurrentBanner('');
+      dispatch({ type: 'SET_IMPORT_SUMMARY', payload: persistedSummary });
+      dispatch({ type: 'SET_CURRENT_BANNER', payload: '' });
       onImportComplete(persistedHistory);
     } catch (error) {
       let errorMessage: string;
@@ -367,16 +380,27 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         errorMessage = 'CORS_ERROR';
       }
 
-      console.error('[WishImport] Import failed', { reason: errorMessage });
-      setImportError(errorMessage);
+      dispatch({ type: 'SET_IMPORT_ERROR', payload: errorMessage });
     } finally {
-      setIsImporting(false);
+      dispatch({ type: 'SET_IS_IMPORTING', payload: false });
     }
-  };
+  }, [state.url, state.selectedBanners, validateUrl, fetchBannerHistory, onImportComplete]);
 
-  const isValidUrl = url.length > 0 && !urlError;
-  const canImport = isValidUrl && selectedBanners.size > 0 && !isImporting;
-  const totalImported = importSummary ? Object.values(importSummary).reduce((a, b) => a + b, 0) : 0;
+  // Memoized computed values
+  const isValidUrl = useMemo(
+    () => state.url.length > 0 && !state.urlError,
+    [state.url, state.urlError]
+  );
+
+  const canImport = useMemo(
+    () => isValidUrl && state.selectedBanners.size > 0 && !state.isImporting,
+    [isValidUrl, state.selectedBanners, state.isImporting]
+  );
+
+  const totalImported = useMemo(
+    () => state.importSummary ? Object.values(state.importSummary).reduce((a, b) => a + b, 0) : 0,
+    [state.importSummary]
+  );
 
   return (
     <div className="space-y-6">
@@ -494,13 +518,13 @@ export function WishImport({ onImportComplete }: WishImportProps) {
             type="text"
             className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=..."
-            value={url}
+            value={state.url}
             onChange={(e) => handleUrlChange(e.target.value)}
             onBlur={handleUrlBlur}
-            disabled={isImporting}
+            disabled={state.isImporting}
           />
-          {urlError && (
-            <p className="text-sm text-red-400">{urlError}</p>
+          {state.urlError && (
+            <p className="text-sm text-red-400">{state.urlError}</p>
           )}
         </div>
       </div>
@@ -516,9 +540,9 @@ export function WishImport({ onImportComplete }: WishImportProps) {
             >
               <input
                 type="checkbox"
-                checked={selectedBanners.has(banner)}
+                checked={state.selectedBanners.has(banner)}
                 onChange={() => toggleBanner(banner)}
-                disabled={isImporting}
+                disabled={state.isImporting}
               />
               <span>{BANNER_NAMES[banner]}</span>
             </label>
@@ -534,21 +558,21 @@ export function WishImport({ onImportComplete }: WishImportProps) {
           onClick={handleImport}
           disabled={!canImport}
         >
-          {isImporting ? 'Importing...' : 'Import'}
+          {state.isImporting ? 'Importing...' : 'Import'}
         </button>
       </div>
 
       {/* Progress */}
-      {isImporting && currentBanner && (
+      {state.isImporting && state.currentBanner && (
         <div className="p-4 bg-blue-900/30 border border-blue-500 rounded-lg">
-          <p className="text-sm text-blue-200">{currentBanner}</p>
+          <p className="text-sm text-blue-200">{state.currentBanner}</p>
         </div>
       )}
 
       {/* Error */}
-      {importError && (
+      {state.importError && (
         <div className="p-4 bg-red-900/30 border border-red-500 rounded-lg">
-          {importError === 'CORS_ERROR' ? (
+          {state.importError === 'CORS_ERROR' ? (
             <div className="space-y-3">
               <h4 className="font-semibold text-red-200">Browser path blocked by CORS</h4>
               <p className="text-sm text-red-200">
@@ -563,20 +587,20 @@ export function WishImport({ onImportComplete }: WishImportProps) {
             </div>
           ) : (
             <p className="text-sm text-red-200">
-              Failed to import wish history: {importError}
+              Failed to import wish history: {state.importError}
             </p>
           )}
         </div>
       )}
 
       {/* Summary */}
-      {importSummary && (
+      {state.importSummary && (
         <div className="p-4 bg-green-900/30 border border-green-500 rounded-lg">
           <h4 className="font-semibold text-green-200 mb-2">
             Import Complete! Imported {totalImported} wishes
           </h4>
           <ul className="space-y-1 text-sm text-green-300">
-            {Object.entries(importSummary).map(([banner, count]) => (
+            {Object.entries(state.importSummary).map(([banner, count]) => (
               count > 0 && (
                 <li key={banner}>
                   {BANNER_NAMES[banner as BannerType]}: {count} wishes
