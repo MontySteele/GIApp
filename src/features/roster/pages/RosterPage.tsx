@@ -18,6 +18,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import EmptyState from '../components/EmptyState';
 import GOODExport from '../components/GOODExport';
 import TeamSnapshotExport from '../components/TeamSnapshotExport';
+import WfpsimExportModal from '@/features/teams/components/WfpsimExportModal';
 import type { Team } from '@/types';
 import type { CharacterSortField } from '../selectors/characterSelectors';
 
@@ -171,6 +172,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         onEditTeam={modals.openEditTeamModal}
         onDeleteTeam={modals.openDeleteTeamModal}
         onExportTeams={() => modals.openExportModal('teams')}
+        onExportToWfpsim={modals.openWfpsimExportModal}
       />
 
       {/* Characters Section */}
@@ -293,6 +295,15 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         {modals.exportModalView === 'good' && <GOODExport onClose={modals.closeExportModal} />}
         {modals.exportModalView === 'teams' && <TeamSnapshotExport onClose={modals.closeExportModal} />}
       </Modal>
+
+      {modals.wfpsimExportTeam && (
+        <WfpsimExportModal
+          team={modals.wfpsimExportTeam}
+          characters={allCharacters ?? []}
+          isOpen={modals.wfpsimExportTeam !== null}
+          onClose={modals.closeWfpsimExportModal}
+        />
+      )}
     </div>
   );
 }

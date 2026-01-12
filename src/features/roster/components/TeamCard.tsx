@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Users } from 'lucide-react';
+import { Pencil, Trash2, Users, Zap } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, Team } from '@/types';
@@ -9,12 +9,22 @@ interface TeamCardProps {
   members: Character[];
   onEdit?: (team: Team) => void;
   onDelete?: (team: Team) => void;
+  onExportToWfpsim?: (team: Team) => void;
 }
 
-export default function TeamCard({ team, members, onEdit, onDelete }: TeamCardProps) {
+export default function TeamCard({ team, members, onEdit, onDelete, onExportToWfpsim }: TeamCardProps) {
   return (
     <Card className="relative">
       <div className="absolute top-3 right-3 flex items-center gap-1">
+        {onExportToWfpsim && (
+          <button
+            onClick={() => onExportToWfpsim(team)}
+            className="p-1.5 bg-primary-700 hover:bg-primary-600 rounded-md transition-colors"
+            title="Export to wfpsim"
+          >
+            <Zap className="w-4 h-4 text-white" />
+          </button>
+        )}
         {onEdit && (
           <button
             onClick={() => onEdit(team)}

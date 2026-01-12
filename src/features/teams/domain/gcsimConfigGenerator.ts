@@ -5,13 +5,12 @@
  * See: https://docs.gcsim.app/reference/config/
  */
 
-import type { Character, Team, Artifact, Substat } from '../../../types';
+import type { Character, Team, Artifact } from '../../../types';
 import {
   toGcsimCharacterKey,
   toGcsimWeaponKey,
   toGcsimArtifactSetKey,
   toGcsimStatKey,
-  toGcsimStatValue,
   getArtifactSetConfig,
   PERCENTAGE_STATS,
 } from './gcsimKeyMappings';
@@ -127,7 +126,8 @@ export function generateGcsimConfig(
   }
 
   // Active character (first in team)
-  const firstCharKey = toGcsimCharacterKey(teamCharacters[0].key);
+  // Non-null assertion safe: we already validated teamCharacters.length > 0 above
+  const firstCharKey = toGcsimCharacterKey(teamCharacters[0]!.key);
   lines.push(`active ${firstCharKey};`);
   lines.push('');
 
