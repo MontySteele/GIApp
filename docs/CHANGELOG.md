@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-01 (Sprint 9 - Multi-Character & Weapon Planner)
+
+### New Features
+- **Multi-character planner** - Select multiple characters and aggregate all material needs
+- **Weapon material planner** - Track weapon ascension materials with Level 80 goal option
+- **Goal types** - Added "Functional" (80/80, A5, 1/6/6) for minimal support builds
+- **Resin breakdown** - Split estimates into "Talents/Boss" vs "EXP/Mora" categories
+- **Today's Farming Recommendations** - Cross-references talent needs with domain schedule
+- **Material Deficit Priority** - Analyzes which materials block the most progress
+- **Resin Efficiency Calculator** - Compares farming activities, recommends daily priorities
+
+### Bug Fixes
+- Fixed resin calculation formula (was summing runs per tier instead of total)
+- Fixed talent domain drop rates (purple: 0.3 → 2.2 for AR55+)
+- Fixed multi-character planner not updating on selection change
+- Fixed Gaming's boss material showing as "Boss Material" (was "Emperor's Resolution")
+- Fixed Xilonen/Natlan common materials showing as generic names
+- Added weekly boss resin cost to Talents/Boss breakdown
+
+### Technical
+- Fixed 18 TypeScript errors across codebase
+- Added 59 new tests (now 449 total)
+- Cache schema version 4 for Natlan material patterns
+- Added Natlan common materials: Saurian Claw, Blazing Core, etc.
+
 ## 2026-01 (Sprint 8.1 - Planner Polish & Test Fixes)
 
 ### Test Suite

@@ -19,7 +19,7 @@ A local-first PWA for Genshin Impact players to track characters, wishes, primog
 | **Wishes** | Pity tracking, Capturing Radiance, URL import |
 | **Ledger** | Snapshot-based primogem tracking, projection charts |
 | **Calculator** | Single/multi-target probability, Monte Carlo simulation |
-| **Planner** | Character materials via genshin-db API |
+| **Planner** | Multi-char/weapon planning, deficit priority, resin efficiency, farming schedule |
 | **Calendar** | Reset timers, event tracking |
 
 ---
@@ -52,21 +52,28 @@ React Components → Hooks → Repository Layer → Dexie (IndexedDB)
 
 ---
 
-## Current Sprint: 9 (January 2026)
+## Current Sprint: 10 (January 2026)
 
 ### Goals
-1. **Multi-character planner** - Select multiple characters, aggregate all material needs
-2. **Weapon material planner** - Extend planner to include weapon ascension
+1. **Artifact optimizer** - Basic artifact scoring and set recommendations
+2. **QR code camera import** - Scan Enka QR codes directly from camera
 
 ### Requirements
 - **TDD**: Write tests BEFORE implementation
 - **Coverage**: Maintain 80%+ test coverage
 - Run `npm test -- --run` before committing
 
-### Previous Sprint (8.1) - Completed
-- All 390 tests passing
-- Genshin-DB API integration with cache versioning
-- Material aggregation, manual Mora input, Comfortable Build goal
+### Previous Sprint (9) - Completed
+- All 449 tests passing
+- **Multi-character planner** - Select multiple characters, aggregate material needs
+- **Weapon material planner** - Weapon ascension materials with level 80 goal option
+- **Goal types** - Added "Functional" (80/80, 1/6/6) for minimal investment support builds
+- **Resin breakdown** - Split estimates into Talents/Boss vs EXP/Mora categories
+- **Today's Farming Recommendations** - Cross-references talent needs with domain schedule
+- **Material Deficit Priority** - Shows which materials block the most progress
+- **Resin Efficiency Calculator** - Compares farming activities and recommends daily priorities
+- **Fixed resin calculations** - Corrected talent domain drop rates and formula
+- **TypeScript cleanup** - Fixed 18 errors across codebase
 
 ---
 
@@ -114,16 +121,11 @@ See [Contributing Guide](docs/CONTRIBUTING.md) for details.
 
 ## Future Sprint Backlog
 
-### Sprint 10 Candidates
-1. **Artifact optimizer** - Basic artifact scoring and set recommendations
-2. **QR code camera import** - Scan Enka QR codes directly from camera
-3. **Farming route suggestions** - Show optimal domains/bosses based on needed materials
-
-### Sprint 11+ Candidates
-4. **Resin efficiency calculator** - Recommend best use of daily resin
-5. **Team DPS comparisons** - Compare team compositions
-6. **Build templates** - Save and share character build templates
-7. **Achievement tracker** - Track in-game achievements
+### Sprint 11 Candidates
+1. **Team DPS comparisons** - Compare team compositions
+2. **Build templates** - Save and share character build templates
+3. **Achievement tracker** - Track in-game achievements
+4. **Weekly boss tracker** - Track completed weekly bosses with reset timer
 
 ### Technical Debt (Ongoing)
 - Maintain 80%+ test coverage
