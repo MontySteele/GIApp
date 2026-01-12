@@ -16,6 +16,7 @@ import {
   getGradeColor,
   getGradeBgColor,
 } from '@/features/artifacts/domain/artifactScoring';
+import BuildRecommendations from '@/features/artifacts/components/BuildRecommendations';
 
 export default function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -242,6 +243,9 @@ export default function CharacterDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Build Recommendations Card */}
+        <BuildRecommendations character={character} />
 
         {/* Artifacts Card */}
         <Card>

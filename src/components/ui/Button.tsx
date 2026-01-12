@@ -8,8 +8,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className = '', variant = 'primary', size = 'md', loading, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 font-medium transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed';
+  ({ className = '', variant = 'primary', size = 'md', loading, children, disabled, 'aria-label': ariaLabel, ...props }, ref) => {
+    const baseStyles =
+      'inline-flex items-center justify-center gap-2 font-medium transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-slate-900';
 
     const variants = {
       primary: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800',
@@ -24,14 +25,19 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-6 py-3 text-base',
     };
 
+    const isDisabled = disabled || loading;
+
     return (
       <button
         ref={ref}
         className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
-        disabled={disabled || loading}
+        disabled={isDisabled}
+        aria-disabled={isDisabled ? 'true' : undefined}
+        aria-label={ariaLabel}
+        aria-busy={loading ? 'true' : undefined}
         {...props}
       >
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
         {children}
       </button>
     );
