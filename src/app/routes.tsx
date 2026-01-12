@@ -12,6 +12,8 @@ import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
 import CalendarPage from '@/features/calendar/pages/CalendarPage';
 import NotesPage from '@/features/notes/pages/NotesPage';
 import SyncPage from '@/features/sync/pages/SyncPage';
+import { BuildTemplatesPage } from '@/features/builds';
+import { WeeklyBossTrackerPage } from '@/features/bosses';
 
 export const router = createBrowserRouter([
   {
@@ -61,6 +63,14 @@ export const router = createBrowserRouter([
       {
         path: 'notes',
         element: <NotesPage />,
+      },
+      {
+        path: 'builds',
+        element: <BuildTemplatesPage />,
+      },
+      {
+        path: 'bosses',
+        element: <WeeklyBossTrackerPage />,
       },
       {
         path: 'settings',
