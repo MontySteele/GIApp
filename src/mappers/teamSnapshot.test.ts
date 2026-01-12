@@ -1,102 +1,72 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createTeamSnapshot, stringifyTeamSnapshot } from './teamSnapshot';
-import type { Character, Team } from '@/types';
+import { describe, it, expect } from 'vitest';
+import { toTeamSnapshot, type TeamSnapshot } from './teamSnapshot';
+import type { Team } from '@/types';
 
-const mockTeam: Team = {
-  id: 'team-1',
-  name: 'Hyperbloom',
-  characterKeys: ['Nahida', 'Yelan', 'KukiShinobu'],
-  rotationNotes: 'Spread into burst windows',
-  tags: ['abyss', 'dps'],
-  createdAt: '2024-01-01T00:00:00.000Z',
-  updatedAt: '2024-01-02T00:00:00.000Z',
-};
-
-const mockCharacters: Character[] = [
+const mockTeams: Team[] = [
   {
-    id: 'char-1',
-    key: 'Nahida',
-    level: 90,
-    ascension: 6,
-    constellation: 2,
-    talent: { auto: 1, skill: 10, burst: 9 },
-    weapon: { key: 'AThousandFloatingDreams', level: 90, ascension: 6, refinement: 1 },
-    artifacts: [
-      {
-        setKey: 'DeepwoodMemories',
-        slotKey: 'flower',
-        level: 20,
-        rarity: 5,
-        mainStatKey: 'hp',
-        substats: [],
-      },
-    ],
-    notes: 'Focus on EM',
-    priority: 'main',
-    teamIds: ['team-1'],
+    id: 'team-1',
+    name: 'Hyperbloom',
+    characterKeys: ['Nahida', 'Yelan', 'KukiShinobu'],
+    rotationNotes: 'Spread into burst windows',
+    tags: ['abyss', 'dps'],
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-02T00:00:00.000Z',
   },
   {
-    id: 'char-2',
-    key: 'Xingqiu',
-    level: 90,
-    ascension: 6,
-    constellation: 6,
-    talent: { auto: 1, skill: 9, burst: 9 },
-    weapon: { key: 'SacrificialSword', level: 90, ascension: 6, refinement: 3 },
-    artifacts: [],
-    notes: '',
-    priority: 'secondary',
-    teamIds: [],
+    id: 'team-2',
+    name: 'National',
+    characterKeys: ['Xiangling', 'Xingqiu', 'Bennett', 'Raiden'],
+    rotationNotes: '',
+    tags: ['abyss'],
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-02T00:00:00.000Z',
   },
 ];
 
 describe('team snapshot export', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2024-02-01T12:00:00.000Z'));
-  });
+  it('should create a snapshot with correct format and version', () => {
+    const snapshot = toTeamSnapshot(mockTeams);
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('should create a snapshot with team metadata and matching members', () => {
-    const snapshot = createTeamSnapshot(mockTeam, mockCharacters);
-
-    expect(snapshot.format).toBe('TeamSnapshot');
+    expect(snapshot.format).toBe('GIAPP_TEAMS');
     expect(snapshot.version).toBe(1);
-    expect(snapshot.exportedAt).toBe('2024-02-01T12:00:00.000Z');
-    expect(snapshot.team).toEqual({
+    expect(snapshot.source).toBe('Genshin Progress Tracker');
+  });
+
+  it('should include all teams with their metadata', () => {
+    const snapshot = toTeamSnapshot(mockTeams);
+
+    expect(snapshot.teams).toHaveLength(2);
+    expect(snapshot.teams[0]).toEqual({
       id: 'team-1',
       name: 'Hyperbloom',
       characterKeys: ['Nahida', 'Yelan', 'KukiShinobu'],
       rotationNotes: 'Spread into burst windows',
       tags: ['abyss', 'dps'],
-    });
-    expect(snapshot.members).toHaveLength(1);
-    expect(snapshot.members[0]).toMatchObject({
-      id: 'char-1',
-      key: 'Nahida',
-      level: 90,
-      ascension: 6,
-      constellation: 2,
-      talent: { auto: 1, skill: 10, burst: 9 },
-      weapon: { key: 'AThousandFloatingDreams', level: 90, ascension: 6, refinement: 1 },
-      priority: 'main',
-      notes: 'Focus on EM',
+      updatedAt: '2024-01-02T00:00:00.000Z',
     });
   });
 
-  it('should stringify snapshot to pretty JSON', () => {
-    const snapshot = createTeamSnapshot(mockTeam, mockCharacters);
-    const json = stringifyTeamSnapshot(snapshot);
+  it('should handle empty teams array', () => {
+    const snapshot = toTeamSnapshot([]);
 
-    const parsed = JSON.parse(json);
+    expect(snapshot.format).toBe('GIAPP_TEAMS');
+    expect(snapshot.teams).toEqual([]);
+  });
+
+  it('should only include exported fields, not createdAt', () => {
+    const snapshot = toTeamSnapshot(mockTeams);
+
+    // Should include updatedAt but not createdAt
+    expect(snapshot.teams[0]).toHaveProperty('updatedAt');
+    expect(snapshot.teams[0]).not.toHaveProperty('createdAt');
+  });
+
+  it('should stringify snapshot to valid JSON', () => {
+    const snapshot = toTeamSnapshot(mockTeams);
+    const json = JSON.stringify(snapshot, null, 2);
+    const parsed = JSON.parse(json) as TeamSnapshot;
+
     expect(parsed).toEqual(snapshot);
-    expect(json).toContain('\n  "format": "TeamSnapshot"');
+    expect(parsed.format).toBe('GIAPP_TEAMS');
   });
 });

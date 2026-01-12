@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, expect } from 'vitest';
+import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { primogemEntryRepo } from './primogemEntryRepo';
 import { fateEntryRepo } from './fateEntryRepo';
@@ -7,9 +7,15 @@ import type { PrimogemSource, FateSource } from '@/types';
 
 describe('Ledger repositories', () => {
   beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-01T12:00:00.000Z'));
     await db.primogemEntries.clear();
     await db.fateEntries.clear();
     await db.resourceSnapshots.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('primogemEntryRepo', () => {
@@ -24,7 +30,7 @@ describe('Ledger repositories', () => {
 
       const stored = await primogemEntryRepo.getById(id);
       expect(stored?.id).toBe(id);
-      expect(stored?.timestamp).toMatch(/^\\d{4}-\\d{2}-\\d{2}T/);
+      expect(stored?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(stored?.createdAt).toBe(stored?.updatedAt);
     });
 
@@ -36,6 +42,8 @@ describe('Ledger repositories', () => {
         timestamp: '2024-01-01T00:00:00.000Z',
       });
       const original = await primogemEntryRepo.getById(id);
+      // Advance time to ensure updatedAt changes
+      vi.advanceTimersByTime(1000);
       await primogemEntryRepo.update(id, { amount: 200 });
       const updated = await primogemEntryRepo.getById(id);
 
@@ -56,7 +64,7 @@ describe('Ledger repositories', () => {
       });
 
       const stored = await fateEntryRepo.getById(id);
-      expect(stored?.timestamp).toMatch(/^\\d{4}-\\d{2}-\\d{2}T/);
+      expect(stored?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(stored?.createdAt).toBe(stored?.updatedAt);
     });
 
@@ -68,6 +76,8 @@ describe('Ledger repositories', () => {
       });
 
       const original = await fateEntryRepo.getById(id);
+      // Advance time to ensure updatedAt changes
+      vi.advanceTimersByTime(1000);
       await fateEntryRepo.update(id, { amount: 3, timestamp: '2024-02-02T00:00:00.000Z' });
       const updated = await fateEntryRepo.getById(id);
 
@@ -90,7 +100,7 @@ describe('Ledger repositories', () => {
 
       const snapshot = await resourceSnapshotRepo.getLatest();
       expect(snapshot?.id).toBe(id);
-      expect(snapshot?.timestamp).toMatch(/^\\d{4}-\\d{2}-\\d{2}T/);
+      expect(snapshot?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(snapshot?.createdAt).toBeDefined();
     });
   });

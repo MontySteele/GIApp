@@ -116,9 +116,11 @@ describe('WishStatistics', () => {
       };
       render(<WishStatistics stats={longDecimalStats} bannerType="character" />);
 
+      // fiveStarRate and fourStarRate use 1 decimal place
       expect(screen.getByText('1.2%')).toBeInTheDocument();
       expect(screen.getByText('13.9%')).toBeInTheDocument();
-      expect(screen.getByText('47.8%')).toBeInTheDocument();
+      // fiftyFiftyWinRate uses 0 decimal places (whole number)
+      expect(screen.getByText('48%')).toBeInTheDocument();
       expect(screen.queryByText(/1\.234/)).not.toBeInTheDocument();
     });
   });
@@ -128,14 +130,16 @@ describe('WishStatistics', () => {
       render(<WishStatistics stats={mockStats} bannerType="character" />);
 
       expect(screen.getByText(/average.*5.*star.*pity/i)).toBeInTheDocument();
-      expect(screen.getByText('65')).toBeInTheDocument();
+      // Component uses toFixed(1), so 65 displays as '65.0'
+      expect(screen.getByText('65.0')).toBeInTheDocument();
     });
 
     it('should display average 4-star pity', () => {
       render(<WishStatistics stats={mockStats} bannerType="character" />);
 
       expect(screen.getByText(/average.*4.*star.*pity/i)).toBeInTheDocument();
-      expect(screen.getByText('8')).toBeInTheDocument();
+      // Component uses toFixed(1), so 8 displays as '8.0'
+      expect(screen.getByText('8.0')).toBeInTheDocument();
     });
 
     it('should show N/A when no 5-stars pulled', () => {
