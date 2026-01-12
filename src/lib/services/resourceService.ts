@@ -10,15 +10,16 @@
  * - Wish history (wishes) for spending calculation
  */
 
-import { fateEntryRepo } from '@/features/ledger/repo/fateEntryRepo';
-import { primogemEntryRepo } from '@/features/ledger/repo/primogemEntryRepo';
-import { resourceSnapshotRepo } from '@/features/ledger/repo/resourceSnapshotRepo';
-import { wishRepo } from '@/features/wishes/repo/wishRepo';
+// Import from feature public APIs
 import {
+  fateEntryRepo,
+  primogemEntryRepo,
+  resourceSnapshotRepo,
   calculateAvailablePulls,
   calculateWishSpending,
   type LedgerResourceSnapshot,
-} from '@/features/ledger/domain/resourceCalculations';
+} from '@/features/ledger';
+import { wishRepo } from '@/features/wishes';
 import type { FateType } from '@/types';
 
 export interface AvailablePullsResult {
