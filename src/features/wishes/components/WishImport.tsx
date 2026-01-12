@@ -229,7 +229,6 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     let endId = '0';
     const pageSize = 20;
     const normalizedGachaType = String(gachaType);
-    const apiHost = baseUrl.hostname;
 
     while (true) {
       const fetchUrl = new URL(baseUrl.toString());

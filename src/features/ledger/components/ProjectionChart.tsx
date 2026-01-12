@@ -126,8 +126,9 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
   }
 
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
+    const firstPayload = payload?.[0];
+    if (active && firstPayload) {
+      const data = firstPayload.payload;
       const pullsAtPoint = Math.floor(data.projected / PRIMOS_PER_PULL);
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">

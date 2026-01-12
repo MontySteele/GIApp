@@ -136,18 +136,18 @@ export const DOMAIN_SCHEDULE: Record<string, string[]> = {
   'Conflict': ['Wednesday', 'Saturday', 'Sunday'],
 };
 
-// Estimated domain runs for materials (average drops)
+// Estimated domain runs for materials (average drops at AR55+ level 90 domains)
 export const DOMAIN_DROPS_PER_RUN = {
   talentBooks: {
-    green: 2.2,
-    blue: 0.5, // From crafting greens
-    purple: 0.3,
+    green: 2.5,  // Average green books per run
+    blue: 1.5,   // Average blue books per run
+    purple: 2.2, // Average purple books per run at level 90 domains
   },
   weaponMats: {
-    green: 2.2,
-    blue: 0.5,
-    purple: 0.3,
-    orange: 0.1,
+    green: 2.5,
+    blue: 1.5,
+    purple: 2.2,
+    orange: 0.6, // Gold weapon mats are rarer
   },
   artifacts: {
     fiveStar: 1.07,

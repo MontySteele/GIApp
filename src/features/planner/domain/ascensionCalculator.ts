@@ -75,12 +75,19 @@ export interface MaterialRequirement {
   availability?: string[]; // Days available (for talent books)
 }
 
+export interface ResinBreakdown {
+  talentBoss: number; // Resin for talent domains and boss materials
+  expMora: number;    // Resin for EXP and Mora ley lines
+  total: number;      // Total resin needed
+}
+
 export interface AscensionSummary {
   characterKey: string;
   materials: MaterialRequirement[];
   totalMora: number;
   totalExp: number;
   estimatedResin: number;
+  resinBreakdown: ResinBreakdown;
   estimatedDays: number;
   canAscend: boolean;
   nextAscensionReady: boolean;
@@ -272,8 +279,10 @@ async function buildMaterialsWithApiData(
     if (existingIndex >= 0) {
       // Aggregate: add to existing entry
       const existing = materials[existingIndex];
-      existing.required += required;
-      existing.deficit = Math.max(0, existing.required - existing.owned);
+      if (existing) {
+        existing.required += required;
+        existing.deficit = Math.max(0, existing.required - existing.owned);
+      }
     } else {
       // Add new entry
       materials.push({
@@ -478,25 +487,51 @@ export async function calculateAscensionSummary(
   // Add API-sourced materials
   materials.push(...apiMaterials);
 
-  // Estimate resin
-  const books0 = talentMats.books[0] ?? 0;
-  const books1 = talentMats.books[1] ?? 0;
-  const books2 = talentMats.books[2] ?? 0;
-  const talentDomainRuns = Math.ceil(
-    (books0 / DOMAIN_DROPS_PER_RUN.talentBooks.green) +
-    (books1 / (DOMAIN_DROPS_PER_RUN.talentBooks.green * 3 + DOMAIN_DROPS_PER_RUN.talentBooks.blue)) +
-    (books2 / (DOMAIN_DROPS_PER_RUN.talentBooks.purple))
-  );
+  // Estimate resin - broken down by category
+  // For talent domains: each run gives ALL tiers of books, so we need to find the bottleneck
+  // Convert everything to "purple equivalent" using 3:1 craft ratio
+  const books0 = talentMats.books[0] ?? 0; // green (teachings)
+  const books1 = talentMats.books[1] ?? 0; // blue (guides)
+  const books2 = talentMats.books[2] ?? 0; // purple (philosophies)
 
-  const expLeyLines = Math.ceil(herosWitNeeded / 4.5); // ~4.5 Hero's Wit per run
+  // Convert to purple equivalent (9 green = 3 blue = 1 purple via crafting)
+  const purpleEquivNeeded =
+    (books0 / 9) + // green → purple (2 crafting steps)
+    (books1 / 3) + // blue → purple (1 crafting step)
+    books2;        // purple
+
+  // Purple equivalent per run at AR55+ level 90 domains
+  const purpleEquivPerRun =
+    (DOMAIN_DROPS_PER_RUN.talentBooks.green / 9) +
+    (DOMAIN_DROPS_PER_RUN.talentBooks.blue / 3) +
+    DOMAIN_DROPS_PER_RUN.talentBooks.purple;
+
+  const talentDomainRuns = Math.ceil(purpleEquivNeeded / purpleEquivPerRun);
+
+  const adjustedExpLeyLines = Math.max(0, Math.ceil(herosWitNeeded / 4.5) - Math.floor(ownedHerosWit / 4.5));
   const moraLeyLines = Math.ceil(Math.max(0, totalMora - ownedMora) / 60000);
 
-  const estimatedResin = estimateResinCost({
-    bossMat: ascensionMats.bossMat,
-    talentDomainRuns,
-    expLeyLines: Math.max(0, expLeyLines - Math.floor(ownedHerosWit / 4.5)),
-    moraLeyLines,
-  });
+  // Calculate resin breakdown
+  // Talents/Boss: talent domain runs + world boss runs + weekly boss runs
+  const worldBossRuns = Math.ceil(ascensionMats.bossMat / 2.5);
+  const weeklyBossRuns = Math.ceil(talentMats.weeklyBoss / 2.5); // ~2-3 mats per weekly boss
+
+  const talentBossResin =
+    (talentDomainRuns * RESIN_COSTS.domainRun) +
+    (worldBossRuns * RESIN_COSTS.worldBoss) +
+    (weeklyBossRuns * RESIN_COSTS.weeklyBoss);
+
+  // EXP/Mora: ley line runs for exp and mora
+  const expMoraResin =
+    (adjustedExpLeyLines * RESIN_COSTS.leyLine) +
+    (moraLeyLines * RESIN_COSTS.leyLine);
+
+  const estimatedResin = talentBossResin + expMoraResin;
+  const resinBreakdown: ResinBreakdown = {
+    talentBoss: talentBossResin,
+    expMora: expMoraResin,
+    total: estimatedResin,
+  };
 
   const estimatedDays = Math.ceil(estimatedResin / 180); // 180 resin per day
 
@@ -513,6 +548,7 @@ export async function calculateAscensionSummary(
     totalMora,
     totalExp: expNeeded,
     estimatedResin,
+    resinBreakdown,
     estimatedDays,
     canAscend,
     nextAscensionReady,
@@ -551,6 +587,26 @@ export function createComfortableBuildGoal(character: Character): AscensionGoal 
       auto: Math.max(character.talent.auto, 8),
       skill: Math.max(character.talent.skill, 8),
       burst: Math.max(character.talent.burst, 8),
+    },
+  };
+}
+
+/**
+ * Create a goal for functional build (80/80 A5 with 1/6/6 talents)
+ * Minimal investment for a working support character
+ */
+export function createFunctionalBuildGoal(character: Character): AscensionGoal {
+  return {
+    characterKey: character.key,
+    currentLevel: character.level,
+    targetLevel: 80,
+    currentAscension: character.ascension,
+    targetAscension: 5, // A5 = 80/80
+    currentTalents: { ...character.talent },
+    targetTalents: {
+      auto: Math.max(character.talent.auto, 1), // Keep auto at 1 for supports
+      skill: Math.max(character.talent.skill, 6),
+      burst: Math.max(character.talent.burst, 6),
     },
   };
 }

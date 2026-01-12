@@ -16,7 +16,22 @@ import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
-const CACHE_SCHEMA_VERSION = 2; // Increment when cache structure changes
+const CACHE_SCHEMA_VERSION = 4; // Increment when cache structure changes - v4: added Natlan common materials
+
+/**
+ * In-memory cache for character materials
+ * Avoids repeated IndexedDB reads which can be slow
+ */
+const characterMemoryCache = new Map<string, { data: CharacterMaterialData; timestamp: number }>();
+const MEMORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes - shorter than IndexedDB cache
+
+/**
+ * Clear the in-memory cache (useful for testing or force refresh)
+ */
+export function clearMemoryCache(): void {
+  characterMemoryCache.clear();
+  weaponMemoryCache.clear();
+}
 
 /**
  * Known local specialties (region-specific gathering items)
@@ -29,6 +44,8 @@ const LOCAL_SPECIALTIES = new Set([
   // Liyue
   'Cor Lapis', 'Glaze Lily', 'Jueyun Chili', 'Noctilucous Jade',
   'Qingxin', 'Silk Flower', 'Starconch', 'Violetgrass',
+  // Chenyu Vale (Liyue sub-region)
+  'Chenyu Adeptus Berry', 'Clearwater Jade',
   // Inazuma
   'Amakumo Fruit', 'Crystal Marrow', 'Dendrobium', 'Fluorescent Fungus',
   'Naku Weed', 'Onikabuto', 'Sakura Bloom', 'Sango Pearl', 'Sea Ganoderma',
@@ -57,6 +74,9 @@ const COMMON_TIER_PATTERNS = {
     'Faded Red Satin', 'Transoceanic Pearl', 'Juvenile Fang', 'A Flower Yet to Bloom',
     'Shard of a Shattered Will', 'Old Operative\'s Pocket Watch', 'Feathery Fin',
     'Ruined Hilt', 'Axis of the Secret Source',
+    // Natlan materials (5.0+)
+    'Saurian Claw', 'Ignited Stone', 'Blazing Sacrificial Heart\'s Terror',
+    'Meshing Gear', 'Foreigners\' Deciphered Notes',
   ],
   // Tier 2 (Green) patterns
   tier2: [
@@ -68,6 +88,9 @@ const COMMON_TIER_PATTERNS = {
     'Trimmed Red Silk', 'Transoceanic Chunk', 'Seasoned Fang', 'Budding Greenery',
     'Shard of a Foul Legacy', 'Operative\'s Standard Pocket Watch', 'Lunar Fin',
     'Splintered Hilt', 'Sheath of the Secret Source',
+    // Natlan materials (5.0+)
+    'Sturdy Saurian Claw', 'Blazing Core', 'Blazing Sacrificial Heart\'s Resolve',
+    'Mechanical Spur Gear', 'Foreigners\'Erta',
   ],
   // Tier 3 (Blue) patterns
   tier3: [
@@ -79,6 +102,9 @@ const COMMON_TIER_PATTERNS = {
     'Rich Red Brocade', 'Xenochromatic Crystal', 'Tyrant\'s Fang', 'Wilting Glory',
     'Shard of a Conquered Will', 'Operative\'s Constancy', 'Chasmlight Fin',
     'Still-Smoldering Hilt', 'Heart of the Secret Source',
+    // Natlan materials (5.0+)
+    'Tempered Saurian Claw', 'Roiling Magma Drop', 'Blazing Sacrificial Heart\'s Splendor',
+    'Artificed Dynamic Gear', 'Foreigners\' Zekhava',
   ],
 };
 
@@ -383,51 +409,11 @@ function processCharacterMaterials(
               materials.ascensionMaterials.common.byTier.blue += item.count;
             }
           } else {
-            // Unknown material - assume boss drop if significant count, else local specialty
-            // Boss drops typically have higher counts and unique names
-            if (
-              name.includes('Seed') ||
-              name.includes('Core') ||
-              name.includes('Orb') ||
-              name.includes('Scale') ||
-              name.includes('Claw') ||
-              name.includes('Bone') ||
-              name.includes('Cleansing') ||
-              name.includes('Hurricane') ||
-              name.includes('Lightning') ||
-              name.includes('Basalt') ||
-              name.includes('Hoarfrost') ||
-              name.includes('Everflame') ||
-              name.includes('Crystalline') ||
-              name.includes('Juvenile Jade') ||
-              name.includes('Smoldering') ||
-              name.includes('Perpetual') ||
-              name.includes('Runic') ||
-              name.includes('Dew of Repudiation') ||
-              name.includes('Storm Beads') ||
-              name.includes('Dragonheir') ||
-              name.includes('Riftborn') ||
-              name.includes('Puppet Strings') ||
-              name.includes('Quelled') ||
-              name.includes('Thunderclap') ||
-              name.includes('Artificed') ||
-              name.includes('Fontemer') ||
-              name.includes('Water That Failed') ||
-              name.includes('Light Guiding') ||
-              name.includes('Cloudseam') ||
-              name.includes('Fragment of a') ||
-              name.includes('Denial and Judgment') ||
-              name.includes('Overripe') ||
-              name.includes('Gold-Inscribed') ||
-              name.includes('Mark of the Binding')
-            ) {
-              materials.ascensionMaterials.boss.name = name;
-              materials.ascensionMaterials.boss.totalCount += item.count;
-            } else {
-              // Truly unknown - default to local specialty
-              materials.ascensionMaterials.localSpecialty.name = name;
-              materials.ascensionMaterials.localSpecialty.totalCount += item.count;
-            }
+            // Unknown material that's not a gem, local specialty, or common material
+            // In character ascension costs, the only remaining type is boss drop
+            // This is a safer fallback than the previous keyword matching
+            materials.ascensionMaterials.boss.name = name;
+            materials.ascensionMaterials.boss.totalCount += item.count;
           }
         }
       }
@@ -529,8 +515,20 @@ export async function getCharacterMaterials(
   options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
 ): Promise<{ data: CharacterMaterialData | null; isStale: boolean; error?: string }> {
   const cacheKey = getCacheKey(characterKey);
+  const memCacheKey = characterKey.toLowerCase();
 
-  // Check cache first (unless force refresh)
+  // Check in-memory cache first (fastest path)
+  if (!options.forceRefresh) {
+    const memCached = characterMemoryCache.get(memCacheKey);
+    if (memCached && Date.now() - memCached.timestamp < MEMORY_CACHE_TTL) {
+      return {
+        data: memCached.data,
+        isStale: false,
+      };
+    }
+  }
+
+  // Check IndexedDB cache (unless force refresh)
   let cachedData: CharacterMaterialData | null = null;
 
   if (!options.forceRefresh) {
@@ -542,13 +540,17 @@ export async function getCharacterMaterials(
 
         // Detect cache format - new format has schemaVersion, old format is raw CharacterMaterialData
         const schemaVersion = 'schemaVersion' in cacheEntry ? cacheEntry.schemaVersion : 0;
-        const materialData = 'schemaVersion' in cacheEntry ? cacheEntry.data : cacheEntry;
+        const materialData: CharacterMaterialData = 'schemaVersion' in cacheEntry
+          ? cacheEntry.data
+          : (cacheEntry as CharacterMaterialData);
 
         // Cache is valid if not expired AND schema version matches
         const isSchemaValid = schemaVersion === CACHE_SCHEMA_VERSION;
         const isNotExpired = Date.now() < cacheExpiresAt;
 
         if (isNotExpired && isSchemaValid) {
+          // Store in memory cache for faster subsequent access
+          characterMemoryCache.set(memCacheKey, { data: materialData, timestamp: Date.now() });
           return {
             data: materialData,
             isStale: false,
@@ -592,6 +594,9 @@ export async function getCharacterMaterials(
     } catch (cacheWriteError) {
       console.warn('Failed to write to cache:', cacheWriteError);
     }
+
+    // Store in memory cache for faster subsequent access
+    characterMemoryCache.set(memCacheKey, { data: materials, timestamp: Date.now() });
 
     return { data: materials, isStale: false };
   } catch (error) {
@@ -638,5 +643,373 @@ export async function clearCharacterCache(characterKey?: string): Promise<void> 
       cache.cacheKey.startsWith('genshin-character:')
     );
     await Promise.all(characterCaches.map((cache) => db.externalCache.delete(cache.id)));
+  }
+}
+
+// ==================== WEAPON MATERIALS ====================
+
+import type {
+  WeaponMaterialData,
+  GenshinDbWeaponResponse,
+} from '@/features/planner/domain/weaponMaterials';
+
+/**
+ * In-memory cache for weapon materials
+ */
+const weaponMemoryCache = new Map<string, { data: WeaponMaterialData; timestamp: number }>();
+
+/**
+ * Cache key generator for weapons
+ */
+function getWeaponCacheKey(weaponKey: string): string {
+  return `genshin-weapon:${weaponKey.toLowerCase()}`;
+}
+
+/**
+ * Fetch weapon data from API
+ */
+async function fetchWeaponData(weaponKey: string): Promise<GenshinDbWeaponResponse> {
+  const url = `${API_BASE_URL}/weapons?query=${encodeURIComponent(weaponKey)}&matchCategories=true`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch weapon data: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Identify weapon domain series from material name
+ */
+function identifyWeaponDomainSeries(name: string): {
+  series: string;
+  region: string;
+  days: string[];
+} {
+  // Weapon domain material patterns by region and series
+  const patterns: Record<string, { region: string; keywords: string[] }> = {
+    // Mondstadt
+    'Decarabian': { region: 'Mondstadt', keywords: ['Decarabian', 'Tile', 'Debris', 'Fragment', 'Dream'] },
+    'Boreal Wolf': { region: 'Mondstadt', keywords: ['Boreal', 'Wolf', 'Tooth', 'Cracked', 'Chained', 'Spirit'] },
+    'Dandelion Gladiator': { region: 'Mondstadt', keywords: ['Gladiator', 'Fetters', 'Chains', 'Shackles'] },
+    // Liyue
+    'Guyun': { region: 'Liyue', keywords: ['Guyun', 'Luminous', 'Sands', 'Lustrous', 'Relic'] },
+    'Mist Veiled': { region: 'Liyue', keywords: ['Mist', 'Veiled', 'Lead', 'Mercury', 'Gold', 'Elixir'] },
+    'Aerosiderite': { region: 'Liyue', keywords: ['Aerosiderite', 'Grain', 'Piece', 'Bit', 'Chunk'] },
+    // Inazuma
+    'Distant Sea': { region: 'Inazuma', keywords: ['Distant Sea', 'Coral', 'Branch', 'Jewel'] },
+    'Narukami': { region: 'Inazuma', keywords: ['Narukami', 'Wisdom', 'Essence', 'Joy', 'Magnificence'] },
+    'Mask': { region: 'Inazuma', keywords: ['Mask', 'Wicked', 'Lieutenant', 'General', 'Oni'] },
+    // Sumeru
+    'Forest Dew': { region: 'Sumeru', keywords: ['Forest', 'Dew', 'Copper', 'Iron', 'Silver', 'Gold'] },
+    'Oasis Garden': { region: 'Sumeru', keywords: ['Oasis', 'Garden', 'Echo', 'Remnant'] },
+    'Scorching Might': { region: 'Sumeru', keywords: ['Scorching', 'Might', 'Chaos', 'Device', 'Circuit', 'Oculus'] },
+    // Fontaine
+    'Dewdrop': { region: 'Fontaine', keywords: ['Dewdrop', 'Pure', 'Sacred', 'Sublimation'] },
+    'Pristine Sea': { region: 'Fontaine', keywords: ['Pristine', 'Sea', 'Fragment', 'Splinter'] },
+    'Ancient Chord': { region: 'Fontaine', keywords: ['Ancient', 'Chord', 'Primordial', 'Aria'] },
+    // Natlan
+    'Blazing Sacrificial': { region: 'Natlan', keywords: ['Blazing', 'Sacrificial', 'Delirious', 'Decadent'] },
+    'Night-Wind': { region: 'Natlan', keywords: ['Night-Wind', 'Mystic', 'Enigma'] },
+    'Sacred Brilliance': { region: 'Natlan', keywords: ['Sacred', 'Brilliance', 'Flame'] },
+  };
+
+  const scheduleMap: Record<string, string[]> = {
+    'Decarabian': ['Monday', 'Thursday', 'Sunday'],
+    'Boreal Wolf': ['Tuesday', 'Friday', 'Sunday'],
+    'Dandelion Gladiator': ['Wednesday', 'Saturday', 'Sunday'],
+    'Guyun': ['Monday', 'Thursday', 'Sunday'],
+    'Mist Veiled': ['Tuesday', 'Friday', 'Sunday'],
+    'Aerosiderite': ['Wednesday', 'Saturday', 'Sunday'],
+    'Distant Sea': ['Monday', 'Thursday', 'Sunday'],
+    'Narukami': ['Tuesday', 'Friday', 'Sunday'],
+    'Mask': ['Wednesday', 'Saturday', 'Sunday'],
+    'Forest Dew': ['Monday', 'Thursday', 'Sunday'],
+    'Oasis Garden': ['Tuesday', 'Friday', 'Sunday'],
+    'Scorching Might': ['Wednesday', 'Saturday', 'Sunday'],
+    'Dewdrop': ['Monday', 'Thursday', 'Sunday'],
+    'Pristine Sea': ['Tuesday', 'Friday', 'Sunday'],
+    'Ancient Chord': ['Wednesday', 'Saturday', 'Sunday'],
+    'Blazing Sacrificial': ['Monday', 'Thursday', 'Sunday'],
+    'Night-Wind': ['Tuesday', 'Friday', 'Sunday'],
+    'Sacred Brilliance': ['Wednesday', 'Saturday', 'Sunday'],
+  };
+
+  for (const [series, { region, keywords }] of Object.entries(patterns)) {
+    for (const keyword of keywords) {
+      if (name.includes(keyword)) {
+        return { series, region, days: scheduleMap[series] || [] };
+      }
+    }
+  }
+
+  return { series: 'Unknown', region: 'Unknown', days: [] };
+}
+
+/**
+ * Identify weapon domain material tier
+ */
+function identifyWeaponDomainTier(name: string): 'green' | 'blue' | 'purple' | 'gold' | null {
+  // Common tier patterns for weapon domain materials
+  const tierPatterns: Record<string, ('green' | 'blue' | 'purple' | 'gold')> = {
+    'Tile': 'green',
+    'Cracked': 'green',
+    'Grain': 'green',
+    'Lead': 'green',
+    'Branch': 'green',
+    'Fang': 'green',
+    'Teachings': 'green',
+    'Copper': 'green',
+    'Fragment': 'blue',
+    'Tooth': 'blue',
+    'Piece': 'blue',
+    'Mercury': 'blue',
+    'Coral': 'blue',
+    'Iron': 'blue',
+    'Debris': 'purple',
+    'Chains': 'purple',
+    'Bit': 'purple',
+    'Elixir': 'purple',
+    'Jewel': 'purple',
+    'Silver': 'purple',
+    'Dream': 'gold',
+    'Spirit': 'gold',
+    'Chunk': 'gold',
+    'Gemstone': 'gold',
+    'Gold': 'gold',
+  };
+
+  for (const [pattern, tier] of Object.entries(tierPatterns)) {
+    if (name.includes(pattern)) {
+      return tier;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Process raw weapon API response into structured material data
+ */
+function processWeaponMaterials(
+  weaponKey: string,
+  weaponData: GenshinDbWeaponResponse
+): WeaponMaterialData {
+  const materials: WeaponMaterialData = {
+    weaponKey,
+    rarity: weaponData.rarity || 4,
+    ascensionMaterials: {
+      domain: {
+        name: '',
+        series: '',
+        region: '',
+        days: [],
+        byTier: { green: 0, blue: 0, purple: 0, gold: 0 },
+      },
+      elite: {
+        name: '',
+        baseName: '',
+        byTier: { gray: 0, green: 0, blue: 0 },
+      },
+      common: {
+        name: '',
+        baseName: '',
+        tierNames: { gray: '', green: '', blue: '' },
+        byTier: { gray: 0, green: 0, blue: 0 },
+      },
+    },
+    fetchedAt: Date.now(),
+    apiVersion: API_VERSION,
+  };
+
+  if (weaponData.costs) {
+    const ascensions = [
+      weaponData.costs.ascend1,
+      weaponData.costs.ascend2,
+      weaponData.costs.ascend3,
+      weaponData.costs.ascend4,
+      weaponData.costs.ascend5,
+      weaponData.costs.ascend6,
+    ];
+
+    for (const ascension of ascensions) {
+      if (!ascension) continue;
+
+      for (const item of ascension) {
+        const name = item.name;
+        if (name === 'Mora') continue; // Skip mora
+
+        // Try to identify domain material
+        const domainTier = identifyWeaponDomainTier(name);
+        if (domainTier) {
+          const { series, region, days } = identifyWeaponDomainSeries(name);
+          materials.ascensionMaterials.domain.name = name;
+          materials.ascensionMaterials.domain.series = series;
+          materials.ascensionMaterials.domain.region = region;
+          materials.ascensionMaterials.domain.days = days;
+          materials.ascensionMaterials.domain.byTier[domainTier] += item.count;
+          continue;
+        }
+
+        // Check if it's a common material
+        const commonTier = identifyCommonTier(name);
+        if (commonTier > 0) {
+          materials.ascensionMaterials.common.name = name;
+          materials.ascensionMaterials.common.baseName = getBaseCommonName(name);
+          if (commonTier === 1) {
+            materials.ascensionMaterials.common.tierNames.gray = name;
+            materials.ascensionMaterials.common.byTier.gray += item.count;
+          } else if (commonTier === 2) {
+            materials.ascensionMaterials.common.tierNames.green = name;
+            materials.ascensionMaterials.common.byTier.green += item.count;
+          } else {
+            materials.ascensionMaterials.common.tierNames.blue = name;
+            materials.ascensionMaterials.common.byTier.blue += item.count;
+          }
+          continue;
+        }
+
+        // Assume it's an elite material
+        materials.ascensionMaterials.elite.name = name;
+        materials.ascensionMaterials.elite.baseName = getBaseCommonName(name);
+        // Try to identify tier by position in ascension phase
+        // Elite materials follow similar tier pattern to common
+        const eliteTier = identifyCommonTier(name);
+        if (eliteTier === 1) {
+          materials.ascensionMaterials.elite.byTier.gray += item.count;
+        } else if (eliteTier === 2) {
+          materials.ascensionMaterials.elite.byTier.green += item.count;
+        } else {
+          materials.ascensionMaterials.elite.byTier.blue += item.count;
+        }
+      }
+    }
+  }
+
+  return materials;
+}
+
+/**
+ * Weapon cache entry structure
+ */
+interface WeaponCacheEntry {
+  data: WeaponMaterialData;
+  schemaVersion?: number;
+}
+
+/**
+ * Get weapon materials from cache or API
+ */
+export async function getWeaponMaterials(
+  weaponKey: string,
+  options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
+): Promise<{ data: WeaponMaterialData | null; isStale: boolean; error?: string }> {
+  const cacheKey = getWeaponCacheKey(weaponKey);
+  const memCacheKey = weaponKey.toLowerCase();
+
+  // Check in-memory cache first (fastest path)
+  if (!options.forceRefresh) {
+    const memCached = weaponMemoryCache.get(memCacheKey);
+    if (memCached && Date.now() - memCached.timestamp < MEMORY_CACHE_TTL) {
+      return {
+        data: memCached.data,
+        isStale: false,
+      };
+    }
+  }
+
+  // Check IndexedDB cache (unless force refresh)
+  let cachedData: WeaponMaterialData | null = null;
+
+  if (!options.forceRefresh) {
+    try {
+      const cached = await db.externalCache.get(cacheKey);
+      if (cached) {
+        const cacheEntry = cached.data as WeaponCacheEntry | WeaponMaterialData;
+        const cacheExpiresAt = new Date(cached.expiresAt).getTime();
+
+        const schemaVersion = 'schemaVersion' in cacheEntry ? cacheEntry.schemaVersion : 0;
+        const materialData: WeaponMaterialData = 'schemaVersion' in cacheEntry
+          ? cacheEntry.data
+          : (cacheEntry as WeaponMaterialData);
+
+        const isSchemaValid = schemaVersion === CACHE_SCHEMA_VERSION;
+        const isNotExpired = Date.now() < cacheExpiresAt;
+
+        if (isNotExpired && isSchemaValid) {
+          // Store in memory cache for faster subsequent access
+          weaponMemoryCache.set(memCacheKey, { data: materialData, timestamp: Date.now() });
+          return {
+            data: materialData,
+            isStale: false,
+          };
+        }
+
+        cachedData = materialData;
+      }
+    } catch (dbError) {
+      console.warn('Failed to read weapon cache:', dbError);
+    }
+  }
+
+  // Fetch from API
+  try {
+    const weaponData = await fetchWeaponData(weaponKey);
+    const materials = processWeaponMaterials(weaponKey, weaponData);
+
+    // Update cache
+    try {
+      const now = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + CACHE_TTL).toISOString();
+      const cacheEntry: WeaponCacheEntry = {
+        data: materials,
+        schemaVersion: CACHE_SCHEMA_VERSION,
+      };
+      await db.externalCache.put({
+        id: cacheKey,
+        cacheKey,
+        data: cacheEntry,
+        fetchedAt: now,
+        expiresAt,
+      });
+    } catch (cacheWriteError) {
+      console.warn('Failed to write weapon cache:', cacheWriteError);
+    }
+
+    // Store in memory cache for faster subsequent access
+    weaponMemoryCache.set(memCacheKey, { data: materials, timestamp: Date.now() });
+
+    return { data: materials, isStale: false };
+  } catch (error) {
+    if (options.useStaleOnError && cachedData) {
+      return {
+        data: cachedData,
+        isStale: true,
+        error: error instanceof Error ? error.message : 'Failed to fetch weapon data',
+      };
+    }
+
+    return {
+      data: null,
+      isStale: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch weapon data',
+    };
+  }
+}
+
+/**
+ * Clear weapon cache
+ */
+export async function clearWeaponCache(weaponKey?: string): Promise<void> {
+  if (weaponKey) {
+    const cacheKey = getWeaponCacheKey(weaponKey);
+    await db.externalCache.delete(cacheKey);
+  } else {
+    const allCaches = await db.externalCache.toArray();
+    const weaponCaches = allCaches.filter((cache) =>
+      cache.cacheKey.startsWith('genshin-weapon:')
+    );
+    await Promise.all(weaponCaches.map((cache) => db.externalCache.delete(cache.id)));
   }
 }
