@@ -4,6 +4,12 @@
  * Public API for character build templates
  */
 
+// Pages
+export { default as BuildTemplatesPage } from './pages/BuildTemplatesPage';
+
+// Components
+export { default as BuildTemplateCard } from './components/BuildTemplateCard';
+
 // Hooks
 export {
   useBuildTemplates,
