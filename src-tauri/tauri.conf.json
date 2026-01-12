@@ -40,9 +40,7 @@
       "entitlements": null,
       "exceptionDomain": "",
       "frameworks": [],
-      "infoPlist": {
-        "NSCameraUsageDescription": "This app needs camera access to scan QR codes from Enka.network for importing character data."
-      },
+      "infoPlist": "Info.plist",
       "minimumSystemVersion": "",
       "providerShortName": null,
       "signingIdentity": null
