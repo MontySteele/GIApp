@@ -537,6 +537,25 @@ export function createGoalFromCharacter(character: Character): AscensionGoal {
 }
 
 /**
+ * Create a goal for comfortable build (80/90 with 8/8/8 talents)
+ */
+export function createComfortableBuildGoal(character: Character): AscensionGoal {
+  return {
+    characterKey: character.key,
+    currentLevel: character.level,
+    targetLevel: 80,
+    currentAscension: character.ascension,
+    targetAscension: 6, // Full ascension to unlock talent level 9+
+    currentTalents: { ...character.talent },
+    targetTalents: {
+      auto: Math.max(character.talent.auto, 8),
+      skill: Math.max(character.talent.skill, 8),
+      burst: Math.max(character.talent.burst, 8),
+    },
+  };
+}
+
+/**
  * Create a goal for next ascension only
  */
 export function createNextAscensionGoal(character: Character): AscensionGoal {

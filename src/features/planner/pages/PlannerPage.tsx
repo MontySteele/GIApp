@@ -9,6 +9,7 @@ import ResinTracker from '../components/ResinTracker';
 import {
   calculateAscensionSummary,
   createGoalFromCharacter,
+  createComfortableBuildGoal,
   createNextAscensionGoal,
   type AscensionGoal,
   type AscensionSummary,
@@ -45,7 +46,7 @@ export default function PlannerPage() {
   const { characters, isLoading: loadingChars } = useCharacters();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
-  const [goalType, setGoalType] = useState<'full' | 'next'>('next');
+  const [goalType, setGoalType] = useState<'full' | 'comfortable' | 'next'>('next');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview', 'materials']));
   const [summary, setSummary] = useState<AscensionSummary | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -84,9 +85,15 @@ export default function PlannerPage() {
 
   const goal = useMemo<AscensionGoal | null>(() => {
     if (!selectedCharacter) return null;
-    return goalType === 'full'
-      ? createGoalFromCharacter(selectedCharacter)
-      : createNextAscensionGoal(selectedCharacter);
+    switch (goalType) {
+      case 'full':
+        return createGoalFromCharacter(selectedCharacter);
+      case 'comfortable':
+        return createComfortableBuildGoal(selectedCharacter);
+      case 'next':
+      default:
+        return createNextAscensionGoal(selectedCharacter);
+    }
   }, [selectedCharacter, goalType]);
 
   // Calculate summary asynchronously when goal or materials change
@@ -237,9 +244,10 @@ export default function PlannerPage() {
               <label className="block text-sm text-slate-400 mb-2">Goal</label>
               <Select
                 value={goalType}
-                onChange={(e) => setGoalType(e.target.value as 'full' | 'next')}
+                onChange={(e) => setGoalType(e.target.value as 'full' | 'comfortable' | 'next')}
                 options={[
                   { value: 'next', label: 'Next Ascension' },
+                  { value: 'comfortable', label: 'Comfortable (80/8/8/8)' },
                   { value: 'full', label: 'Full Build (90/10/10/10)' },
                 ]}
               />
