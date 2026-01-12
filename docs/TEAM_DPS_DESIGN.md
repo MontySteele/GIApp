@@ -1,8 +1,45 @@
 # Team DPS Comparison - Technical Design Document
 
-> **Status**: Phase 3 Feature (Sprint 11)
+> **Status**: ⚠️ Pivoted to wfpsim Integration (see SPRINT_12_PLAN.md)
 > **Priority**: High
-> **Estimated Effort**: 40-50 tests, 8-10 components
+> **Estimated Effort**: ~700 lines, 50-65 tests
+
+---
+
+## Design Decision: wfpsim Integration
+
+**Decision Date**: January 2026
+
+After evaluating the complexity of building a custom DPS calculator, we decided to integrate with [wfpsim](https://wfpsim.com/) instead.
+
+### Why Not Custom Calculator?
+
+| Aspect | Custom Calculator | wfpsim Integration |
+|--------|-------------------|-------------------|
+| **Accuracy** | Approximate formulas | Frame-perfect Monte Carlo |
+| **Maintenance** | Track every patch | Community-maintained |
+| **Dev Effort** | ~40k+ lines (see gcsim) | ~700 lines |
+| **Rotation Handling** | Auto-estimated (inaccurate) | User-defined scripts |
+
+### Chosen Approach
+
+**Phase 1 (Sprint 12)**: Export team configs to wfpsim format
+- Generate config text from team data
+- User pastes into wfpsim.com and adds rotation
+- Low effort, high accuracy
+
+**Phase 2 (Future)**: Embedded wfpsim binary
+- Bundle wfpsim with Tauri app
+- Seamless in-app simulation
+- Higher maintenance burden
+
+See [SPRINT_12_PLAN.md](./SPRINT_12_PLAN.md) for implementation details.
+
+---
+
+## Original Design (Archived)
+
+The below design documents the original custom DPS calculator approach, preserved for reference.
 
 ---
 
