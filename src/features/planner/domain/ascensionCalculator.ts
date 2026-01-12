@@ -486,24 +486,38 @@ export async function calculateAscensionSummary(
   materials.push(...apiMaterials);
 
   // Estimate resin - broken down by category
-  const books0 = talentMats.books[0] ?? 0;
-  const books1 = talentMats.books[1] ?? 0;
-  const books2 = talentMats.books[2] ?? 0;
-  const talentDomainRuns = Math.ceil(
-    (books0 / DOMAIN_DROPS_PER_RUN.talentBooks.green) +
-    (books1 / (DOMAIN_DROPS_PER_RUN.talentBooks.green * 3 + DOMAIN_DROPS_PER_RUN.talentBooks.blue)) +
-    (books2 / (DOMAIN_DROPS_PER_RUN.talentBooks.purple))
-  );
+  // For talent domains: each run gives ALL tiers of books, so we need to find the bottleneck
+  // Convert everything to "purple equivalent" using 3:1 craft ratio
+  const books0 = talentMats.books[0] ?? 0; // green (teachings)
+  const books1 = talentMats.books[1] ?? 0; // blue (guides)
+  const books2 = talentMats.books[2] ?? 0; // purple (philosophies)
+
+  // Convert to purple equivalent (9 green = 3 blue = 1 purple via crafting)
+  const purpleEquivNeeded =
+    (books0 / 9) + // green → purple (2 crafting steps)
+    (books1 / 3) + // blue → purple (1 crafting step)
+    books2;        // purple
+
+  // Purple equivalent per run at AR55+ level 90 domains
+  const purpleEquivPerRun =
+    (DOMAIN_DROPS_PER_RUN.talentBooks.green / 9) +
+    (DOMAIN_DROPS_PER_RUN.talentBooks.blue / 3) +
+    DOMAIN_DROPS_PER_RUN.talentBooks.purple;
+
+  const talentDomainRuns = Math.ceil(purpleEquivNeeded / purpleEquivPerRun);
 
   const adjustedExpLeyLines = Math.max(0, Math.ceil(herosWitNeeded / 4.5) - Math.floor(ownedHerosWit / 4.5));
   const moraLeyLines = Math.ceil(Math.max(0, totalMora - ownedMora) / 60000);
 
   // Calculate resin breakdown
-  // Talents/Boss: talent domain runs + world boss runs
-  const bossRuns = Math.ceil(ascensionMats.bossMat / 2.5);
+  // Talents/Boss: talent domain runs + world boss runs + weekly boss runs
+  const worldBossRuns = Math.ceil(ascensionMats.bossMat / 2.5);
+  const weeklyBossRuns = Math.ceil(talentMats.weeklyBoss / 2.5); // ~2-3 mats per weekly boss
+
   const talentBossResin =
     (talentDomainRuns * RESIN_COSTS.domainRun) +
-    (bossRuns * RESIN_COSTS.worldBoss);
+    (worldBossRuns * RESIN_COSTS.worldBoss) +
+    (weeklyBossRuns * RESIN_COSTS.weeklyBoss);
 
   // EXP/Mora: ley line runs for exp and mora
   const expMoraResin =
