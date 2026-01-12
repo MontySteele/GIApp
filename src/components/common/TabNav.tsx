@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   Users,
+  Gem,
   Sparkles,
   Coins,
   Calculator,
@@ -12,6 +13,7 @@ import { TABS } from '@/lib/constants';
 
 const icons = {
   roster: Users,
+  artifacts: Gem,
   wishes: Sparkles,
   ledger: Coins,
   calculator: Calculator,

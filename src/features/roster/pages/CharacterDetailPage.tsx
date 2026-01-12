@@ -10,6 +10,12 @@ import Modal from '@/components/ui/Modal';
 import CharacterForm from '../components/CharacterForm';
 import { formatArtifactSetName, formatSlotName, formatStatName, formatStatValue } from '@/lib/gameData';
 import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
+import {
+  calculateCharacterArtifactScore,
+  scoreEquippedArtifact,
+  getGradeColor,
+  getGradeBgColor,
+} from '@/features/artifacts/domain/artifactScoring';
 
 export default function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +31,12 @@ export default function CharacterDetailPage() {
     () => (character ? teams.filter((team) => character.teamIds.includes(team.id)) : []),
     [teams, character?.teamIds]
   );
+
+  // Calculate artifact scores
+  const artifactScoreData = useMemo(() => {
+    if (!character || character.artifacts.length === 0) return null;
+    return calculateCharacterArtifactScore(character.artifacts);
+  }, [character?.artifacts]);
 
   const handleUpdate = async (data: Parameters<typeof updateCharacter>[1]) => {
     if (!character) return;
@@ -234,7 +246,24 @@ export default function CharacterDetailPage() {
         {/* Artifacts Card */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Artifacts</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Artifacts</h2>
+              {artifactScoreData && (
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-slate-400">
+                    Total CV: <span className="text-slate-200 font-medium">{artifactScoreData.totalCritValue}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-400">Avg:</span>
+                    <span
+                      className={`px-2 py-1 text-sm font-bold rounded border ${getGradeBgColor(artifactScoreData.averageGrade)} ${getGradeColor(artifactScoreData.averageGrade)}`}
+                    >
+                      {artifactScoreData.averageGrade}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {character.artifacts.length === 0 ? (
@@ -243,49 +272,68 @@ export default function CharacterDetailPage() {
               </p>
             ) : (
               <div className="grid gap-4">
-                {character.artifacts.map((artifact, index) => (
-                  <div
-                    key={index}
-                    className="bg-slate-900 rounded-lg p-4"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h4 className="font-semibold text-slate-100 mb-1">
-                          {formatArtifactSetName(artifact.setKey)}
-                        </h4>
-                        <p className="text-sm text-slate-400">
-                          {formatSlotName(artifact.slotKey)} • +{artifact.level}
-                        </p>
-                      </div>
-                      <Badge variant={artifact.rarity === 5 ? 'warning' : 'default'}>
-                        {artifact.rarity}★
-                      </Badge>
-                    </div>
-
-                    <div className="mb-3">
-                      <div className="text-xs text-slate-500 mb-1">Main Stat</div>
-                      <div className="text-sm text-slate-200 font-medium">
-                        {formatStatName(artifact.mainStatKey)}
-                      </div>
-                    </div>
-
-                    {artifact.substats.length > 0 && (
-                      <div>
-                        <div className="text-xs text-slate-500 mb-2">Substats</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {artifact.substats.map((substat, subIndex) => (
-                            <div
-                              key={subIndex}
-                              className="text-xs text-slate-300"
-                            >
-                              {formatStatName(substat.key)}: {formatStatValue(substat.key, substat.value)}
-                            </div>
-                          ))}
+                {character.artifacts.map((artifact, index) => {
+                  const score = scoreEquippedArtifact(artifact);
+                  return (
+                    <div
+                      key={index}
+                      className="bg-slate-900 rounded-lg p-4"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-slate-100 mb-1">
+                            {formatArtifactSetName(artifact.setKey)}
+                          </h4>
+                          <p className="text-sm text-slate-400">
+                            {formatSlotName(artifact.slotKey)} • +{artifact.level}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={artifact.rarity === 5 ? 'warning' : 'default'}>
+                            {artifact.rarity}★
+                          </Badge>
+                          <span
+                            className={`px-1.5 py-0.5 text-xs font-bold rounded border ${getGradeBgColor(score.grade)} ${getGradeColor(score.grade)}`}
+                            title={`Score: ${score.score} | CV: ${score.critValue}`}
+                          >
+                            {score.grade}
+                          </span>
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      <div className="mb-3">
+                        <div className="text-xs text-slate-500 mb-1">Main Stat</div>
+                        <div className="text-sm text-slate-200 font-medium">
+                          {formatStatName(artifact.mainStatKey)}
+                        </div>
+                      </div>
+
+                      {artifact.substats.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-xs text-slate-500">Substats</div>
+                            <div className="text-xs text-slate-500">
+                              CV: {score.critValue}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {artifact.substats.map((substat, subIndex) => {
+                              const isCritStat = substat.key.toLowerCase().includes('crit');
+                              return (
+                                <div
+                                  key={subIndex}
+                                  className={`text-xs ${isCritStat ? 'text-yellow-400' : 'text-slate-300'}`}
+                                >
+                                  {formatStatName(substat.key)}: {formatStatValue(substat.key, substat.value)}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
