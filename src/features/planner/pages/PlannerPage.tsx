@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Target, Package, Clock, ChevronDown, ChevronUp, Check, AlertCircle, Calendar, WifiOff } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Target, Package, Clock, ChevronDown, ChevronUp, Check, AlertCircle, Calendar, WifiOff, Coins } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Select from '@/components/ui/Select';
@@ -9,6 +9,7 @@ import ResinTracker from '../components/ResinTracker';
 import {
   calculateAscensionSummary,
   createGoalFromCharacter,
+  createComfortableBuildGoal,
   createNextAscensionGoal,
   type AscensionGoal,
   type AscensionSummary,
@@ -43,29 +44,63 @@ const TALENT_BOOK_REGIONS: Record<string, string[]> = {
 
 export default function PlannerPage() {
   const { characters, isLoading: loadingChars } = useCharacters();
-  const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes } = useMaterials();
+  const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
-  const [goalType, setGoalType] = useState<'full' | 'next'>('next');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']));
+  const [goalType, setGoalType] = useState<'full' | 'comfortable' | 'next'>('next');
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview', 'materials']));
   const [summary, setSummary] = useState<AscensionSummary | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState<string | null>(null);
+  const [moraInput, setMoraInput] = useState<string>('');
+
+  // Initialize mora input from materials
+  useEffect(() => {
+    const currentMora = materials['Mora'] ?? materials['mora'] ?? 0;
+    setMoraInput(currentMora > 0 ? currentMora.toString() : '');
+  }, [materials]);
+
+  // Handle mora input change with debounce
+  const handleMoraChange = useCallback((value: string) => {
+    // Allow empty or numbers only
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setMoraInput(numericValue);
+  }, []);
+
+  // Save mora when input loses focus
+  const handleMoraSave = useCallback(async () => {
+    const moraValue = parseInt(moraInput, 10) || 0;
+    await setMaterial('Mora', moraValue);
+  }, [moraInput, setMaterial]);
 
   const selectedCharacter = useMemo(
     () => characters.find((c) => c.id === selectedCharacterId),
     [characters, selectedCharacterId]
   );
 
+  // Sort characters alphabetically by name
+  const sortedCharacters = useMemo(
+    () => [...characters].sort((a, b) => a.key.localeCompare(b.key)),
+    [characters]
+  );
+
   const goal = useMemo<AscensionGoal | null>(() => {
     if (!selectedCharacter) return null;
-    return goalType === 'full'
-      ? createGoalFromCharacter(selectedCharacter)
-      : createNextAscensionGoal(selectedCharacter);
+    switch (goalType) {
+      case 'full':
+        return createGoalFromCharacter(selectedCharacter);
+      case 'comfortable':
+        return createComfortableBuildGoal(selectedCharacter);
+      case 'next':
+      default:
+        return createNextAscensionGoal(selectedCharacter);
+    }
   }, [selectedCharacter, goalType]);
 
   // Calculate summary asynchronously when goal or materials change
   useEffect(() => {
     if (!goal) {
       setSummary(null);
+      setCalculationError(null);
       return;
     }
 
@@ -73,15 +108,19 @@ export default function PlannerPage() {
 
     const calculate = async () => {
       setIsCalculating(true);
+      setCalculationError(null);
       try {
         const result = await calculateAscensionSummary(goal, materials);
         if (!isCancelled) {
           setSummary(result);
+          setCalculationError(null);
         }
       } catch (error) {
         console.error('Failed to calculate ascension summary:', error);
         if (!isCancelled) {
           setSummary(null);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          setCalculationError(`Failed to calculate materials: ${errorMessage}`);
         }
       } finally {
         if (!isCancelled) {
@@ -136,7 +175,7 @@ export default function PlannerPage() {
         {/* Material Inventory Status */}
         <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <Package className="w-5 h-5 text-slate-400" />
               <div>
@@ -148,9 +187,31 @@ export default function PlannerPage() {
                 </div>
               </div>
             </div>
-            {!hasMaterials && (
-              <Badge variant="warning">Import from Irminsul to track materials</Badge>
-            )}
+            <div className="flex items-center gap-4">
+              {/* Manual Mora Input */}
+              <div className="flex items-center gap-2">
+                <Coins className="w-4 h-4 text-yellow-500" />
+                <label className="text-sm text-slate-400">Mora:</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={moraInput}
+                  onChange={(e) => handleMoraChange(e.target.value)}
+                  onBlur={handleMoraSave}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      void handleMoraSave();
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  placeholder="Enter mora"
+                  className="w-32 px-2 py-1 text-sm bg-slate-800 border border-slate-700 rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-primary-500"
+                />
+              </div>
+              {!hasMaterials && (
+                <Badge variant="warning">Import from Irminsul to track materials</Badge>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -172,7 +233,7 @@ export default function PlannerPage() {
                 onChange={(e) => setSelectedCharacterId(e.target.value)}
                 options={[
                   { value: '', label: 'Select a character...' },
-                  ...characters.map((c) => ({
+                  ...sortedCharacters.map((c) => ({
                     value: c.id,
                     label: `${c.key} (Lv. ${c.level})`,
                   })),
@@ -183,9 +244,10 @@ export default function PlannerPage() {
               <label className="block text-sm text-slate-400 mb-2">Goal</label>
               <Select
                 value={goalType}
-                onChange={(e) => setGoalType(e.target.value as 'full' | 'next')}
+                onChange={(e) => setGoalType(e.target.value as 'full' | 'comfortable' | 'next')}
                 options={[
                   { value: 'next', label: 'Next Ascension' },
+                  { value: 'comfortable', label: 'Comfortable (80/8/8/8)' },
                   { value: 'full', label: 'Full Build (90/10/10/10)' },
                 ]}
               />
@@ -241,6 +303,21 @@ export default function PlannerPage() {
                 <div className="text-xs text-slate-500">
                   ~{summary?.estimatedResin || 0} resin
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Calculation Error Display */}
+      {calculationError && (
+        <Card className="mb-6 border-red-900/30 bg-red-900/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <div>
+                <div className="text-sm font-medium text-red-200">Calculation Error</div>
+                <div className="text-xs text-red-400">{calculationError}</div>
               </div>
             </div>
           </CardContent>

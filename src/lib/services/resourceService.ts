@@ -76,6 +76,8 @@ export async function getAvailablePullsFromTracker(): Promise<AvailablePullsResu
   const fateDeltas = sumByFate(fateEntries);
   const wishSpending = snapshot ? calculateWishSpending(wishes, snapshot.timestamp) : undefined;
 
+  // When there's a snapshot, base = snapshot values and we add deltas
+  // When there's no snapshot, base = 0 and deltas are the totals
   const base: LedgerResourceSnapshot = snapshot
     ? {
         primogems: snapshot.primogems,
@@ -85,10 +87,10 @@ export async function getAvailablePullsFromTracker(): Promise<AvailablePullsResu
         starglitter: snapshot.starglitter,
       }
     : {
-        primogems: primogemDelta,
+        primogems: 0,
         genesisCrystals: 0,
-        intertwined: fateDeltas.intertwined,
-        acquaint: fateDeltas.acquaint,
+        intertwined: 0,
+        acquaint: 0,
         starglitter: 0,
       };
 

@@ -274,7 +274,8 @@ describe('Enka Mapper', () => {
         { id: 10000089, expected: 'Furina' },
         { id: 10000090, expected: 'Chevreuse' },
         { id: 10000103, expected: 'Xilonen' },
-        { id: 10000104, expected: 'Mavuika' },
+        { id: 10000104, expected: 'Chasca' },
+        { id: 10000106, expected: 'Mavuika' },
       ];
 
       for (const testCase of testCases) {

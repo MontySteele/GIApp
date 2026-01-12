@@ -251,7 +251,7 @@ async function buildMaterialsWithApiData(
     error = 'Using generic material names (API data unavailable)';
   }
 
-  // Helper to add material with inventory lookup
+  // Helper to add material with inventory lookup and aggregation
   const addMaterial = (
     apiName: string,
     displayName: string,
@@ -264,22 +264,35 @@ async function buildMaterialsWithApiData(
     const inventoryKey = findInventoryKey(apiName, inventory);
     const owned = inventory[inventoryKey] ?? 0;
 
-    materials.push({
-      key: inventoryKey,
-      name: displayName,
-      category,
-      tier,
-      required,
-      owned,
-      deficit: Math.max(0, required - owned),
-      source,
-      availability,
-    });
+    // Check if this material already exists (aggregate by key + tier)
+    const existingIndex = materials.findIndex(
+      (m) => m.key === inventoryKey && m.tier === tier
+    );
+
+    if (existingIndex >= 0) {
+      // Aggregate: add to existing entry
+      const existing = materials[existingIndex];
+      existing.required += required;
+      existing.deficit = Math.max(0, existing.required - existing.owned);
+    } else {
+      // Add new entry
+      materials.push({
+        key: inventoryKey,
+        name: displayName,
+        category,
+        tier,
+        required,
+        owned,
+        deficit: Math.max(0, required - owned),
+        source,
+        availability,
+      });
+    }
   };
 
   // Add boss material
   if (ascensionMats.bossMat > 0) {
-    const bossName = characterData?.ascensionMaterials.boss.name || 'Boss Material';
+    const bossName = characterData?.ascensionMaterials?.boss?.name || 'Boss Material';
     addMaterial(bossName, bossName, 'boss', ascensionMats.bossMat);
   }
 
@@ -287,7 +300,7 @@ async function buildMaterialsWithApiData(
   const gemTierNames = ['Sliver', 'Fragment', 'Chunk', 'Gemstone'];
   ascensionMats.gem.forEach((amt, tier) => {
     if (amt > 0) {
-      const gemBaseName = characterData?.ascensionMaterials.gem.baseName || 'Elemental';
+      const gemBaseName = characterData?.ascensionMaterials?.gem?.baseName || 'Elemental';
       const gemFullName = `${gemBaseName} ${gemTierNames[tier]}`;
       addMaterial(gemFullName, gemFullName, 'gem', amt, tier + 1);
     }
@@ -295,21 +308,27 @@ async function buildMaterialsWithApiData(
 
   // Add local specialty
   if (ascensionMats.localSpecialty > 0) {
-    const specialtyName = characterData?.ascensionMaterials.localSpecialty.name || 'Local Specialty';
-    const region = characterData?.ascensionMaterials.localSpecialty.region;
+    const specialtyName = characterData?.ascensionMaterials?.localSpecialty?.name || 'Local Specialty';
+    const region = characterData?.ascensionMaterials?.localSpecialty?.region;
     addMaterial(specialtyName, specialtyName, 'localSpecialty', ascensionMats.localSpecialty, undefined, region);
   }
 
   // Add common enemy materials (ascension) by tier
-  const commonTierNames = ['Gray', 'Green', 'Blue'];
+  const commonTierInfo: Array<{ label: string; key: 'gray' | 'green' | 'blue' }> = [
+    { label: 'Gray', key: 'gray' },
+    { label: 'Green', key: 'green' },
+    { label: 'Blue', key: 'blue' },
+  ];
   ascensionMats.commonMat.forEach((amt, tier) => {
-    if (amt > 0) {
-      const commonBaseName = characterData?.ascensionMaterials.common.baseName || 'Common Material';
-      const tierSuffixes = ['', 'Stained', 'Ominous']; // Simplified
-      const commonFullName = tier === 0 ? commonBaseName : `${tierSuffixes[tier]} ${commonBaseName}`;
+    const tierInfo = commonTierInfo[tier];
+    if (amt > 0 && tierInfo) {
+      // Use actual tier names from API data if available (with defensive checks for older cached data)
+      const actualName = characterData?.ascensionMaterials?.common?.tierNames?.[tierInfo.key];
+      const fallbackName = characterData?.ascensionMaterials?.common?.baseName || 'Common Material';
+      const materialName = actualName || `${fallbackName} (${tierInfo.label})`;
       addMaterial(
-        commonFullName,
-        `${commonFullName} (${commonTierNames[tier]})`,
+        materialName,
+        materialName,
         'common',
         amt,
         tier + 1
@@ -321,10 +340,10 @@ async function buildMaterialsWithApiData(
   const bookTierPrefixes = ['Teachings of', 'Guide to', 'Philosophies of'];
   talentMats.books.forEach((amt, tier) => {
     if (amt > 0) {
-      const bookSeries = characterData?.talentMaterials.books.series || 'Talent';
+      const bookSeries = characterData?.talentMaterials?.books?.series || 'Talent';
       const bookFullName = `${bookTierPrefixes[tier]} ${bookSeries}`;
-      const days = characterData?.talentMaterials.books.days;
-      const domain = characterData?.talentMaterials.books.region;
+      const days = characterData?.talentMaterials?.books?.days;
+      const domain = characterData?.talentMaterials?.books?.region;
       addMaterial(
         bookFullName,
         bookFullName,
@@ -338,17 +357,19 @@ async function buildMaterialsWithApiData(
   });
 
   // Add talent common materials (if different from ascension)
-  if (characterData?.talentMaterials.common.baseName) {
+  if (characterData?.talentMaterials?.common?.baseName) {
     const talentCommon = characterData.talentMaterials.common;
-    const tiers = [talentCommon.byTier.gray, talentCommon.byTier.green, talentCommon.byTier.blue];
+    const tiers = [talentCommon.byTier?.gray ?? 0, talentCommon.byTier?.green ?? 0, talentCommon.byTier?.blue ?? 0];
 
     tiers.forEach((amt, tier) => {
-      if (amt > 0) {
-        const tierSuffixes = ['', 'Stained', 'Ominous'];
-        const commonFullName = tier === 0 ? talentCommon.baseName : `${tierSuffixes[tier]} ${talentCommon.baseName}`;
+      const tierInfo = commonTierInfo[tier];
+      if (amt > 0 && tierInfo) {
+        // Use actual tier names from API data if available (with defensive checks)
+        const actualName = talentCommon.tierNames?.[tierInfo.key];
+        const materialName = actualName || `${talentCommon.baseName} (${tierInfo.label})`;
         addMaterial(
-          commonFullName,
-          `${commonFullName} (${commonTierNames[tier]})`,
+          materialName,
+          materialName,
           'common',
           amt,
           tier + 1
@@ -359,8 +380,8 @@ async function buildMaterialsWithApiData(
 
   // Add weekly boss material
   if (talentMats.weeklyBoss > 0) {
-    const weeklyName = characterData?.talentMaterials.weekly.name || 'Weekly Boss Material';
-    const boss = characterData?.talentMaterials.weekly.boss;
+    const weeklyName = characterData?.talentMaterials?.weekly?.name || 'Weekly Boss Material';
+    const boss = characterData?.talentMaterials?.weekly?.boss;
     addMaterial(weeklyName, weeklyName, 'weekly', talentMats.weeklyBoss, undefined, boss);
   }
 
@@ -512,6 +533,25 @@ export function createGoalFromCharacter(character: Character): AscensionGoal {
     targetAscension: 6,
     currentTalents: { ...character.talent },
     targetTalents: { auto: 10, skill: 10, burst: 10 },
+  };
+}
+
+/**
+ * Create a goal for comfortable build (80/90 with 8/8/8 talents)
+ */
+export function createComfortableBuildGoal(character: Character): AscensionGoal {
+  return {
+    characterKey: character.key,
+    currentLevel: character.level,
+    targetLevel: 80,
+    currentAscension: character.ascension,
+    targetAscension: 6, // Full ascension to unlock talent level 9+
+    currentTalents: { ...character.talent },
+    targetTalents: {
+      auto: Math.max(character.talent.auto, 8),
+      skill: Math.max(character.talent.skill, 8),
+      burst: Math.max(character.talent.burst, 8),
+    },
   };
 }
 

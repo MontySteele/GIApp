@@ -13,6 +13,7 @@ vi.mock('@/mappers/enka', () => ({
 vi.mock('../repo/characterRepo', () => ({
   characterRepo: {
     bulkCreate: vi.fn(),
+    bulkUpsert: vi.fn(),
   },
 }));
 
@@ -51,16 +52,17 @@ describe('EnkaImport', () => {
       uid: '123456789',
     });
     vi.mocked(fromEnka).mockReturnValue([mockCharacter as any]);
-    vi.mocked(characterRepo.bulkCreate).mockResolvedValue(undefined);
+    vi.mocked(characterRepo.bulkUpsert).mockResolvedValue({ created: 1, updated: 0 });
 
     render(<EnkaImport onCancel={() => {}} onSuccess={() => {}} />);
 
     await userEvent.type(screen.getByLabelText(/enter your uid/i), '123456789');
     await userEvent.click(screen.getByRole('button', { name: /import from enka/i }));
 
-    await waitFor(() => expect(characterRepo.bulkCreate).toHaveBeenCalled());
+    await waitFor(() => expect(characterRepo.bulkUpsert).toHaveBeenCalled());
 
-    expect(screen.getByText(/Successfully imported 1 character/i)).toBeInTheDocument();
+    expect(screen.getByText(/Successfully imported from your showcase/i)).toBeInTheDocument();
+    expect(screen.getByText(/Added 1 new character/i)).toBeInTheDocument();
     expect(screen.getByText(/Some characters were skipped/i)).toBeInTheDocument();
   });
 
@@ -90,7 +92,7 @@ describe('EnkaImport', () => {
     await waitFor(() => {
       expect(screen.getByText(/No characters found in showcase/i)).toBeInTheDocument();
     });
-    expect(characterRepo.bulkCreate).not.toHaveBeenCalled();
+    expect(characterRepo.bulkUpsert).not.toHaveBeenCalled();
   });
 
   it('shows API errors returned from fetchEnkaData', async () => {
@@ -105,6 +107,6 @@ describe('EnkaImport', () => {
       expect(screen.getByText(/Rate limit exceeded/i)).toBeInTheDocument();
     });
     expect(fromEnka).not.toHaveBeenCalled();
-    expect(characterRepo.bulkCreate).not.toHaveBeenCalled();
+    expect(characterRepo.bulkUpsert).not.toHaveBeenCalled();
   });
 });

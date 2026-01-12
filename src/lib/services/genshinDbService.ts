@@ -16,6 +16,71 @@ import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
+const CACHE_SCHEMA_VERSION = 2; // Increment when cache structure changes
+
+/**
+ * Known local specialties (region-specific gathering items)
+ * Used to distinguish from common enemy materials
+ */
+const LOCAL_SPECIALTIES = new Set([
+  // Mondstadt
+  'Calla Lily', 'Cecilia', 'Dandelion Seed', 'Philanemo Mushroom',
+  'Small Lamp Grass', 'Valberry', 'Windwheel Aster', 'Wolfhook',
+  // Liyue
+  'Cor Lapis', 'Glaze Lily', 'Jueyun Chili', 'Noctilucous Jade',
+  'Qingxin', 'Silk Flower', 'Starconch', 'Violetgrass',
+  // Inazuma
+  'Amakumo Fruit', 'Crystal Marrow', 'Dendrobium', 'Fluorescent Fungus',
+  'Naku Weed', 'Onikabuto', 'Sakura Bloom', 'Sango Pearl', 'Sea Ganoderma',
+  // Sumeru
+  'Henna Berry', 'Kalpalata Lotus', 'Nilotpala Lotus', 'Padisarah',
+  'Rukkhashava Mushrooms', 'Sand Grease Pupa', 'Scarab', 'Sumeru Rose',
+  // Fontaine
+  'Beryl Conch', 'Lumidouce Bell', 'Lakelight Lily', 'Rainbow Rose',
+  'Romaritime Flower', 'Spring of the First Dewdrop', 'Lumitoile', 'Subdetection Unit',
+  // Natlan
+  'Brilliant Chrysanthemum', 'Quenepa Berry', 'Saurian Claw Succulent', 'Talisman of the Warrior\'s Spirit',
+  'Glowing Hornshroom', 'Withering Purpurbloom', 'Smoking Sunfire Saurian Eye', 'Sacred Chalice\'s Dew',
+]);
+
+/**
+ * Common material tier identification patterns
+ */
+const COMMON_TIER_PATTERNS = {
+  // Tier 1 (Gray/White) patterns
+  tier1: [
+    'Slime Condensate', 'Damaged Mask', 'Divining Scroll', 'Firm Arrowhead',
+    'Whopperflower Nectar', 'Recruit\'s Insignia', 'Treasure Hoarder Insignia',
+    'Fragile Bone Shard', 'Mist Grass Pollen', 'Hunter\'s Sacrificial Knife',
+    'Chaos Device', 'Spectral Husk', 'Fungal Spores', 'Old Handguard',
+    'Gloomy Statuette', 'Dismal Prism', 'Heavy Horn', 'Dead Ley Line Branch',
+    'Faded Red Satin', 'Transoceanic Pearl', 'Juvenile Fang', 'A Flower Yet to Bloom',
+    'Shard of a Shattered Will', 'Old Operative\'s Pocket Watch', 'Feathery Fin',
+    'Ruined Hilt', 'Axis of the Secret Source',
+  ],
+  // Tier 2 (Green) patterns
+  tier2: [
+    'Slime Secretions', 'Stained Mask', 'Sealed Scroll', 'Sharp Arrowhead',
+    'Shimmering Nectar', 'Sergeant\'s Insignia', 'Silver Raven Insignia',
+    'Sturdy Bone Shard', 'Mist Grass', 'Agent\'s Sacrificial Knife',
+    'Chaos Circuit', 'Spectral Heart', 'Luminescent Pollen', 'Kageuchi Handguard',
+    'Dark Statuette', 'Crystal Prism', 'Black Bronze Horn', 'Dead Ley Line Leaves',
+    'Trimmed Red Silk', 'Transoceanic Chunk', 'Seasoned Fang', 'Budding Greenery',
+    'Shard of a Foul Legacy', 'Operative\'s Standard Pocket Watch', 'Lunar Fin',
+    'Splintered Hilt', 'Sheath of the Secret Source',
+  ],
+  // Tier 3 (Blue) patterns
+  tier3: [
+    'Slime Concentrate', 'Ominous Mask', 'Forbidden Curse Scroll', 'Weathered Arrowhead',
+    'Energy Nectar', 'Lieutenant\'s Insignia', 'Golden Raven Insignia',
+    'Fossilized Bone Shard', 'Mist Grass Wick', 'Inspector\'s Sacrificial Knife',
+    'Chaos Core', 'Spectral Nucleus', 'Crystalline Cyst Dust', 'Famed Handguard',
+    'Deathly Statuette', 'Polarizing Prism', 'Black Crystal Horn', 'Ley Line Sprout',
+    'Rich Red Brocade', 'Xenochromatic Crystal', 'Tyrant\'s Fang', 'Wilting Glory',
+    'Shard of a Conquered Will', 'Operative\'s Constancy', 'Chasmlight Fin',
+    'Still-Smoldering Hilt', 'Heart of the Secret Source',
+  ],
+};
 
 /**
  * Cache key generator
@@ -134,20 +199,81 @@ function identifyTalentBookSeries(name: string): {
  * Get base common material name (without tier prefix/suffix)
  */
 function getBaseCommonName(name: string): string {
-  // Common patterns to remove
-  const patterns = [
+  // Try to find base name by matching against tier patterns
+  // Tier 1 materials often ARE the base name (e.g., "Slime Condensate" -> "Slime")
+  // Tier 2/3 have prefixes like "Stained", "Ominous", etc.
+
+  // Common tier prefixes to remove
+  const prefixes = [
     'Damaged ', 'Stained ', 'Ominous ',
-    'Divining ', 'Sealed ', 'Golden ',
-    'Whopperflower ',
+    'Divining ', 'Sealed ', 'Forbidden Curse ',
+    'Firm ', 'Sharp ', 'Weathered ',
+    'Whopperflower ', 'Shimmering ', 'Energy ',
+    'Recruit\'s ', 'Sergeant\'s ', 'Lieutenant\'s ',
+    'Treasure Hoarder ', 'Silver Raven ', 'Golden Raven ',
+    'Fragile ', 'Sturdy ', 'Fossilized ',
+    'Hunter\'s ', 'Agent\'s ', 'Inspector\'s ',
+    'Old ', 'Kageuchi ', 'Famed ',
+    'Gloomy ', 'Dark ', 'Deathly ',
+    'Dismal ', 'Crystal ', 'Polarizing ',
+    'Heavy ', 'Black Bronze ', 'Black Crystal ',
+    'Dead Ley Line ', 'Ley Line ',
+    'Faded Red ', 'Trimmed Red ', 'Rich Red ',
+    'Juvenile ', 'Seasoned ', 'Tyrant\'s ',
   ];
 
-  for (const pattern of patterns) {
-    if (name.includes(pattern)) {
-      return name.replace(pattern, '').trim();
+  for (const prefix of prefixes) {
+    if (name.startsWith(prefix)) {
+      return name.replace(prefix, '').trim();
     }
   }
 
+  // For materials like "Slime Condensate/Secretions/Concentrate", extract the family name
+  if (name.includes('Slime')) return 'Slime';
+  if (name.includes('Nectar')) return 'Nectar';
+  if (name.includes('Insignia')) return 'Insignia';
+  if (name.includes('Bone Shard')) return 'Bone Shard';
+  if (name.includes('Mist Grass')) return 'Mist Grass';
+  if (name.includes('Sacrificial Knife')) return 'Sacrificial Knife';
+  if (name.includes('Chaos')) return 'Chaos';
+  if (name.includes('Spectral')) return 'Spectral';
+  if (name.includes('Handguard')) return 'Handguard';
+  if (name.includes('Statuette')) return 'Statuette';
+  if (name.includes('Prism')) return 'Prism';
+  if (name.includes('Horn')) return 'Horn';
+
   return name;
+}
+
+/**
+ * Check if material is a known local specialty
+ */
+function isLocalSpecialty(name: string): boolean {
+  return LOCAL_SPECIALTIES.has(name);
+}
+
+/**
+ * Identify common material tier (1=gray, 2=green, 3=blue)
+ * Returns 0 if not a recognized common material
+ */
+function identifyCommonTier(name: string): 1 | 2 | 3 | 0 {
+  // Exact match first
+  if (COMMON_TIER_PATTERNS.tier1.includes(name)) return 1;
+  if (COMMON_TIER_PATTERNS.tier2.includes(name)) return 2;
+  if (COMMON_TIER_PATTERNS.tier3.includes(name)) return 3;
+
+  // Partial match for flexibility
+  for (const pattern of COMMON_TIER_PATTERNS.tier1) {
+    if (name.includes(pattern) || pattern.includes(name)) return 1;
+  }
+  for (const pattern of COMMON_TIER_PATTERNS.tier2) {
+    if (name.includes(pattern) || pattern.includes(name)) return 2;
+  }
+  for (const pattern of COMMON_TIER_PATTERNS.tier3) {
+    if (name.includes(pattern) || pattern.includes(name)) return 3;
+  }
+
+  return 0;
 }
 
 /**
@@ -173,6 +299,7 @@ function processCharacterMaterials(
       common: {
         name: '',
         baseName: '',
+        tierNames: { gray: '', green: '', blue: '' },
         byTier: { gray: 0, green: 0, blue: 0 },
       },
     },
@@ -187,6 +314,7 @@ function processCharacterMaterials(
       common: {
         name: '',
         baseName: '',
+        tierNames: { gray: '', green: '', blue: '' },
         byTier: { gray: 0, green: 0, blue: 0 },
       },
       weekly: { name: '', totalCount: 0 },
@@ -208,9 +336,9 @@ function processCharacterMaterials(
     ];
 
     for (const ascension of ascensions) {
-      if (!ascension?.items) continue;
+      if (!ascension) continue;
 
-      for (const item of ascension.items) {
+      for (const item of ascension) {
         const name = item.name;
 
         // Identify material type
@@ -234,55 +362,73 @@ function processCharacterMaterials(
           materials.ascensionMaterials.gem.baseName = getBaseGemName(name);
           materials.ascensionMaterials.gem.element = identifyGemType(name);
           materials.ascensionMaterials.gem.byTier.gemstone += item.count;
-        } else if (
-          // Boss materials (common patterns)
-          name.includes('Orb') ||
-          name.includes('Heart') ||
-          name.includes('Horn') ||
-          name.includes('Scale') ||
-          name.includes('Prism') ||
-          name.includes('Jewel') ||
-          name.includes('Magatama') ||
-          name.includes('Pearl') ||
-          name.includes('Dew') ||
-          name.includes('Light') ||
-          name.includes('Rift')
-        ) {
-          materials.ascensionMaterials.boss.name = name;
-          materials.ascensionMaterials.boss.totalCount += item.count;
-        } else if (
-          // Common enemy materials (tier 1 - gray)
-          name.includes('Damaged') ||
-          name.includes('Divining') ||
-          (name.includes('Mask') && !name.includes('Stained')) ||
-          (name.includes('Scroll') && !name.includes('Sealed')) ||
-          (name.includes('Nectar') && !name.includes('Shimmering'))
-        ) {
-          materials.ascensionMaterials.common.name = name;
-          materials.ascensionMaterials.common.baseName = getBaseCommonName(name);
-          materials.ascensionMaterials.common.byTier.gray += item.count;
-        } else if (
-          // Common enemy materials (tier 2 - green)
-          name.includes('Stained') ||
-          name.includes('Sealed') ||
-          name.includes('Shimmering')
-        ) {
-          materials.ascensionMaterials.common.name = getBaseCommonName(name);
-          materials.ascensionMaterials.common.baseName = getBaseCommonName(name);
-          materials.ascensionMaterials.common.byTier.green += item.count;
-        } else if (
-          // Common enemy materials (tier 3 - blue)
-          name.includes('Ominous') ||
-          name.includes('Golden') ||
-          name.includes('Energy')
-        ) {
-          materials.ascensionMaterials.common.name = getBaseCommonName(name);
-          materials.ascensionMaterials.common.baseName = getBaseCommonName(name);
-          materials.ascensionMaterials.common.byTier.blue += item.count;
-        } else {
-          // Assume local specialty if not matched
+        } else if (isLocalSpecialty(name)) {
+          // Local specialty (known gathering items)
           materials.ascensionMaterials.localSpecialty.name = name;
           materials.ascensionMaterials.localSpecialty.totalCount += item.count;
+        } else {
+          // Check if it's a common material by tier
+          const tier = identifyCommonTier(name);
+          if (tier > 0) {
+            materials.ascensionMaterials.common.name = name;
+            materials.ascensionMaterials.common.baseName = getBaseCommonName(name);
+            if (tier === 1) {
+              materials.ascensionMaterials.common.tierNames.gray = name;
+              materials.ascensionMaterials.common.byTier.gray += item.count;
+            } else if (tier === 2) {
+              materials.ascensionMaterials.common.tierNames.green = name;
+              materials.ascensionMaterials.common.byTier.green += item.count;
+            } else {
+              materials.ascensionMaterials.common.tierNames.blue = name;
+              materials.ascensionMaterials.common.byTier.blue += item.count;
+            }
+          } else {
+            // Unknown material - assume boss drop if significant count, else local specialty
+            // Boss drops typically have higher counts and unique names
+            if (
+              name.includes('Seed') ||
+              name.includes('Core') ||
+              name.includes('Orb') ||
+              name.includes('Scale') ||
+              name.includes('Claw') ||
+              name.includes('Bone') ||
+              name.includes('Cleansing') ||
+              name.includes('Hurricane') ||
+              name.includes('Lightning') ||
+              name.includes('Basalt') ||
+              name.includes('Hoarfrost') ||
+              name.includes('Everflame') ||
+              name.includes('Crystalline') ||
+              name.includes('Juvenile Jade') ||
+              name.includes('Smoldering') ||
+              name.includes('Perpetual') ||
+              name.includes('Runic') ||
+              name.includes('Dew of Repudiation') ||
+              name.includes('Storm Beads') ||
+              name.includes('Dragonheir') ||
+              name.includes('Riftborn') ||
+              name.includes('Puppet Strings') ||
+              name.includes('Quelled') ||
+              name.includes('Thunderclap') ||
+              name.includes('Artificed') ||
+              name.includes('Fontemer') ||
+              name.includes('Water That Failed') ||
+              name.includes('Light Guiding') ||
+              name.includes('Cloudseam') ||
+              name.includes('Fragment of a') ||
+              name.includes('Denial and Judgment') ||
+              name.includes('Overripe') ||
+              name.includes('Gold-Inscribed') ||
+              name.includes('Mark of the Binding')
+            ) {
+              materials.ascensionMaterials.boss.name = name;
+              materials.ascensionMaterials.boss.totalCount += item.count;
+            } else {
+              // Truly unknown - default to local specialty
+              materials.ascensionMaterials.localSpecialty.name = name;
+              materials.ascensionMaterials.localSpecialty.totalCount += item.count;
+            }
+          }
         }
       }
     }
@@ -303,9 +449,9 @@ function processCharacterMaterials(
     ];
 
     for (const talent of talents) {
-      if (!talent?.items) continue;
+      if (!talent) continue;
 
-      for (const item of talent.items) {
+      for (const item of talent) {
         const name = item.name;
 
         // Identify talent material type
@@ -333,39 +479,46 @@ function processCharacterMaterials(
         } else if (name === 'Crown of Insight') {
           materials.talentMaterials.crown.name = name;
           materials.talentMaterials.crown.totalCount += item.count;
-        } else if (
-          // Common enemy materials (same as ascension)
-          name.includes('Damaged') ||
-          name.includes('Divining') ||
-          name.includes('Mask') ||
-          name.includes('Scroll') ||
-          name.includes('Nectar') ||
-          name.includes('Arrowhead') ||
-          name.includes('Insignia')
-        ) {
-          const baseName = getBaseCommonName(name);
-          materials.talentMaterials.common.baseName = baseName;
-
-          if (name.includes('Damaged') || name.includes('Divining') || (!name.includes('Stained') && !name.includes('Ominous'))) {
-            materials.talentMaterials.common.name = name;
-            materials.talentMaterials.common.byTier.gray += item.count;
-          } else if (name.includes('Stained') || name.includes('Sealed') || name.includes('Shimmering')) {
-            materials.talentMaterials.common.name = baseName;
-            materials.talentMaterials.common.byTier.green += item.count;
-          } else if (name.includes('Ominous') || name.includes('Golden') || name.includes('Energy')) {
-            materials.talentMaterials.common.name = baseName;
-            materials.talentMaterials.common.byTier.blue += item.count;
-          }
+        } else if (name === 'Mora') {
+          // Skip mora in talent materials (already tracked elsewhere)
+          continue;
         } else {
-          // Assume weekly boss material
-          materials.talentMaterials.weekly.name = name;
-          materials.talentMaterials.weekly.totalCount += item.count;
+          // Check if it's a common material by tier
+          const tier = identifyCommonTier(name);
+          if (tier > 0) {
+            const baseName = getBaseCommonName(name);
+            materials.talentMaterials.common.name = name;
+            materials.talentMaterials.common.baseName = baseName;
+
+            if (tier === 1) {
+              materials.talentMaterials.common.tierNames.gray = name;
+              materials.talentMaterials.common.byTier.gray += item.count;
+            } else if (tier === 2) {
+              materials.talentMaterials.common.tierNames.green = name;
+              materials.talentMaterials.common.byTier.green += item.count;
+            } else {
+              materials.talentMaterials.common.tierNames.blue = name;
+              materials.talentMaterials.common.byTier.blue += item.count;
+            }
+          } else {
+            // Assume weekly boss material
+            materials.talentMaterials.weekly.name = name;
+            materials.talentMaterials.weekly.totalCount += item.count;
+          }
         }
       }
     }
   }
 
   return materials;
+}
+
+/**
+ * Cache entry structure with schema versioning
+ */
+interface CacheEntry {
+  data: CharacterMaterialData;
+  schemaVersion?: number;
 }
 
 /**
@@ -378,22 +531,36 @@ export async function getCharacterMaterials(
   const cacheKey = getCacheKey(characterKey);
 
   // Check cache first (unless force refresh)
+  let cachedData: CharacterMaterialData | null = null;
+
   if (!options.forceRefresh) {
-    const cached = await db.externalCache.get(cacheKey);
+    try {
+      const cached = await db.externalCache.get(cacheKey);
+      if (cached) {
+        const cacheEntry = cached.data as CacheEntry | CharacterMaterialData;
+        const cacheExpiresAt = new Date(cached.expiresAt).getTime();
 
-    if (cached) {
-      const now = Date.now();
-      const expiresAt = new Date(cached.expiresAt).getTime();
+        // Detect cache format - new format has schemaVersion, old format is raw CharacterMaterialData
+        const schemaVersion = 'schemaVersion' in cacheEntry ? cacheEntry.schemaVersion : 0;
+        const materialData = 'schemaVersion' in cacheEntry ? cacheEntry.data : cacheEntry;
 
-      // Return fresh cache data
-      if (now < expiresAt) {
-        return {
-          data: cached.data as CharacterMaterialData,
-          isStale: false,
-        };
+        // Cache is valid if not expired AND schema version matches
+        const isSchemaValid = schemaVersion === CACHE_SCHEMA_VERSION;
+        const isNotExpired = Date.now() < cacheExpiresAt;
+
+        if (isNotExpired && isSchemaValid) {
+          return {
+            data: materialData,
+            isStale: false,
+          };
+        }
+
+        // Cache is stale (expired or old schema) - we'll try to refresh, but keep as fallback
+        cachedData = materialData;
       }
-
-      // Cache is stale - we'll try to refresh, but keep as fallback
+    } catch (dbError) {
+      console.warn('Failed to read from cache:', dbError);
+      // Continue to API fetch even if cache read fails
     }
   }
 
@@ -406,29 +573,35 @@ export async function getCharacterMaterials(
 
     const materials = processCharacterMaterials(characterKey, characterData, talentData);
 
-    // Update cache
-    const now = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + CACHE_TTL).toISOString();
-    await db.externalCache.put({
-      id: cacheKey,
-      cacheKey,
-      data: materials,
-      fetchedAt: now,
-      expiresAt,
-    });
+    // Update cache (ignore errors - cache is optional)
+    try {
+      const now = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + CACHE_TTL).toISOString();
+      // Store with schema version for cache invalidation on structure changes
+      const cacheEntry: CacheEntry = {
+        data: materials,
+        schemaVersion: CACHE_SCHEMA_VERSION,
+      };
+      await db.externalCache.put({
+        id: cacheKey,
+        cacheKey,
+        data: cacheEntry,
+        fetchedAt: now,
+        expiresAt,
+      });
+    } catch (cacheWriteError) {
+      console.warn('Failed to write to cache:', cacheWriteError);
+    }
 
     return { data: materials, isStale: false };
   } catch (error) {
-    // If API fetch fails and we have stale cache, use it
-    if (options.useStaleOnError) {
-      const cached = await db.externalCache.get(cacheKey);
-      if (cached) {
-        return {
-          data: cached.data as CharacterMaterialData,
-          isStale: true,
-          error: error instanceof Error ? error.message : 'Failed to fetch character data',
-        };
-      }
+    // If API fetch fails and we have cached data (even stale), use it
+    if (options.useStaleOnError && cachedData) {
+      return {
+        data: cachedData,
+        isStale: true,
+        error: error instanceof Error ? error.message : 'Failed to fetch character data',
+      };
     }
 
     // No cache available
