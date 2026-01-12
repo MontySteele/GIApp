@@ -144,11 +144,27 @@ export default function QRCameraScanner({
           </div>
         )}
 
-        {/* QR Scanner video element */}
+        {/* QR Scanner video element - explicit styles for Tauri webview compatibility */}
         <div
           id={`qr-scanner-${scannerElementId}`}
           className={state === 'scanning' ? 'w-full h-full' : 'hidden'}
+          style={{
+            minHeight: state === 'scanning' ? '300px' : undefined,
+          }}
         />
+        {/* Force video element styles for webview compatibility */}
+        <style>{`
+          #qr-scanner-${scannerElementId} video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            background: #000;
+          }
+          #qr-scanner-${scannerElementId} > div {
+            width: 100% !important;
+            height: 100% !important;
+          }
+        `}</style>
 
         {/* Scanning overlay */}
         {state === 'scanning' && (
