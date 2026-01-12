@@ -1,10 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import {
+  LayoutDashboard,
   Users,
   Gem,
+  Sword,
+  Target,
   Sparkles,
-  Coins,
   Calculator,
+  Coins,
   Calendar,
   StickyNote,
   Settings
@@ -12,11 +15,14 @@ import {
 import { TABS } from '@/lib/constants';
 
 const icons = {
+  dashboard: LayoutDashboard,
   roster: Users,
   artifacts: Gem,
+  weapons: Sword,
+  planner: Target,
   wishes: Sparkles,
-  ledger: Coins,
   calculator: Calculator,
+  ledger: Coins,
   calendar: Calendar,
   notes: StickyNote,
   settings: Settings,
@@ -33,6 +39,7 @@ export default function TabNav() {
               <NavLink
                 key={tab.id}
                 to={tab.path}
+                end={tab.path === '/'}
                 className={({ isActive }) =>
                   `flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive

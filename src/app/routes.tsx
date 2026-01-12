@@ -1,8 +1,11 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import Layout from './Layout';
+import DashboardPage from '@/features/dashboard/pages/DashboardPage';
 import RosterPage from '@/features/roster/pages/RosterPage';
 import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
 import ArtifactsPage from '@/features/artifacts/pages/ArtifactsPage';
+import WeaponsPage from '@/features/weapons/pages/WeaponsPage';
+import PlannerPage from '@/features/planner/pages/PlannerPage';
 import WishesPage from '@/features/wishes/pages/WishesPage';
 import LedgerPage from '@/features/ledger/pages/LedgerPage';
 import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
@@ -17,7 +20,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/roster" replace />,
+        element: <DashboardPage />,
       },
       {
         path: 'roster',
@@ -30,6 +33,14 @@ export const router = createBrowserRouter([
       {
         path: 'artifacts',
         element: <ArtifactsPage />,
+      },
+      {
+        path: 'weapons',
+        element: <WeaponsPage />,
+      },
+      {
+        path: 'planner',
+        element: <PlannerPage />,
       },
       {
         path: 'wishes',
