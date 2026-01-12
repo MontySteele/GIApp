@@ -6,10 +6,11 @@ import RosterPage from '@/features/roster/pages/RosterPage';
 import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
 import WeaponsTab from '@/features/roster/pages/WeaponsTab';
 import ArtifactsTab from '@/features/roster/pages/ArtifactsTab';
+import WishesLayout from '@/features/wishes/pages/WishesLayout';
+import HistoryTab from '@/features/wishes/pages/HistoryTab';
+import CalculatorTab from '@/features/wishes/pages/CalculatorTab';
+import BudgetTab from '@/features/wishes/pages/BudgetTab';
 import PlannerPage from '@/features/planner/pages/PlannerPage';
-import WishesPage from '@/features/wishes/pages/WishesPage';
-import LedgerPage from '@/features/ledger/pages/LedgerPage';
-import CalculatorPage from '@/features/calculator/pages/CalculatorPage';
 import CalendarPage from '@/features/calendar/pages/CalendarPage';
 import NotesPage from '@/features/notes/pages/NotesPage';
 import SyncPage from '@/features/sync/pages/SyncPage';
@@ -48,6 +49,25 @@ export const router = createBrowserRouter([
         path: 'roster/:id',
         element: <CharacterDetailPage />,
       },
+      // Wishes with nested routes for History, Calculator, Budget
+      {
+        path: 'wishes',
+        element: <WishesLayout />,
+        children: [
+          {
+            index: true,
+            element: <HistoryTab />,
+          },
+          {
+            path: 'calculator',
+            element: <CalculatorTab />,
+          },
+          {
+            path: 'budget',
+            element: <BudgetTab />,
+          },
+        ],
+      },
       // Redirects from old standalone routes
       {
         path: 'artifacts',
@@ -58,20 +78,16 @@ export const router = createBrowserRouter([
         element: <Navigate to="/roster/weapons" replace />,
       },
       {
-        path: 'planner',
-        element: <PlannerPage />,
-      },
-      {
-        path: 'wishes',
-        element: <WishesPage />,
+        path: 'calculator',
+        element: <Navigate to="/wishes/calculator" replace />,
       },
       {
         path: 'ledger',
-        element: <LedgerPage />,
+        element: <Navigate to="/wishes/budget" replace />,
       },
       {
-        path: 'calculator',
-        element: <CalculatorPage />,
+        path: 'planner',
+        element: <PlannerPage />,
       },
       {
         path: 'calendar',

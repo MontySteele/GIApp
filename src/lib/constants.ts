@@ -65,8 +65,6 @@ export const TABS = [
   { id: 'builds', label: 'Builds', path: '/builds' },
   { id: 'planner', label: 'Planner', path: '/planner' },
   { id: 'wishes', label: 'Wishes', path: '/wishes' },
-  { id: 'calculator', label: 'Calculator', path: '/calculator' },
-  { id: 'ledger', label: 'Primogems', path: '/ledger' },
   { id: 'bosses', label: 'Bosses', path: '/bosses' },
   { id: 'calendar', label: 'Calendar', path: '/calendar' },
   { id: 'notes', label: 'Notes', path: '/notes' },
