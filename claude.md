@@ -85,12 +85,15 @@ The Primogem Tracker uses a **snapshot-based workflow**:
 - [x] Reverse calculator (required income for target confidence)
 - [x] Scenario comparison (save & compare plans)
 
-### 5. Spiral Abyss Log
-- [ ] Abyss run entry (cycle, floor, chamber, stars, teams)
-- [ ] History view by cycle
-- [ ] Progress tracking over time
-- [ ] Team usage statistics
-- [ ] Quick team export from Abyss runs
+### 5. Calendar & Timers
+- [x] Reset timers (daily, weekly, Spiral Abyss, monthly shop)
+- [x] US Server time calculations (UTC-5)
+- [x] Live countdown updates
+- [x] Event fetching from HuTao bot (GitHub)
+- [x] Active/upcoming event display with filtering by type
+- [x] Banner tracking with end timers
+- [x] Cached event data with 1-hour refresh
+- [x] Fallback to stale cache on fetch errors
 
 ### 6. Goals & Notes
 - [x] Goal tracking with checklists
@@ -129,7 +132,7 @@ The Primogem Tracker uses a **snapshot-based workflow**:
 - `primogemEntries` - Purchase ledger (source='purchase' for purchases)
 - `fateEntries` - Fate acquisition tracking
 - `resourceSnapshots` - Point-in-time resource counts (ground truth)
-- `abyssRuns` - Spiral Abyss run logs
+- `abyssRuns` - (deprecated, unused)
 - `goals` - User goals with checklists
 - `notes` - Markdown notes with tags
 - `plannedBanners` - Future banner planning
@@ -244,12 +247,11 @@ Mechanics (post-5.0 Capturing Radiance):
 - [ ] Scenario save/compare feature
 - [x] Performance optimization & testing
 
-### Phase 6: Abyss & Goals
-- [ ] Abyss run models & repository
-- [ ] Abyss run entry form
-- [ ] Cycle history view
-- [ ] Progress charts (stars over time)
-- [ ] Team usage analytics
+### Phase 6: Calendar & Goals ✅
+- [x] Calendar page with reset timers
+- [x] Event fetching from external API (HuTao bot)
+- [x] Active/upcoming event filtering
+- [x] Banner display with countdowns
 - [x] Goal models & repository
 - [x] Goal creation & editing
 - [x] Checklist component
@@ -329,10 +331,22 @@ Mechanics (post-5.0 Capturing Radiance):
 3. Added scenario save/compare for multi-target calculator
 4. Removed debug console.log statements from PurchaseLedger and LedgerPage
 
-### Sprint 5 - New Features
+### Sprint 5 - Calendar Page ✅ COMPLETED
+1. Removed Spiral Abyss feature (too tedious to maintain)
+2. Added Calendar page with reset timers:
+   - Daily reset (4 AM server time)
+   - Weekly reset (Monday 4 AM)
+   - Spiral Abyss reset (1st & 16th)
+   - Monthly shop reset
+3. Event fetching from HuTao bot GitHub JSON
+4. Active/upcoming event display with type filtering
+5. Banner tracking with end countdowns
+6. All times calculated for US Server (UTC-5)
+
+### Sprint 6 - Future Features
 1. Artifact optimizer for GOOD format
-2. Spiral Abyss log
-3. Sync features (compression, encryption, QR)
+2. Sync features (compression, encryption, QR)
+3. Import with merge strategies
 
 ---
 
@@ -365,6 +379,11 @@ src/
 │   │   ├── domain/        # wishReplay, wishAnalyzer, wishStatistics
 │   │   ├── pages/         # WishHistoryPage
 │   │   └── repo/          # wishRepo
+│   ├── calendar/          # Calendar & Timers
+│   │   ├── components/    # ResetTimers, EventList
+│   │   ├── domain/        # resetTimers, eventTypes
+│   │   ├── hooks/         # useEvents
+│   │   └── pages/         # CalendarPage
 │   ├── notes/             # Goals & Notes
 │   └── sync/              # Settings & Sync
 ├── lib/
@@ -405,6 +424,16 @@ src/
 ---
 
 ## Recent Changes Log
+
+**2026-01 (Sprint 5 Completion):**
+- Removed Spiral Abyss feature (replaced with Calendar)
+- Added Calendar page with live reset timers
+- Reset calculations based on US Server (UTC-5)
+- Event fetching from HuTao bot GitHub repository
+- Active/upcoming event display with type badges
+- Banner tracking with countdown timers
+- Cached event data with 1-hour TTL
+- Graceful fallback to stale cache on network errors
 
 **2024-01 (Sprint 4 Completion):**
 - Redesigned Goals section as simple colored sticky notes

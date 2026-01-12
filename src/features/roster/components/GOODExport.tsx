@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { Download, Copy, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Copy, CheckCircle, Package } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { toGOOD } from '@/mappers/good';
+import { toGOOD, toGOODWithInventory } from '@/mappers/good';
 import { useCharacters } from '../hooks/useCharacters';
+import { artifactRepo, weaponRepo, materialRepo } from '../repo/inventoryRepo';
+import type { InventoryArtifact, InventoryWeapon } from '@/types';
 
 interface GOODExportProps {
   onClose: () => void;
@@ -11,8 +13,47 @@ interface GOODExportProps {
 export default function GOODExport({ onClose }: GOODExportProps) {
   const { characters } = useCharacters();
   const [copied, setCopied] = useState(false);
+  const [includeInventory, setIncludeInventory] = useState(true);
+  const [inventoryArtifacts, setInventoryArtifacts] = useState<InventoryArtifact[]>([]);
+  const [inventoryWeapons, setInventoryWeapons] = useState<InventoryWeapon[]>([]);
+  const [materials, setMaterials] = useState<Record<string, number>>({});
+  const [loadingInventory, setLoadingInventory] = useState(true);
 
-  const goodData = toGOOD(characters);
+  // Load inventory data
+  useEffect(() => {
+    async function loadInventory() {
+      setLoadingInventory(true);
+      try {
+        const [artifacts, weapons, materialData] = await Promise.all([
+          artifactRepo.getAll(),
+          weaponRepo.getAll(),
+          materialRepo.get(),
+        ]);
+        setInventoryArtifacts(artifacts);
+        setInventoryWeapons(weapons);
+        setMaterials(materialData?.materials ?? {});
+      } catch (err) {
+        console.error('Failed to load inventory:', err);
+      } finally {
+        setLoadingInventory(false);
+      }
+    }
+    loadInventory();
+  }, []);
+
+  const hasInventoryData =
+    inventoryArtifacts.length > 0 ||
+    inventoryWeapons.length > 0 ||
+    Object.keys(materials).length > 0;
+
+  const goodData = includeInventory && hasInventoryData
+    ? toGOODWithInventory({
+        characters,
+        inventoryArtifacts,
+        inventoryWeapons,
+        materials,
+      })
+    : toGOOD(characters);
   const jsonText = JSON.stringify(goodData, null, 2);
 
   const handleDownload = () => {
@@ -50,11 +91,50 @@ export default function GOODExport({ onClose }: GOODExportProps) {
             Export includes:
           </div>
           <ul className="text-sm text-slate-400 space-y-1 list-disc list-inside">
-            <li>{characters.length} characters</li>
-            <li>All weapons</li>
-            <li>All artifacts with substats</li>
+            <li>{characters.length} characters with equipped items</li>
+            {includeInventory && hasInventoryData && (
+              <>
+                {inventoryArtifacts.length > 0 && (
+                  <li>{inventoryArtifacts.length} inventory artifacts</li>
+                )}
+                {inventoryWeapons.length > 0 && (
+                  <li>{inventoryWeapons.length} inventory weapons</li>
+                )}
+                {Object.keys(materials).length > 0 && (
+                  <li>{Object.keys(materials).length} material types</li>
+                )}
+              </>
+            )}
           </ul>
         </div>
+
+        {/* Include Inventory Toggle */}
+        {hasInventoryData && (
+          <div className="mb-4 p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeInventory}
+                onChange={(e) => setIncludeInventory(e.target.checked)}
+                className="mt-1 w-4 h-4 rounded border-slate-600 text-primary-500 focus:ring-primary-500 bg-slate-700"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
+                  <Package className="w-4 h-4" />
+                  Include Inventory Data
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Export unequipped artifacts, weapons, and materials from Irminsul imports.
+                  Enable this for cross-platform sync (e.g., Windows to Mac).
+                </div>
+              </div>
+            </label>
+          </div>
+        )}
+
+        {loadingInventory && (
+          <div className="text-sm text-slate-400 mb-4">Loading inventory data...</div>
+        )}
 
         {/* JSON Preview */}
         <div className="mb-4">
