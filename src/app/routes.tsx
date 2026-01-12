@@ -10,12 +10,17 @@ import WishesLayout from '@/features/wishes/pages/WishesLayout';
 import HistoryTab from '@/features/wishes/pages/HistoryTab';
 import CalculatorTab from '@/features/wishes/pages/CalculatorTab';
 import BudgetTab from '@/features/wishes/pages/BudgetTab';
-import PlannerPage from '@/features/planner/pages/PlannerPage';
+import {
+  TeamsLayout,
+  TeamsPage,
+  TeamDetailPage,
+  PlannerTab,
+  TemplatesTab,
+  BossesTab,
+} from '@/features/teams';
 import CalendarPage from '@/features/calendar/pages/CalendarPage';
 import NotesPage from '@/features/notes/pages/NotesPage';
 import SyncPage from '@/features/sync/pages/SyncPage';
-import { BuildTemplatesPage } from '@/features/builds';
-import { WeeklyBossTrackerPage } from '@/features/bosses';
 
 export const router = createBrowserRouter([
   {
@@ -48,6 +53,33 @@ export const router = createBrowserRouter([
       {
         path: 'roster/:id',
         element: <CharacterDetailPage />,
+      },
+      // Teams hub with nested routes for My Teams, Planner, Templates, Bosses
+      {
+        path: 'teams',
+        element: <TeamsLayout />,
+        children: [
+          {
+            index: true,
+            element: <TeamsPage />,
+          },
+          {
+            path: 'planner',
+            element: <PlannerTab />,
+          },
+          {
+            path: 'templates',
+            element: <TemplatesTab />,
+          },
+          {
+            path: 'bosses',
+            element: <BossesTab />,
+          },
+        ],
+      },
+      {
+        path: 'teams/:id',
+        element: <TeamDetailPage />,
       },
       // Wishes with nested routes for History, Calculator, Budget
       {
@@ -87,7 +119,15 @@ export const router = createBrowserRouter([
       },
       {
         path: 'planner',
-        element: <PlannerPage />,
+        element: <Navigate to="/teams/planner" replace />,
+      },
+      {
+        path: 'builds',
+        element: <Navigate to="/teams/templates" replace />,
+      },
+      {
+        path: 'bosses',
+        element: <Navigate to="/teams/bosses" replace />,
       },
       {
         path: 'calendar',
@@ -96,14 +136,6 @@ export const router = createBrowserRouter([
       {
         path: 'notes',
         element: <NotesPage />,
-      },
-      {
-        path: 'builds',
-        element: <BuildTemplatesPage />,
-      },
-      {
-        path: 'bosses',
-        element: <WeeklyBossTrackerPage />,
       },
       {
         path: 'settings',
