@@ -4,15 +4,34 @@ import TabNav from '@/components/common/TabNav';
 import BackupReminderBanner from '@/features/sync/components/BackupReminderBanner';
 import { useTheme } from '@/hooks/useTheme';
 
+/** Skip link component for keyboard navigation */
+function SkipLink() {
+  return (
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+    >
+      Skip to main content
+    </a>
+  );
+}
+
 export default function Layout() {
   // Initialize theme on mount
   useTheme();
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 dark:bg-slate-950 light:bg-slate-50 text-slate-100 dark:text-slate-100 light:text-slate-900">
+      <SkipLink />
       <Header />
-      <TabNav />
-      <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl">
+      <nav aria-label="Main navigation">
+        <TabNav />
+      </nav>
+      <main
+        id="main-content"
+        className="flex-1 container mx-auto px-4 py-6 max-w-7xl"
+        tabIndex={-1}
+      >
         <BackupReminderBanner />
         <Outlet />
       </main>
