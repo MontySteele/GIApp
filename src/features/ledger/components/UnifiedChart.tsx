@@ -68,9 +68,19 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems }:
   const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL);
   const daysForOnePity = effectiveDailyRate > 0 ? Math.ceil((90 * PRIMOS_PER_PULL) / effectiveDailyRate) : Infinity;
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipPayload {
+    payload: ChartDataPoint;
+    value: number;
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+  }
+
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload as ChartDataPoint;
+      const data = payload[0].payload;
       const displayValue = showPurchases
         ? (data.historicalWithPurchases ?? data.projectedWithPurchases ?? data.historical ?? data.projected)
         : (data.historical ?? data.projected);

@@ -115,9 +115,19 @@ export function ProjectionChart({ entries, currentPrimogems }: ProjectionChartPr
     return isAfter(entryDate, addDays(new Date(), -30)) && e.source !== 'purchase' && e.amount > 0;
   }).length;
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  interface TooltipPayload {
+    payload: ChartDataPoint;
+    value: number;
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+  }
+
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload as ChartDataPoint;
+      const data = payload[0].payload;
       const pullsAtPoint = Math.floor(data.projected / PRIMOS_PER_PULL);
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">

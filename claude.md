@@ -15,8 +15,17 @@ A local-first Progressive Web App for Genshin Impact players to track character 
 
 **Architecture:**
 ```
-React Components → Zustand (UI State) → Repository Layer → Dexie (IndexedDB)
+React Components → Hooks → Repository Layer → Dexie (IndexedDB)
+                ↘ Zustand (UI State)
+                ↘ Shared Services (lib/services)
 ```
+
+**Key Patterns:**
+- Feature-based organization with `/domain`, `/repo`, `/hooks`, `/components`, `/pages`
+- Repository pattern for data access (Dexie → repo → hooks → components)
+- Reactive patterns using `useLiveQuery` for automatic database reactivity
+- Shared services layer for cross-feature logic (e.g., resource calculations)
+- Performance optimization via `useCallback`, `useMemo`, `useReducer`
 
 ---
 
@@ -358,10 +367,58 @@ Mechanics (post-5.0 Capturing Radiance):
 5. Banner tracking with end countdowns
 6. All times calculated for US Server (UTC-5)
 
-### Sprint 6 - Future Features
+### Sprint 6 - Dashboard & Inventory Management ✅ COMPLETED
+1. Added dashboard home page with account overview
+2. Implemented banner planner with primogem tracking
+3. Added resin tracker to ascension planner
+4. Improved data integration across features
+5. Removed redundant features and streamlined UI
+
+### Sprint 7 - Architecture Review & Refactoring ✅ COMPLETED
+**Critical Performance Optimizations:**
+1. WishImport component refactoring (591 lines)
+   - Removed all 15 console.log statements
+   - Converted 7 useState to single useReducer with typed actions
+   - Added useCallback to 10 event handlers
+   - Added useMemo to 3 computed values
+
+2. MultiTargetCalculator optimization (955 lines)
+   - Added useCallback to 13 event handlers (up from 1)
+   - Added useMemo for canCalculate
+   - Converted setState to functional updates
+
+3. useResources reactive pattern fix
+   - Replaced manual useState + useEffect with useLiveQuery
+   - Added useMemo for all calculated values
+   - Automatic database reactivity
+
+**Medium Priority - Architecture Improvements:**
+4. Repository extraction
+   - Created artifacts/repo/artifactRepo.ts (80 lines)
+   - Created weapons/repo/weaponRepo.ts (75 lines)
+   - Reduced roster/repo/inventoryRepo.ts from 215 → 70 lines
+
+5. Cross-feature resource service
+   - Created lib/services/resourceService.ts
+   - Moved getAvailablePullsFromTracker() from calculator/selectors
+   - Converted calculator/selectors/availablePulls.ts to re-export wrapper
+   - Reduced cross-feature coupling
+
+6. Folder structure standardization
+   - Removed unused roster/repo/hooks/ directory
+   - Removed unused wishes/repo/hooks/ directory
+   - Standardized hooks/ location across all features
+
+**Low Priority - Type Safety:**
+7. TypeScript improvements
+   - Added proper types to 4 Recharts custom tooltips
+   - Eliminated 'any' types in tooltip components
+   - Added TooltipPayload and CustomTooltipProps interfaces
+
+### Sprint 8 - Future Features
 1. Artifact optimizer for GOOD format
-2. Sync features (compression, encryption, QR)
-3. Import with merge strategies
+2. QR code scanning (camera import)
+3. genshin-db API integration for character/weapon data
 
 ---
 
@@ -376,22 +433,32 @@ src/
 ├── db/
 │   └── schema.ts          # Dexie database schema
 ├── features/
+│   ├── artifacts/         # Artifact inventory
+│   │   └── repo/          # artifactRepo (standalone inventory)
 │   ├── calculator/        # Pull probability calculators
 │   │   ├── components/    # SingleTarget, MultiTarget, Reverse calculators
 │   │   ├── domain/        # pityEngine, analyticalCalc
+│   │   ├── selectors/     # availablePulls (re-exports from resourceService)
 │   │   └── store/         # calculatorStore (Zustand)
 │   ├── ledger/            # Primogem tracking
 │   │   ├── components/    # UnifiedChart, TransactionLog, PurchaseLedger
 │   │   ├── domain/        # resourceCalculations, historicalReconstruction
+│   │   ├── hooks/         # useResources (reactive pattern)
 │   │   ├── pages/         # LedgerPage
 │   │   └── repo/          # primogemEntryRepo, resourceSnapshotRepo, etc.
+│   ├── planner/           # Ascension planner
+│   │   └── hooks/         # useMaterials
 │   ├── roster/            # Character management
-│   │   ├── components/    # CharacterCard, CharacterForm, EnkaImport, etc.
+│   │   ├── components/    # CharacterCard, CharacterForm, EnkaImport, GOODExport
+│   │   ├── hooks/         # useCharacters, useTeams
 │   │   ├── pages/         # CharacterListPage, CharacterDetailPage
-│   │   └── repo/          # characterRepo, teamRepo
+│   │   └── repo/          # characterRepo, teamRepo, inventoryRepo (materials)
+│   ├── weapons/           # Weapon inventory
+│   │   └── repo/          # weaponRepo (standalone inventory)
 │   ├── wishes/            # Wish history
-│   │   ├── components/    # WishHistory, PityDashboard, PullHistoryChart
+│   │   ├── components/    # WishHistory, PityDashboard, PullHistoryChart, WishImport
 │   │   ├── domain/        # wishReplay, wishAnalyzer, wishStatistics
+│   │   ├── hooks/         # useWishes
 │   │   ├── pages/         # WishHistoryPage
 │   │   └── repo/          # wishRepo
 │   ├── calendar/          # Calendar & Timers
@@ -403,7 +470,9 @@ src/
 │   └── sync/              # Settings & Sync
 ├── lib/
 │   ├── constants.ts       # Game constants, gacha rules
-│   └── gameData.ts        # Character data, icon mappings
+│   ├── gameData.ts        # Character data, icon mappings
+│   └── services/          # Shared cross-feature services
+│       └── resourceService.ts  # Pull calculation logic
 ├── mappers/               # External format mappers (GOOD, Enka)
 ├── stores/                # Global Zustand stores
 ├── types/                 # TypeScript types
@@ -440,15 +509,23 @@ src/
 
 ## Recent Changes Log
 
-**2025-01 (Sprint 5 Completion):**
-- Added cross-device sync with compression (lz-string) and optional encryption (AES-GCM)
-- Import backup functionality with schema validation and three merge strategies
-- Copy/paste text transfer flow with wrapped format markers
-- QR code generation for small payloads (<2KB)
-- New syncUtils service for compression, encryption, and payload management
-- New importService for backup validation and data reconciliation
-- DataTransfer component for unified export/import UI
-- ImportBackup component with file picker and progress indicator
+**2026-01 (Sprint 7 Completion - Architecture Review):**
+- Comprehensive architecture review and refactoring completed
+- Performance: WishImport (useReducer, 10 useCallback, removed 15 console.logs)
+- Performance: MultiTargetCalculator (13 useCallback hooks, functional updates)
+- Performance: useResources converted to reactive useLiveQuery pattern
+- Architecture: Extracted artifactRepo and weaponRepo from roster feature
+- Architecture: Created shared resourceService in lib/services/
+- Architecture: Standardized folder structure (removed nested repo/hooks/)
+- Type Safety: Added TypeScript types to all Recharts tooltips (4 components)
+- Reduced cross-feature coupling and improved code organization
+
+**2026-01 (Sprint 6 Completion):**
+- Added dashboard home page with account overview
+- Implemented banner planner with primogem tracking
+- Added resin tracker to ascension planner
+- Improved data integration and removed redundant features
+
 **2026-01 (Sprint 5 Completion):**
 - Removed Spiral Abyss feature (replaced with Calendar)
 - Added Calendar page with live reset timers
@@ -480,3 +557,27 @@ src/
 - Fixed: Daily rate calculation uses full lookback period as denominator (not just wish span)
 - Added: Configurable "Rate window" selector (14/30/60/90 days) for daily income calculation
 - Fixed: Purchase ledger delete functionality (browser was blocking confirm dialog)
+
+---
+
+## Code Quality Standards
+
+**Performance Best Practices:**
+- Use `useCallback` for event handlers passed as props
+- Use `useMemo` for expensive computations and derived state
+- Use `useReducer` for complex state with multiple related values
+- Use `useLiveQuery` from dexie-react-hooks for reactive database queries
+- Avoid manual useEffect + useState patterns when useLiveQuery is available
+
+**Architecture Principles:**
+- Feature-based organization (domain, repo, hooks, components, pages)
+- Repository pattern for all database access
+- Shared services in `/lib/services` for cross-feature logic
+- Clear ownership boundaries between features
+- No circular dependencies between features
+
+**TypeScript Guidelines:**
+- Eliminate `any` types - use proper interfaces
+- Define payload types for all component props
+- Use discriminated unions for complex state
+- Export types alongside implementations

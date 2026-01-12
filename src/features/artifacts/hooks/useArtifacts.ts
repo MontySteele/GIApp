@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryArtifact } from '@/types';
-import { artifactRepo } from '@/features/roster/repo/inventoryRepo';
+import { artifactRepo } from '../repo/artifactRepo';
 import { scoreInventoryArtifact, type ArtifactScore } from '../domain/artifactScoring';
 
 export interface ArtifactWithScore extends InventoryArtifact {

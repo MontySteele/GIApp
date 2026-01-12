@@ -3,7 +3,9 @@ import { Download, Copy, CheckCircle, Package } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { toGOOD, toGOODWithInventory } from '@/mappers/good';
 import { useCharacters } from '../hooks/useCharacters';
-import { artifactRepo, weaponRepo, materialRepo } from '../repo/inventoryRepo';
+import { artifactRepo } from '@/features/artifacts/repo/artifactRepo';
+import { weaponRepo } from '@/features/weapons/repo/weaponRepo';
+import { materialRepo } from '../repo/inventoryRepo';
 import type { InventoryArtifact, InventoryWeapon } from '@/types';
 
 interface GOODExportProps {

@@ -2,9 +2,11 @@
  * Resources Hook
  *
  * Provides current primogem and fate counts from the ledger
+ * Uses reactive useLiveQuery for automatic updates when database changes
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { useMemo } from 'react';
 import { resourceSnapshotRepo } from '../repo/resourceSnapshotRepo';
 import { PRIMOS_PER_PULL } from '@/lib/constants';
 
@@ -18,56 +20,58 @@ export interface ResourceState {
   lastUpdated: string | null;
 }
 
+const defaultResourceState: ResourceState = {
+  primogems: 0,
+  genesisCrystals: 0,
+  intertwined: 0,
+  acquaint: 0,
+  starglitter: 0,
+  stardust: 0,
+  lastUpdated: null,
+};
+
 export function useResources() {
-  const [resources, setResources] = useState<ResourceState>({
-    primogems: 0,
-    genesisCrystals: 0,
-    intertwined: 0,
-    acquaint: 0,
-    starglitter: 0,
-    stardust: 0,
-    lastUpdated: null,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  // Reactive query - automatically updates when snapshot changes
+  const snapshot = useLiveQuery(() => resourceSnapshotRepo.getLatest(), []);
 
-  const loadResources = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const snapshot = await resourceSnapshotRepo.getLatest();
-      if (snapshot) {
-        setResources({
-          primogems: snapshot.primogems,
-          genesisCrystals: snapshot.genesisCrystals,
-          intertwined: snapshot.intertwined,
-          acquaint: snapshot.acquaint,
-          starglitter: snapshot.starglitter,
-          stardust: snapshot.stardust,
-          lastUpdated: snapshot.timestamp,
-        });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load resources'));
-    } finally {
-      setIsLoading(false);
+  // Transform snapshot to ResourceState
+  const resources: ResourceState = useMemo(() => {
+    if (!snapshot) {
+      return defaultResourceState;
     }
-  }, []);
 
-  useEffect(() => {
-    loadResources();
-  }, [loadResources]);
+    return {
+      primogems: snapshot.primogems,
+      genesisCrystals: snapshot.genesisCrystals,
+      intertwined: snapshot.intertwined,
+      acquaint: snapshot.acquaint,
+      starglitter: snapshot.starglitter,
+      stardust: snapshot.stardust,
+      lastUpdated: snapshot.timestamp,
+    };
+  }, [snapshot]);
 
-  // Calculate available pulls
-  const totalPulls = resources.intertwined + Math.floor(resources.primogems / PRIMOS_PER_PULL);
-  const totalPrimosEquivalent = resources.primogems + resources.intertwined * PRIMOS_PER_PULL;
+  // Memoize calculated values
+  const totalPulls = useMemo(
+    () => resources.intertwined + Math.floor(resources.primogems / PRIMOS_PER_PULL),
+    [resources.intertwined, resources.primogems]
+  );
+
+  const totalPrimosEquivalent = useMemo(
+    () => resources.primogems + resources.intertwined * PRIMOS_PER_PULL,
+    [resources.primogems, resources.intertwined]
+  );
+
+  const hasSnapshot = useMemo(
+    () => resources.lastUpdated !== null,
+    [resources.lastUpdated]
+  );
 
   return {
     ...resources,
-    isLoading,
-    error,
+    isLoading: snapshot === undefined,
     totalPulls,
     totalPrimosEquivalent,
-    hasSnapshot: resources.lastUpdated !== null,
-    refresh: loadResources,
+    hasSnapshot,
   };
 }

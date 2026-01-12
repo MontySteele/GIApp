@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryWeapon } from '@/types';
-import { weaponRepo } from '@/features/roster/repo/inventoryRepo';
+import { weaponRepo } from '../repo/weaponRepo';
 import { getWeaponName, getWeaponType, getWeaponRarity, type WeaponType } from '../domain/weaponConstants';
 
 export type WeaponSortKey = 'rarity' | 'level' | 'refinement' | 'name' | 'type';
