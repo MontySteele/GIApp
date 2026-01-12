@@ -26,6 +26,6 @@ export {
 export {
   CHARACTER_KEY_MAP,
   WEAPON_KEY_MAP,
-  ARTIFACT_SET_MAP,
+  ARTIFACT_SET_KEY_MAP,
   STAT_KEY_MAP,
 } from './domain/gcsimKeyMappings';
