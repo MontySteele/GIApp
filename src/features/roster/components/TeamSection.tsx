@@ -13,6 +13,7 @@ interface TeamSectionProps {
   onEditTeam: (team: Team) => void;
   onDeleteTeam: (team: Team) => void;
   onExportTeams: () => void;
+  onExportToWfpsim?: (team: Team) => void;
 }
 
 export default function TeamSection({
@@ -23,6 +24,7 @@ export default function TeamSection({
   onEditTeam,
   onDeleteTeam,
   onExportTeams,
+  onExportToWfpsim,
 }: TeamSectionProps) {
   const characterByKey = useMemo(() => {
     const map = new Map<string, Character>();
@@ -77,6 +79,7 @@ export default function TeamSection({
                 members={members}
                 onEdit={onEditTeam}
                 onDelete={onDeleteTeam}
+                onExportToWfpsim={onExportToWfpsim}
               />
             );
           })}

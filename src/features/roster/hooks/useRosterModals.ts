@@ -19,6 +19,8 @@ interface RosterModalsState {
   activeTeam: Team | null;
   // Delete team modal
   deletingTeam: Team | null;
+  // Wfpsim export modal
+  wfpsimExportTeam: Team | null;
 }
 
 export function useRosterModals() {
@@ -31,6 +33,7 @@ export function useRosterModals() {
     teamModalMode: 'create',
     activeTeam: null,
     deletingTeam: null,
+    wfpsimExportTeam: null,
   });
 
   // Add Character Modal
@@ -101,6 +104,15 @@ export function useRosterModals() {
     setState((s) => ({ ...s, deletingTeam: null }));
   }, []);
 
+  // Wfpsim Export Modal
+  const openWfpsimExportModal = useCallback((team: Team) => {
+    setState((s) => ({ ...s, wfpsimExportTeam: team }));
+  }, []);
+
+  const closeWfpsimExportModal = useCallback(() => {
+    setState((s) => ({ ...s, wfpsimExportTeam: null }));
+  }, []);
+
   return {
     // State
     showAddModal: state.showAddModal,
@@ -111,6 +123,7 @@ export function useRosterModals() {
     teamModalMode: state.teamModalMode,
     activeTeam: state.activeTeam,
     deletingTeam: state.deletingTeam,
+    wfpsimExportTeam: state.wfpsimExportTeam,
 
     // Actions
     openAddModal,
@@ -126,5 +139,7 @@ export function useRosterModals() {
     closeTeamModal,
     openDeleteTeamModal,
     closeDeleteTeamModal,
+    openWfpsimExportModal,
+    closeWfpsimExportModal,
   };
 }
