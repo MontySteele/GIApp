@@ -522,22 +522,27 @@ export async function getCharacterMaterials(
   const cacheKey = getCacheKey(characterKey);
 
   // Check cache first (unless force refresh)
+  let cachedData: CharacterMaterialData | null = null;
+
   if (!options.forceRefresh) {
-    const cached = await db.externalCache.get(cacheKey);
+    try {
+      const cached = await db.externalCache.get(cacheKey);
+      if (cached) {
+        cachedData = cached.data as CharacterMaterialData;
+        const cacheExpiresAt = new Date(cached.expiresAt).getTime();
 
-    if (cached) {
-      const now = Date.now();
-      const expiresAt = new Date(cached.expiresAt).getTime();
-
-      // Return fresh cache data
-      if (now < expiresAt) {
-        return {
-          data: cached.data as CharacterMaterialData,
-          isStale: false,
-        };
+        // Return fresh cache data
+        if (Date.now() < cacheExpiresAt) {
+          return {
+            data: cachedData,
+            isStale: false,
+          };
+        }
+        // Cache is stale - we'll try to refresh, but keep as fallback
       }
-
-      // Cache is stale - we'll try to refresh, but keep as fallback
+    } catch (dbError) {
+      console.warn('Failed to read from cache:', dbError);
+      // Continue to API fetch even if cache read fails
     }
   }
 
@@ -550,29 +555,30 @@ export async function getCharacterMaterials(
 
     const materials = processCharacterMaterials(characterKey, characterData, talentData);
 
-    // Update cache
-    const now = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + CACHE_TTL).toISOString();
-    await db.externalCache.put({
-      id: cacheKey,
-      cacheKey,
-      data: materials,
-      fetchedAt: now,
-      expiresAt,
-    });
+    // Update cache (ignore errors - cache is optional)
+    try {
+      const now = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + CACHE_TTL).toISOString();
+      await db.externalCache.put({
+        id: cacheKey,
+        cacheKey,
+        data: materials,
+        fetchedAt: now,
+        expiresAt,
+      });
+    } catch (cacheWriteError) {
+      console.warn('Failed to write to cache:', cacheWriteError);
+    }
 
     return { data: materials, isStale: false };
   } catch (error) {
-    // If API fetch fails and we have stale cache, use it
-    if (options.useStaleOnError) {
-      const cached = await db.externalCache.get(cacheKey);
-      if (cached) {
-        return {
-          data: cached.data as CharacterMaterialData,
-          isStale: true,
-          error: error instanceof Error ? error.message : 'Failed to fetch character data',
-        };
-      }
+    // If API fetch fails and we have cached data (even stale), use it
+    if (options.useStaleOnError && cachedData) {
+      return {
+        data: cachedData,
+        isStale: true,
+        error: error instanceof Error ? error.message : 'Failed to fetch character data',
+      };
     }
 
     // No cache available
