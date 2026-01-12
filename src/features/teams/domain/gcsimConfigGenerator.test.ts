@@ -58,7 +58,7 @@ describe('gcsimConfigGenerator', () => {
       expect(config).toContain('options iteration=1000 duration=90 swap_delay=4;');
       expect(config).toContain('target lvl=100 resist=0.1;');
       expect(config).toContain('raiden char lvl=90/90 cons=0 talent=1,9,9;');
-      expect(config).toContain('raiden add weapon="catch" refine=5 lvl=90/90;');
+      expect(config).toContain('raiden add weapon="thecatch" refine=5 lvl=90/90;');
       expect(config).toContain('raiden add set="emblem" count=4;');
       expect(config).toContain('active raiden;');
     });
@@ -125,8 +125,8 @@ describe('gcsimConfigGenerator', () => {
 
       expect(config).toContain('raiden char');
       expect(config).toContain('bennett char');
-      expect(config).toContain('raiden add weapon="catch"');
-      expect(config).toContain('bennett add weapon="sacrifical"');
+      expect(config).toContain('raiden add weapon="thecatch"');
+      expect(config).toContain('bennett add weapon="sacrificialsword"');
       expect(config).toContain('active raiden;');
     });
 
