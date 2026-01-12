@@ -15,6 +15,9 @@ import {
   DOMAIN_DROPS_PER_RUN,
   MATERIAL_CONVERSION_RATE,
 } from './materialConstants';
+import { getCharacterMaterials } from '@/lib/services/genshinDbService';
+import { findInventoryKey } from '@/lib/utils/materialNormalization';
+import type { CharacterMaterialData } from './characterMaterials';
 
 /**
  * Normalize a material key for lookup by converting to lowercase and removing special chars
@@ -68,6 +71,8 @@ export interface MaterialRequirement {
   required: number;
   owned: number;
   deficit: number;
+  source?: string; // Domain, boss, or region info
+  availability?: string[]; // Days available (for talent books)
 }
 
 export interface AscensionSummary {
@@ -79,6 +84,8 @@ export interface AscensionSummary {
   estimatedDays: number;
   canAscend: boolean;
   nextAscensionReady: boolean;
+  isStale?: boolean; // If using stale cached data
+  error?: string; // If API fetch failed
 }
 
 /**
@@ -227,13 +234,155 @@ export function estimateResinCost(summary: {
 }
 
 /**
+ * Build material requirements using real character data from genshin-db API
+ */
+async function buildMaterialsWithApiData(
+  inventory: Record<string, number>,
+  ascensionMats: ReturnType<typeof calculateAscensionMaterials>,
+  talentMats: ReturnType<typeof calculateTalentMaterials>,
+  characterData: CharacterMaterialData | null
+): Promise<{ materials: MaterialRequirement[]; isStale: boolean; error?: string }> {
+  const materials: MaterialRequirement[] = [];
+  let isStale = false;
+  let error: string | undefined;
+
+  if (!characterData) {
+    // Fallback to generic materials if no API data
+    error = 'Using generic material names (API data unavailable)';
+  }
+
+  // Helper to add material with inventory lookup
+  const addMaterial = (
+    apiName: string,
+    displayName: string,
+    category: MaterialRequirement['category'],
+    required: number,
+    tier?: number,
+    source?: string,
+    availability?: string[]
+  ) => {
+    const inventoryKey = findInventoryKey(apiName, inventory);
+    const owned = inventory[inventoryKey] ?? 0;
+
+    materials.push({
+      key: inventoryKey,
+      name: displayName,
+      category,
+      tier,
+      required,
+      owned,
+      deficit: Math.max(0, required - owned),
+      source,
+      availability,
+    });
+  };
+
+  // Add boss material
+  if (ascensionMats.bossMat > 0) {
+    const bossName = characterData?.ascensionMaterials.boss.name || 'Boss Material';
+    addMaterial(bossName, bossName, 'boss', ascensionMats.bossMat);
+  }
+
+  // Add gems by tier
+  const gemTierNames = ['Sliver', 'Fragment', 'Chunk', 'Gemstone'];
+  ascensionMats.gem.forEach((amt, tier) => {
+    if (amt > 0) {
+      const gemBaseName = characterData?.ascensionMaterials.gem.baseName || 'Elemental';
+      const gemFullName = `${gemBaseName} ${gemTierNames[tier]}`;
+      addMaterial(gemFullName, gemFullName, 'gem', amt, tier + 1);
+    }
+  });
+
+  // Add local specialty
+  if (ascensionMats.localSpecialty > 0) {
+    const specialtyName = characterData?.ascensionMaterials.localSpecialty.name || 'Local Specialty';
+    const region = characterData?.ascensionMaterials.localSpecialty.region;
+    addMaterial(specialtyName, specialtyName, 'localSpecialty', ascensionMats.localSpecialty, undefined, region);
+  }
+
+  // Add common enemy materials (ascension) by tier
+  const commonTierNames = ['Gray', 'Green', 'Blue'];
+  ascensionMats.commonMat.forEach((amt, tier) => {
+    if (amt > 0) {
+      const commonBaseName = characterData?.ascensionMaterials.common.baseName || 'Common Material';
+      const tierSuffixes = ['', 'Stained', 'Ominous']; // Simplified
+      const commonFullName = tier === 0 ? commonBaseName : `${tierSuffixes[tier]} ${commonBaseName}`;
+      addMaterial(
+        commonFullName,
+        `${commonFullName} (${commonTierNames[tier]})`,
+        'common',
+        amt,
+        tier + 1
+      );
+    }
+  });
+
+  // Add talent book requirements
+  const bookTierPrefixes = ['Teachings of', 'Guide to', 'Philosophies of'];
+  talentMats.books.forEach((amt, tier) => {
+    if (amt > 0) {
+      const bookSeries = characterData?.talentMaterials.books.series || 'Talent';
+      const bookFullName = `${bookTierPrefixes[tier]} ${bookSeries}`;
+      const days = characterData?.talentMaterials.books.days;
+      const domain = characterData?.talentMaterials.books.region;
+      addMaterial(
+        bookFullName,
+        bookFullName,
+        'talent',
+        amt,
+        tier + 1,
+        domain,
+        days
+      );
+    }
+  });
+
+  // Add talent common materials (if different from ascension)
+  if (characterData?.talentMaterials.common.baseName) {
+    const talentCommon = characterData.talentMaterials.common;
+    const tiers = [talentCommon.byTier.gray, talentCommon.byTier.green, talentCommon.byTier.blue];
+
+    tiers.forEach((amt, tier) => {
+      if (amt > 0) {
+        const tierSuffixes = ['', 'Stained', 'Ominous'];
+        const commonFullName = tier === 0 ? talentCommon.baseName : `${tierSuffixes[tier]} ${talentCommon.baseName}`;
+        addMaterial(
+          commonFullName,
+          `${commonFullName} (${commonTierNames[tier]})`,
+          'common',
+          amt,
+          tier + 1
+        );
+      }
+    });
+  }
+
+  // Add weekly boss material
+  if (talentMats.weeklyBoss > 0) {
+    const weeklyName = characterData?.talentMaterials.weekly.name || 'Weekly Boss Material';
+    const boss = characterData?.talentMaterials.weekly.boss;
+    addMaterial(weeklyName, weeklyName, 'weekly', talentMats.weeklyBoss, undefined, boss);
+  }
+
+  // Add crown
+  if (talentMats.crown > 0) {
+    addMaterial('Crown of Insight', 'Crown of Insight', 'crown', talentMats.crown);
+  }
+
+  return { materials, isStale, error };
+}
+
+/**
  * Calculate full ascension summary for a character goal
  */
-export function calculateAscensionSummary(
+export async function calculateAscensionSummary(
   goal: AscensionGoal,
   inventory: Record<string, number>
-): AscensionSummary {
-  const materials: MaterialRequirement[] = [];
+): Promise<AscensionSummary> {
+  // Fetch character material data from genshin-db API
+  const { data: characterData, isStale, error } = await getCharacterMaterials(goal.characterKey, {
+    useStaleOnError: true,
+  });
 
   // Calculate ascension materials
   const ascensionMats = calculateAscensionMaterials(goal.currentAscension, goal.targetAscension);
@@ -271,6 +420,12 @@ export function calculateAscensionSummary(
   const levelingMora = Math.round(expNeeded * 0.1); // ~10% of EXP value in mora
   const totalMora = ascensionMats.mora + talentMats.mora + levelingMora;
 
+  // Build materials list with API data
+  const { materials: apiMaterials, isStale: materialsStale, error: materialsError } =
+    await buildMaterialsWithApiData(inventory, ascensionMats, talentMats, characterData);
+
+  const materials: MaterialRequirement[] = [];
+
   // Add Mora requirement
   const ownedMora = getMaterialCount(inventory, 'Mora', 'mora');
   materials.push({
@@ -291,7 +446,7 @@ export function calculateAscensionSummary(
     'heros_wit'
   );
   materials.push({
-    key: 'HeroesWit',
+    key: findInventoryKey("Hero's Wit", inventory),
     name: "Hero's Wit",
     category: 'exp',
     required: herosWitNeeded,
@@ -299,108 +454,8 @@ export function calculateAscensionSummary(
     deficit: Math.max(0, herosWitNeeded - ownedHerosWit),
   });
 
-  // Add boss material requirement
-  if (ascensionMats.bossMat > 0) {
-    const ownedBoss = 0; // Would need character-specific boss mat key
-    materials.push({
-      key: 'BossMaterial',
-      name: 'Boss Material',
-      category: 'boss',
-      required: ascensionMats.bossMat,
-      owned: ownedBoss,
-      deficit: ascensionMats.bossMat,
-    });
-  }
-
-  // Add gem requirements by tier
-  const gemTierNames = ['Sliver', 'Fragment', 'Chunk', 'Gemstone'];
-  ascensionMats.gem.forEach((amt, tier) => {
-    if (amt > 0) {
-      materials.push({
-        key: `Gem_${tier}`,
-        name: `Elemental ${gemTierNames[tier] ?? 'Unknown'}`,
-        category: 'gem',
-        tier: tier + 1,
-        required: amt,
-        owned: 0,
-        deficit: amt,
-      });
-    }
-  });
-
-  // Add local specialty
-  if (ascensionMats.localSpecialty > 0) {
-    materials.push({
-      key: 'LocalSpecialty',
-      name: 'Local Specialty',
-      category: 'localSpecialty',
-      required: ascensionMats.localSpecialty,
-      owned: 0,
-      deficit: ascensionMats.localSpecialty,
-    });
-  }
-
-  // Add common enemy materials by tier
-  const commonTierNames = ['Common (Gray)', 'Common (Green)', 'Common (Blue)'];
-  ascensionMats.commonMat.forEach((amt, tier) => {
-    if (amt > 0) {
-      materials.push({
-        key: `CommonAscension_${tier}`,
-        name: commonTierNames[tier] ?? `Common Tier ${tier + 1}`,
-        category: 'common',
-        tier: tier + 1,
-        required: amt,
-        owned: 0,
-        deficit: amt,
-      });
-    }
-  });
-
-  // Add talent book requirements
-  const bookTierNames = ['Teachings', 'Guide', 'Philosophies'];
-  talentMats.books.forEach((amt, tier) => {
-    if (amt > 0) {
-      materials.push({
-        key: `TalentBook_${tier}`,
-        name: `Talent ${bookTierNames[tier] ?? `Tier ${tier + 1}`}`,
-        category: 'talent',
-        tier: tier + 1,
-        required: amt,
-        owned: 0,
-        deficit: amt,
-      });
-    }
-  });
-
-  // Add weekly boss material
-  if (talentMats.weeklyBoss > 0) {
-    materials.push({
-      key: 'WeeklyBossMat',
-      name: 'Weekly Boss Material',
-      category: 'weekly',
-      required: talentMats.weeklyBoss,
-      owned: 0,
-      deficit: talentMats.weeklyBoss,
-    });
-  }
-
-  // Add crown
-  if (talentMats.crown > 0) {
-    const ownedCrowns = getMaterialCount(
-      inventory,
-      'CrownOfInsight',
-      'Crown of Insight',
-      'crown_of_insight'
-    );
-    materials.push({
-      key: 'CrownOfInsight',
-      name: 'Crown of Insight',
-      category: 'crown',
-      required: talentMats.crown,
-      owned: ownedCrowns,
-      deficit: Math.max(0, talentMats.crown - ownedCrowns),
-    });
-  }
+  // Add API-sourced materials
+  materials.push(...apiMaterials);
 
   // Estimate resin
   const books0 = talentMats.books[0] ?? 0;
@@ -440,6 +495,8 @@ export function calculateAscensionSummary(
     estimatedDays,
     canAscend,
     nextAscensionReady,
+    isStale: isStale || materialsStale,
+    error: error || materialsError,
   };
 }
 
