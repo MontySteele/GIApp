@@ -415,10 +415,40 @@ Mechanics (post-5.0 Capturing Radiance):
    - Eliminated 'any' types in tooltip components
    - Added TooltipPayload and CustomTooltipProps interfaces
 
-### Sprint 8 - Future Features
+### Sprint 8 - Genshin-DB API Integration ✅ COMPLETED
+**Character-Specific Material Names:**
+1. Integrated genshin-db-api.vercel.app for fetching character ascension/talent data
+2. New service: `lib/services/genshinDbService.ts` (470 lines)
+   - API client for character and talent endpoints
+   - 7-day IndexedDB caching using externalCache table
+   - Graceful offline fallback with stale cache support
+   - Processes raw API responses into structured material data
+3. New utility: `lib/utils/materialNormalization.ts` (188 lines)
+   - Flexible material key matching for Irminsul inventory
+   - Handles variations: "Hero's Wit", "HeroesWit", "heros_wit"
+   - Identifies material tiers (1-4 for gems, 1-3 for books/commons)
+4. New types: `features/planner/domain/characterMaterials.ts` (187 lines)
+   - TypeScript types for API responses and processed data
+   - Material category constants for identification
+5. Modified `ascensionCalculator.ts`:
+   - Made `calculateAscensionSummary()` async to fetch API data
+   - New `buildMaterialsWithApiData()` helper function
+   - Enhanced MaterialRequirement with source & availability fields
+   - Returns isStale and error status for UI warnings
+6. Modified `PlannerPage.tsx`:
+   - Async state management with useEffect for API calls
+   - Loading indicator while fetching API data
+   - Warning banner when using stale cached data
+   - Displays domain availability days for talent books
+
+**Bug Fix (Sprint 8.1):**
+- Fixed API response type mismatch: genshin-db API returns `ascend1`/`lvl2` as direct arrays, not `{cost, items}` objects
+- Updated `GenshinDbCharacterResponse` and `GenshinDbTalentResponse` types
+- Fixed `processCharacterMaterials()` to iterate directly on arrays instead of `.items`
+
+### Sprint 9 - Future Features
 1. Artifact optimizer for GOOD format
 2. QR code scanning (camera import)
-3. genshin-db API integration for character/weapon data
 
 ---
 
@@ -447,7 +477,10 @@ src/
 │   │   ├── pages/         # LedgerPage
 │   │   └── repo/          # primogemEntryRepo, resourceSnapshotRepo, etc.
 │   ├── planner/           # Ascension planner
-│   │   └── hooks/         # useMaterials
+│   │   ├── domain/        # ascensionCalculator, materialConstants, characterMaterials
+│   │   ├── components/    # ResinTracker
+│   │   ├── hooks/         # useMaterials
+│   │   └── pages/         # PlannerPage
 │   ├── roster/            # Character management
 │   │   ├── components/    # CharacterCard, CharacterForm, EnkaImport, GOODExport
 │   │   ├── hooks/         # useCharacters, useTeams
@@ -471,8 +504,11 @@ src/
 ├── lib/
 │   ├── constants.ts       # Game constants, gacha rules
 │   ├── gameData.ts        # Character data, icon mappings
-│   └── services/          # Shared cross-feature services
-│       └── resourceService.ts  # Pull calculation logic
+│   ├── services/          # Shared cross-feature services
+│   │   ├── resourceService.ts  # Pull calculation logic
+│   │   └── genshinDbService.ts # Genshin-DB API client with caching
+│   └── utils/             # Utility functions
+│       └── materialNormalization.ts  # Material key matching
 ├── mappers/               # External format mappers (GOOD, Enka)
 ├── stores/                # Global Zustand stores
 ├── types/                 # TypeScript types
@@ -508,6 +544,21 @@ src/
 ---
 
 ## Recent Changes Log
+
+**2026-01 (Sprint 8.1 - Genshin-DB Bug Fix):**
+- Fixed API response type mismatch causing placeholder names to appear
+- genshin-db API returns ascend/lvl fields as direct arrays, not {cost, items} objects
+- Updated GenshinDbCharacterResponse and GenshinDbTalentResponse types
+- Fixed processCharacterMaterials() array iteration pattern
+
+**2026-01 (Sprint 8 - Genshin-DB Integration):**
+- Added genshin-db API integration for character-specific material names
+- New genshinDbService.ts with 7-day IndexedDB caching
+- New materialNormalization.ts for flexible inventory key matching
+- New characterMaterials.ts with TypeScript types for API data
+- Made ascensionCalculator async with API data fetching
+- Updated PlannerPage with async state and loading indicators
+- Added stale data warning banner when using offline cache
 
 **2026-01 (Sprint 7 Completion - Architecture Review):**
 - Comprehensive architecture review and refactoring completed

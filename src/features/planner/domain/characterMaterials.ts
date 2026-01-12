@@ -94,18 +94,21 @@ export interface NormalizedMaterial {
 
 /**
  * Raw API response types (simplified)
+ * Note: genshin-db-api returns ascend/lvl as direct arrays, not {cost, items} objects
  */
+
+export type MaterialItem = { id: number; name: string; count: number };
 
 export interface GenshinDbCharacterResponse {
   name: string;
   element: string;
   costs?: {
-    ascend1?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    ascend2?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    ascend3?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    ascend4?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    ascend5?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    ascend6?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
+    ascend1?: MaterialItem[];
+    ascend2?: MaterialItem[];
+    ascend3?: MaterialItem[];
+    ascend4?: MaterialItem[];
+    ascend5?: MaterialItem[];
+    ascend6?: MaterialItem[];
   };
 }
 
@@ -128,15 +131,15 @@ export interface GenshinDbTalentResponse {
     info: string;
   };
   costs?: {
-    lvl2?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl3?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl4?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl5?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl6?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl7?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl8?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl9?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
-    lvl10?: { cost: number; items: Array<{ id: number; name: string; count: number }> };
+    lvl2?: MaterialItem[];
+    lvl3?: MaterialItem[];
+    lvl4?: MaterialItem[];
+    lvl5?: MaterialItem[];
+    lvl6?: MaterialItem[];
+    lvl7?: MaterialItem[];
+    lvl8?: MaterialItem[];
+    lvl9?: MaterialItem[];
+    lvl10?: MaterialItem[];
   };
 }
 

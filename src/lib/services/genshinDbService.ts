@@ -208,9 +208,9 @@ function processCharacterMaterials(
     ];
 
     for (const ascension of ascensions) {
-      if (!ascension?.items) continue;
+      if (!ascension) continue;
 
-      for (const item of ascension.items) {
+      for (const item of ascension) {
         const name = item.name;
 
         // Identify material type
@@ -303,9 +303,9 @@ function processCharacterMaterials(
     ];
 
     for (const talent of talents) {
-      if (!talent?.items) continue;
+      if (!talent) continue;
 
-      for (const item of talent.items) {
+      for (const item of talent) {
         const name = item.name;
 
         // Identify talent material type
