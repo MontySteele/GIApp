@@ -64,6 +64,7 @@ export const TABS = [
   { id: 'artifacts', label: 'Artifacts', path: '/artifacts' },
   { id: 'weapons', label: 'Weapons', path: '/weapons' },
   { id: 'planner', label: 'Planner', path: '/planner' },
+  { id: 'banners', label: 'Banners', path: '/banners' },
   { id: 'wishes', label: 'Wishes', path: '/wishes' },
   { id: 'ledger', label: 'Primogems', path: '/ledger' },
   { id: 'calendar', label: 'Calendar', path: '/calendar' },
