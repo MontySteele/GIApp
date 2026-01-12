@@ -347,3 +347,136 @@ export interface ImportRecord {
   materialCount: number;
 }
 
+// ============================================
+// Build Template Models
+// ============================================
+
+export type CharacterRole = 'dps' | 'sub-dps' | 'support' | 'healer' | 'shielder';
+export type BuildDifficulty = 'beginner' | 'intermediate' | 'advanced';
+export type BuildBudget = 'f2p' | '4-star' | 'mixed' | 'whale';
+
+/**
+ * Artifact set recommendation with pieces count
+ */
+export interface SetRecommendation {
+  setKey: string;
+  pieces: 2 | 4;
+}
+
+/**
+ * Main stat recommendation for a slot
+ */
+export type MainStatKey =
+  | 'hp'
+  | 'hp_'
+  | 'atk'
+  | 'atk_'
+  | 'def_'
+  | 'eleMas'
+  | 'enerRech_'
+  | 'heal_'
+  | 'critRate_'
+  | 'critDMG_'
+  | 'physical_dmg_'
+  | 'pyro_dmg_'
+  | 'hydro_dmg_'
+  | 'cryo_dmg_'
+  | 'electro_dmg_'
+  | 'anemo_dmg_'
+  | 'geo_dmg_'
+  | 'dendro_dmg_';
+
+/**
+ * Character Build Template
+ *
+ * Stores recommended builds for characters including weapons,
+ * artifact sets, main stats, and substats priorities.
+ */
+export interface BuildTemplate {
+  id: string;
+  name: string;
+  characterKey: string;
+  description: string;
+
+  // Role and playstyle
+  role: CharacterRole;
+  notes: string; // Markdown - strategy, rotation notes
+
+  // Weapon recommendations (ordered by priority)
+  weapons: {
+    primary: string[]; // Best-in-slot weapons
+    alternatives: string[]; // F2P/budget alternatives
+    notes?: string;
+  };
+
+  // Artifact recommendations
+  artifacts: {
+    sets: SetRecommendation[][]; // Ordered by priority, each inner array is a combo (e.g., [[4pc Emblem], [2pc NO + 2pc EF]])
+    mainStats: {
+      sands: MainStatKey[];
+      goblet: MainStatKey[];
+      circlet: MainStatKey[];
+    };
+    substats: string[]; // Ordered by priority
+    notes?: string;
+  };
+
+  // Leveling recommendations
+  leveling: {
+    targetLevel: number; // 80, 90
+    targetAscension: number; // 0-6
+    talentPriority: ('auto' | 'skill' | 'burst')[]; // Ordered
+    talentTarget?: {
+      auto: number;
+      skill: number;
+      burst: number;
+    };
+  };
+
+  // Stat targets (optional)
+  statTargets?: {
+    critRate?: number; // As percentage, e.g., 60
+    critDMG?: number;
+    enerRech?: number;
+    eleMas?: number;
+    hp?: number;
+    atk?: number;
+    def?: number;
+  };
+
+  // Team synergies (optional)
+  teamSynergies?: {
+    bestWith: string[]; // Character keys
+    avoidWith?: string[];
+    notes?: string;
+  };
+
+  // Metadata
+  tags: string[];
+  difficulty: BuildDifficulty;
+  budget: BuildBudget;
+  source?: string; // e.g., 'KeqingMains', 'Zy0x', 'Custom'
+  gameVersion?: string; // e.g., '5.3'
+  isOfficial: boolean; // Community-verified build
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Summary view of a build template for lists
+ */
+export interface BuildTemplateSummary {
+  id: string;
+  name: string;
+  characterKey: string;
+  role: CharacterRole;
+  difficulty: BuildDifficulty;
+  budget: BuildBudget;
+  source?: string;
+  isOfficial: boolean;
+  tags: string[];
+  updatedAt: string;
+}
+
