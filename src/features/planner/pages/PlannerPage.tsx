@@ -10,6 +10,7 @@ import { useMultiCharacterPlan, type GoalType } from '../hooks/useMultiCharacter
 import { useWeaponPlan, type WeaponGoalType } from '../hooks/useWeaponPlan';
 import ResinTracker from '../components/ResinTracker';
 import TodaysFarmingRecommendations from '../components/TodaysFarmingRecommendations';
+import DeficitPriorityCard from '../components/DeficitPriorityCard';
 import {
   calculateAscensionSummary,
   createGoalFromCharacter,
@@ -869,6 +870,14 @@ export default function PlannerPage() {
         {plannerMode === 'multi' && multiPlan.summary?.groupedMaterials?.talent && (
           <TodaysFarmingRecommendations
             talentMaterials={multiPlan.summary.groupedMaterials.talent}
+            compact
+          />
+        )}
+
+        {/* Deficit Priority */}
+        {plannerMode === 'multi' && multiPlan.summary?.groupedMaterials && (
+          <DeficitPriorityCard
+            groupedMaterials={multiPlan.summary.groupedMaterials}
             compact
           />
         )}
