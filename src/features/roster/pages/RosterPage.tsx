@@ -5,6 +5,7 @@ import { useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
 import { useRosterModals } from '../hooks/useRosterModals';
 import Button from '@/components/ui/Button';
+import { CharacterCardSkeleton } from '@/components/ui/Skeleton';
 import Modal from '@/components/ui/Modal';
 import CharacterCard from '../components/CharacterCard';
 import CharacterForm from '../components/CharacterForm';
@@ -80,8 +81,18 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">Loading characters...</div>
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="h-9 w-48 bg-slate-700 rounded animate-pulse mb-2" />
+            <div className="h-5 w-32 bg-slate-800 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <CharacterCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }

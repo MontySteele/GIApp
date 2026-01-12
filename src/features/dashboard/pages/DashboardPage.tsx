@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import { StatCardSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
@@ -70,8 +71,20 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">Loading...</div>
+      <div className="space-y-6">
+        <div>
+          <div className="h-9 w-36 bg-slate-700 rounded animate-pulse mb-2" />
+          <div className="h-5 w-64 bg-slate-800 rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardSkeleton className="h-40" />
+          <CardSkeleton className="h-40" />
+        </div>
       </div>
     );
   }

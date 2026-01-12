@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Plus, Download } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { TeamCardSkeleton } from '@/components/ui/Skeleton';
 import TeamCard from './TeamCard';
 import type { Character, Team } from '@/types';
 
@@ -53,7 +54,11 @@ export default function TeamSection({
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-24 text-slate-400">Loading teams...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <TeamCardSkeleton key={i} />
+          ))}
+        </div>
       ) : teams.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 text-slate-400">
           No teams yet. Build your first team to keep rotations organized.
