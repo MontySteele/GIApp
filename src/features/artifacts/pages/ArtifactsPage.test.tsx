@@ -112,39 +112,40 @@ describe('ArtifactsPage', () => {
 
       // Total
       expect(screen.getByText('Total')).toBeInTheDocument();
-      expect(screen.getByText('150')).toBeInTheDocument();
+      // Numbers may appear multiple times across the page
+      expect(screen.getAllByText('150').length).toBeGreaterThanOrEqual(1);
 
       // 5-Star
       expect(screen.getByText('5-Star')).toBeInTheDocument();
-      expect(screen.getByText('100')).toBeInTheDocument();
+      expect(screen.getAllByText('100').length).toBeGreaterThanOrEqual(1);
 
       // Equipped
       expect(screen.getByText('Equipped')).toBeInTheDocument();
-      expect(screen.getByText('50')).toBeInTheDocument();
+      expect(screen.getAllByText('50').length).toBeGreaterThanOrEqual(1);
 
-      // Strongbox Trash
-      expect(screen.getByText(/strongbox trash/i)).toBeInTheDocument();
-      expect(screen.getByText('20')).toBeInTheDocument();
+      // Strongbox Trash - appears multiple times (stat card and view toggle)
+      expect(screen.getAllByText(/strongbox trash/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('20').length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders quality distribution section', () => {
       render(<ArtifactsPage />);
 
       expect(screen.getByText(/quality distribution/i)).toBeInTheDocument();
-      // Grade labels
-      expect(screen.getByText('S')).toBeInTheDocument();
-      expect(screen.getByText('A')).toBeInTheDocument();
-      expect(screen.getByText('B')).toBeInTheDocument();
-      expect(screen.getByText('C')).toBeInTheDocument();
-      expect(screen.getByText('D')).toBeInTheDocument();
-      expect(screen.getByText('F')).toBeInTheDocument();
+      // Grade labels - may appear multiple times in quality bars
+      expect(screen.getAllByText('S').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('B').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('C').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('D').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('F').length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders view mode toggle', () => {
       render(<ArtifactsPage />);
 
-      expect(screen.getByText(/all artifacts/i)).toBeInTheDocument();
-      expect(screen.getByText(/strongbox trash/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/all artifacts/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/strongbox trash/i).length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders filter button', () => {
@@ -257,8 +258,10 @@ describe('ArtifactsPage', () => {
     it('displays crit value', () => {
       render(<ArtifactsPage />);
 
-      expect(screen.getByText(/cv:/i)).toBeInTheDocument();
-      expect(screen.getByText('31.5')).toBeInTheDocument();
+      // CV label and value may appear on multiple artifact cards
+      expect(screen.getAllByText(/cv:/i).length).toBeGreaterThanOrEqual(1);
+      // Check that 31.5 appears somewhere (crit value from mock data)
+      expect(screen.getAllByText('31.5').length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows equipped character name', () => {
@@ -282,6 +285,10 @@ describe('ArtifactsPage', () => {
 });
 
 describe('ArtifactsPage loading state', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
   it('shows loading state', async () => {
     vi.doMock('../hooks/useArtifacts', () => ({
       useArtifacts: () => ({

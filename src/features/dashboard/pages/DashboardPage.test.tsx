@@ -73,7 +73,8 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Characters')).toBeInTheDocument();
       expect(screen.getByText('Artifacts')).toBeInTheDocument();
       expect(screen.getByText('Weapons')).toBeInTheDocument();
-      expect(screen.getByText('Available Pulls')).toBeInTheDocument();
+      // Available Pulls appears in both stat card and primogem card
+      expect(screen.getAllByText('Available Pulls').length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders the resin status card', () => {
@@ -125,7 +126,9 @@ describe('DashboardPage', () => {
     it('displays correct pull count', () => {
       renderPage();
 
-      expect(screen.getByText('118')).toBeInTheDocument();
+      // Pull count appears in both stat card and primogem card
+      const pullCounts = screen.getAllByText('118');
+      expect(pullCounts.length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/15.0k primogems/i)).toBeInTheDocument();
     });
   });
@@ -164,8 +167,10 @@ describe('DashboardPage', () => {
       const weaponLink = screen.getByText('Weapons').closest('a');
       expect(weaponLink).toHaveAttribute('href', '/weapons');
 
-      const pullsLink = screen.getByText('Available Pulls').closest('a');
-      expect(pullsLink).toHaveAttribute('href', '/ledger');
+      // Available Pulls appears multiple times - get the one in the stat cards section
+      const pullsLinks = screen.getAllByText('Available Pulls');
+      const statCardPullsLink = pullsLinks[0].closest('a');
+      expect(statCardPullsLink).toHaveAttribute('href', '/ledger');
     });
 
     it('quick links point to correct pages', () => {

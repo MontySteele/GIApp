@@ -34,7 +34,9 @@ describe('CalendarPage', () => {
     it('renders the current events section', () => {
       render(<CalendarPage />);
 
-      expect(screen.getByRole('heading', { name: /current events/i })).toBeInTheDocument();
+      // May have multiple headings with similar text
+      const headings = screen.getAllByRole('heading', { name: /current events/i });
+      expect(headings.length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/view current events & banners/i)).toBeInTheDocument();
     });
 

@@ -103,7 +103,9 @@ describe('LedgerPage', () => {
     it('renders purchase ledger section', () => {
       render(<LedgerPage />);
 
-      expect(screen.getByText(/purchase ledger/i)).toBeInTheDocument();
+      // "Purchase Ledger" appears as both heading and data-testid container
+      const purchaseLedgerElements = screen.getAllByText(/purchase ledger/i);
+      expect(purchaseLedgerElements.length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders transaction log section', () => {
