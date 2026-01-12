@@ -23,6 +23,9 @@ const createMonteCarloWorkerMock = vi.mocked(montecarloClient.createMonteCarloWo
 // Tests needing update: Multiple targets, removing targets, reorder buttons, banner selection, some results display
 describe('MultiTargetCalculator', () => {
   beforeEach(() => {
+    // Clear localStorage to prevent test pollution from persisted state
+    localStorage.clear();
+
     runSimulationMock.mockClear();
     createMonteCarloWorkerMock.mockClear();
 
@@ -31,11 +34,18 @@ describe('MultiTargetCalculator', () => {
       reportProgress?.(1);
 
       return {
-        perCharacter: input.targets.map((target: { characterKey: string }, index: number) => ({
+        perCharacter: input.targets.map((target: { characterKey: string; bannerType?: string; targetCount?: number }, index: number) => ({
           characterKey: target.characterKey,
+          bannerType: target.bannerType || 'character',
           probability: input.startingPulls > 0 ? 0.66 : 0,
           averagePullsUsed: 30 + index,
           medianPullsUsed: 25 + index,
+          constellations: Array.from({ length: target.targetCount || 1 }, (_, i) => ({
+            label: `C${i}`,
+            probability: input.startingPulls > 0 ? 0.66 : 0,
+            averagePullsUsed: 30 + index + i * 10,
+            medianPullsUsed: 25 + index + i * 10,
+          })),
         })),
         allMustHavesProbability: input.startingPulls > 0 ? 0.66 : 0,
         pullTimeline: [],
@@ -277,8 +287,8 @@ describe('MultiTargetCalculator', () => {
       const calculateButton = screen.getByRole('button', { name: /calculate/i });
       await user.click(calculateButton);
 
-      // Should show loading state briefly
-      expect(screen.getByText(/calculating/i)).toBeInTheDocument();
+      // Should show loading state briefly - component shows "Working…"
+      expect(screen.getByText(/working/i)).toBeInTheDocument();
     });
   });
 
@@ -326,28 +336,38 @@ describe('MultiTargetCalculator', () => {
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/average pulls/i)).toBeInTheDocument();
+        // Component shows "Avg Pulls" and "Median"
+        expect(screen.getByText(/avg pulls/i)).toBeInTheDocument();
       });
     });
   });
 
   describe('Banner type selection', () => {
-    it('should allow selecting banner type', async () => {
+    it('should have separate Add Character and Add Weapon buttons', () => {
+      render(<MultiTargetCalculator />);
+
+      expect(screen.getByRole('button', { name: /add character/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /add weapon/i })).toBeInTheDocument();
+    });
+
+    it('should add a character target when clicking Add Character', async () => {
       const user = userEvent.setup();
       render(<MultiTargetCalculator />);
 
-      const bannerSelect = screen.getByLabelText(/banner type/i);
-      expect(bannerSelect).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /add character/i }));
 
-      await user.selectOptions(bannerSelect, 'character');
-      expect(bannerSelect).toHaveValue('character');
+      // Character banner should show character-specific fields like guaranteed
+      expect(screen.getByLabelText(/guaranteed/i)).toBeInTheDocument();
     });
 
-    it('should default to character banner', () => {
+    it('should add a weapon target when clicking Add Weapon', async () => {
+      const user = userEvent.setup();
       render(<MultiTargetCalculator />);
 
-      const bannerSelect = screen.getByLabelText(/banner type/i);
-      expect(bannerSelect).toHaveValue('character');
+      await user.click(screen.getByRole('button', { name: /add weapon/i }));
+
+      // Weapon banner shows weapon-specific fields
+      expect(screen.getByPlaceholderText(/weapon name/i)).toBeInTheDocument();
     });
   });
 
@@ -401,7 +421,9 @@ describe('MultiTargetCalculator', () => {
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/0%/i)).toBeInTheDocument();
+        // Component shows percentages with one decimal place (0.0%)
+        // Multiple elements may match (overall and per-character)
+        expect(screen.getAllByText(/0\.0%/i).length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -426,18 +448,21 @@ describe('MultiTargetCalculator', () => {
 
       await user.click(screen.getByRole('button', { name: /add character/i }));
       await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
-      await user.type(screen.getByLabelText(/available pulls/i), '120');
+
+      const pullsInput = screen.getByLabelText(/available pulls/i);
+      await user.clear(pullsInput);
+      await user.type(pullsInput, '120');
 
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       await waitFor(() => {
-      expect(runSimulationMock).toHaveBeenCalledTimes(1);
-    });
+        expect(runSimulationMock).toHaveBeenCalledTimes(1);
+      });
 
       const input = runSimulationMock.mock.calls[0][0];
       expect(input.startingPulls).toBe(120);
       expect(input.targets[0].characterKey).toBe('Furina');
-      expect(input.rules).toBeDefined();
+      expect(input.config).toBeDefined();
       expect(input.config.iterations).toBe(5000);
     });
 
@@ -447,9 +472,18 @@ describe('MultiTargetCalculator', () => {
         perCharacter: [
           {
             characterKey: 'Furina',
+            bannerType: 'character',
             probability: 0.9,
             averagePullsUsed: 50,
             medianPullsUsed: 45,
+            constellations: [
+              {
+                label: 'C0',
+                probability: 0.9,
+                averagePullsUsed: 50,
+                medianPullsUsed: 45,
+              },
+            ],
           },
         ],
         allMustHavesProbability: 0.9,
@@ -460,13 +494,17 @@ describe('MultiTargetCalculator', () => {
 
       await user.click(screen.getByRole('button', { name: /add character/i }));
       await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
-      await user.type(screen.getByLabelText(/available pulls/i), '160');
+
+      const pullsInput = screen.getByLabelText(/available pulls/i);
+      await user.clear(pullsInput);
+      await user.type(pullsInput, '160');
 
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/90.0%/i)).toBeInTheDocument();
-        expect(screen.getByText(/average pulls/i)).toBeInTheDocument();
+        // Multiple elements may match percentage (overall and per-character)
+        expect(screen.getAllByText(/90\.0%/i).length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByText(/avg pulls/i)).toBeInTheDocument();
       });
     });
   });
