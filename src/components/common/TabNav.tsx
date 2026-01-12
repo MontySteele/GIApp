@@ -2,8 +2,6 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
-  Gem,
-  Sword,
   Target,
   Sparkles,
   Calculator,
@@ -19,8 +17,6 @@ import { TABS } from '@/lib/constants';
 const icons = {
   dashboard: LayoutDashboard,
   roster: Users,
-  artifacts: Gem,
-  weapons: Sword,
   builds: Hammer,
   planner: Target,
   wishes: Sparkles,

@@ -1,10 +1,11 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Layout from './Layout';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
+import RosterLayout from '@/features/roster/pages/RosterLayout';
 import RosterPage from '@/features/roster/pages/RosterPage';
 import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
-import ArtifactsPage from '@/features/artifacts/pages/ArtifactsPage';
-import WeaponsPage from '@/features/weapons/pages/WeaponsPage';
+import WeaponsTab from '@/features/roster/pages/WeaponsTab';
+import ArtifactsTab from '@/features/roster/pages/ArtifactsTab';
 import PlannerPage from '@/features/planner/pages/PlannerPage';
 import WishesPage from '@/features/wishes/pages/WishesPage';
 import LedgerPage from '@/features/ledger/pages/LedgerPage';
@@ -24,21 +25,37 @@ export const router = createBrowserRouter([
         index: true,
         element: <DashboardPage />,
       },
+      // Roster with nested routes for Characters, Weapons, Artifacts
       {
         path: 'roster',
-        element: <RosterPage />,
+        element: <RosterLayout />,
+        children: [
+          {
+            index: true,
+            element: <RosterPage />,
+          },
+          {
+            path: 'weapons',
+            element: <WeaponsTab />,
+          },
+          {
+            path: 'artifacts',
+            element: <ArtifactsTab />,
+          },
+        ],
       },
       {
         path: 'roster/:id',
         element: <CharacterDetailPage />,
       },
+      // Redirects from old standalone routes
       {
         path: 'artifacts',
-        element: <ArtifactsPage />,
+        element: <Navigate to="/roster/artifacts" replace />,
       },
       {
         path: 'weapons',
-        element: <WeaponsPage />,
+        element: <Navigate to="/roster/weapons" replace />,
       },
       {
         path: 'planner',
