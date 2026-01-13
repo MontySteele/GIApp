@@ -1,6 +1,7 @@
 import { Sparkles, Swords, Gift, BookOpen } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { useAllCurrentPity } from '../hooks/useCurrentPity';
+import InfoTooltip, { GACHA_TOOLTIPS } from '@/components/ui/InfoTooltip';
 import type { BannerType } from '@/types';
 
 interface BannerPityDisplayProps {
@@ -38,19 +39,28 @@ function BannerPityDisplay({
             {pity}/{hardPity}
           </span>
           {guaranteed && (
-            <Badge className="text-xs bg-green-900/30 text-green-300 border border-green-700/50">
-              Guaranteed
-            </Badge>
+            <span className="flex items-center gap-1">
+              <Badge className="text-xs bg-green-900/30 text-green-300 border border-green-700/50">
+                Guaranteed
+              </Badge>
+              <InfoTooltip content={GACHA_TOOLTIPS.guaranteed} />
+            </span>
           )}
           {radianceActive && (
-            <Badge className="text-xs bg-purple-900/30 text-purple-300 border border-purple-700/50">
-              Radiance
-            </Badge>
+            <span className="flex items-center gap-1">
+              <Badge className="text-xs bg-purple-900/30 text-purple-300 border border-purple-700/50">
+                Radiance
+              </Badge>
+              <InfoTooltip content={GACHA_TOOLTIPS.capturingRadiance} />
+            </span>
           )}
           {fatePoints !== undefined && fatePoints > 0 && (
-            <Badge className="text-xs bg-blue-900/30 text-blue-300 border border-blue-700/50">
-              {fatePoints}/2 EP
-            </Badge>
+            <span className="flex items-center gap-1">
+              <Badge className="text-xs bg-blue-900/30 text-blue-300 border border-blue-700/50">
+                {fatePoints}/2 EP
+              </Badge>
+              <InfoTooltip content={GACHA_TOOLTIPS.fatePoints} />
+            </span>
           )}
         </div>
         <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">

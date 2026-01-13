@@ -1,6 +1,7 @@
 import type { BannerType } from '@/types';
 import type { PityState } from '../domain/wishAnalyzer';
 import { GACHA_RULES } from '@/lib/constants';
+import InfoTooltip, { GACHA_TOOLTIPS } from '@/components/ui/InfoTooltip';
 
 interface PityTrackerProps {
   pityState: PityState;
@@ -42,7 +43,10 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
       {/* 5-Star Pity */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">5-Star Pity</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">5-Star Pity</h3>
+            <InfoTooltip content={GACHA_TOOLTIPS.softPity} />
+          </div>
           <span className="text-2xl font-bold">{fiveStarPity}</span>
         </div>
 
@@ -65,15 +69,21 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
         <div className="space-y-1 text-sm">
           {/* Guaranteed/50-50 status (only for character/chronicled) */}
           {(bannerType === 'character' || bannerType === 'chronicled') && (
-            <div>
+            <div className="flex items-center gap-2">
               {guaranteed ? (
-                <span className="text-green-400 font-semibold">
-                  ✓ Guaranteed Featured
-                </span>
+                <>
+                  <span className="text-green-400 font-semibold">
+                    ✓ Guaranteed Featured
+                  </span>
+                  <InfoTooltip content={GACHA_TOOLTIPS.guaranteed} />
+                </>
               ) : (
-                <span className="text-yellow-400">
-                  50/50
-                </span>
+                <>
+                  <span className="text-yellow-400">
+                    50/50
+                  </span>
+                  <InfoTooltip content={GACHA_TOOLTIPS.fiftyFifty} />
+                </>
               )}
             </div>
           )}
@@ -109,7 +119,10 @@ export function PityTracker({ pityState, bannerType }: PityTrackerProps) {
       {/* 4-Star Pity */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">4-Star Pity</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">4-Star Pity</h3>
+            <InfoTooltip content={GACHA_TOOLTIPS.fourStarPity} />
+          </div>
           <span className="text-xl font-bold">{fourStarPity}</span>
         </div>
 
