@@ -61,17 +61,17 @@ React Components → Hooks → Repository Layer → Dexie (IndexedDB)
 
 ---
 
-## Current Sprint: 14 - In Progress (January 2026)
+## Current Sprint: 14 - Complete (January 2026)
 
 ### Sprint 14: Build Templates UX Enhancement
 - ✅ **Character search in TeamForm** - Quick filter when building teams
 - ✅ **Equipment data** - Static weapon/artifact data for form dropdowns
 - ✅ **BuildTemplateForm overhaul** - Searchable weapon/artifact selectors, main stat buttons, substat priority
-- 🔲 **Extract filter/sort utilities** - Consolidate duplicate logic across features
-- 🔲 **gcsim import** - Parse gcsim configs into build templates
+- ✅ **Filter/sort utilities** - Consolidated ~480 lines of duplicate logic into shared utils
+- ✅ **gcsim import** - Parse gcsim configs into build templates via modal
 
 ### Test Status
-- All 1,214 tests passing
+- All 1,263 tests passing
 - Run `npm run test:run` before committing
 
 ### Previous Sprint (13) - Completed ✅

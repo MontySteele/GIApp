@@ -342,16 +342,16 @@ const icons = {
 
 ---
 
-## Sprint 14: Build Templates UX Enhancement (In Progress)
+## Sprint 14: Build Templates UX Enhancement ✅ COMPLETE
 
 ### Completed ✅
 - [x] Character search in TeamForm - Quick filter when building teams
 - [x] Equipment data file - Static weapon/artifact data for form dropdowns (100+ weapons, 40+ sets)
 - [x] BuildTemplateForm overhaul - Searchable weapon selector, artifact set selector, main stat buttons, substat priority
+- [x] Extract duplicate filter/sort logic to shared utilities (~480 lines consolidated)
+- [x] Import from gcsim config to build templates
 
-### Remaining
-- [ ] Extract duplicate filter/sort logic to shared utilities
-- [ ] Import from gcsim config to build templates
+### Remaining (Sprint 15 candidates)
 - [ ] Link budget projections to calculator scenarios
 - [ ] Team sharing/export functionality
 - [ ] Consolidated "Today's farming" widget on Dashboard
@@ -360,11 +360,15 @@ const icons = {
 
 **New Files:**
 - `src/lib/data/equipmentData.ts` - Weapon and artifact set data with types and bonuses
+- `src/lib/utils/filterSort.ts` - Generic filter/sort utilities
+- `src/hooks/useFilterSort.ts` - React hook for filter/sort state management
+- `src/features/builds/domain/gcsimParser.ts` - gcsim config parser
+- `src/features/builds/components/GcsimImportModal.tsx` - Import modal UI
 
 **Updated Components:**
 - `TeamForm` - Added character search input
 - `BuildTemplateForm` - Complete overhaul with structured dropdowns instead of text inputs
-- `BuildTemplatesPage` - Passes roster characters to form
+- `BuildTemplatesPage` - Passes roster characters to form, added gcsim import button
 
 ---
 

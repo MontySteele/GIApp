@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Filter, BookOpen } from 'lucide-react';
+import { Plus, Search, Filter, BookOpen, FileCode } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import { Card, CardContent } from '@/components/ui/Card';
 import BuildTemplateCard from '../components/BuildTemplateCard';
 import BuildTemplateForm from '../components/BuildTemplateForm';
+import GcsimImportModal from '../components/GcsimImportModal';
 import { useBuildTemplates, type BuildTemplateQuery } from '../hooks/useBuildTemplates';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import type { CharacterRole, BuildDifficulty, BuildBudget, BuildTemplate } from '@/types';
@@ -19,6 +20,7 @@ export default function BuildTemplatesPage() {
   const [budgetFilter, setBudgetFilter] = useState<BuildBudget | ''>('');
   const [officialOnly, setOfficialOnly] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<BuildTemplate | null>(null);
 
   const query: BuildTemplateQuery = useMemo(
@@ -68,6 +70,29 @@ export default function BuildTemplatesPage() {
     handleCloseModal();
   }, [editingTemplate, createTemplate, updateTemplate, handleCloseModal]);
 
+  const handleImportBuilds = useCallback(async (builds: Array<{
+    name: string;
+    characterKey: string;
+    role: 'dps' | 'sub-dps' | 'support';
+    weapons: { primary: string[]; alternatives: string[] };
+    artifacts: {
+      sets: string[];
+      mainStats: { sands: string[]; goblet: string[]; circlet: string[] };
+      substats: string[];
+    };
+  }>) => {
+    for (const build of builds) {
+      await createTemplate({
+        name: build.name,
+        characterKey: build.characterKey,
+        role: build.role,
+        weapons: build.weapons,
+        artifacts: build.artifacts,
+        isOfficial: false,
+      });
+    }
+  }, [createTemplate]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -87,10 +112,16 @@ export default function BuildTemplatesPage() {
             {stats?.official ? ` (${stats.official} official)` : ''}
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="w-4 h-4" />
-          New Template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => setShowImportModal(true)}>
+            <FileCode className="w-4 h-4" />
+            Import gcsim
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="w-4 h-4" />
+            New Template
+          </Button>
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -251,6 +282,13 @@ export default function BuildTemplatesPage() {
           onCancel={handleCloseModal}
         />
       </Modal>
+
+      {/* gcsim Import Modal */}
+      <GcsimImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportBuilds}
+      />
     </div>
   );
 }
