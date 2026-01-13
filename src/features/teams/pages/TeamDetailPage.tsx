@@ -10,6 +10,7 @@ import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import TeamForm from '@/features/roster/components/TeamForm';
 import { WfpsimExportModal } from '@/features/teams';
 import { WeeklyBossTracker } from '@/features/bosses';
+import GoalsSection from '@/features/notes/components/GoalsSection';
 import {
   calculateFromRoster,
   type AggregatedMaterialSummary,
@@ -286,6 +287,9 @@ export default function TeamDetailPage() {
           <WeeklyBossTracker />
         </CardContent>
       </Card>
+
+      {/* Team Goals */}
+      <GoalsSection linkedTeamId={team.id} title="Team Goals" />
 
       {/* Edit Team Modal */}
       <Modal

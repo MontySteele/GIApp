@@ -18,6 +18,7 @@ import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useResources } from '@/features/ledger/hooks/useResources';
+import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
 import {
   calculateCurrentResin,
   timeUntilFull,
@@ -113,7 +114,7 @@ export default function DashboardPage() {
           value={artifactStats.total}
           subtext={`${artifactStats.fiveStar} 5-star`}
           color="text-purple-400"
-          to="/artifacts"
+          to="/roster/artifacts"
         />
         <StatCard
           icon={<Sword className="w-5 h-5" />}
@@ -121,7 +122,7 @@ export default function DashboardPage() {
           value={weaponStats.total}
           subtext={`${weaponStats.fiveStars} 5-star`}
           color="text-yellow-400"
-          to="/weapons"
+          to="/roster/weapons"
         />
         <StatCard
           icon={<Sparkles className="w-5 h-5" />}
@@ -129,7 +130,7 @@ export default function DashboardPage() {
           value={totalPulls}
           subtext={`${formatPrimos(primogems)} primogems`}
           color="text-green-400"
-          to="/ledger"
+          to="/wishes/budget"
         />
       </div>
 
@@ -143,7 +144,7 @@ export default function DashboardPage() {
               <h3 className="font-semibold">Resin</h3>
             </div>
             <Link
-              to="/planner"
+              to="/teams/planner"
               className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
             >
               Planner <ArrowRight className="w-3 h-3" />
@@ -191,10 +192,10 @@ export default function DashboardPage() {
               <h3 className="font-semibold">Primogems</h3>
             </div>
             <Link
-              to="/ledger"
+              to="/wishes/budget"
               className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
             >
-              Ledger <ArrowRight className="w-3 h-3" />
+              Budget <ArrowRight className="w-3 h-3" />
             </Link>
           </CardHeader>
           <CardContent>
@@ -214,6 +215,9 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Notes & Reminders Widget */}
+      <QuickNotesWidget maxStickies={4} maxNotes={2} />
+
       {/* Quick Links */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <QuickLink
@@ -222,9 +226,9 @@ export default function DashboardPage() {
           label="Manage Roster"
         />
         <QuickLink
-          to="/planner"
+          to="/teams"
           icon={<Target className="w-5 h-5" />}
-          label="Ascension Planner"
+          label="Team Planner"
         />
         <QuickLink
           to="/wishes"

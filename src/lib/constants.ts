@@ -65,7 +65,6 @@ export const TABS = [
   { id: 'teams', label: 'Teams', path: '/teams' },
   { id: 'wishes', label: 'Wishes', path: '/wishes' },
   { id: 'calendar', label: 'Calendar', path: '/calendar' },
-  { id: 'notes', label: 'Notes', path: '/notes' },
   { id: 'settings', label: 'Settings', path: '/settings' },
 ] as const;
 

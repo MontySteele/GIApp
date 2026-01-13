@@ -38,6 +38,28 @@ vi.mock('@/features/ledger/hooks/useResources', () => ({
   }),
 }));
 
+vi.mock('@/features/notes/hooks/useGoals', () => ({
+  useGoals: () => ({
+    goals: [],
+    allGoals: [],
+    createGoal: vi.fn(),
+    updateGoal: vi.fn(),
+    deleteGoal: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
+vi.mock('@/features/notes/hooks/useNotes', () => ({
+  useNotes: () => ({
+    notes: [],
+    allNotes: [],
+    createNote: vi.fn(),
+    updateNote: vi.fn(),
+    deleteNote: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
 // Mock localStorage for resin
 const mockLocalStorage = {
   getItem: vi.fn(),
@@ -93,7 +115,7 @@ describe('DashboardPage', () => {
       renderPage();
 
       expect(screen.getByText('Manage Roster')).toBeInTheDocument();
-      expect(screen.getByText('Ascension Planner')).toBeInTheDocument();
+      expect(screen.getByText('Team Planner')).toBeInTheDocument();
       expect(screen.getByText('Wish History')).toBeInTheDocument();
       expect(screen.getByText('Reset Timers')).toBeInTheDocument();
     });
@@ -162,22 +184,22 @@ describe('DashboardPage', () => {
       expect(characterLink).toHaveAttribute('href', '/roster');
 
       const artifactLink = screen.getByText('Artifacts').closest('a');
-      expect(artifactLink).toHaveAttribute('href', '/artifacts');
+      expect(artifactLink).toHaveAttribute('href', '/roster/artifacts');
 
       const weaponLink = screen.getByText('Weapons').closest('a');
-      expect(weaponLink).toHaveAttribute('href', '/weapons');
+      expect(weaponLink).toHaveAttribute('href', '/roster/weapons');
 
       // Available Pulls appears multiple times - get the one in the stat cards section
       const pullsLinks = screen.getAllByText('Available Pulls');
       const statCardPullsLink = pullsLinks[0].closest('a');
-      expect(statCardPullsLink).toHaveAttribute('href', '/ledger');
+      expect(statCardPullsLink).toHaveAttribute('href', '/wishes/budget');
     });
 
     it('quick links point to correct pages', () => {
       renderPage();
 
       expect(screen.getByText('Manage Roster').closest('a')).toHaveAttribute('href', '/roster');
-      expect(screen.getByText('Ascension Planner').closest('a')).toHaveAttribute('href', '/planner');
+      expect(screen.getByText('Team Planner').closest('a')).toHaveAttribute('href', '/teams');
       expect(screen.getByText('Wish History').closest('a')).toHaveAttribute('href', '/wishes');
       expect(screen.getByText('Reset Timers').closest('a')).toHaveAttribute('href', '/calendar');
     });
@@ -189,11 +211,11 @@ describe('DashboardPage', () => {
       expect(plannerLinks.length).toBeGreaterThan(0);
     });
 
-    it('primogem card has link to ledger', () => {
+    it('primogem card has link to budget', () => {
       renderPage();
 
-      const ledgerLinks = screen.getAllByText('Ledger');
-      expect(ledgerLinks.length).toBeGreaterThan(0);
+      const budgetLinks = screen.getAllByText('Budget');
+      expect(budgetLinks.length).toBeGreaterThan(0);
     });
   });
 

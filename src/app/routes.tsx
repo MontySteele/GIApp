@@ -135,7 +135,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'notes',
-        element: <NotesPage />,
+        element: <NotesPage />,  // Keep NotesPage accessible for full notes management
       },
       {
         path: 'settings',

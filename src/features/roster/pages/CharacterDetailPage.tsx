@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import CharacterForm from '../components/CharacterForm';
+import GoalsSection from '@/features/notes/components/GoalsSection';
 import { formatArtifactSetName, formatSlotName, formatStatName, formatStatValue } from '@/lib/gameData';
 import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
 import {
@@ -342,6 +343,12 @@ export default function CharacterDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Character Goals */}
+        <GoalsSection
+          linkedCharacterKey={character.key}
+          title="Character Goals"
+        />
 
         {/* Notes Card */}
         {character.notes && (
