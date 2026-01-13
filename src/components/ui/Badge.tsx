@@ -1,13 +1,14 @@
 import { HTMLAttributes } from 'react';
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'outline' | 'pyro' | 'hydro' | 'anemo' | 'electro' | 'dendro' | 'cryo' | 'geo';
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'outline' | 'pyro' | 'hydro' | 'anemo' | 'electro' | 'dendro' | 'cryo' | 'geo';
 }
 
 export default function Badge({ className = '', variant = 'default', children, ...props }: BadgeProps) {
   const variants = {
     default: 'bg-slate-700 text-slate-200',
     primary: 'bg-primary-600 text-white',
+    secondary: 'bg-slate-600 text-slate-200',
     success: 'bg-green-600 text-white',
     warning: 'bg-yellow-600 text-white',
     danger: 'bg-red-600 text-white',

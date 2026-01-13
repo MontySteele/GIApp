@@ -28,7 +28,7 @@ export default function GoalsSection({
   linkedTeamId,
   title = 'Goals',
 }: GoalsSectionProps) {
-  const { goals, createGoal, updateGoal, deleteGoal, toggleChecklistItem, addChecklistItem, isLoading } = useGoals({
+  const { goals, createGoal, updateGoal, deleteGoal, toggleChecklistItem, isLoading } = useGoals({
     linkedCharacterKey,
     linkedTeamId,
   });
@@ -79,7 +79,7 @@ export default function GoalsSection({
     if (!newChecklistItem.trim()) return;
     setDraft((prev) => ({
       ...prev,
-      checklist: [...prev.checklist, { text: newChecklistItem.trim(), completed: false }],
+      checklist: [...prev.checklist, { id: crypto.randomUUID(), text: newChecklistItem.trim(), completed: false }],
     }));
     setNewChecklistItem('');
   };
@@ -191,12 +191,12 @@ export default function GoalsSection({
                       <div className="border-t border-slate-700 p-3 space-y-3">
                         {goal.checklist.length > 0 && (
                           <div className="space-y-2">
-                            {goal.checklist.map((item, idx) => (
+                            {goal.checklist.map((item) => (
                               <button
-                                key={idx}
+                                key={item.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleChecklistItem(goal.id, idx);
+                                  toggleChecklistItem(goal.id, item.id);
                                 }}
                                 className="flex items-center gap-2 w-full text-left group"
                               >

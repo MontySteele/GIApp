@@ -4,6 +4,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import type { Character, CharacterPriority } from '@/types';
+import { characterSchema } from '@/lib/validation';
 
 interface CharacterFormProps {
   onSubmit: (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -13,6 +14,7 @@ interface CharacterFormProps {
 
 export default function CharacterForm({ onSubmit, onCancel, initialData }: CharacterFormProps) {
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     key: initialData?.key ?? '',
     level: initialData?.level ?? 1,
@@ -31,6 +33,20 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    // Validate form data with Zod
+    const validation = characterSchema.safeParse(formData);
+    if (!validation.success) {
+      const newErrors: Record<string, string> = {};
+      for (const error of validation.error.issues) {
+        const path = error.path.join('.');
+        newErrors[path] = error.message;
+      }
+      setErrors(newErrors);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -73,6 +89,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
           placeholder="e.g., Furina, Neuvillette"
           value={formData.key}
           onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+          error={errors.key}
           required
         />
 
@@ -84,6 +101,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             max="90"
             value={formData.level}
             onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) || 1 })}
+            error={errors.level}
             required
           />
 
@@ -91,6 +109,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             label="Ascension"
             value={formData.ascension.toString()}
             onChange={(e) => setFormData({ ...formData, ascension: parseInt(e.target.value) })}
+            error={errors.ascension}
             options={[
               { value: '0', label: 'Ascension 0' },
               { value: '1', label: 'Ascension 1' },
@@ -108,6 +127,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             label="Constellation"
             value={formData.constellation.toString()}
             onChange={(e) => setFormData({ ...formData, constellation: parseInt(e.target.value) })}
+            error={errors.constellation}
             options={[
               { value: '0', label: 'C0' },
               { value: '1', label: 'C1' },
@@ -123,6 +143,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             label="Priority"
             value={formData.priority}
             onChange={(e) => setFormData({ ...formData, priority: e.target.value as CharacterPriority })}
+            error={errors.priority}
             options={[
               { value: 'main', label: 'Main' },
               { value: 'secondary', label: 'Secondary' },
@@ -145,6 +166,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             max="15"
             value={formData.talentAuto}
             onChange={(e) => setFormData({ ...formData, talentAuto: parseInt(e.target.value) || 1 })}
+            error={errors.talentAuto}
           />
 
           <Input
@@ -154,6 +176,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             max="15"
             value={formData.talentSkill}
             onChange={(e) => setFormData({ ...formData, talentSkill: parseInt(e.target.value) || 1 })}
+            error={errors.talentSkill}
           />
 
           <Input
@@ -163,6 +186,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             max="15"
             value={formData.talentBurst}
             onChange={(e) => setFormData({ ...formData, talentBurst: parseInt(e.target.value) || 1 })}
+            error={errors.talentBurst}
           />
         </div>
       </div>
@@ -176,6 +200,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
           placeholder="e.g., Mistsplitter Reforged"
           value={formData.weaponKey}
           onChange={(e) => setFormData({ ...formData, weaponKey: e.target.value })}
+          error={errors.weaponKey}
           required
         />
 
@@ -187,12 +212,14 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             max="90"
             value={formData.weaponLevel}
             onChange={(e) => setFormData({ ...formData, weaponLevel: parseInt(e.target.value) || 1 })}
+            error={errors.weaponLevel}
           />
 
           <Select
             label="Ascension"
             value={formData.weaponAscension.toString()}
             onChange={(e) => setFormData({ ...formData, weaponAscension: parseInt(e.target.value) })}
+            error={errors.weaponAscension}
             options={[
               { value: '0', label: 'Ascension 0' },
               { value: '1', label: 'Ascension 1' },
@@ -208,6 +235,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
             label="Refinement"
             value={formData.weaponRefinement.toString()}
             onChange={(e) => setFormData({ ...formData, weaponRefinement: parseInt(e.target.value) })}
+            error={errors.weaponRefinement}
             options={[
               { value: '1', label: 'R1' },
               { value: '2', label: 'R2' },

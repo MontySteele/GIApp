@@ -128,7 +128,7 @@ const GCSIM_STAT_TO_OUR_STAT: Record<string, string> = {
  */
 function parseLevel(levelStr: string): { level: number; maxLevel: number } {
   const match = levelStr.match(/(\d+)\/(\d+)/);
-  if (match) {
+  if (match && match[1] && match[2]) {
     return {
       level: parseInt(match[1], 10),
       maxLevel: parseInt(match[2], 10),
@@ -153,7 +153,7 @@ function parseTalents(talentStr: string): [number, number, number] {
 function parseCharacterLine(line: string): Partial<ParsedCharacterBuild> | null {
   // Match: name char key=value key=value ...
   const charMatch = line.match(/^(\w+)\s+char\s+(.+);?$/i);
-  if (!charMatch) return null;
+  if (!charMatch || !charMatch[1] || !charMatch[2]) return null;
 
   const gcsimKey = charMatch[1].toLowerCase();
   const params = charMatch[2];
@@ -165,7 +165,7 @@ function parseCharacterLine(line: string): Partial<ParsedCharacterBuild> | null 
 
   // Parse lvl=90/90
   const lvlMatch = params.match(/lvl=([^\s]+)/);
-  if (lvlMatch) {
+  if (lvlMatch && lvlMatch[1]) {
     const { level, maxLevel } = parseLevel(lvlMatch[1]);
     result.level = level;
     result.maxLevel = maxLevel;
@@ -173,13 +173,13 @@ function parseCharacterLine(line: string): Partial<ParsedCharacterBuild> | null 
 
   // Parse cons=0
   const consMatch = params.match(/cons=(\d+)/);
-  if (consMatch) {
+  if (consMatch && consMatch[1]) {
     result.constellation = parseInt(consMatch[1], 10);
   }
 
   // Parse talent=9,9,10
   const talentMatch = params.match(/talent=([^\s;]+)/);
-  if (talentMatch) {
+  if (talentMatch && talentMatch[1]) {
     result.talents = parseTalents(talentMatch[1]);
   }
 
@@ -192,7 +192,7 @@ function parseCharacterLine(line: string): Partial<ParsedCharacterBuild> | null 
  */
 function parseWeaponLine(line: string): { charKey: string; weapon: ParsedCharacterBuild['weapon'] } | null {
   const match = line.match(/^(\w+)\s+add\s+weapon="([^"]+)"(?:\s+refine=(\d+))?(?:\s+lvl=([^\s;]+))?/i);
-  if (!match) return null;
+  if (!match || !match[1] || !match[2]) return null;
 
   const charKey = match[1].toLowerCase();
   const gcsimWeaponKey = match[2].toLowerCase();
@@ -218,7 +218,7 @@ function parseWeaponLine(line: string): { charKey: string; weapon: ParsedCharact
  */
 function parseArtifactSetLine(line: string): { charKey: string; set: { gcsimKey: string; key: string; count: number } } | null {
   const match = line.match(/^(\w+)\s+add\s+set="([^"]+)"(?:\s+count=(\d+))?/i);
-  if (!match) return null;
+  if (!match || !match[1] || !match[2]) return null;
 
   const charKey = match[1].toLowerCase();
   const gcsimSetKey = match[2].toLowerCase();
@@ -240,7 +240,7 @@ function parseArtifactSetLine(line: string): { charKey: string; set: { gcsimKey:
  */
 function parseStatsLine(line: string): { charKey: string; stats: Record<string, number> } | null {
   const match = line.match(/^(\w+)\s+add\s+stats\s+(.+);?$/i);
-  if (!match) return null;
+  if (!match || !match[1] || !match[2]) return null;
 
   const charKey = match[1].toLowerCase();
   const statsStr = match[2];
@@ -249,8 +249,10 @@ function parseStatsLine(line: string): { charKey: string; stats: Record<string, 
   const statPairs = statsStr.matchAll(/(\w+%?)=([0-9.]+)/g);
 
   for (const [, statKey, value] of statPairs) {
-    const ourStatKey = GCSIM_STAT_TO_OUR_STAT[statKey] || statKey;
-    stats[ourStatKey] = parseFloat(value);
+    if (statKey && value) {
+      const ourStatKey = GCSIM_STAT_TO_OUR_STAT[statKey] || statKey;
+      stats[ourStatKey] = parseFloat(value);
+    }
   }
 
   return { charKey, stats };

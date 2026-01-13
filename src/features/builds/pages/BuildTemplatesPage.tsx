@@ -10,7 +10,7 @@ import BuildTemplateForm from '../components/BuildTemplateForm';
 import GcsimImportModal from '../components/GcsimImportModal';
 import { useBuildTemplates, type BuildTemplateQuery } from '../hooks/useBuildTemplates';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
-import type { CharacterRole, BuildDifficulty, BuildBudget, BuildTemplate } from '@/types';
+import type { CharacterRole, BuildDifficulty, BuildBudget, BuildTemplate, MainStatKey } from '@/types';
 
 export default function BuildTemplatesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,12 +82,32 @@ export default function BuildTemplatesPage() {
     };
   }>) => {
     for (const build of builds) {
+      // Transform artifact sets from string[] to SetRecommendation[][]
+      const transformedSets = build.artifacts.sets.map(setKey => [{ setKey, pieces: 4 as const }]);
       await createTemplate({
         name: build.name,
         characterKey: build.characterKey,
+        description: '',
         role: build.role,
+        notes: '',
         weapons: build.weapons,
-        artifacts: build.artifacts,
+        artifacts: {
+          sets: transformedSets,
+          mainStats: {
+            sands: build.artifacts.mainStats.sands as MainStatKey[],
+            goblet: build.artifacts.mainStats.goblet as MainStatKey[],
+            circlet: build.artifacts.mainStats.circlet as MainStatKey[],
+          },
+          substats: build.artifacts.substats,
+        },
+        leveling: {
+          targetLevel: 90,
+          targetAscension: 6,
+          talentPriority: ['burst', 'skill', 'auto'],
+        },
+        tags: [],
+        difficulty: 'intermediate',
+        budget: 'mixed',
         isOfficial: false,
       });
     }
