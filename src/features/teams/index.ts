@@ -20,8 +20,7 @@ export { default as BossesTab } from './pages/BossesTab';
 // Domain
 export {
   generateGcsimConfig,
-  type GcsimConfig,
-  type GcsimOptions,
+  type GcsimExportOptions,
 } from './domain/gcsimConfigGenerator';
 
 export {

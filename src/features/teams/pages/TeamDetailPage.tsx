@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Edit2, Users, Package, Skull, Layers } from 'lucide-react';
+import { Zap, Edit2, Users, Package, Skull, Layers, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';

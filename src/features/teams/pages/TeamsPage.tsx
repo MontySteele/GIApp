@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Download, Users, Zap, Edit2, Trash2, ChevronRight } from 'lucide-react';
+import { Plus, Users, Zap, Edit2, Trash2, ChevronRight } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -235,7 +235,7 @@ function TeamCard({ team, members, onEdit, onDelete, onExport }: TeamCardProps) 
         {/* Members */}
         <div className="flex gap-2 mb-3">
           {members.length > 0 ? (
-            members.map((char, idx) => (
+            members.map((char) => (
               <div
                 key={char.id}
                 className="flex-1 bg-slate-800 rounded-lg p-2 text-center"

@@ -5,6 +5,7 @@ import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import type { Character, Team } from '@/types';
 import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
+import { teamSchema } from '@/lib/validation';
 
 interface TeamFormProps {
   characters: Character[];
@@ -20,6 +21,7 @@ export default function TeamForm({ characters, initialData, onSubmit, onCancel }
   const [selectedKeys, setSelectedKeys] = useState<string[]>(initialData?.characterKeys ?? []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [characterSearch, setCharacterSearch] = useState('');
 
   const sortedCharacters = useMemo(
@@ -78,20 +80,37 @@ export default function TeamForm({ characters, initialData, onSubmit, onCancel }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSelectionError(null);
+    setNameError(null);
 
-    if (selectedKeys.length === 0) {
-      setSelectionError('Select at least one character for this team.');
+    const tags = tagInput
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    // Validate with Zod
+    const validation = teamSchema.safeParse({
+      name,
+      characterKeys: selectedKeys,
+      tags,
+      rotationNotes,
+    });
+
+    if (!validation.success) {
+      for (const error of validation.error.issues) {
+        const path = error.path[0];
+        if (path === 'name') {
+          setNameError(error.message);
+        } else if (path === 'characterKeys') {
+          setSelectionError(error.message);
+        }
+      }
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const tags = tagInput
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean);
-
       await onSubmit({
         name,
         characterKeys: selectedKeys,
@@ -112,6 +131,7 @@ export default function TeamForm({ characters, initialData, onSubmit, onCancel }
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Hyperbloom Raiden"
+          error={nameError ?? undefined}
           required
         />
 

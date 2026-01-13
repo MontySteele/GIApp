@@ -11,15 +11,48 @@ import {
   MAIN_STATS_BY_SLOT,
   SUBSTATS,
   type WeaponData,
-  type ArtifactSetData,
 } from '@/lib/data/equipmentData';
+import type { MainStatKey } from '@/types';
+import { buildTemplateFormSchema } from '@/lib/validation';
 
-type FormData = Omit<BuildTemplate, 'id' | 'createdAt' | 'updatedAt'>;
+// Internal form state uses simplified types for easier form handling
+// Conversion to BuildTemplate happens on save
+interface FormData {
+  name: string;
+  characterKey: string;
+  description: string;
+  role: CharacterRole;
+  notes: string;
+  weapons: {
+    primary: string[];
+    alternatives: string[];
+  };
+  artifacts: {
+    sets: string[];  // Just set keys - converted to SetRecommendation[][] on save
+    mainStats: {
+      sands: string[];
+      goblet: string[];
+      circlet: string[];
+    };
+    substats: string[];
+  };
+  leveling: {
+    targetLevel: number;
+    targetAscension: number;
+    talentPriority: ('auto' | 'skill' | 'burst')[];
+  };
+  difficulty: BuildDifficulty;
+  budget: BuildBudget;
+  source: string;
+  isOfficial: boolean;
+  tags: string[];
+  gameVersion: string;
+}
 
 interface BuildTemplateFormProps {
   template?: BuildTemplate;
   characters?: Character[];
-  onSave: (data: FormData) => Promise<void>;
+  onSave: (data: Omit<BuildTemplate, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -43,6 +76,8 @@ const INITIAL_FORM_DATA: FormData = {
     substats: [],
   },
   leveling: {
+    targetLevel: 90,
+    targetAscension: 6,
     talentPriority: ['burst', 'skill', 'auto'],
   },
   difficulty: 'intermediate',
@@ -52,6 +87,63 @@ const INITIAL_FORM_DATA: FormData = {
   tags: [],
   gameVersion: '',
 };
+
+// Convert BuildTemplate to internal FormData
+function templateToFormData(template: BuildTemplate): FormData {
+  return {
+    name: template.name,
+    characterKey: template.characterKey,
+    description: template.description,
+    role: template.role,
+    notes: template.notes,
+    weapons: template.weapons,
+    artifacts: {
+      sets: template.artifacts.sets.flatMap(combo => combo.map(s => s.setKey)),
+      mainStats: {
+        sands: template.artifacts.mainStats.sands,
+        goblet: template.artifacts.mainStats.goblet,
+        circlet: template.artifacts.mainStats.circlet,
+      },
+      substats: template.artifacts.substats,
+    },
+    leveling: template.leveling,
+    difficulty: template.difficulty,
+    budget: template.budget,
+    source: template.source || '',
+    isOfficial: template.isOfficial,
+    tags: template.tags,
+    gameVersion: template.gameVersion || '',
+  };
+}
+
+// Convert internal FormData to BuildTemplate format for saving
+function formDataToTemplate(data: FormData): Omit<BuildTemplate, 'id' | 'createdAt' | 'updatedAt'> {
+  return {
+    name: data.name,
+    characterKey: data.characterKey,
+    description: data.description,
+    role: data.role,
+    notes: data.notes,
+    weapons: data.weapons,
+    artifacts: {
+      // Convert flat string[] to SetRecommendation[][] (each set becomes a 4pc option)
+      sets: data.artifacts.sets.map(setKey => [{ setKey, pieces: 4 as const }]),
+      mainStats: {
+        sands: data.artifacts.mainStats.sands as MainStatKey[],
+        goblet: data.artifacts.mainStats.goblet as MainStatKey[],
+        circlet: data.artifacts.mainStats.circlet as MainStatKey[],
+      },
+      substats: data.artifacts.substats,
+    },
+    leveling: data.leveling,
+    difficulty: data.difficulty,
+    budget: data.budget,
+    source: data.source,
+    isOfficial: data.isOfficial,
+    tags: data.tags,
+    gameVersion: data.gameVersion,
+  };
+}
 
 // Searchable multi-select component for weapons
 function WeaponSelector({
@@ -404,19 +496,33 @@ export default function BuildTemplateForm({
 }: BuildTemplateFormProps) {
   const [formData, setFormData] = useState<FormData>(() => {
     if (template) {
-      const { id, createdAt, updatedAt, ...rest } = template as BuildTemplate & { createdAt?: string; updatedAt?: string };
-      return rest;
+      return templateToFormData(template);
     }
     return INITIAL_FORM_DATA;
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [characterSearch, setCharacterSearch] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    // Validate with Zod
+    const validation = buildTemplateFormSchema.safeParse(formData);
+    if (!validation.success) {
+      const newErrors: Record<string, string> = {};
+      for (const error of validation.error.issues) {
+        const path = error.path.join('.');
+        newErrors[path] = error.message;
+      }
+      setErrors(newErrors);
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await onSave(formData);
+      await onSave(formDataToTemplate(formData));
     } finally {
       setIsSaving(false);
     }
@@ -444,6 +550,7 @@ export default function BuildTemplateForm({
           value={formData.name}
           onChange={(e) => updateField('name', e.target.value)}
           placeholder="e.g., Raiden National DPS"
+          error={errors.name}
           required
         />
 

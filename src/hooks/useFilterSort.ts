@@ -205,7 +205,7 @@ export function useFilterSort<T, F extends Record<string, unknown> = Record<stri
 /**
  * Character filter/sort hook with common defaults
  */
-export interface CharacterFilters {
+export interface CharacterFilters extends Record<string, unknown> {
   element?: string;
   weaponType?: string;
   rarity?: number;
@@ -222,7 +222,7 @@ export function useCharacterFilterSort<T extends { key: string; element?: string
 /**
  * Weapon filter/sort hook with common defaults
  */
-export interface WeaponFilters {
+export interface WeaponFilters extends Record<string, unknown> {
   type?: string;
   rarity?: number;
   equipped?: boolean;
@@ -238,7 +238,7 @@ export function useWeaponFilterSort<T extends { key: string; type?: string; rari
 /**
  * Artifact filter/sort hook with common defaults
  */
-export interface ArtifactFilters {
+export interface ArtifactFilters extends Record<string, unknown> {
   setKey?: string;
   slotKey?: string;
   rarity?: number;
@@ -257,7 +257,7 @@ export function useArtifactFilterSort<T extends { setKey?: string; slotKey?: str
 /**
  * Build template filter/sort hook with common defaults
  */
-export interface BuildTemplateFilters {
+export interface BuildTemplateFilters extends Record<string, unknown> {
   characterKey?: string;
   role?: string;
   difficulty?: string;
