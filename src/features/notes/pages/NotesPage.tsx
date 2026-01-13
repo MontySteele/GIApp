@@ -58,8 +58,9 @@ function StickyNote({ id, title, content, onEdit, onDelete }: StickyNoteProps) {
           }}
           className="p-1 text-slate-400 hover:text-red-400 transition-colors flex-shrink-0"
           title="Delete"
+          aria-label="Delete sticky"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
       <p className={`text-sm ${color.text} opacity-80 line-clamp-4 whitespace-pre-wrap`}>
@@ -298,14 +299,22 @@ function NoteCard({ note, searchQuery, onEdit, onDelete, onTogglePin }: NoteCard
             <p className="text-xs text-slate-500">{new Date(note.updatedAt).toLocaleDateString()}</p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <button onClick={onTogglePin} className="p-1.5 text-slate-400 hover:text-amber-300 transition-colors">
-              {note.pinned ? <Pin className="w-4 h-4 text-amber-300" /> : <PinOff className="w-4 h-4" />}
+            <button
+              onClick={onTogglePin}
+              className="p-1.5 text-slate-400 hover:text-amber-300 transition-colors"
+              aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
+            >
+              {note.pinned ? <Pin className="w-4 h-4 text-amber-300" aria-hidden="true" /> : <PinOff className="w-4 h-4" aria-hidden="true" />}
             </button>
             <button onClick={onEdit} className="p-1.5 text-slate-400 hover:text-primary-400 transition-colors">
               Edit
             </button>
-            <button onClick={onDelete} className="p-1.5 text-slate-400 hover:text-red-400 transition-colors">
-              <Trash2 className="w-4 h-4" />
+            <button
+              onClick={onDelete}
+              className="p-1.5 text-slate-400 hover:text-red-400 transition-colors"
+              aria-label="Delete note"
+            >
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

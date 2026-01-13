@@ -58,8 +58,9 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
             }}
             className="p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
             title="Edit character"
+            aria-label="Edit character"
           >
-            <Pencil className="w-3.5 h-3.5 text-slate-200" />
+            <Pencil className="w-3.5 h-3.5 text-slate-200" aria-hidden="true" />
           </button>
         )}
         {onDelete && (
@@ -70,8 +71,9 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
             }}
             className="p-1.5 bg-red-700 hover:bg-red-600 rounded-md transition-colors"
             title="Delete character"
+            aria-label="Delete character"
           >
-            <Trash2 className="w-3.5 h-3.5 text-white" />
+            <Trash2 className="w-3.5 h-3.5 text-white" aria-hidden="true" />
           </button>
         )}
       </div>

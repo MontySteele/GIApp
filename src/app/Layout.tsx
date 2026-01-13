@@ -4,6 +4,7 @@ import TabNav from '@/components/common/TabNav';
 import MobileBottomNav from '@/components/common/MobileBottomNav';
 import BackupReminderBanner from '@/features/sync/components/BackupReminderBanner';
 import ToastContainer from '@/components/ui/Toast';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { useTheme } from '@/hooks/useTheme';
 
 /** Skip link component for keyboard navigation */
@@ -35,7 +36,9 @@ export default function Layout() {
         tabIndex={-1}
       >
         <BackupReminderBanner />
-        <Outlet />
+        <ErrorBoundary featureName="Application">
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <MobileBottomNav />
       <ToastContainer />

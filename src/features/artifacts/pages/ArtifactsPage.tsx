@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
+import { CardSkeleton, StatCardSkeleton } from '@/components/ui/Skeleton';
 import { useArtifacts, type ArtifactFilters, type ArtifactSortField, type ArtifactWithScore } from '../hooks/useArtifacts';
 import { formatArtifactSetName, formatSlotName, formatStatName } from '@/lib/gameData';
 import { getGradeColor, getGradeBgColor } from '../domain/artifactScoring';
@@ -38,8 +39,21 @@ export default function ArtifactsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">Loading artifacts...</div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-32 bg-slate-700 rounded animate-pulse" />
+          <div className="h-8 w-24 bg-slate-700 rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }

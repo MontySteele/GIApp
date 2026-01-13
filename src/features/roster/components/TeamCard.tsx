@@ -21,8 +21,9 @@ export default function TeamCard({ team, members, onEdit, onDelete, onExportToWf
             onClick={() => onExportToWfpsim(team)}
             className="p-1.5 bg-primary-700 hover:bg-primary-600 rounded-md transition-colors"
             title="Export to wfpsim"
+            aria-label="Export to wfpsim"
           >
-            <Zap className="w-4 h-4 text-white" />
+            <Zap className="w-4 h-4 text-white" aria-hidden="true" />
           </button>
         )}
         {onEdit && (
@@ -30,8 +31,9 @@ export default function TeamCard({ team, members, onEdit, onDelete, onExportToWf
             onClick={() => onEdit(team)}
             className="p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
             title="Edit team"
+            aria-label="Edit team"
           >
-            <Pencil className="w-4 h-4 text-slate-200" />
+            <Pencil className="w-4 h-4 text-slate-200" aria-hidden="true" />
           </button>
         )}
         {onDelete && (
@@ -39,8 +41,9 @@ export default function TeamCard({ team, members, onEdit, onDelete, onExportToWf
             onClick={() => onDelete(team)}
             className="p-1.5 bg-red-700 hover:bg-red-600 rounded-md transition-colors"
             title="Delete team"
+            aria-label="Delete team"
           >
-            <Trash2 className="w-4 h-4 text-white" />
+            <Trash2 className="w-4 h-4 text-white" aria-hidden="true" />
           </button>
         )}
       </div>

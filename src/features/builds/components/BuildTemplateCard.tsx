@@ -74,8 +74,9 @@ export default function BuildTemplateCard({
                   onClick={() => onEdit(template)}
                   className="p-1.5 text-slate-400 hover:text-primary-400 transition-colors"
                   title="Edit"
+                  aria-label="Edit template"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
               {onDelete && (
@@ -83,8 +84,9 @@ export default function BuildTemplateCard({
                   onClick={() => onDelete(template.id)}
                   className="p-1.5 text-slate-400 hover:text-red-400 transition-colors"
                   title="Delete"
+                  aria-label="Delete template"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
             </div>

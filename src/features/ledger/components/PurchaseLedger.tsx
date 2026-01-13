@@ -107,8 +107,9 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
               type="button"
               onClick={resetForm}
               className="p-1 text-slate-400 hover:text-slate-200"
+              aria-label="Close form"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -201,8 +202,9 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
                   onClick={() => startEditing(purchase)}
                   className="p-2 text-slate-400 hover:text-primary-400 hover:bg-slate-700 rounded"
                   title="Edit"
+                  aria-label="Edit purchase"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <Pencil className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
@@ -213,8 +215,9 @@ export function PurchaseLedger({ purchases, onAdd, onUpdate, onDelete }: Purchas
                   }}
                   className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded"
                   title="Delete"
+                  aria-label="Delete purchase"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Star, Pencil, ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
+import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCharacter, useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
@@ -7,6 +7,8 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import { CardSkeleton } from '@/components/ui/Skeleton';
+import Breadcrumbs from '@/components/common/Breadcrumbs';
 import CharacterForm from '../components/CharacterForm';
 import GoalsSection from '@/features/notes/components/GoalsSection';
 import { formatArtifactSetName, formatSlotName, formatStatName, formatStatValue } from '@/lib/gameData';
@@ -62,8 +64,34 @@ export default function CharacterDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">Loading character...</div>
+      <div className="space-y-4">
+        {/* Breadcrumb skeleton */}
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 bg-slate-700 rounded animate-pulse" />
+          <div className="h-4 w-1 bg-slate-700 rounded animate-pulse" />
+          <div className="h-4 w-16 bg-slate-700 rounded animate-pulse" />
+          <div className="h-4 w-1 bg-slate-700 rounded animate-pulse" />
+          <div className="h-4 w-24 bg-slate-700 rounded animate-pulse" />
+        </div>
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="h-9 w-48 bg-slate-700 rounded animate-pulse mb-2" />
+            <div className="h-5 w-32 bg-slate-800 rounded animate-pulse" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-20 bg-slate-700 rounded animate-pulse" />
+            <div className="h-10 w-20 bg-slate-700 rounded animate-pulse" />
+          </div>
+        </div>
+        {/* Content skeleton */}
+        <div className="grid gap-4">
+          <CardSkeleton className="h-48" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
       </div>
     );
   }
@@ -82,19 +110,21 @@ export default function CharacterDetailPage() {
 
   return (
     <div>
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Roster', path: '/roster' },
+          { label: character.key, path: `/roster/${character.id}` },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/roster')}>
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold mb-1">{character.key}</h1>
-            <p className="text-slate-400">
-              Level {character.level}/{MAX_LEVEL_BY_ASCENSION[character.ascension] ?? 90} • C{character.constellation}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold mb-1">{character.key}</h1>
+          <p className="text-slate-400">
+            Level {character.level}/{MAX_LEVEL_BY_ASCENSION[character.ascension] ?? 90} • C{character.constellation}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => setIsEditModalOpen(true)}>
