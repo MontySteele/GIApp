@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom';
 import { ScrollText, Calculator, Coins, Calendar } from 'lucide-react';
 
 const SUB_TABS = [
-  { id: 'history', label: 'History', path: '/pulls', icon: ScrollText, end: true },
+  { id: 'budget', label: 'Budget', path: '/pulls', icon: Coins, end: true },
   { id: 'calculator', label: 'Calculator', path: '/pulls/calculator', icon: Calculator, end: false },
-  { id: 'budget', label: 'Budget', path: '/pulls/budget', icon: Coins, end: false },
+  { id: 'history', label: 'History', path: '/pulls/history', icon: ScrollText, end: false },
   { id: 'banners', label: 'Banners', path: '/pulls/banners', icon: Calendar, end: false },
 ] as const;
 

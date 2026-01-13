@@ -80,22 +80,22 @@ export const router = createBrowserRouter([
         path: 'teams/:id',
         element: <TeamDetailPage />,
       },
-      // Pulls (renamed from Wishes) with nested routes for History, Calculator, Budget, Banners
+      // Pulls (renamed from Wishes) with nested routes for Budget, Calculator, History, Banners
       {
         path: 'pulls',
         element: <PullsLayout />,
         children: [
           {
             index: true,
-            element: <HistoryTab />,
+            element: <BudgetTab />,
           },
           {
             path: 'calculator',
             element: <CalculatorTab />,
           },
           {
-            path: 'budget',
-            element: <BudgetTab />,
+            path: 'history',
+            element: <HistoryTab />,
           },
           {
             path: 'banners',
