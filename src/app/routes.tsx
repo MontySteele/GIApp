@@ -10,6 +10,7 @@ import PullsLayout from '@/features/wishes/pages/PullsLayout';
 import HistoryTab from '@/features/wishes/pages/HistoryTab';
 import CalculatorTab from '@/features/wishes/pages/CalculatorTab';
 import BudgetTab from '@/features/wishes/pages/BudgetTab';
+import BannersTab from '@/features/wishes/pages/BannersTab';
 import {
   TeamsLayout,
   TeamsPage,
@@ -79,7 +80,7 @@ export const router = createBrowserRouter([
         path: 'teams/:id',
         element: <TeamDetailPage />,
       },
-      // Pulls (renamed from Wishes) with nested routes for History, Calculator, Budget
+      // Pulls (renamed from Wishes) with nested routes for History, Calculator, Budget, Banners
       {
         path: 'pulls',
         element: <PullsLayout />,
@@ -95,6 +96,10 @@ export const router = createBrowserRouter([
           {
             path: 'budget',
             element: <BudgetTab />,
+          },
+          {
+            path: 'banners',
+            element: <BannersTab />,
           },
         ],
       },
