@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Clock, Check, Skull, RefreshCw } from 'lucide-react';
+import { Clock, Check, Skull, RefreshCw, Filter, FilterX } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import {
   WEEKLY_BOSSES,
   MAX_DISCOUNTED_CLAIMS,
@@ -10,11 +11,17 @@ import {
   getNextWeeklyReset,
   getCurrentWeekStart,
   formatTimeUntilReset,
+  type WeeklyBoss,
 } from '../domain/weeklyBossData';
 
 interface WeeklyBossState {
   weekStart: string; // ISO date of week start
   completed: string[]; // Boss keys
+}
+
+export interface RequiredWeeklyMaterial {
+  name: string;
+  required: number;
 }
 
 const STORAGE_KEY = 'weeklyBossState';
@@ -35,9 +42,15 @@ function saveState(state: WeeklyBossState) {
 
 interface WeeklyBossTrackerProps {
   compact?: boolean;
+  requiredMaterials?: RequiredWeeklyMaterial[];
+  filterByTeamNeeds?: boolean;
 }
 
-export default function WeeklyBossTracker({ compact = false }: WeeklyBossTrackerProps) {
+export default function WeeklyBossTracker({
+  compact = false,
+  requiredMaterials = [],
+  filterByTeamNeeds: initialFilter = false,
+}: WeeklyBossTrackerProps) {
   const [state, setState] = useState<WeeklyBossState>(() => {
     const stored = loadState();
     const currentWeekStart = getCurrentWeekStart().toISOString();
@@ -50,6 +63,33 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
   });
 
   const [timeUntilReset, setTimeUntilReset] = useState('');
+  const [showOnlyNeeded, setShowOnlyNeeded] = useState(initialFilter);
+
+  // Determine which bosses drop required materials
+  const relevantBosses = useMemo(() => {
+    if (!requiredMaterials.length) return new Set<string>();
+
+    const materialNames = new Set(requiredMaterials.map(m => m.name.toLowerCase()));
+
+    return new Set(
+      WEEKLY_BOSSES
+        .filter(boss => boss.drops.some(drop => materialNames.has(drop.toLowerCase())))
+        .map(boss => boss.key)
+    );
+  }, [requiredMaterials]);
+
+  // Get boss with material info
+  const getBossRequiredMaterials = (boss: WeeklyBoss): RequiredWeeklyMaterial[] => {
+    return boss.drops
+      .map(drop => requiredMaterials.find(m => m.name.toLowerCase() === drop.toLowerCase()))
+      .filter((m): m is RequiredWeeklyMaterial => m !== undefined);
+  };
+
+  // Filter bosses based on toggle
+  const displayedBosses = useMemo(() => {
+    if (!showOnlyNeeded || !relevantBosses.size) return WEEKLY_BOSSES;
+    return WEEKLY_BOSSES.filter(boss => relevantBosses.has(boss.key));
+  }, [showOnlyNeeded, relevantBosses]);
 
   // Update time until reset every minute
   useEffect(() => {
@@ -91,6 +131,9 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
 
   const stats = useMemo(() => {
     const completedCount = state.completed.length;
+    const displayedCompletedCount = state.completed.filter(
+      (key) => displayedBosses.some((b) => b.key === key)
+    ).length;
     const discountedUsed = Math.min(completedCount, MAX_DISCOUNTED_CLAIMS);
     const regularUsed = Math.max(0, completedCount - MAX_DISCOUNTED_CLAIMS);
     const discountedRemaining = MAX_DISCOUNTED_CLAIMS - discountedUsed;
@@ -99,11 +142,15 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
 
     return {
       completedCount,
+      displayedCompletedCount,
       totalBosses: WEEKLY_BOSSES.length,
+      displayedBossesCount: displayedBosses.length,
       discountedRemaining,
       resinSpent,
+      hasFilter: requiredMaterials.length > 0,
+      relevantCount: relevantBosses.size,
     };
-  }, [state.completed]);
+  }, [state.completed, displayedBosses, requiredMaterials, relevantBosses]);
 
   if (compact) {
     return (
@@ -113,6 +160,11 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
             <div className="flex items-center gap-2">
               <Skull className="w-5 h-5 text-slate-400" />
               <span className="font-medium text-slate-200">Weekly Bosses</span>
+              {stats.hasFilter && stats.relevantCount > 0 && (
+                <Badge className="text-xs bg-primary-900/30 text-primary-300 border border-primary-700/50">
+                  {stats.relevantCount} needed
+                </Badge>
+              )}
             </div>
             <Badge className="bg-slate-700 text-slate-300 flex items-center gap-1">
               <Clock className="w-3 h-3" />
@@ -149,11 +201,39 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
             <div>
               <h3 className="text-lg font-semibold text-slate-100">Weekly Bosses</h3>
               <p className="text-sm text-slate-400">
-                {stats.completedCount}/{stats.totalBosses} completed this week
+                {showOnlyNeeded && stats.hasFilter
+                  ? `${stats.displayedCompletedCount}/${stats.displayedBossesCount} needed completed`
+                  : `${stats.completedCount}/${stats.totalBosses} completed this week`
+                }
+                {stats.hasFilter && stats.relevantCount > 0 && !showOnlyNeeded && (
+                  <span className="text-primary-400 ml-1">
+                    ({stats.relevantCount} needed for team)
+                  </span>
+                )}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {stats.hasFilter && stats.relevantCount > 0 && (
+              <Button
+                variant={showOnlyNeeded ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setShowOnlyNeeded(!showOnlyNeeded)}
+                title={showOnlyNeeded ? 'Show all bosses' : 'Show only needed bosses'}
+              >
+                {showOnlyNeeded ? (
+                  <>
+                    <FilterX className="w-4 h-4" />
+                    Show All
+                  </>
+                ) : (
+                  <>
+                    <Filter className="w-4 h-4" />
+                    Team Needs
+                  </>
+                )}
+              </Button>
+            )}
             <Badge className="bg-slate-700 text-slate-300 flex items-center gap-1">
               <Clock className="w-3 h-3" />
               Reset: {timeUntilReset}
@@ -183,7 +263,9 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
           </div>
           <div className="bg-slate-900 rounded-lg p-3 text-center">
             <div className="text-2xl font-bold text-slate-100">
-              {WEEKLY_BOSSES.length - stats.completedCount}
+              {showOnlyNeeded && stats.hasFilter
+                ? displayedBosses.length - stats.displayedCompletedCount
+                : WEEKLY_BOSSES.length - stats.completedCount}
             </div>
             <div className="text-xs text-slate-400">Remaining</div>
           </div>
@@ -191,11 +273,13 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
 
         {/* Boss List */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-          {WEEKLY_BOSSES.map((boss, index) => {
+          {displayedBosses.map((boss, index) => {
             const isCompleted = state.completed.includes(boss.key);
             const isDiscounted = index < MAX_DISCOUNTED_CLAIMS && !isCompleted
               ? state.completed.length < MAX_DISCOUNTED_CLAIMS
               : index < MAX_DISCOUNTED_CLAIMS;
+            const isRelevant = relevantBosses.has(boss.key);
+            const bossRequiredMaterials = getBossRequiredMaterials(boss);
 
             return (
               <button
@@ -204,6 +288,8 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
                 className={`p-3 rounded-lg border transition-all text-left ${
                   isCompleted
                     ? 'bg-green-900/30 border-green-700/50 text-green-300'
+                    : isRelevant
+                    ? 'bg-primary-900/20 border-primary-700/50 text-slate-300 hover:border-primary-600'
                     : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
                 }`}
               >
@@ -217,6 +303,15 @@ export default function WeeklyBossTracker({ compact = false }: WeeklyBossTracker
                 )}
                 {!isCompleted && !isDiscounted && (
                   <div className="text-xs text-slate-500 mt-1">60 Resin</div>
+                )}
+                {isRelevant && bossRequiredMaterials.length > 0 && (
+                  <div className="mt-1 pt-1 border-t border-slate-700/50">
+                    {bossRequiredMaterials.map((mat) => (
+                      <div key={mat.name} className="text-xs text-amber-400 truncate">
+                        {mat.name} ×{mat.required}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </button>
             );

@@ -8,7 +8,10 @@
 export { default as WeeklyBossTrackerPage } from './pages/WeeklyBossTrackerPage';
 
 // Components
-export { default as WeeklyBossTracker } from './components/WeeklyBossTracker';
+export {
+  default as WeeklyBossTracker,
+  type RequiredWeeklyMaterial,
+} from './components/WeeklyBossTracker';
 
 // Domain
 export {

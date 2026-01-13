@@ -79,3 +79,4 @@ export { WishHistoryList } from './components/WishHistoryList';
 export { WishImport, GACHA_TYPE_MAP } from './components/WishImport';
 export { WishManualEntry } from './components/WishManualEntry';
 export { WishStatistics } from './components/WishStatistics';
+export { default as PityHeader } from './components/PityHeader';

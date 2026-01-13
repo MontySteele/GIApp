@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Zap, Edit2, Users, Package, Skull, Target } from 'lucide-react';
+import { ArrowLeft, Zap, Edit2, Users, Package, Skull, Layers } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -8,14 +8,14 @@ import Modal from '@/components/ui/Modal';
 import { useTeam, useTeams } from '@/features/roster/hooks/useTeams';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import TeamForm from '@/features/roster/components/TeamForm';
-import { WfpsimExportModal } from '@/features/teams';
-import { WeeklyBossTracker } from '@/features/bosses';
+import { WfpsimExportModal, TeamMemberCard } from '@/features/teams';
+import { WeeklyBossTracker, type RequiredWeeklyMaterial } from '@/features/bosses';
 import GoalsSection from '@/features/notes/components/GoalsSection';
 import {
   calculateFromRoster,
   type AggregatedMaterialSummary,
 } from '@/features/planner/domain/multiCharacterCalculator';
-import type { Team, Character } from '@/types';
+import type { Team, Character, BuildTemplate } from '@/types';
 
 type GoalType = 'full' | 'comfortable' | 'functional' | 'next';
 
@@ -40,6 +40,26 @@ export default function TeamDetailPage() {
   const [showExportModal, setShowExportModal] = useState(false);
 
   const isLoading = teamLoading || charsLoading;
+
+  // Get applied templates for this team (from team data)
+  const teamAppliedTemplates = useMemo(() => {
+    return team?.memberBuildTemplates || {};
+  }, [team]);
+
+  // Handle applying a template to a team member
+  const handleApplyTemplate = useCallback(async (characterKey: string, template: BuildTemplate) => {
+    if (!team) return;
+
+    const updatedTemplates = {
+      ...(team.memberBuildTemplates || {}),
+      [characterKey]: template.id,
+    };
+
+    await updateTeam(team.id, {
+      ...team,
+      memberBuildTemplates: updatedTemplates,
+    });
+  }, [team, updateTeam]);
 
   const characterByKey = useMemo(() => {
     const map = new Map<string, Character>();
@@ -78,6 +98,16 @@ export default function TeamDetailPage() {
       .then(setMaterialSummary)
       .finally(() => setIsCalculating(false));
   }, [team, teamMembers, goalType]);
+
+  // Extract required weekly boss materials for filtering
+  const requiredWeeklyMaterials: RequiredWeeklyMaterial[] = useMemo(() => {
+    if (!materialSummary) return [];
+
+    return materialSummary.groupedMaterials.weekly.map((mat) => ({
+      name: mat.name,
+      required: mat.required,
+    }));
+  }, [materialSummary]);
 
   const handleSaveTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (team) {
@@ -150,9 +180,17 @@ export default function TeamDetailPage() {
       {/* Team Composition */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-slate-400" />
-            <h2 className="text-lg font-semibold">Team Composition</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-slate-400" />
+              <h2 className="text-lg font-semibold">Team Composition</h2>
+            </div>
+            {Object.keys(teamAppliedTemplates).length > 0 && (
+              <Badge className="text-xs bg-primary-900/30 text-primary-300 border border-primary-700/50">
+                <Layers className="w-3 h-3 mr-1" />
+                {Object.keys(teamAppliedTemplates).length} templates applied
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -161,21 +199,15 @@ export default function TeamDetailPage() {
               No members in this team. Edit the team to add characters.
             </p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {teamMembers.map((char, idx) => (
-                <div
+                <TeamMemberCard
                   key={char.id}
-                  className="bg-slate-800 rounded-lg p-4 text-center"
-                >
-                  <div className="text-xs text-slate-500 mb-1">#{idx + 1}</div>
-                  <div className="font-semibold text-slate-200 mb-1">{char.key}</div>
-                  <div className="text-sm text-slate-400">
-                    Lv.{char.level} • C{char.constellation}
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    {char.talent.auto}/{char.talent.skill}/{char.talent.burst}
-                  </div>
-                </div>
+                  character={char}
+                  position={idx + 1}
+                  appliedTemplateId={teamAppliedTemplates[char.key]}
+                  onApplyTemplate={handleApplyTemplate}
+                />
               ))}
             </div>
           )}
@@ -281,10 +313,18 @@ export default function TeamDetailPage() {
           <div className="flex items-center gap-2">
             <Skull className="w-5 h-5 text-slate-400" />
             <h2 className="text-lg font-semibold">Weekly Boss Tracker</h2>
+            {requiredWeeklyMaterials.length > 0 && (
+              <Badge className="text-xs bg-primary-900/30 text-primary-300 border border-primary-700/50">
+                {requiredWeeklyMaterials.length} materials needed
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
-          <WeeklyBossTracker />
+          <WeeklyBossTracker
+            requiredMaterials={requiredWeeklyMaterials}
+            filterByTeamNeeds={requiredWeeklyMaterials.length > 0}
+          />
         </CardContent>
       </Card>
 

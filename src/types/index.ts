@@ -79,6 +79,7 @@ export interface Team {
   characterKeys: string[]; // Ordered by rotation
   rotationNotes: string; // Markdown
   tags: string[];
+  memberBuildTemplates?: Record<string, string>; // characterKey -> buildTemplateId
   createdAt: string;
   updatedAt: string;
 }
