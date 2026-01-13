@@ -1,5 +1,93 @@
 # Changelog
 
+## 2026-01-13 (Sprint 16 - UX Polish & Test Coverage)
+
+### UI/UX Improvements
+- **ErrorBoundary Component** - Graceful error handling with retry functionality
+  - Wraps all feature layouts (Roster, Teams, Wishes) and main Layout
+  - Feature-specific error messages
+  - "Try Again" button to recover from transient errors
+  - Higher-order component (HOC) wrapper for easy integration
+- **Breadcrumbs Navigation** - Added to detail pages for better navigation
+  - CharacterDetailPage: Home > Roster > [Character Name]
+  - TeamDetailPage: Home > Teams > [Team Name]
+  - Proper aria-current for accessibility
+- **Accessibility (15+ icon buttons)** - Added aria-labels across the app
+  - GoalsSection, NotesPage, BuildTemplateCard
+  - CharacterCard, TeamCard, TeamsPage
+  - PurchaseLedger edit/delete buttons
+  - Icons marked as aria-hidden for screen readers
+- **Skeleton Loading States** - Enhanced loading experience
+  - WeaponsPage: Stats + card grid skeletons
+  - ArtifactsPage: Stats + card grid skeletons
+  - CharacterDetailPage: Breadcrumb + content skeletons
+
+### Bug Fixes
+- **Fixed 'Create Team' bug** - TeamForm prop mismatch (`team`/`onSave` → `initialData`/`onSubmit`)
+  - Affected TeamsPage.tsx and TeamDetailPage.tsx
+  - Teams can now be created from both Team hub and Team detail view
+
+### Feature Enhancements
+- **Link Budget to Calculator** - ReverseCalculator now shows BudgetLinkBanner
+  - Displays projected primogem income
+  - "Use Budget" button auto-fills calculator inputs
+  - "Sync Daily Rate" button updates income projections
+- **Enhanced Today's Farming Widget** - Character-specific recommendations
+  - New useTodayFarming hook aggregates character material needs
+  - Shows which characters need today's talent books
+  - "Wait for" section shows upcoming book availability
+
+### Test Coverage
+- **Calendar Feature Tests** (111 tests total)
+  - ResetTimers.test.tsx (9 tests) - Timer display and countdown
+  - EventList.test.tsx (23 tests) - Event rendering and filtering
+  - useEvents.test.ts (11 tests) - Hook logic and caching
+  - eventTypes.test.ts (11 tests) - Domain type validation
+- **Boss Feature Tests** (81 tests total)
+  - WeeklyBossTracker edge cases
+  - weeklyBossData domain tests
+- **Component Tests**
+  - ErrorBoundary.test.tsx (17 tests)
+  - Breadcrumbs.test.tsx (10 tests)
+
+### Technical
+- Total test count: ~1,400+
+- New files: 8 (components + tests)
+- Modified files: 14 (accessibility + skeletons)
+
+---
+
+## 2026-01-13 (Sprint 15 - E2E Testing & Mobile UX)
+
+### E2E Testing Foundation
+- **Playwright Infrastructure** - Full E2E testing framework
+  - playwright.config.ts with browser configurations
+  - Page Object Model (POM) pattern for maintainability
+  - Custom fixtures for test data seeding
+- **Tier 1 Critical Tests** (8 test files)
+  - Character CRUD operations
+  - Enka.network UID import
+  - GOOD format import/export
+  - Team creation with search
+  - Wish history display
+  - Navigation flows
+- **CI Integration** - E2E tests in GitHub Actions pipeline
+
+### Mobile Bottom Navigation
+- **MobileBottomNav Component** - Tab bar for screens < 768px
+  - 6 navigation items (Home, Roster, Teams, Wishes, Calendar, Settings)
+  - Active tab highlighting with indicator
+  - Hides desktop TabNav on mobile
+  - 14 unit tests
+
+### Technical
+- Documented E2E testing patterns in docs/E2E_TESTING.md
+- Added Playwright to devDependencies
+
+See `docs/SPRINT_15_PLAN.md` for full details.
+
+---
+
 ## 2026-01-13 (Sprint 14 - Build Templates UX Enhancement)
 
 ### Build Template Improvements

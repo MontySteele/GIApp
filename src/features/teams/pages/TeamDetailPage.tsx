@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Zap, Edit2, Users, Package, Skull, Layers } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Zap, Edit2, Users, Package, Skull, Layers } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import Breadcrumbs from '@/components/common/Breadcrumbs';
 import { useTeam, useTeams } from '@/features/roster/hooks/useTeams';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import TeamForm from '@/features/roster/components/TeamForm';
@@ -139,31 +140,31 @@ export default function TeamDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Teams', path: '/teams' },
+          { label: team.name, path: `/teams/${team.id}` },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/teams"
-            className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">{team.name}</h1>
-            <p className="text-slate-400">
-              {teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}
-              {team.tags && team.tags.length > 0 && (
-                <span className="ml-2">
-                  •{' '}
-                  {team.tags.map((tag) => (
-                    <Badge key={tag} variant="default" className="ml-1 text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </span>
-              )}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold">{team.name}</h1>
+          <p className="text-slate-400">
+            {teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}
+            {team.tags && team.tags.length > 0 && (
+              <span className="ml-2">
+                •{' '}
+                {team.tags.map((tag) => (
+                  <Badge key={tag} variant="default" className="ml-1 text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => setShowEditModal(true)}>
@@ -338,9 +339,9 @@ export default function TeamDetailPage() {
         title="Edit Team"
       >
         <TeamForm
-          team={team}
+          initialData={team}
           characters={characters}
-          onSave={handleSaveTeam}
+          onSubmit={handleSaveTeam}
           onCancel={() => setShowEditModal(false)}
         />
       </Modal>

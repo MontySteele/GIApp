@@ -140,9 +140,9 @@ export default function TeamsPage() {
         title={editingTeam ? 'Edit Team' : 'Create Team'}
       >
         <TeamForm
-          team={editingTeam ?? undefined}
+          initialData={editingTeam ?? undefined}
           characters={characters}
-          onSave={handleSaveTeam}
+          onSubmit={handleSaveTeam}
           onCancel={handleCloseTeamModal}
         />
       </Modal>
@@ -209,22 +209,25 @@ function TeamCard({ team, members, onEdit, onDelete, onExport }: TeamCardProps) 
               onClick={(e) => { e.stopPropagation(); onExport(); }}
               className="p-1.5 text-yellow-400 hover:bg-yellow-400/10 rounded transition-colors"
               title="Export to wfpsim"
+              aria-label="Export to wfpsim"
             >
-              <Zap className="w-4 h-4" />
+              <Zap className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors"
               title="Edit team"
+              aria-label="Edit team"
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit2 className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
               title="Delete team"
+              aria-label="Delete team"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

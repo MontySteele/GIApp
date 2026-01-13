@@ -230,8 +230,9 @@ export default function GoalsSection({
                             size="sm"
                             onClick={() => deleteGoal(goal.id)}
                             className="text-red-400 hover:text-red-300"
+                            aria-label="Delete goal"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" aria-hidden="true" />
                           </Button>
                         </div>
                       </div>
@@ -288,8 +289,9 @@ export default function GoalsSection({
                     type="button"
                     onClick={() => handleRemoveChecklistItem(idx)}
                     className="text-slate-500 hover:text-red-400"
+                    aria-label="Remove checklist item"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               ))}
@@ -306,8 +308,8 @@ export default function GoalsSection({
                   }
                 }}
               />
-              <Button type="button" variant="secondary" onClick={handleAddChecklistItem}>
-                <Plus className="w-4 h-4" />
+              <Button type="button" variant="secondary" onClick={handleAddChecklistItem} aria-label="Add checklist item">
+                <Plus className="w-4 h-4" aria-hidden="true" />
               </Button>
             </div>
           </div>

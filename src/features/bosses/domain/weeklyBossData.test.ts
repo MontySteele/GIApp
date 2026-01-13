@@ -263,3 +263,128 @@ describe('Boss Drop Materials', () => {
     expect(azhdaha.drops).toContain('Gilded Scale');
   });
 });
+
+describe('Edge Cases', () => {
+  describe('formatTimeUntilReset edge cases', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should handle 59 minutes 59 seconds edge case', () => {
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      const futureDate = new Date('2026-01-15T12:59:59Z'); // 59m 59s ahead
+      const result = formatTimeUntilReset(futureDate);
+      expect(result).toBe('59m');
+    });
+
+    it('should handle 23 hours 59 minutes edge case', () => {
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      const futureDate = new Date('2026-01-16T11:59:00Z'); // 23h 59m ahead
+      const result = formatTimeUntilReset(futureDate);
+      expect(result).toBe('23h 59m');
+    });
+
+    it('should handle exactly 0 minutes left', () => {
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      const futureDate = new Date('2026-01-15T12:00:00Z'); // exactly now
+      const result = formatTimeUntilReset(futureDate);
+      expect(result).toBe('Reset!');
+    });
+
+    it('should handle 6 days 23 hours edge case', () => {
+      vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+      const futureDate = new Date('2026-01-22T11:00:00Z'); // 6d 23h ahead
+      const result = formatTimeUntilReset(futureDate);
+      expect(result).toBe('6d 23h');
+    });
+  });
+
+  describe('getNextWeeklyReset edge cases', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should return same week reset when on Monday before reset time', () => {
+      // Monday before 4 AM server time (which is 9 AM UTC)
+      vi.setSystemTime(new Date('2026-01-13T08:00:00Z')); // Monday 8 AM UTC, before 9 AM reset
+      const reset = getNextWeeklyReset();
+      // Should return this Monday's reset, not next week's
+      expect(reset.getUTCDay()).toBe(1); // Monday
+    });
+
+    it('should return next week reset when on Monday after reset time', () => {
+      // Monday after 4 AM server time
+      vi.setSystemTime(new Date('2026-01-13T10:00:00Z')); // Monday 10 AM UTC, after 9 AM reset
+      const reset = getNextWeeklyReset();
+      const now = new Date();
+      const diffDays = (reset.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      // Should be about 5-7 days in the future (depends on exact reset timing)
+      expect(diffDays).toBeGreaterThan(5);
+      expect(diffDays).toBeLessThanOrEqual(7);
+    });
+
+    it('should handle year boundary correctly', () => {
+      // December 31st
+      vi.setSystemTime(new Date('2025-12-31T12:00:00Z'));
+      const reset = getNextWeeklyReset();
+      // Reset should be in 2026
+      expect(reset).toBeInstanceOf(Date);
+      expect(reset.getTime()).toBeGreaterThan(new Date().getTime());
+    });
+
+    it('should handle leap year correctly', () => {
+      // February 28th on a leap year (2024)
+      vi.setSystemTime(new Date('2024-02-28T12:00:00Z'));
+      const reset = getNextWeeklyReset();
+      expect(reset).toBeInstanceOf(Date);
+      expect(reset.getTime()).toBeGreaterThan(new Date().getTime());
+    });
+  });
+
+  describe('Boss data integrity', () => {
+    it('should have all bosses with non-empty locations', () => {
+      WEEKLY_BOSSES.forEach((boss) => {
+        expect(boss.location.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should have all bosses with non-empty element string', () => {
+      WEEKLY_BOSSES.forEach((boss) => {
+        expect(boss.element).toBeDefined();
+        expect(boss.element.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should have release versions in chronological order conceptually', () => {
+      // First boss (Dvalin) should be from early version
+      const dvalin = WEEKLY_BOSS_MAP['dvalin'];
+      expect(parseFloat(dvalin.releaseVersion)).toBeLessThanOrEqual(1.0);
+
+      // Later bosses should have higher versions
+      const narwhal = WEEKLY_BOSS_MAP['narwhal'];
+      expect(parseFloat(narwhal.releaseVersion)).toBeGreaterThan(4.0);
+    });
+
+    it('should have Childe as the Tartaglia boss', () => {
+      const childe = WEEKLY_BOSS_MAP['childe'];
+      expect(childe.name).toBe('Childe');
+      expect(childe.region).toBe('Liyue');
+    });
+
+    it('should have all Fontaine bosses in correct region', () => {
+      const fontaineBosses = WEEKLY_BOSSES.filter((b) => b.region === 'Fontaine');
+      expect(fontaineBosses.length).toBeGreaterThan(0);
+      fontaineBosses.forEach((boss) => {
+        expect(parseFloat(boss.releaseVersion)).toBeGreaterThanOrEqual(4.0);
+      });
+    });
+  });
+});

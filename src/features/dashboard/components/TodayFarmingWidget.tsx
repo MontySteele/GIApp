@@ -2,12 +2,12 @@
  * Today's Farming Widget
  *
  * Shows which domains and materials are available to farm today
- * based on the game's domain schedule.
+ * and which characters in the roster need them.
  */
 
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, ArrowRight, Sparkles } from 'lucide-react';
+import { BookOpen, ArrowRight, Sparkles, Users, Clock } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
@@ -15,6 +15,7 @@ import {
   TALENT_BOOK_REGIONS,
 } from '@/features/planner/domain/materialConstants';
 import { getTodayName, type DayName } from '@/features/planner/domain/farmingSchedule';
+import { useTodayFarming } from '../hooks/useTodayFarming';
 
 interface DomainInfo {
   series: string;
@@ -76,7 +77,18 @@ export default function TodayFarmingWidget() {
   const availableDomains = useMemo(() => getAvailableDomains(today), [today]);
   const groupedDomains = useMemo(() => groupByRegion(availableDomains), [availableDomains]);
 
+  const {
+    isLoading,
+    availableTodayWithCharacters,
+    notAvailableToday,
+    totalCharactersProcessed,
+  } = useTodayFarming();
+
   const isSunday = today === 'Sunday';
+
+  // Check if user has characters and material data
+  const hasCharacterData = totalCharactersProcessed > 0;
+  const hasRecommendations = availableTodayWithCharacters.length > 0;
 
   return (
     <Card>
@@ -107,34 +119,113 @@ export default function TodayFarmingWidget() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {Object.entries(groupedDomains).map(([region, series]) => (
-              <div key={region} className="flex items-start gap-3">
-                <Badge
-                  variant={REGION_COLORS[region] ?? 'default'}
-                  className="text-xs min-w-[80px] justify-center"
-                >
-                  {region}
-                </Badge>
-                <div className="flex flex-wrap gap-1.5">
-                  {series.map((s) => (
-                    <span
-                      key={s}
-                      className="text-sm text-slate-300 bg-slate-800 px-2 py-0.5 rounded"
+          <div className="space-y-4">
+            {/* Character-specific recommendations */}
+            {isLoading ? (
+              <div className="space-y-2">
+                <div className="h-4 w-32 bg-slate-700 rounded animate-pulse" />
+                <div className="h-8 bg-slate-800 rounded animate-pulse" />
+              </div>
+            ) : hasCharacterData && hasRecommendations ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs text-green-400 font-medium">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Your characters need</span>
+                </div>
+                <div className="space-y-2">
+                  {availableTodayWithCharacters.slice(0, 3).map(({ series, region, characters }) => (
+                    <div
+                      key={series}
+                      className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg"
                     >
-                      {s}
-                    </span>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={REGION_COLORS[region] ?? 'default'}
+                          className="text-xs"
+                        >
+                          {series}
+                        </Badge>
+                        <span className="text-xs text-slate-500">({region})</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400">
+                          {characters.slice(0, 2).map((c) => c.characterKey).join(', ')}
+                          {characters.length > 2 && ` +${characters.length - 2}`}
+                        </span>
+                        <Badge variant="success" className="text-xs py-0">
+                          {characters.length}
+                        </Badge>
+                      </div>
+                    </div>
                   ))}
                 </div>
+
+                {/* Coming up (not available today) */}
+                {notAvailableToday.length > 0 && (
+                  <div className="pt-2 border-t border-slate-700/50">
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Wait for</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {notAvailableToday.slice(0, 2).map(({ series, nextAvailableDay, characters }) => (
+                        <span
+                          key={series}
+                          className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded"
+                        >
+                          {series} ({nextAvailableDay.slice(0, 3)}) - {characters.length} chars
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+            ) : hasCharacterData && !hasRecommendations ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>None of your characters need today's books</span>
+                </div>
+                {notAvailableToday.length > 0 && (
+                  <div className="text-xs text-slate-500">
+                    Next farming day: {notAvailableToday[0]?.nextAvailableDay} for {notAvailableToday[0]?.series}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Fallback to generic domain list when no character data */
+              <div className="space-y-3">
+                {Object.entries(groupedDomains).map(([region, series]) => (
+                  <div key={region} className="flex items-start gap-3">
+                    <Badge
+                      variant={REGION_COLORS[region] ?? 'default'}
+                      className="text-xs min-w-[80px] justify-center"
+                    >
+                      {region}
+                    </Badge>
+                    <div className="flex flex-wrap gap-1.5">
+                      {series.map((s) => (
+                        <span
+                          key={s}
+                          className="text-sm text-slate-300 bg-slate-800 px-2 py-0.5 rounded"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {!isSunday && (
           <div className="mt-4 pt-3 border-t border-slate-700/50">
             <p className="text-xs text-slate-500">
-              Talent book domains rotate daily. Check the planner for your character needs.
+              {hasCharacterData
+                ? `${totalCharactersProcessed} characters analyzed • Talent book domains rotate daily`
+                : 'Add characters to see personalized recommendations'}
             </p>
           </div>
         )}
