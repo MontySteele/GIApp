@@ -1,5 +1,51 @@
 # Changelog
 
+## 2026-01-13 (Sprint 17 - Type Safety & Validation)
+
+### TypeScript Error Fixes (P0)
+- **BuildTemplateForm.tsx** - Fixed 8 errors with simplified FormData interface and conversion functions
+- **GcsimImportModal.tsx** - Fixed Badge variant error by adding 'secondary' to Badge component
+- **gcsimParser.ts** - Fixed 4 null-check errors on regex match results
+- **Badge.tsx** - Added 'secondary' variant with slate-600 styling
+
+### Zod Form Validation (P1)
+- **New validation library** - Added `zod` dependency for schema-based form validation
+- **CharacterForm** - Level (1-90), ascension (0-6), constellation (0-6), talents (1-15), priority
+- **TeamForm** - Team name validation (1-50 chars), 1-4 character keys, notes, tags
+- **BuildTemplateForm** - Full build template validation with nested weapon/artifact/leveling schemas
+- **Error display** - All forms show inline validation errors on submit
+
+### E2E Tier 2 Tests (P1)
+- **multi-character-planner.spec.ts** - Multi-character selection, material aggregation, resin calculation
+- **pull-calculators.spec.ts** - Single-target pity, multi-target sequential planning, probability display
+- **wfpsim-export.spec.ts** - Team export modal, config generation, clipboard functionality
+- **modal-navigation.spec.ts** - Modal state preservation, accessibility (focus trap, escape key)
+
+### Constants Extraction (P2)
+- **src/lib/constants/** - New directory for magic string extraction
+  - `bannerTypes.ts` - CHARACTER, WEAPON, STANDARD, CHRONICLED
+  - `elements.ts` - 7 elements with colors, icons, resonance labels
+  - `weaponTypes.ts` - 5 weapon types with display names and icons
+  - `storageKeys.ts` - LocalStorage keys for app state
+  - `errorMessages.ts` - Common error messages
+
+### Additional Fixes
+- **GoalsSection.tsx** - Fixed ChecklistItem id generation and toggle parameter types
+- **useFilterSort.ts** - Fixed filter interface type constraints
+- **BuildTemplatesPage.tsx** - Fixed artifact import transformation
+- **teams/index.ts** - Fixed GcsimExportOptions export name
+
+### Technical
+- New files: 11 (4 E2E tests, 3 validation schemas + index, 5 constants files + index)
+- Modified files: 16
+- Lines changed: ~1,800 added, ~40 removed
+- Build status: Passing
+- TypeScript errors: 0
+
+See `docs/SPRINT_17_PLAN.md` for full details.
+
+---
+
 ## 2026-01-13 (Sprint 16 - UX Polish & Test Coverage)
 
 ### UI/UX Improvements

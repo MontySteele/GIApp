@@ -28,12 +28,28 @@ e2e/
 │   ├── TeamsPage.ts
 │   └── WishesPage.ts
 └── tests/
+    ├── # Tier 1 - Critical Paths
     ├── character-crud.spec.ts
     ├── character-import.spec.ts
     ├── navigation.spec.ts
     ├── team-management.spec.ts
-    └── ...
+    ├── good-import.spec.ts
+    ├── wish-display.spec.ts
+    │
+    ├── # Tier 2 - Feature Flows (Sprint 17)
+    ├── multi-character-planner.spec.ts  # Multi-char selection, material aggregation
+    ├── pull-calculators.spec.ts         # Pity calc, multi-target planning
+    ├── wfpsim-export.spec.ts            # Team export, config generation
+    └── modal-navigation.spec.ts         # Modal state, accessibility
 ```
+
+### Test Tiers
+
+| Tier | Focus | Tests |
+|------|-------|-------|
+| Tier 1 | Critical user paths | 8 tests (character CRUD, import, navigation, teams, wishes) |
+| Tier 2 | Feature workflows | 4 tests (planner, calculators, export, modals) |
+| Tier 3 | Edge cases | Planned for future sprints |
 
 ---
 
