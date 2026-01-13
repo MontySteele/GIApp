@@ -275,37 +275,58 @@ const icons = {
 
 ## Implementation Order
 
-### Sprint A: Foundation (Phases 1, 5)
+### Sprint A: Foundation (Phases 1, 5) ✅ COMPLETE
 1. ✅ Set up new routing structure
 2. ✅ Roster consolidation (add weapons/artifacts as sub-tabs)
 3. ✅ Update navigation
 4. ✅ Add redirects for old routes
 
-**Deliverable**: 9 tabs → cleaner Roster
+**Deliverable**: 13 tabs → 11 tabs (cleaner Roster)
 
-### Sprint B: Wishes Hub (Phase 2)
-1. Create Wishes sub-navigation
-2. Move Calculator page
-3. Move Ledger/Budget page
-4. Integrate shared pity context
+### Sprint B: Wishes Hub (Phase 2) ✅ COMPLETE
+1. ✅ Create Wishes sub-navigation
+2. ✅ Move Calculator page
+3. ✅ Move Ledger/Budget page
+4. ✅ Integrate shared pity context
 
-**Deliverable**: 7 tabs → unified Wishes
+**Deliverable**: 11 tabs → 9 tabs (unified Wishes)
 
-### Sprint C: Teams Hub (Phase 3)
-1. Create Teams page structure
-2. Integrate Planner material calculations
-3. Integrate Build templates
-4. Integrate Boss tracker with team context
-5. Connect wfpsim export
+### Sprint C: Teams Hub (Phase 3) ✅ COMPLETE
+1. ✅ Create Teams page structure
+2. ✅ Integrate Planner material calculations
+3. ✅ Integrate Build templates
+4. ✅ Integrate Boss tracker with team context
+5. ✅ Connect wfpsim export
 
-**Deliverable**: 6 tabs → team-centric workflow
+**Deliverable**: 9 tabs → 7 tabs (team-centric workflow)
 
-### Sprint D: Polish (Phase 4)
-1. Redistribute Notes/Goals
-2. Dashboard improvements
-3. UX polish and testing
+### Sprint D: Polish (Phase 4) ✅ COMPLETE
+1. ✅ Redistribute Notes/Goals (QuickNotesWidget, GoalsSection)
+2. ✅ Dashboard improvements (notes widget, updated links)
+3. ✅ Character/Team detail page goals integration
 
-**Deliverable**: Final 6-tab experience
+**Deliverable**: 7 tabs → 6 tabs (Final experience)
+
+---
+
+## Sprint 13: Future Enhancements (Backlog)
+
+The following items were identified during Sprint 12 refactoring but deferred:
+
+### High Priority
+- [ ] Build template application to team members (show current vs target build gap)
+- [ ] Filter weekly bosses by team's material needs in TeamDetailPage
+- [ ] Shared header in Wishes showing current pity state across all sub-tabs
+
+### Medium Priority
+- [ ] Goal creation in-context (quick-add from character/team pages)
+- [ ] Link budget projections to calculator scenarios
+- [ ] "Apply template" action on team member cards
+
+### Low Priority / Nice-to-have
+- [ ] Add `buildTemplateId` to team members schema for applied builds
+- [ ] Team sharing/export functionality
+- [ ] Consolidated "Today's farming" widget on Dashboard
 
 ---
 
@@ -335,11 +356,13 @@ const icons = {
 
 ## Success Metrics
 
-- [ ] 6 functional tabs (down from 13)
-- [ ] All 1,192 tests passing
-- [ ] Team-centric workflow functional end-to-end
-- [ ] Old routes redirect properly
-- [ ] No regression in existing features
+- [x] 6 functional tabs (down from 13) ✅
+- [x] All 1,192 tests passing ✅
+- [x] Team-centric workflow functional end-to-end ✅
+- [x] Old routes redirect properly ✅
+- [x] No regression in existing features ✅
+
+**Completed**: January 2026
 
 ---
 
