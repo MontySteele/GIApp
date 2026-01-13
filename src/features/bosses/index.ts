@@ -4,6 +4,9 @@
  * Public API for weekly boss tracking
  */
 
+// Pages
+export { default as WeeklyBossTrackerPage } from './pages/WeeklyBossTrackerPage';
+
 // Components
 export { default as WeeklyBossTracker } from './components/WeeklyBossTracker';
 

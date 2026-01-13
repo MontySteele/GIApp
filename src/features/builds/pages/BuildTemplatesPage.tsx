@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, Filter, BookOpen } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
+import Modal from '@/components/ui/Modal';
 import { Card, CardContent } from '@/components/ui/Card';
 import BuildTemplateCard from '../components/BuildTemplateCard';
+import BuildTemplateForm from '../components/BuildTemplateForm';
 import { useBuildTemplates, type BuildTemplateQuery } from '../hooks/useBuildTemplates';
-import type { CharacterRole, BuildDifficulty, BuildBudget } from '@/types';
+import type { CharacterRole, BuildDifficulty, BuildBudget, BuildTemplate } from '@/types';
 
 export default function BuildTemplatesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,6 +17,8 @@ export default function BuildTemplatesPage() {
   const [difficultyFilter, setDifficultyFilter] = useState<BuildDifficulty | ''>('');
   const [budgetFilter, setBudgetFilter] = useState<BuildBudget | ''>('');
   const [officialOnly, setOfficialOnly] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<BuildTemplate | null>(null);
 
   const query: BuildTemplateQuery = useMemo(
     () => ({
@@ -30,13 +34,37 @@ export default function BuildTemplatesPage() {
     [searchQuery, roleFilter, difficultyFilter, budgetFilter, officialOnly]
   );
 
-  const { templates, allTemplates, stats, isLoading, deleteTemplate } = useBuildTemplates(query);
+  const { templates, allTemplates, stats, isLoading, createTemplate, updateTemplate, deleteTemplate } = useBuildTemplates(query);
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this build template?')) {
       await deleteTemplate(id);
     }
   };
+
+  const handleEdit = useCallback((template: BuildTemplate) => {
+    setEditingTemplate(template);
+    setShowFormModal(true);
+  }, []);
+
+  const handleCreate = useCallback(() => {
+    setEditingTemplate(null);
+    setShowFormModal(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setShowFormModal(false);
+    setEditingTemplate(null);
+  }, []);
+
+  const handleSave = useCallback(async (data: Omit<BuildTemplate, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editingTemplate) {
+      await updateTemplate(editingTemplate.id, data);
+    } else {
+      await createTemplate(data);
+    }
+    handleCloseModal();
+  }, [editingTemplate, createTemplate, updateTemplate, handleCloseModal]);
 
   if (isLoading) {
     return (
@@ -57,7 +85,7 @@ export default function BuildTemplatesPage() {
             {stats?.official ? ` (${stats.official} official)` : ''}
           </p>
         </div>
-        <Button>
+        <Button onClick={handleCreate}>
           <Plus className="w-4 h-4" />
           New Template
         </Button>
@@ -183,7 +211,7 @@ export default function BuildTemplatesPage() {
                 : 'Try adjusting your search or filters.'}
             </p>
             {allTemplates.length === 0 && (
-              <Button>
+              <Button onClick={handleCreate}>
                 <Plus className="w-4 h-4" />
                 Create Template
               </Button>
@@ -200,12 +228,26 @@ export default function BuildTemplatesPage() {
               <BuildTemplateCard
                 key={template.id}
                 template={template}
+                onEdit={handleEdit}
                 onDelete={handleDelete}
               />
             ))}
           </div>
         </>
       )}
+
+      {/* Create/Edit Modal */}
+      <Modal
+        isOpen={showFormModal}
+        onClose={handleCloseModal}
+        title={editingTemplate ? 'Edit Build Template' : 'Create Build Template'}
+      >
+        <BuildTemplateForm
+          template={editingTemplate ?? undefined}
+          onSave={handleSave}
+          onCancel={handleCloseModal}
+        />
+      </Modal>
     </div>
   );
 }

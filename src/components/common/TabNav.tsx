@@ -2,27 +2,19 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
-  Gem,
-  Sword,
-  Target,
+  UsersRound,
   Sparkles,
-  Calculator,
-  Coins,
   Calendar,
   StickyNote,
-  Settings
+  Settings,
 } from 'lucide-react';
 import { TABS } from '@/lib/constants';
 
 const icons = {
   dashboard: LayoutDashboard,
   roster: Users,
-  artifacts: Gem,
-  weapons: Sword,
-  planner: Target,
+  teams: UsersRound,
   wishes: Sparkles,
-  calculator: Calculator,
-  ledger: Coins,
   calendar: Calendar,
   notes: StickyNote,
   settings: Settings,
