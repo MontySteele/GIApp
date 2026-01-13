@@ -107,14 +107,19 @@ export const sampleEnkaUID = '123456789';
  * Clear IndexedDB databases for clean test state
  */
 export async function clearDatabase(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const databases = await indexedDB.databases();
-    for (const db of databases) {
-      if (db.name) {
-        indexedDB.deleteDatabase(db.name);
-      }
-    }
-  });
+  // Use known database name from the app
+  const DB_NAME = 'genshin-progress-tracker';
+
+  try {
+    await page.evaluate((dbName) => {
+      // Simple synchronous delete request - fire and forget
+      indexedDB.deleteDatabase(dbName);
+    }, DB_NAME);
+    // Give it a moment to process
+    await page.waitForTimeout(200);
+  } catch {
+    // Ignore errors - database might not exist or page might not be ready
+  }
 }
 
 /**
