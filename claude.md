@@ -6,6 +6,7 @@ A local-first PWA for Genshin Impact players to track characters, wishes, primog
 
 - **[Architecture](docs/ARCHITECTURE.md)** - Tech stack, file structure, design patterns
 - **[Contributing](docs/CONTRIBUTING.md)** - Development guidelines, TDD, coding standards
+- **[E2E Testing](docs/E2E_TESTING.md)** - Playwright setup, troubleshooting, containerized environments
 - **[Changelog](docs/CHANGELOG.md)** - Sprint history and recent changes
 - **[Refactoring Plan](docs/REFACTORING_PLAN.md)** - UI consolidation plan (13→6 tabs)
 - **[Test Plan](TEST_COVERAGE_PLAN.md)** - Test coverage strategy and priorities
@@ -39,8 +40,9 @@ A local-first PWA for Genshin Impact players to track characters, wishes, primog
 npm install          # Install dependencies
 npm run dev          # Start dev server
 npm run build        # Production build
-npm run test:run     # Run tests
+npm run test:run     # Run unit tests
 npm run test:coverage   # Coverage report
+npm run test:e2e     # Run E2E tests (requires: npx playwright install chromium)
 ```
 
 ---
