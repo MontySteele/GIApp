@@ -3,6 +3,20 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TodayFarmingWidget from './TodayFarmingWidget';
 
+// Mock the useTodayFarming hook
+vi.mock('../hooks/useTodayFarming', () => ({
+  useTodayFarming: vi.fn(() => ({
+    today: 'Monday',
+    isLoading: false,
+    charactersByBook: new Map(),
+    availableTodayWithCharacters: [],
+    notAvailableToday: [],
+    totalCharactersProcessed: 0,
+  })),
+}));
+
+import { useTodayFarming } from '../hooks/useTodayFarming';
+
 // Helper to render with router
 function renderWidget() {
   return render(
@@ -13,6 +27,17 @@ function renderWidget() {
 }
 
 describe('TodayFarmingWidget', () => {
+  beforeEach(() => {
+    vi.mocked(useTodayFarming).mockReturnValue({
+      today: 'Monday',
+      isLoading: false,
+      charactersByBook: new Map(),
+      availableTodayWithCharacters: [],
+      notAvailableToday: [],
+      totalCharactersProcessed: 0,
+    });
+  });
+
   describe('renders correctly', () => {
     it('displays the widget title', () => {
       renderWidget();
@@ -49,7 +74,7 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows all domains message on Sunday', () => {
-      // Mock Sunday (0)
+      // Mock Sunday
       const mockDate = new Date('2024-01-07T12:00:00'); // A Sunday
       vi.setSystemTime(mockDate);
 
@@ -59,7 +84,7 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows Monday/Thursday domains on Monday', () => {
-      // Mock Monday (1)
+      // Mock Monday
       const mockDate = new Date('2024-01-08T12:00:00'); // A Monday
       vi.setSystemTime(mockDate);
 
@@ -71,7 +96,7 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows Tuesday/Friday domains on Tuesday', () => {
-      // Mock Tuesday (2)
+      // Mock Tuesday
       const mockDate = new Date('2024-01-09T12:00:00'); // A Tuesday
       vi.setSystemTime(mockDate);
 
@@ -83,7 +108,7 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows Wednesday/Saturday domains on Wednesday', () => {
-      // Mock Wednesday (3)
+      // Mock Wednesday
       const mockDate = new Date('2024-01-10T12:00:00'); // A Wednesday
       vi.setSystemTime(mockDate);
 
@@ -130,18 +155,157 @@ describe('TodayFarmingWidget', () => {
       vi.useRealTimers();
     });
 
-    it('shows rotation info on non-Sunday days', () => {
+    it('shows info message on non-Sunday days when no characters', () => {
       renderWidget();
 
+      expect(screen.getByText(/add characters to see personalized recommendations/i)).toBeInTheDocument();
+    });
+
+    it('shows rotation info when characters are processed', () => {
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Monday',
+        isLoading: false,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [],
+        totalCharactersProcessed: 5,
+      });
+
+      renderWidget();
+
+      expect(screen.getByText(/5 characters analyzed/i)).toBeInTheDocument();
       expect(screen.getByText(/talent book domains rotate daily/i)).toBeInTheDocument();
     });
 
-    it('does not show rotation info on Sunday', () => {
+    it('does not show info text on Sunday', () => {
       vi.setSystemTime(new Date('2024-01-07T12:00:00')); // Sunday
 
       renderWidget();
 
       expect(screen.queryByText(/talent book domains rotate daily/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('character-specific recommendations', () => {
+    beforeEach(() => {
+      const mockDate = new Date('2024-01-08T12:00:00'); // Monday
+      vi.setSystemTime(mockDate);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('shows loading state while fetching character data', () => {
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Monday',
+        isLoading: true,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [],
+        totalCharactersProcessed: 0,
+      });
+
+      renderWidget();
+
+      // Should show loading skeleton
+      expect(screen.getByText("Today's Farming")).toBeInTheDocument();
+      // The skeleton has animate-pulse class
+      const skeletonElements = document.querySelectorAll('.animate-pulse');
+      expect(skeletonElements.length).toBeGreaterThan(0);
+    });
+
+    it('shows personalized recommendations when characters have book needs', () => {
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Monday',
+        isLoading: false,
+        charactersByBook: new Map([
+          ['Freedom', [{ characterKey: 'Venti', characterLevel: 90, bookSeries: 'Freedom', region: 'Mondstadt', availableToday: true }]],
+        ]),
+        availableTodayWithCharacters: [
+          {
+            series: 'Freedom',
+            region: 'Mondstadt',
+            characters: [
+              { characterKey: 'Venti', characterLevel: 90, bookSeries: 'Freedom', region: 'Mondstadt', availableToday: true },
+              { characterKey: 'Amber', characterLevel: 80, bookSeries: 'Freedom', region: 'Mondstadt', availableToday: true },
+            ],
+          },
+        ],
+        notAvailableToday: [],
+        totalCharactersProcessed: 2,
+      });
+
+      renderWidget();
+
+      // Should show personalized header
+      expect(screen.getByText(/your characters need/i)).toBeInTheDocument();
+      // Should show the book series
+      expect(screen.getByText('Freedom')).toBeInTheDocument();
+      // Should show character names
+      expect(screen.getByText(/Venti, Amber/i)).toBeInTheDocument();
+    });
+
+    it('shows message when no characters need today\'s books', () => {
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Monday',
+        isLoading: false,
+        charactersByBook: new Map([
+          ['Ballad', [{ characterKey: 'Barbara', characterLevel: 80, bookSeries: 'Ballad', region: 'Mondstadt', availableToday: false }]],
+        ]),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [
+          {
+            series: 'Ballad',
+            region: 'Mondstadt',
+            characters: [{ characterKey: 'Barbara', characterLevel: 80, bookSeries: 'Ballad', region: 'Mondstadt', availableToday: false }],
+            nextAvailableDay: 'Wednesday',
+          },
+        ],
+        totalCharactersProcessed: 1,
+      });
+
+      renderWidget();
+
+      // Should show message about no books needed today
+      expect(screen.getByText(/none of your characters need today's books/i)).toBeInTheDocument();
+      // Should show next farming day
+      expect(screen.getByText(/wednesday/i)).toBeInTheDocument();
+    });
+
+    it('shows wait for section when some books not available today', () => {
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Monday',
+        isLoading: false,
+        charactersByBook: new Map([
+          ['Freedom', [{ characterKey: 'Venti', characterLevel: 90, bookSeries: 'Freedom', region: 'Mondstadt', availableToday: true }]],
+          ['Ballad', [{ characterKey: 'Barbara', characterLevel: 80, bookSeries: 'Ballad', region: 'Mondstadt', availableToday: false }]],
+        ]),
+        availableTodayWithCharacters: [
+          {
+            series: 'Freedom',
+            region: 'Mondstadt',
+            characters: [{ characterKey: 'Venti', characterLevel: 90, bookSeries: 'Freedom', region: 'Mondstadt', availableToday: true }],
+          },
+        ],
+        notAvailableToday: [
+          {
+            series: 'Ballad',
+            region: 'Mondstadt',
+            characters: [{ characterKey: 'Barbara', characterLevel: 80, bookSeries: 'Ballad', region: 'Mondstadt', availableToday: false }],
+            nextAvailableDay: 'Wednesday',
+          },
+        ],
+        totalCharactersProcessed: 2,
+      });
+
+      renderWidget();
+
+      // Should show recommendations for today
+      expect(screen.getByText('Freedom')).toBeInTheDocument();
+      // Should show "wait for" section
+      expect(screen.getByText(/wait for/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ballad/i)).toBeInTheDocument();
     });
   });
 });

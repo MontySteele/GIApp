@@ -298,4 +298,163 @@ describe('WeeklyBossTracker', () => {
       expect(filterButton).toBeInTheDocument();
     });
   });
+
+  describe('Edge Cases - State Management', () => {
+    it('should handle invalid localStorage data gracefully', () => {
+      // Set invalid JSON in localStorage
+      mockLocalStorage.getItem.mockReturnValue('invalid json{{{');
+
+      // Should not crash, render with empty state
+      render(<WeeklyBossTracker />);
+      expect(screen.getByText('0/10 completed this week')).toBeInTheDocument();
+    });
+
+    it('should handle null localStorage gracefully', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
+
+      render(<WeeklyBossTracker />);
+      expect(screen.getByText('0/10 completed this week')).toBeInTheDocument();
+    });
+
+    it('should handle localStorage with missing fields', () => {
+      // State without weekStart
+      mockLocalStorage.setItem(
+        'weeklyBossState',
+        JSON.stringify({ completed: ['dvalin'] })
+      );
+      mockLocalStorage.getItem.mockReturnValue(
+        JSON.stringify({ completed: ['dvalin'] })
+      );
+
+      render(<WeeklyBossTracker />);
+      // Should still render without crashing
+      expect(screen.getByText('Weekly Bosses')).toBeInTheDocument();
+    });
+
+    it('should handle localStorage with invalid completed boss keys', () => {
+      mockLocalStorage.getItem.mockReturnValue(
+        JSON.stringify({
+          weekStart: new Date('2026-01-13T09:00:00Z').toISOString(),
+          completed: ['invalid_boss', 'dvalin', 'another_invalid'],
+        })
+      );
+
+      render(<WeeklyBossTracker />);
+      // Should only count valid boss (dvalin)
+      expect(screen.getByText('Weekly Bosses')).toBeInTheDocument();
+    });
+  });
+
+
+  describe('Edge Cases - Material Filtering', () => {
+    it('should show all bosses when filtering for empty materials array', () => {
+      render(<WeeklyBossTracker requiredMaterials={[]} />);
+
+      // Should not show filter button when no materials needed
+      expect(screen.queryByText('Team Needs')).not.toBeInTheDocument();
+    });
+
+    it('should maintain filter toggle state', () => {
+      const requiredMaterials: RequiredWeeklyMaterial[] = [
+        { name: "Dvalin's Plume", required: 6 },
+      ];
+
+      render(<WeeklyBossTracker requiredMaterials={requiredMaterials} />);
+
+      // Initially filter is off - all bosses visible
+      expect(screen.getByText('Stormterror Dvalin')).toBeInTheDocument();
+      expect(screen.getByText('Childe')).toBeInTheDocument();
+
+      // Toggle filter on
+      fireEvent.click(screen.getByText('Team Needs'));
+
+      // Only Dvalin should be visible (drops Dvalin's Plume)
+      expect(screen.getByText('Stormterror Dvalin')).toBeInTheDocument();
+      expect(screen.queryByText('Childe')).not.toBeInTheDocument();
+
+      // Toggle filter off
+      fireEvent.click(screen.getByText('Show All'));
+
+      // All bosses visible again
+      expect(screen.getByText('Childe')).toBeInTheDocument();
+    });
+
+    it('should show needed count with single boss materials', () => {
+      // All drops from same boss (Dvalin)
+      const requiredMaterials: RequiredWeeklyMaterial[] = [
+        { name: "Dvalin's Plume", required: 6 },
+        { name: "Dvalin's Sigh", required: 4 },
+        { name: "Dvalin's Claw", required: 2 },
+      ];
+
+      render(<WeeklyBossTracker requiredMaterials={requiredMaterials} />);
+
+      // Should only show 1 boss needed since all materials come from Dvalin
+      expect(screen.getByText('(1 needed for team)')).toBeInTheDocument();
+    });
+
+    it('should show needed count with multiple boss materials', () => {
+      const requiredMaterials: RequiredWeeklyMaterial[] = [
+        { name: "Dvalin's Plume", required: 6 },
+        { name: 'Tail of Boreas', required: 9 },
+        { name: 'Shadow of the Warrior', required: 3 },
+      ];
+
+      render(<WeeklyBossTracker requiredMaterials={requiredMaterials} />);
+
+      // Should show 3 bosses needed
+      expect(screen.getByText('(3 needed for team)')).toBeInTheDocument();
+    });
+  });
+
+  describe('Compact Mode - Extended', () => {
+    it('should show remaining count in compact mode', () => {
+      mockLocalStorage.getItem.mockReturnValue(
+        JSON.stringify({
+          weekStart: new Date('2026-01-13T09:00:00Z').toISOString(),
+          completed: ['dvalin', 'andrius', 'childe'],
+        })
+      );
+
+      render(<WeeklyBossTracker compact />);
+
+      expect(screen.getByText('3/10 completed')).toBeInTheDocument();
+      expect(screen.getByText('0 discounts left')).toBeInTheDocument();
+    });
+
+    it('should not show individual boss cards in compact mode', () => {
+      render(<WeeklyBossTracker compact />);
+
+      // Boss names should not be visible in compact mode
+      expect(screen.queryByText('Stormterror Dvalin')).not.toBeInTheDocument();
+      expect(screen.queryByText('Wolf of the North')).not.toBeInTheDocument();
+    });
+
+    it('should show progress indicator in compact mode', () => {
+      render(<WeeklyBossTracker compact />);
+
+      // Compact mode should have a progress indicator
+      expect(screen.getByText('Weekly Bosses')).toBeInTheDocument();
+    });
+  });
+
+  describe('Filter with filterByTeamNeeds prop', () => {
+    it('should auto-enable filter when filterByTeamNeeds is true', () => {
+      const requiredMaterials: RequiredWeeklyMaterial[] = [
+        { name: "Dvalin's Plume", required: 6 },
+      ];
+
+      render(
+        <WeeklyBossTracker
+          requiredMaterials={requiredMaterials}
+          filterByTeamNeeds={true}
+        />
+      );
+
+      // Filter should be auto-enabled, so only Dvalin should be visible
+      expect(screen.getByText('Stormterror Dvalin')).toBeInTheDocument();
+      // Childe should not be visible when filter is enabled
+      expect(screen.queryByText('Childe')).not.toBeInTheDocument();
+    });
+  });
 });

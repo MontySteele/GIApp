@@ -14,6 +14,8 @@ import { calculateRequiredIncome } from '../domain/analyticalCalc';
 import type { BannerType } from '@/types';
 import { useCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
 import { getAvailablePullsFromTracker } from '../selectors/availablePulls';
+import BudgetLinkBanner from './BudgetLinkBanner';
+import { useBudgetLink } from '../hooks/useBudgetLink';
 
 export function ReverseCalculator() {
   const [numTargets, setNumTargets] = useState(1);
@@ -26,8 +28,18 @@ export function ReverseCalculator() {
   const [radiantStreak, setRadiantStreak] = useState(0);
   const [bannerType, setBannerType] = useState<BannerType>('character');
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
-  const [isSyncingAvailablePulls, setIsSyncingAvailablePulls] = useState(false);
   const pitySnapshot = useCurrentPity(bannerType);
+  const budgetData = useBudgetLink(30);
+
+  const handleUseBudget = (pulls: number) => {
+    setCurrentAvailablePulls(pulls);
+  };
+
+  const handleSyncDailyRate = () => {
+    if (budgetData.dailyRate > 0) {
+      setCustomDailyPrimogemIncome(Math.round(budgetData.dailyRate));
+    }
+  };
 
   const [results, setResults] = useState<ReturnType<typeof calculateRequiredIncome> | null>(null);
 
@@ -160,13 +172,8 @@ export function ReverseCalculator() {
   };
 
   const syncAvailablePulls = async () => {
-    setIsSyncingAvailablePulls(true);
-    try {
-      const { availablePulls } = await getAvailablePullsFromTracker();
-      setCurrentAvailablePulls(Math.floor(availablePulls));
-    } finally {
-      setIsSyncingAvailablePulls(false);
-    }
+    const { availablePulls } = await getAvailablePullsFromTracker();
+    setCurrentAvailablePulls(Math.floor(availablePulls));
   };
 
   useEffect(() => {
@@ -188,12 +195,22 @@ export function ReverseCalculator() {
           ]}
         />
       </div>
+
+      {/* Budget Link Banner */}
+      <BudgetLinkBanner onUseBudget={handleUseBudget} projectionDays={daysAvailable} />
+
       <div className="flex justify-end gap-2 flex-wrap">
         <Button size="sm" variant="secondary" onClick={handleUseCurrentPity} disabled={!pitySnapshot}>
           Use current pity
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => void syncAvailablePulls()} disabled={isSyncingAvailablePulls}>
-          Sync from tracker
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleSyncDailyRate}
+          disabled={!budgetData.hasData || budgetData.dailyRate === 0}
+          title={budgetData.dailyRate > 0 ? `Set to ${Math.round(budgetData.dailyRate)} primos/day` : 'No budget data'}
+        >
+          Use budget daily rate
         </Button>
       </div>
 

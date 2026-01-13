@@ -338,9 +338,9 @@ export default function TeamDetailPage() {
         title="Edit Team"
       >
         <TeamForm
-          team={team}
+          initialData={team}
           characters={characters}
-          onSave={handleSaveTeam}
+          onSubmit={handleSaveTeam}
           onCancel={() => setShowEditModal(false)}
         />
       </Modal>

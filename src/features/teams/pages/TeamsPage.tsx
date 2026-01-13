@@ -140,9 +140,9 @@ export default function TeamsPage() {
         title={editingTeam ? 'Edit Team' : 'Create Team'}
       >
         <TeamForm
-          team={editingTeam ?? undefined}
+          initialData={editingTeam ?? undefined}
           characters={characters}
-          onSave={handleSaveTeam}
+          onSubmit={handleSaveTeam}
           onCancel={handleCloseTeamModal}
         />
       </Modal>
