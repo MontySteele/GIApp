@@ -4,8 +4,7 @@ import {
   Users,
   UsersRound,
   Sparkles,
-  Calendar,
-  StickyNote,
+  Target,
   Settings,
 } from 'lucide-react';
 import { TABS } from '@/lib/constants';
@@ -14,9 +13,8 @@ const icons = {
   dashboard: LayoutDashboard,
   roster: Users,
   teams: UsersRound,
-  wishes: Sparkles,
-  calendar: Calendar,
-  notes: StickyNote,
+  pulls: Sparkles,
+  planner: Target,
   settings: Settings,
 };
 
