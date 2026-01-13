@@ -8,6 +8,7 @@ import Select from '@/components/ui/Select';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Calculator } from 'lucide-react';
 import ProbabilityChart from './ProbabilityChart';
+import BudgetLinkBanner from './BudgetLinkBanner';
 
 export default function SingleTargetCalculator() {
   const pitySnapshot = useCurrentPity('character');
@@ -39,8 +40,15 @@ export default function SingleTargetCalculator() {
     setRadiantStreak(pitySnapshot.radiantStreak);
   };
 
+  const handleUseBudget = (pulls: number) => {
+    setAvailablePulls(pulls);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Budget Link Banner */}
+      <BudgetLinkBanner onUseBudget={handleUseBudget} />
+
       {/* Input Form */}
       <Card>
         <CardHeader>

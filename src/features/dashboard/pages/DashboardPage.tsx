@@ -19,6 +19,7 @@ import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useResources } from '@/features/ledger/hooks/useResources';
 import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
+import TodayFarmingWidget from '../components/TodayFarmingWidget';
 import {
   calculateCurrentResin,
   timeUntilFull,
@@ -214,6 +215,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Today's Farming Widget */}
+      <TodayFarmingWidget />
 
       {/* Notes & Reminders Widget */}
       <QuickNotesWidget maxStickies={4} maxNotes={2} />
