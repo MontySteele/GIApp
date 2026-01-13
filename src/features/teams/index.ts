@@ -7,6 +7,7 @@
 // Components
 export { default as WfpsimExportModal } from './components/WfpsimExportModal';
 export { default as TeamsSubNav } from './components/TeamsSubNav';
+export { default as TeamMemberCard } from './components/TeamMemberCard';
 
 // Pages
 export { default as TeamsLayout } from './pages/TeamsLayout';

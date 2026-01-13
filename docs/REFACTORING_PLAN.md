@@ -309,24 +309,42 @@ const icons = {
 
 ---
 
-## Sprint 13: Future Enhancements (Backlog)
+## Sprint 13: Build Template Integration (In Progress)
 
-The following items were identified during Sprint 12 refactoring but deferred:
+### High Priority ✅
+- [x] Build template application to team members (show current vs target build gap)
+- [x] Filter weekly bosses by team's material needs in TeamDetailPage
+- [x] Shared header in Wishes showing current pity state across all sub-tabs
 
-### High Priority
-- [ ] Build template application to team members (show current vs target build gap)
-- [ ] Filter weekly bosses by team's material needs in TeamDetailPage
-- [ ] Shared header in Wishes showing current pity state across all sub-tabs
-
-### Medium Priority
+### Medium Priority ✅
+- [x] "Apply template" action on team member cards
 - [ ] Goal creation in-context (quick-add from character/team pages)
 - [ ] Link budget projections to calculator scenarios
-- [ ] "Apply template" action on team member cards
 
-### Low Priority / Nice-to-have
-- [ ] Add `buildTemplateId` to team members schema for applied builds
+### Low Priority ✅
+- [x] Add `buildTemplateId` to team members schema for applied builds
+
+### Remaining Backlog
+- [ ] Goal creation in-context (quick-add from character/team pages)
+- [ ] Link budget projections to calculator scenarios
 - [ ] Team sharing/export functionality
 - [ ] Consolidated "Today's farming" widget on Dashboard
+
+### Sprint 13 Deliverables
+
+**New Components:**
+- `PityHeader` - Shared pity state display across all Wishes sub-tabs
+- `BuildGapDisplay` - Shows current vs target build comparison
+- `ApplyTemplateModal` - Browse and apply build templates to team members
+- `TeamMemberCard` - Enhanced team member display with template support
+
+**Updated Components:**
+- `WishesLayout` - Now includes PityHeader
+- `WeeklyBossTracker` - Filter by team's required materials
+- `TeamDetailPage` - Uses TeamMemberCard, passes required materials to boss tracker
+
+**Schema Updates:**
+- `Team.memberBuildTemplates` - Optional field to store applied template IDs per character
 
 ---
 
