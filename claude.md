@@ -61,27 +61,25 @@ React Components → Hooks → Repository Layer → Dexie (IndexedDB)
 
 ---
 
-## Current Sprint: 13 - Complete (January 2026)
+## Current Sprint: 14 - In Progress (January 2026)
 
-### Sprint 13: Build Template Integration ✅
-- **PityHeader** - Shared pity state across all Wishes sub-tabs (character, weapon, standard, chronicled)
-- **BuildGapDisplay** - Shows current vs target build comparison with completion percentage
-- **ApplyTemplateModal** - Browse and apply build templates to team members
-- **TeamMemberCard** - Enhanced team member display with template support
-- **Weekly boss filtering** - Filter bosses by team's required materials
-- **Team schema update** - `memberBuildTemplates` field for persisting applied templates
-- **Goal creation in-context** - Add goals directly from character/team pages
+### Sprint 14: Build Templates UX Enhancement
+- ✅ **Character search in TeamForm** - Quick filter when building teams
+- ✅ **Equipment data** - Static weapon/artifact data for form dropdowns
+- ✅ **BuildTemplateForm overhaul** - Searchable weapon/artifact selectors, main stat buttons, substat priority
+- 🔲 **Extract filter/sort utilities** - Consolidate duplicate logic across features
+- 🔲 **gcsim import** - Parse gcsim configs into build templates
 
 ### Test Status
-- All 1,192 tests passing
+- All 1,214 tests passing
 - Run `npm run test:run` before committing
 
-### Previous Sprint (12) - Completed
-- UI consolidation complete: 13 tabs → 6 tabs
-- Teams Hub with material calculator, boss tracker, wfpsim export
-- Wishes Hub with calculator and budget sub-tabs
-- Notes/Goals distributed to contextual locations
-- QuickNotesWidget on Dashboard
+### Previous Sprint (13) - Completed ✅
+- PityHeader across all Wishes sub-tabs
+- BuildGapDisplay with completion percentage
+- ApplyTemplateModal and TeamMemberCard
+- Weekly boss filtering by team needs
+- Goal creation in-context
 
 ---
 
@@ -129,7 +127,7 @@ See [Contributing Guide](docs/CONTRIBUTING.md) for details.
 
 ## Future Sprint Backlog
 
-### Sprint 14 Candidates
+### Sprint 15 Candidates
 1. **Link budget to calculator** - Connect primogem projections to pull scenarios
 2. **Team sharing/export** - JSON export, shareable links for team compositions
 3. **Today's farming widget** - Dashboard widget showing optimal daily farming
@@ -139,3 +137,4 @@ See [Contributing Guide](docs/CONTRIBUTING.md) for details.
 - Maintain 80%+ test coverage
 - Add E2E tests for critical user flows
 - Performance profiling for large inventories
+- Extract duplicate filter/sort logic to shared utilities
