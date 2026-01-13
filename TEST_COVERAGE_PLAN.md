@@ -1,34 +1,43 @@
 # Test Coverage Plan - Genshin Impact Progress Tracker
 
-## Current State (January 2026)
+## Current State (January 2026 - Sprint 16)
 
 ### Test Infrastructure
 - **Framework:** Vitest 4.0.16
 - **UI Testing:** @testing-library/react
+- **E2E Testing:** Playwright (added Sprint 15)
 - **Coverage:** v8 provider with 80% threshold target
 - **Environment:** jsdom with fake-indexeddb
 
 ### Current Metrics
-- **Total Tests:** 381
-- **Passing:** 342 (89.7%)
-- **Failing:** 39 (10.3%)
-- **Test Files:** 30
+- **Total Tests:** ~1,400+
+- **Passing:** ~99%+
+- **Test Files:** 60+
 
 ### Coverage by Feature
 
 | Feature | Status | Tests | Notes |
 |---------|--------|-------|-------|
-| Wishes | Good | ~110 | Domain logic well-covered, some UI failures |
-| Calculator | Partial | ~93 | 26+ failures in MultiTargetCalculator |
-| Roster | Good | ~28 | Mappers and repos covered |
-| Ledger | Partial | ~5 | Some timestamp failures |
-| Sync | Good | ~10 | Compression/encryption tested |
-| Artifacts | None | 0 | Needs full coverage |
-| Calendar | None | 0 | Needs full coverage |
-| Notes | None | 0 | Needs full coverage |
-| Planner | None | 0 | Needs full coverage (including genshinDbService) |
-| Weapons | None | 0 | Needs full coverage |
-| UI Components | None | 0 | Button, Card, Modal, etc. |
+| Wishes | Excellent | ~200+ | Domain, hooks, components, pages |
+| Calculator | Good | ~120+ | Single/multi-target, reverse calculator |
+| Roster | Excellent | ~150+ | Characters, teams, mappers |
+| Ledger | Good | ~30+ | Repos and components |
+| Sync | Good | ~20+ | Compression/encryption tested |
+| Artifacts | Good | ~50+ | Scoring, filtering, CRUD |
+| Calendar | Excellent | 111 | ResetTimers, EventList, useEvents, eventTypes |
+| Notes | Good | ~40+ | CRUD, goals, tags |
+| Planner | Good | ~80+ | Multi-character, material calculations |
+| Weapons | Good | ~30+ | Inventory and filtering |
+| Bosses | Excellent | 81 | WeeklyBossTracker, weeklyBossData |
+| UI Components | Good | ~50+ | Button, Card, Modal, ErrorBoundary, Breadcrumbs, Skeleton |
+| Dashboard | Good | ~40+ | Widgets, hooks |
+| Builds | Partial | ~75+ | Templates, gcsim parser |
+
+### Recent Test Additions (Sprint 16)
+- Calendar feature: +65 tests
+- Bosses feature: +66 tests
+- ErrorBoundary: +17 tests
+- Breadcrumbs: +10 tests
 
 ---
 
@@ -155,30 +164,44 @@ Test categories:
 
 ## Implementation Checklist
 
-### Week 1: Fix Critical Failures
-- [ ] Fix WishStatistics decimal rendering tests
-- [ ] Fix MultiTargetCalculator component tests
-- [ ] Fix ReverseCalculator input tests
-- [ ] Fix mapper tests (teamSnapshot, enka)
-- [ ] Fix ledgerRepos timestamp tests
+### Sprint 11: Core Test Expansion ✅
+- [x] Fix WishStatistics decimal rendering tests
+- [x] Fix MultiTargetCalculator component tests
+- [x] Fix ReverseCalculator input tests
+- [x] Fix mapper tests (teamSnapshot, enka)
+- [x] Fix ledgerRepos timestamp tests
 
-### Week 2: Add Planner Tests
-- [ ] ascensionCalculator.test.ts
-- [ ] materialConstants.test.ts
-- [ ] genshinDbService.test.ts
-- [ ] materialNormalization.test.ts
+### Sprint 11-14: Feature Tests ✅
+- [x] ascensionCalculator.test.ts
+- [x] materialConstants.test.ts
+- [x] genshinDbService.test.ts
+- [x] materialNormalization.test.ts
+- [x] Calendar feature tests (partial)
+- [x] Artifacts feature tests
+- [x] Weapons feature tests
+- [x] Notes feature tests
 
-### Week 3: Add Feature Tests
-- [ ] Calendar feature tests
-- [ ] Artifacts feature tests
-- [ ] Weapons feature tests
-- [ ] Notes feature tests
+### Sprint 15: E2E & Infrastructure ✅
+- [x] Playwright E2E framework setup
+- [x] MobileBottomNav component tests
+- [x] Page object model pattern
 
-### Week 4: UI Component Tests
-- [ ] Button component tests
-- [ ] Card component tests
-- [ ] Input/Select component tests
-- [ ] Modal component tests
+### Sprint 16: UX & Coverage ✅
+- [x] Calendar feature tests (expanded to 111)
+- [x] Bosses feature tests (expanded to 81)
+- [x] ErrorBoundary component tests (17)
+- [x] Breadcrumbs component tests (10)
+- [x] Button component tests
+- [x] Card component tests
+- [x] Input/Select component tests
+- [x] Modal component tests
+- [x] Skeleton component tests
+
+### Remaining Work (Future Sprints)
+- [ ] E2E Tier 2 tests (8 flows)
+- [ ] E2E Tier 3 tests (7 flows)
+- [ ] Visual regression testing
+- [ ] Performance testing for large rosters
 
 ---
 
@@ -210,12 +233,13 @@ src/
 
 ## Coverage Goals
 
-| Metric | Current | Target | Status |
-|--------|---------|--------|--------|
-| Statements | ~60% | 80% | In Progress |
-| Branches | ~50% | 75% | In Progress |
-| Functions | ~55% | 80% | In Progress |
-| Lines | ~60% | 80% | In Progress |
+| Metric | Sprint 11 | Sprint 16 | Target | Status |
+|--------|-----------|-----------|--------|--------|
+| Statements | ~60% | ~75% | 80% | On Track |
+| Branches | ~50% | ~68% | 75% | On Track |
+| Functions | ~55% | ~72% | 80% | On Track |
+| Lines | ~60% | ~75% | 80% | On Track |
+| Total Tests | 545 | 1,400+ | - | Exceeded |
 
 ---
 
