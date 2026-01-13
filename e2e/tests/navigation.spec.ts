@@ -9,32 +9,36 @@ import { DashboardPage, RosterPage, TeamsPage, WishesPage } from '../pages';
 test.describe('Navigation', () => {
   test.describe('Main Tab Navigation', () => {
     test('should navigate between all main tabs', async ({ page }) => {
+      // Extended timeout for this multi-step navigation test
+      test.setTimeout(120000);
+
       const dashboard = new DashboardPage(page);
       await dashboard.goto();
+      await page.waitForLoadState('domcontentloaded');
 
       // Navigate to Roster
       await dashboard.navigateToTab('Roster');
-      await expect(page).toHaveURL(/\/roster/);
+      await expect(page).toHaveURL(/\/roster/, { timeout: 15000 });
 
       // Navigate to Teams
       await page.getByRole('link', { name: /teams/i }).click();
-      await expect(page).toHaveURL(/\/teams/);
+      await expect(page).toHaveURL(/\/teams/, { timeout: 15000 });
 
       // Navigate to Wishes
       await page.getByRole('link', { name: /wishes/i }).click();
-      await expect(page).toHaveURL(/\/wishes/);
+      await expect(page).toHaveURL(/\/wishes/, { timeout: 15000 });
 
       // Navigate to Calendar
       await page.getByRole('link', { name: /calendar/i }).click();
-      await expect(page).toHaveURL(/\/calendar/);
+      await expect(page).toHaveURL(/\/calendar/, { timeout: 15000 });
 
       // Navigate to Settings
       await page.getByRole('link', { name: /settings/i }).click();
-      await expect(page).toHaveURL(/\/settings/);
+      await expect(page).toHaveURL(/\/settings/, { timeout: 15000 });
 
-      // Return to Dashboard
+      // Return to Dashboard (URL ends with port/ or contains /dashboard)
       await page.getByRole('link', { name: /dashboard|home/i }).click();
-      await expect(page).toHaveURL(/^\/$|\/dashboard/);
+      await expect(page).toHaveURL(/:\d+\/?$|\/dashboard/, { timeout: 15000 });
     });
 
     test('should highlight active tab', async ({ page }) => {
@@ -117,9 +121,9 @@ test.describe('Navigation', () => {
       await page.goBack();
       await expect(page).toHaveURL(/\/roster/);
 
-      // Go back again
+      // Go back again to root (URL ends with / or /dashboard)
       await page.goBack();
-      await expect(page).toHaveURL(/^\/$|\/dashboard/);
+      await expect(page).toHaveURL(/:\d+\/?$|\/dashboard/);
 
       // Go forward
       await page.goForward();

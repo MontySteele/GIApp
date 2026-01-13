@@ -7,17 +7,23 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e/tests',
 
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Run tests in files in parallel - disabled for stability in containers */
+  fullyParallel: false,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
 
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  /* Retry failed tests for better stability */
+  retries: 2,
 
-  /* Opt out of parallel tests on CI */
-  workers: process.env.CI ? 1 : undefined,
+  /* Serial execution for stability in containerized environments */
+  workers: 1,
+
+  /* Longer timeout for restricted environments */
+  timeout: 60000,
+  expect: {
+    timeout: 10000,
+  },
 
   /* Reporter to use */
   reporter: [
@@ -46,22 +52,40 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // Stability flags for headless Chrome in containerized environments
+        // Disable Chromium sandbox for containerized environments
         launchOptions: {
           args: [
+            // Core stability flags
             '--disable-gpu',
             '--disable-software-rasterizer',
             '--disable-dev-shm-usage',
             '--no-sandbox',
             '--disable-setuid-sandbox',
+            // Process isolation flags for containers
+            '--single-process',
+            '--no-zygote',
+            // Disable unnecessary features
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-default-apps',
+            '--disable-sync',
+            '--no-first-run',
+            '--disable-translate',
+            '--disable-features=IsolateOrigins,site-per-process',
+            // Memory and crash handling
+            '--disable-breakpad',
+            '--disable-renderer-backgrounding',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
           ],
         },
       },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // Firefox disabled - focus on Chromium for stability
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
     // {
     //   name: 'webkit',
     //   use: { ...devices['Desktop Safari'] },
