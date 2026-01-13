@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-01-13 (Sprint 14 - Build Templates UX Enhancement)
+
+### Build Template Improvements
+- **Character search in TeamForm** - Quick filter when adding characters to teams
+- **Equipment data file** - Static weapon/artifact data for form dropdowns (100+ weapons, 40+ sets)
+- **BuildTemplateForm overhaul** - Replaced text inputs with searchable dropdowns
+  - Weapon selector grouped by rarity and type
+  - Artifact set selector with 2pc/4pc bonus display
+  - Main stat buttons by slot
+  - Substat priority picker with drag-and-drop ordering
+
+### gcsim Import
+- **gcsimParser** - Parses gcsim/wfpsim config format (~440 lines)
+  - Extracts character key, level, constellation, talents
+  - Parses weapon with refinement
+  - Parses artifact sets with piece counts
+  - Infers main stats from stat values
+- **GcsimImportModal** - UI for pasting configs and selecting builds to import
+  - Preview cards showing weapon/artifacts
+  - Multi-select before importing
+  - Converts to build template format
+
+### Shared Utilities
+- **filterSort.ts** - Consolidated ~480 lines of duplicate filter/sort logic
+  - Generic search, filter, and sort functions
+  - Genshin-specific helpers (sortByRarity, sortByPriority)
+  - Nested property access with dot notation
+- **useFilterSort hook** - React hook for filter/sort state management (future use)
+
+### Tests
+- 49 new tests (26 for gcsimParser, 23 for filterSort)
+- Total test count: 1,263
+
+---
+
 ## 2026-01-12 (Sprint 12 - Phase 1 Complete)
 
 ### wfpsim Export Integration
