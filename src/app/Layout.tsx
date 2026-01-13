@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Header from '@/components/common/Header';
 import TabNav from '@/components/common/TabNav';
+import MobileBottomNav from '@/components/common/MobileBottomNav';
 import BackupReminderBanner from '@/features/sync/components/BackupReminderBanner';
 import ToastContainer from '@/components/ui/Toast';
 import { useTheme } from '@/hooks/useTheme';
@@ -30,12 +31,13 @@ export default function Layout() {
       </nav>
       <main
         id="main-content"
-        className="flex-1 container mx-auto px-4 py-6 max-w-7xl"
+        className="flex-1 container mx-auto px-4 py-6 max-w-7xl pb-20 md:pb-6"
         tabIndex={-1}
       >
         <BackupReminderBanner />
         <Outlet />
       </main>
+      <MobileBottomNav />
       <ToastContainer />
     </div>
   );

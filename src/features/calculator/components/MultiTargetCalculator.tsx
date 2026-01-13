@@ -15,6 +15,7 @@ import { scenarioRepo } from '../repo/scenarioRepo';
 import TargetCard, { type Target } from './TargetCard';
 import SimulationResults from './SimulationResults';
 import { SaveScenarioModal, LoadScenarioModal, CompareScenarioModal } from './ScenarioModals';
+import BudgetLinkBanner from './BudgetLinkBanner';
 
 // Convert internal Target to CalculatorScenarioTarget
 function targetToScenarioTarget(target: Target): CalculatorScenarioTarget {
@@ -305,8 +306,15 @@ export function MultiTargetCalculator() {
     });
   }, []);
 
+  const handleUseBudget = useCallback((pulls: number) => {
+    setAvailablePulls(pulls);
+  }, []);
+
   return (
     <div className="space-y-6">
+      {/* Budget Link Banner */}
+      <BudgetLinkBanner onUseBudget={handleUseBudget} />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Multi-Target Planner</h2>

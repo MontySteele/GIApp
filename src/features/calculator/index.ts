@@ -35,5 +35,11 @@ export {
   type AvailablePullsResult,
 } from './selectors/availablePulls';
 
+// Hooks
+export { useBudgetLink, type BudgetLinkData } from './hooks/useBudgetLink';
+
+// Budget Components
+export { default as BudgetLinkBanner } from './components/BudgetLinkBanner';
+
 // Repository
 export { scenarioRepo } from './repo/scenarioRepo';

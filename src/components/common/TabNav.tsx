@@ -22,7 +22,7 @@ const icons = {
 
 export default function TabNav() {
   return (
-    <nav className="bg-slate-900 border-b border-slate-800 sticky top-[73px] z-40">
+    <nav className="bg-slate-900 border-b border-slate-800 sticky top-[73px] z-40 hidden md:block">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex gap-1 overflow-x-auto scrollbar-thin">
           {TABS.map((tab) => {
