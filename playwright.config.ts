@@ -41,17 +41,27 @@ export default defineConfig({
   },
 
   /* Configure projects for major browsers */
-  /* Note: Start with chromium only for Tier 1 testing, expand in later sprints */
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Stability flags for headless Chrome in containerized environments
+        launchOptions: {
+          args: [
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--disable-dev-shm-usage',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+          ],
+        },
+      },
     },
-    // Uncomment below to enable cross-browser testing (requires browser install)
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
     // {
     //   name: 'webkit',
     //   use: { ...devices['Desktop Safari'] },

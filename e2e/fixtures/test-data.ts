@@ -104,22 +104,51 @@ export const sampleGOODData = {
 export const sampleEnkaUID = '123456789';
 
 /**
- * Clear IndexedDB databases for clean test state
+ * Database name used by the app (matches GenshinTrackerDB in schema.ts)
+ */
+export const DB_NAME = 'GenshinTracker';
+
+/**
+ * Clear IndexedDB databases for clean test state.
+ *
+ * IMPORTANT: This function should be called BEFORE navigating to the app,
+ * ideally in a fresh browser context. Deleting IndexedDB while Dexie.js
+ * has active connections will crash the browser tab.
+ *
+ * Preferred approach: Use browser context isolation (each test gets fresh context)
+ * Alternative: Navigate away, clear DB, then navigate back
  */
 export async function clearDatabase(page: Page): Promise<void> {
-  // Use known database name from the app
-  const DB_NAME = 'genshin-progress-tracker';
+  // Navigate to about:blank first to ensure no Dexie connections are open
+  const currentUrl = page.url();
+  const wasOnApp = currentUrl.includes('localhost') && !currentUrl.includes('about:blank');
+
+  if (wasOnApp) {
+    // Navigate away from the app to close Dexie connections
+    await page.goto('about:blank');
+    // Wait for navigation and connection cleanup
+    await page.waitForTimeout(300);
+  }
 
   try {
     await page.evaluate((dbName) => {
-      // Simple synchronous delete request - fire and forget
-      indexedDB.deleteDatabase(dbName);
+      return new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase(dbName);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+        request.onblocked = () => {
+          // Database is blocked by open connections - this shouldn't happen
+          // after navigating away, but resolve anyway
+          resolve();
+        };
+      });
     }, DB_NAME);
-    // Give it a moment to process
-    await page.waitForTimeout(200);
   } catch {
-    // Ignore errors - database might not exist or page might not be ready
+    // Ignore errors - database might not exist
   }
+
+  // Small delay to ensure cleanup completes
+  await page.waitForTimeout(100);
 }
 
 /**

@@ -38,11 +38,13 @@ test.describe('Navigation', () => {
     });
 
     test('should highlight active tab', async ({ page }) => {
+      // Ensure viewport is large enough to show desktop navigation (TabNav is md:block)
+      await page.setViewportSize({ width: 1024, height: 768 });
       await page.goto('/roster');
 
-      const rosterTab = page.getByRole('link', { name: /roster/i });
-      // Check for active state (typically border-b-2 or similar)
-      await expect(rosterTab).toHaveClass(/border|active|selected/);
+      // TabNav uses text-primary-400 for active tabs
+      const rosterTab = page.getByRole('link', { name: /roster/i }).first();
+      await expect(rosterTab).toHaveClass(/text-primary-400|border-primary|active/);
     });
   });
 
