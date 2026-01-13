@@ -309,7 +309,7 @@ const icons = {
 
 ---
 
-## Sprint 13: Build Template Integration (In Progress)
+## Sprint 13: Build Template Integration ✅ COMPLETE
 
 ### High Priority ✅
 - [x] Build template application to team members (show current vs target build gap)
@@ -318,14 +318,13 @@ const icons = {
 
 ### Medium Priority ✅
 - [x] "Apply template" action on team member cards
-- [ ] Goal creation in-context (quick-add from character/team pages)
+- [x] Goal creation in-context (quick-add from character/team pages via GoalsSection modal)
 - [ ] Link budget projections to calculator scenarios
 
 ### Low Priority ✅
 - [x] Add `buildTemplateId` to team members schema for applied builds
 
-### Remaining Backlog
-- [ ] Goal creation in-context (quick-add from character/team pages)
+### Sprint 14 Backlog
 - [ ] Link budget projections to calculator scenarios
 - [ ] Team sharing/export functionality
 - [ ] Consolidated "Today's farming" widget on Dashboard
