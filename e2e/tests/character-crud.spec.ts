@@ -9,10 +9,10 @@ import { clearDatabase, waitForAppReady } from '../fixtures/test-data';
 
 test.describe('Character CRUD', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear database for clean state
-    await page.goto('/');
+    // Clear database for clean state (clearDatabase navigates away first to avoid Dexie crash)
     await clearDatabase(page);
-    await page.reload();
+    // Navigate to the app after database is cleared
+    await page.goto('/');
     await waitForAppReady(page);
   });
 

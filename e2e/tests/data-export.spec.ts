@@ -9,9 +9,9 @@ import { clearDatabase, waitForAppReady, sampleGOODData } from '../fixtures/test
 
 test.describe('Data Export', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Clear database first (navigates away to avoid Dexie crash)
     await clearDatabase(page);
-    await page.reload();
+    await page.goto('/');
     await waitForAppReady(page);
 
     // Seed data for export
@@ -168,9 +168,10 @@ test.describe('Data Export', () => {
       // Close export modal
       await modal.getByRole('button', { name: /close|done/i }).click();
 
-      // Clear database
+      // Clear database (navigates away first to avoid Dexie crash)
       await clearDatabase(page);
-      await page.reload();
+      // Navigate back to app
+      await page.goto('/');
       await waitForAppReady(page);
 
       // Re-import the exported data

@@ -1,51 +1,45 @@
-import { db as defaultDb, SCHEMA_STORES, type GenshinTrackerDB } from './schema';
+import { db as defaultDb, type GenshinTrackerDB } from './schema';
 
 // Migration guardrails:
 // - Upgrades must be idempotent and write the latest schemaVersion so clients do not stall on stale metadata.
 // - Dexie fails closed on migration errors. We rethrow initialization errors so the app never runs on a partially migrated DB.
 // - Avoid silent divergence: even no-op migrations should bump appMeta.schemaVersion through the upgrade hook.
 
-const LATEST_SCHEMA_VERSION = 2;
-const MIGRATIONS_REGISTERED = Symbol('migrationsRegistered');
+// NOTE: Schema versions are now defined in schema.ts constructor (versions 1-4).
+// This file only handles runtime app metadata initialization, not schema migrations.
+const LATEST_SCHEMA_VERSION = 4;
+const METADATA_INITIALIZED = Symbol('metadataInitialized');
 
-function registerMigrations(database: GenshinTrackerDB) {
-  if ((database as any)[MIGRATIONS_REGISTERED]) {
+async function ensureMetadata(database: GenshinTrackerDB) {
+  if ((database as any)[METADATA_INITIALIZED]) {
     return;
   }
 
-  database
-    .version(2)
-    .stores(SCHEMA_STORES)
-    .upgrade(async (tx) => {
-      const appMetaTable = tx.table('appMeta');
-      const existingVersion = (await appMetaTable.get('schemaVersion'))?.value ?? 1;
+  // Ensure deviceId and createdAt are set
+  const deviceId = await database.appMeta.get('deviceId');
+  if (!deviceId) {
+    await database.appMeta.put({ key: 'deviceId', value: crypto.randomUUID() });
+  }
 
-      if (existingVersion >= 2) {
-        return;
-      }
+  const createdAt = await database.appMeta.get('createdAt');
+  if (!createdAt) {
+    await database.appMeta.put({ key: 'createdAt', value: new Date().toISOString() });
+  }
 
-      await appMetaTable.put({ key: 'schemaVersion', value: 2 });
-
-      const deviceId = await appMetaTable.get('deviceId');
-      if (!deviceId) {
-        await appMetaTable.put({ key: 'deviceId', value: crypto.randomUUID() });
-      }
-
-      const createdAt = await appMetaTable.get('createdAt');
-      if (!createdAt) {
-        await appMetaTable.put({ key: 'createdAt', value: new Date().toISOString() });
-      }
-    });
-
-  (database as any)[MIGRATIONS_REGISTERED] = true;
+  (database as any)[METADATA_INITIALIZED] = true;
 }
 
 export async function initializeDatabase(database: GenshinTrackerDB = defaultDb) {
   try {
-    registerMigrations(database);
+    // Open the database - Dexie handles schema migrations automatically
+    // based on version definitions in schema.ts
     await database.open();
     console.log('Database initialized successfully');
 
+    // Ensure app metadata is set up
+    await ensureMetadata(database);
+
+    // Track schema version for debugging/diagnostics
     const schemaVersion = await database.appMeta.get('schemaVersion');
     if (!schemaVersion || schemaVersion.value !== LATEST_SCHEMA_VERSION) {
       await database.appMeta.put({ key: 'schemaVersion', value: LATEST_SCHEMA_VERSION });

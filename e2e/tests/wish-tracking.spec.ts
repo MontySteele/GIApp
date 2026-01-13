@@ -9,9 +9,9 @@ import { clearDatabase, waitForAppReady } from '../fixtures/test-data';
 
 test.describe('Wish Tracking', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Clear database first (navigates away to avoid Dexie crash)
     await clearDatabase(page);
-    await page.reload();
+    await page.goto('/');
     await waitForAppReady(page);
   });
 
@@ -81,9 +81,9 @@ test.describe('Wish Tracking', () => {
 
 test.describe('Pull Calculator', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Clear database first (navigates away to avoid Dexie crash)
     await clearDatabase(page);
-    await page.reload();
+    await page.goto('/');
     await waitForAppReady(page);
   });
 

@@ -9,9 +9,9 @@ import { clearDatabase, waitForAppReady, sampleGOODData } from '../fixtures/test
 
 test.describe('Character Import', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Clear database first (navigates away to avoid Dexie crash)
     await clearDatabase(page);
-    await page.reload();
+    await page.goto('/');
     await waitForAppReady(page);
   });
 
