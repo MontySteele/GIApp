@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users,
@@ -14,10 +14,13 @@ import {
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { StatCardSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
+import GettingStartedChecklist from '@/components/common/GettingStartedChecklist';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useResources } from '@/features/ledger/hooks/useResources';
+import { useTeams } from '@/features/roster/hooks/useTeams';
+import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
 import TodayFarmingWidget from '../components/TodayFarmingWidget';
 import {
@@ -46,6 +49,9 @@ export default function DashboardPage() {
   const { stats: artifactStats, isLoading: loadingArtifacts } = useArtifacts();
   const { stats: weaponStats, isLoading: loadingWeapons } = useWeapons();
   const { primogems, intertwined, totalPulls, isLoading: loadingResources } = useResources();
+  const { teams } = useTeams();
+  const { checklist, checklistProgress, checklistTotal, updateChecklist, isComplete: onboardingComplete } = useOnboardingContext();
+  const [showChecklist, setShowChecklist] = useState(true);
 
   // Load resin from localStorage
   const resinBudget = useMemo<ResinBudget>(() => {
@@ -68,6 +74,16 @@ export default function DashboardPage() {
     const maxConst = characters.filter((c) => c.constellation === 6).length;
     return { total, maxLevel, maxConst };
   }, [characters]);
+
+  // Update checklist based on current data
+  useEffect(() => {
+    if (characters.length > 0 && !checklist.hasImportedCharacters) {
+      updateChecklist({ hasImportedCharacters: true });
+    }
+    if (teams.length > 0 && !checklist.hasCreatedTeam) {
+      updateChecklist({ hasCreatedTeam: true });
+    }
+  }, [characters.length, teams.length, checklist, updateChecklist]);
 
   const isLoading = loadingChars || loadingArtifacts || loadingWeapons || loadingResources;
 
@@ -98,6 +114,16 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
         <p className="text-slate-400">Your Genshin Impact account at a glance</p>
       </div>
+
+      {/* Getting Started Checklist - shown for new users */}
+      {onboardingComplete && showChecklist && checklistProgress < checklistTotal && (
+        <GettingStartedChecklist
+          checklist={checklist}
+          progress={checklistProgress}
+          total={checklistTotal}
+          onDismiss={() => setShowChecklist(false)}
+        />
+      )}
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -131,7 +157,7 @@ export default function DashboardPage() {
           value={totalPulls}
           subtext={`${formatPrimos(primogems)} primogems`}
           color="text-green-400"
-          to="/wishes/budget"
+          to="/pulls"
         />
       </div>
 
@@ -145,7 +171,7 @@ export default function DashboardPage() {
               <h3 className="font-semibold">Resin</h3>
             </div>
             <Link
-              to="/teams/planner"
+              to="/planner"
               className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
             >
               Planner <ArrowRight className="w-3 h-3" />
@@ -193,7 +219,7 @@ export default function DashboardPage() {
               <h3 className="font-semibold">Primogems</h3>
             </div>
             <Link
-              to="/wishes/budget"
+              to="/pulls"
               className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
             >
               Budget <ArrowRight className="w-3 h-3" />
@@ -232,17 +258,17 @@ export default function DashboardPage() {
         <QuickLink
           to="/teams"
           icon={<Target className="w-5 h-5" />}
-          label="Team Planner"
+          label="Team Builder"
         />
         <QuickLink
-          to="/wishes"
+          to="/pulls"
           icon={<Sparkles className="w-5 h-5" />}
-          label="Wish History"
+          label="Pull Tracker"
         />
         <QuickLink
-          to="/calendar"
+          to="/planner"
           icon={<Calendar className="w-5 h-5" />}
-          label="Reset Timers"
+          label="Material Planner"
         />
       </div>
 
