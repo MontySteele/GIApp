@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Save, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Save, Search, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -20,11 +20,22 @@ export default function TeamForm({ characters, initialData, onSubmit, onCancel }
   const [selectedKeys, setSelectedKeys] = useState<string[]>(initialData?.characterKeys ?? []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [characterSearch, setCharacterSearch] = useState('');
 
   const sortedCharacters = useMemo(
     () => [...characters].sort((a, b) => a.key.localeCompare(b.key)),
     [characters]
   );
+
+  const filteredCharacters = useMemo(() => {
+    if (!characterSearch.trim()) {
+      return sortedCharacters;
+    }
+    const searchLower = characterSearch.toLowerCase().trim();
+    return sortedCharacters.filter((char) =>
+      char.key.toLowerCase().includes(searchLower)
+    );
+  }, [sortedCharacters, characterSearch]);
 
   const toggleCharacter = (key: string) => {
     setSelectedKeys((prev) => {
@@ -146,12 +157,24 @@ export default function TeamForm({ characters, initialData, onSubmit, onCancel }
         {selectionError && <p className="text-sm text-red-400">{selectionError}</p>}
 
         <div className="grid lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-2 max-h-80 overflow-y-auto">
+          <div className="lg:col-span-2 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search characters..."
+                value={characterSearch}
+                onChange={(e) => setCharacterSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-sm"
+              />
+            </div>
+            <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-2 max-h-72 overflow-y-auto">
               {sortedCharacters.length === 0 ? (
                 <p className="text-sm text-slate-400">Add characters to your roster to build teams.</p>
+              ) : filteredCharacters.length === 0 ? (
+                <p className="text-sm text-slate-400">No characters match "{characterSearch}"</p>
               ) : (
-                sortedCharacters.map((character) => {
+                filteredCharacters.map((character) => {
                   const isSelected = selectedKeys.includes(character.key);
                   return (
                     <label

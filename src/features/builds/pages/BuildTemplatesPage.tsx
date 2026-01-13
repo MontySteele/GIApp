@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import BuildTemplateCard from '../components/BuildTemplateCard';
 import BuildTemplateForm from '../components/BuildTemplateForm';
 import { useBuildTemplates, type BuildTemplateQuery } from '../hooks/useBuildTemplates';
+import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import type { CharacterRole, BuildDifficulty, BuildBudget, BuildTemplate } from '@/types';
 
 export default function BuildTemplatesPage() {
@@ -35,6 +36,7 @@ export default function BuildTemplatesPage() {
   );
 
   const { templates, allTemplates, stats, isLoading, createTemplate, updateTemplate, deleteTemplate } = useBuildTemplates(query);
+  const { characters } = useCharacters();
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this build template?')) {
@@ -244,6 +246,7 @@ export default function BuildTemplatesPage() {
       >
         <BuildTemplateForm
           template={editingTemplate ?? undefined}
+          characters={characters}
           onSave={handleSave}
           onCancel={handleCloseModal}
         />
