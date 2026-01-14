@@ -64,6 +64,8 @@ export const sampleTeams = {
 
 /**
  * Sample GOOD format export data
+ * Note: weapons must have 'lock' property for validation to pass
+ * Note: each character needs a weapon with matching 'location' for import to work
  */
 export const sampleGOODData = {
   format: 'GOOD',
@@ -92,6 +94,15 @@ export const sampleGOODData = {
       ascension: 6,
       refinement: 1,
       location: 'Furina',
+      lock: true,
+    },
+    {
+      key: 'FreedomSworn',
+      level: 90,
+      ascension: 6,
+      refinement: 1,
+      location: 'KaedeharaKazuha',
+      lock: true,
     },
   ],
   artifacts: [],

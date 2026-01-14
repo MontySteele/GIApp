@@ -36,8 +36,12 @@ export class RosterPage extends BasePage {
     // View toggle buttons
     this.gridViewButton = page.getByRole('button', { name: /grid view/i });
     this.listViewButton = page.getByRole('button', { name: /list view/i });
-    // Character cards - look for cards with character info
-    this.characterCards = page.locator('.cursor-pointer').filter({ has: page.locator('img') });
+    // Character cards - cards with h3 character name and edit/delete buttons
+    this.characterCards = page.locator('[class*="cursor-pointer"]').filter({
+      has: page.locator('h3'),
+    }).filter({
+      has: page.getByRole('button', { name: /edit character/i }),
+    });
     this.emptyState = page.locator('text=/no characters/i');
     this.weaponsTab = page.getByRole('link', { name: /weapons/i });
     this.artifactsTab = page.getByRole('link', { name: /artifacts/i });
@@ -175,17 +179,25 @@ export class RosterPage extends BasePage {
   async importFromEnka(uid: string): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
     await modal.getByLabel(/uid/i).fill(uid);
-    await modal.getByRole('button', { name: /import/i }).click();
+    // Click the import button (starts with "Import", not "Back to import options")
+    await modal.getByRole('button', { name: /^import/i }).click();
   }
 
   /**
    * Import characters using GOOD JSON format
+   * The import button text is "Import (Preview: X chars)" after filling textarea
    */
   async importFromGOOD(jsonData: string): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
     const textarea = modal.locator('textarea');
     await textarea.fill(jsonData);
-    await modal.getByRole('button', { name: /import/i }).click();
+    // Wait for preview to update, then click import button
+    // Button text is like "Import (Preview: 402 chars)"
+    const importButton = modal.getByRole('button', { name: /^import \(/i })
+      .or(modal.getByRole('button', { name: /^import$/i }));
+    await importButton.click();
+    // Wait for modal to close on successful import
+    await modal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
   /**
