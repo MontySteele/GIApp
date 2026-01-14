@@ -21,7 +21,7 @@ export class RosterPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.characterGrid = page.locator('[data-testid="character-grid"], .grid').first();
-    this.addCharacterButton = page.getByRole('button', { name: /add character/i });
+    this.addCharacterButton = page.getByRole('button', { name: /add character/i }).first();
     this.searchInput = page.getByPlaceholder(/search/i);
     this.filterButton = page.getByRole('button', { name: /filter/i });
     this.sortSelect = page.getByLabel(/sort/i);

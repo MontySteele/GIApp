@@ -84,9 +84,16 @@ export class DashboardPage extends BasePage {
   }
 
   /**
-   * Navigate to Wishes from dashboard
+   * Navigate to Pulls from dashboard
    */
-  async goToWishes(): Promise<void> {
-    await this.navigateToTab('Wishes');
+  async goToPulls(): Promise<void> {
+    await this.navigateToTab('Pulls');
+  }
+
+  /**
+   * Navigate to Planner from dashboard
+   */
+  async goToPlanner(): Promise<void> {
+    await this.navigateToTab('Planner');
   }
 }

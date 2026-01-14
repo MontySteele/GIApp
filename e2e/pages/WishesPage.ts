@@ -1,52 +1,38 @@
 /**
- * Wishes Page Object Model
- * Interactions with wish tracking and calculator
+ * Pulls Page Object Model (renamed from Wishes)
+ * Interactions with pull tracking, budget, and calculator
  */
 
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
-export class WishesPage extends BasePage {
-  readonly wishHistory: Locator;
+export class PullsPage extends BasePage {
+  readonly budgetSection: Locator;
   readonly pityHeader: Locator;
   readonly calculatorTab: Locator;
   readonly budgetTab: Locator;
-  readonly importButton: Locator;
+  readonly historyTab: Locator;
+  readonly bannersTab: Locator;
   readonly bannerTabs: Locator;
-  readonly wishList: Locator;
   readonly emptyState: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.wishHistory = page.locator('[data-testid="wish-history"]').or(page.locator('main'));
+    this.budgetSection = page.locator('[data-testid="budget-section"]').or(page.locator('main'));
     this.pityHeader = page.locator('[data-testid="pity-header"]').or(page.locator('text=/pity/i').locator('..'));
     this.calculatorTab = page.getByRole('link', { name: /calculator/i });
     this.budgetTab = page.getByRole('link', { name: /budget/i });
-    this.importButton = page.getByRole('button', { name: /import/i });
+    this.historyTab = page.getByRole('link', { name: /history/i });
+    this.bannersTab = page.getByRole('link', { name: /banners/i });
     this.bannerTabs = page.locator('[data-testid="banner-tabs"]').or(
-      page.locator('text=/character|weapon|standard/i').locator('..')
+      page.locator('[role="tablist"]')
     );
-    this.wishList = page.locator('[data-testid="wish-list"]').or(page.locator('ul, table').first());
-    this.emptyState = page.locator('text=/no wishes/i');
+    this.emptyState = page.locator('text=/no pulls|no wishes|get started/i');
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/wishes');
+    await this.page.goto('/pulls');
     await this.waitForLoad();
-  }
-
-  /**
-   * Get the current pity count for a banner type
-   */
-  async getPityCount(bannerType: 'character' | 'weapon' | 'standard'): Promise<number> {
-    const pityText = await this.pityHeader
-      .locator(`text=/${bannerType}/i`)
-      .locator('..')
-      .locator('text=/\\d+/')
-      .first()
-      .textContent();
-    const match = pityText?.match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : 0;
   }
 
   /**
@@ -54,34 +40,31 @@ export class WishesPage extends BasePage {
    */
   async goToCalculator(): Promise<void> {
     await this.calculatorTab.click();
-    await this.page.waitForURL(/\/wishes\/calculator/);
+    await this.page.waitForURL(/\/pulls\/calculator/);
   }
 
   /**
-   * Navigate to Budget sub-tab
+   * Navigate to Budget sub-tab (default view)
    */
   async goToBudget(): Promise<void> {
     await this.budgetTab.click();
-    await this.page.waitForURL(/\/wishes\/budget/);
+    await this.page.waitForURL(/\/pulls$/);
   }
 
   /**
-   * Open the wish import modal
+   * Navigate to History sub-tab
    */
-  async openImportModal(): Promise<Locator> {
-    await this.importButton.click();
-    const modal = this.page.locator('[role="dialog"]');
-    await modal.waitFor({ state: 'visible' });
-    return modal;
+  async goToHistory(): Promise<void> {
+    await this.historyTab.click();
+    await this.page.waitForURL(/\/pulls\/history/);
   }
 
   /**
-   * Import wishes from UIGF JSON format
+   * Navigate to Banners sub-tab
    */
-  async importWishes(jsonData: string): Promise<void> {
-    const modal = await this.openImportModal();
-    await modal.locator('textarea').fill(jsonData);
-    await modal.getByRole('button', { name: /import/i }).click();
+  async goToBanners(): Promise<void> {
+    await this.bannersTab.click();
+    await this.page.waitForURL(/\/pulls\/banners/);
   }
 
   /**
@@ -94,24 +77,15 @@ export class WishesPage extends BasePage {
   }
 
   /**
-   * Get the total wish count
+   * Check if there are any pulls displayed
    */
-  async getWishCount(): Promise<number> {
-    const countText = await this.page.locator('text=/\\d+ wishes?|total:? \\d+/i').first().textContent();
-    const match = countText?.match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : 0;
-  }
-
-  /**
-   * Check if there are any wishes displayed
-   */
-  async hasWishes(): Promise<boolean> {
+  async hasPulls(): Promise<boolean> {
     return !(await this.emptyState.isVisible());
   }
 }
 
 /**
- * Calculator Page Object Model (Wishes sub-page)
+ * Calculator Page Object Model (Pulls sub-page)
  */
 export class CalculatorPage extends BasePage {
   readonly singleTargetTab: Locator;
@@ -129,16 +103,16 @@ export class CalculatorPage extends BasePage {
     this.singleTargetTab = page.getByRole('tab', { name: /single/i });
     this.multiTargetTab = page.getByRole('tab', { name: /multi/i });
     this.reverseTab = page.getByRole('tab', { name: /reverse/i });
-    this.primogemInput = page.getByLabel(/primogem|primo|gems/i);
+    this.primogemInput = page.getByLabel(/primogem|primo|gems|pulls/i);
     this.pityInput = page.getByLabel(/pity/i);
     this.guaranteedToggle = page.getByLabel(/guaranteed/i);
     this.calculateButton = page.getByRole('button', { name: /calculate/i });
     this.resultSection = page.locator('[data-testid="result"]').or(page.locator('text=/probability|chance/i').locator('..'));
-    this.probabilityChart = page.locator('[data-testid="probability-chart"]').or(page.locator('.recharts-wrapper'));
+    this.probabilityChart = page.locator('[data-testid="probability-chart"]').or(page.locator('.recharts-wrapper, canvas'));
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/wishes/calculator');
+    await this.page.goto('/pulls/calculator');
     await this.waitForLoad();
   }
 
@@ -191,3 +165,6 @@ export class CalculatorPage extends BasePage {
     return await this.probabilityChart.isVisible();
   }
 }
+
+// Keep WishesPage as alias for backwards compatibility
+export { PullsPage as WishesPage };

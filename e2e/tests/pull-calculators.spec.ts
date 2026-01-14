@@ -15,7 +15,7 @@ test.describe('Pull Calculators', () => {
 
   test.describe('Single Target Calculator', () => {
     test('should navigate to calculator page', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Calculator page should be visible - wait for specific element instead of networkidle
       const heading = page.locator('h1, h2').filter({ hasText: /calculator/i });
@@ -23,7 +23,7 @@ test.describe('Pull Calculators', () => {
     });
 
     test('single target calculator shows correct probability display', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator UI to be ready
       const calculatorForm = page.locator('form, [data-testid="calculator-form"], [role="form"]').first();
@@ -67,7 +67,7 @@ test.describe('Pull Calculators', () => {
     });
 
     test('should handle guaranteed state', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator to load
       await expect(page.locator('input[type="number"], input[type="checkbox"]').first()).toBeVisible();
@@ -87,7 +87,7 @@ test.describe('Pull Calculators', () => {
     });
 
     test('probability increases with higher pity', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator to load
       const pityInput = page.getByLabel(/pity/i).or(page.locator('[data-testid="pity-input"]'));
@@ -117,7 +117,7 @@ test.describe('Pull Calculators', () => {
 
   test.describe('Multi-Target Calculator', () => {
     test('should navigate to multi-target mode', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator to load
       await expect(page.locator('input, button, [role="tab"]').first()).toBeVisible();
@@ -134,7 +134,7 @@ test.describe('Pull Calculators', () => {
     });
 
     test('can add multiple targets', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator to load
       await expect(page.locator('input, button, [role="tab"]').first()).toBeVisible();
@@ -167,7 +167,7 @@ test.describe('Pull Calculators', () => {
     });
 
     test('handles pity inheritance between targets', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator to load
       await expect(page.locator('input, button, [role="tab"]').first()).toBeVisible();
@@ -193,7 +193,7 @@ test.describe('Pull Calculators', () => {
     });
 
     test('shows cumulative results for sequential targets', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator to load
       await expect(page.locator('input, button, [role="tab"]').first()).toBeVisible();
@@ -218,7 +218,7 @@ test.describe('Pull Calculators', () => {
 
   test.describe('Calculator Settings', () => {
     test('should persist calculator state', async ({ page }) => {
-      await page.goto('/wishes/calculator');
+      await page.goto('/pulls/calculator');
 
       // Wait for calculator to load
       const pityInput = page.getByLabel(/pity/i).or(page.locator('[data-testid="pity-input"]'));
@@ -232,7 +232,7 @@ test.describe('Pull Calculators', () => {
         // Navigate away and back
         await page.goto('/');
         await waitForAppReady(page);
-        await page.goto('/wishes/calculator');
+        await page.goto('/pulls/calculator');
 
         // Wait for calculator to load again
         await expect(pityInput.or(page.locator('input[type="number"]').first())).toBeVisible();

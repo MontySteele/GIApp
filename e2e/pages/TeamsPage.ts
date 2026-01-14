@@ -150,19 +150,19 @@ export class TeamsPage extends BasePage {
   }
 
   /**
-   * Navigate to Planner sub-tab
+   * Navigate to Planner (now top-level route)
    */
   async goToPlanner(): Promise<void> {
-    await this.plannerTab.click();
-    await this.page.waitForURL(/\/teams\/planner|\/planner/);
+    await this.page.getByRole('link', { name: /planner/i }).click();
+    await this.page.waitForURL(/\/planner/);
   }
 
   /**
-   * Navigate to Build Templates sub-tab
+   * Navigate to Build Templates (now under Roster)
    */
   async goToTemplates(): Promise<void> {
-    await this.templatesTab.click();
-    await this.page.waitForURL(/\/teams\/templates|\/templates/);
+    await this.page.goto('/roster/builds');
+    await this.page.waitForURL(/\/roster\/builds/);
   }
 
   /**
@@ -170,7 +170,7 @@ export class TeamsPage extends BasePage {
    */
   async goToBosses(): Promise<void> {
     await this.bossesTab.click();
-    await this.page.waitForURL(/\/teams\/bosses|\/bosses/);
+    await this.page.waitForURL(/\/teams\/bosses/);
   }
 
   /**

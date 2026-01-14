@@ -31,7 +31,7 @@ export class PlannerPage extends BasePage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/teams/planner');
+    await this.page.goto('/planner');
     await this.waitForLoad();
   }
 
