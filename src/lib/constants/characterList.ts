@@ -13,6 +13,14 @@ export interface CharacterInfo {
 
 // All playable characters as of version 5.3
 export const ALL_CHARACTERS: CharacterInfo[] = [
+  // Traveler (special - can use multiple elements)
+  { key: 'TravelerAnemo', name: 'Traveler (Anemo)', rarity: 5, element: 'Anemo', weapon: 'Sword' },
+  { key: 'TravelerGeo', name: 'Traveler (Geo)', rarity: 5, element: 'Geo', weapon: 'Sword' },
+  { key: 'TravelerElectro', name: 'Traveler (Electro)', rarity: 5, element: 'Electro', weapon: 'Sword' },
+  { key: 'TravelerDendro', name: 'Traveler (Dendro)', rarity: 5, element: 'Dendro', weapon: 'Sword' },
+  { key: 'TravelerHydro', name: 'Traveler (Hydro)', rarity: 5, element: 'Hydro', weapon: 'Sword' },
+  { key: 'TravelerPyro', name: 'Traveler (Pyro)', rarity: 5, element: 'Pyro', weapon: 'Sword' },
+
   // 5-Star Characters
   { key: 'Albedo', name: 'Albedo', rarity: 5, element: 'Geo', weapon: 'Sword' },
   { key: 'Alhaitham', name: 'Alhaitham', rarity: 5, element: 'Dendro', weapon: 'Sword' },
@@ -63,6 +71,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Yoimiya', name: 'Yoimiya', rarity: 5, element: 'Pyro', weapon: 'Bow' },
   { key: 'Zhongli', name: 'Zhongli', rarity: 5, element: 'Geo', weapon: 'Polearm' },
   { key: 'Arlecchino', name: 'Arlecchino', rarity: 5, element: 'Pyro', weapon: 'Polearm' },
+  { key: 'Aloy', name: 'Aloy', rarity: 5, element: 'Cryo', weapon: 'Bow' },
 
   // 4-Star Characters
   { key: 'Amber', name: 'Amber', rarity: 4, element: 'Pyro', weapon: 'Bow' },

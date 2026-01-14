@@ -51,7 +51,17 @@ export default function DashboardPage() {
   const { primogems, intertwined, totalPulls, isLoading: loadingResources } = useResources();
   const { teams } = useTeams();
   const { checklist, checklistProgress, checklistTotal, updateChecklist, isComplete: onboardingComplete } = useOnboardingContext();
-  const [showChecklist, setShowChecklist] = useState(true);
+
+  // Persist checklist dismiss state in localStorage
+  const [showChecklist, setShowChecklist] = useState(() => {
+    const dismissed = localStorage.getItem('checklist_dismissed');
+    return dismissed !== 'true';
+  });
+
+  const handleDismissChecklist = () => {
+    localStorage.setItem('checklist_dismissed', 'true');
+    setShowChecklist(false);
+  };
 
   // Load resin from localStorage
   const resinBudget = useMemo<ResinBudget>(() => {
@@ -121,7 +131,7 @@ export default function DashboardPage() {
           checklist={checklist}
           progress={checklistProgress}
           total={checklistTotal}
-          onDismiss={() => setShowChecklist(false)}
+          onDismiss={handleDismissChecklist}
         />
       )}
 
