@@ -13,16 +13,18 @@ import {
   UsersRound,
   Sparkles,
   Target,
+  Settings,
 } from 'lucide-react';
 
-// Mobile-optimized navigation items (subset of main tabs)
-// Settings accessible via header menu on mobile
+// Mobile-optimized navigation items
+// Includes Settings for easy access to data import (critical for new users)
 const MOBILE_NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { id: 'dashboard', label: 'Home', path: '/', icon: LayoutDashboard },
   { id: 'roster', label: 'Roster', path: '/roster', icon: Users },
   { id: 'teams', label: 'Teams', path: '/teams', icon: UsersRound },
   { id: 'pulls', label: 'Pulls', path: '/pulls', icon: Sparkles },
-  { id: 'planner', label: 'Planner', path: '/planner', icon: Target },
+  { id: 'planner', label: 'Plan', path: '/planner', icon: Target },
+  { id: 'settings', label: 'Settings', path: '/settings', icon: Settings },
 ] as const;
 
 export default function MobileBottomNav() {
@@ -40,7 +42,7 @@ export default function MobileBottomNav() {
               to={item.path}
               end={item.path === '/'}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center py-2 px-3 min-w-[64px] transition-colors ${
+                `flex flex-col items-center justify-center py-2 px-1.5 min-w-0 flex-1 transition-colors ${
                   isActive
                     ? 'text-primary-400'
                     : 'text-slate-400 active:text-slate-200'

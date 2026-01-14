@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -8,12 +8,14 @@ import IrminsulImport from './IrminsulImport';
 import EnkaImport from './EnkaImport';
 import type { Character } from '@/types';
 
-type AddModalView = 'options' | 'manual' | 'enka' | 'good' | 'irminsul';
+export type AddModalView = 'options' | 'manual' | 'enka' | 'good' | 'irminsul';
 
 interface AddCharacterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateCharacter: (data: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  /** Initial view to show when modal opens */
+  initialView?: AddModalView;
 }
 
 const VIEW_TITLES: Record<AddModalView, string> = {
@@ -28,8 +30,16 @@ export default function AddCharacterModal({
   isOpen,
   onClose,
   onCreateCharacter,
+  initialView = 'options',
 }: AddCharacterModalProps) {
-  const [view, setView] = useState<AddModalView>('options');
+  const [view, setView] = useState<AddModalView>(initialView);
+
+  // Update view when modal opens with a specific initial view
+  useEffect(() => {
+    if (isOpen) {
+      setView(initialView);
+    }
+  }, [isOpen, initialView]);
 
   const handleClose = () => {
     onClose();

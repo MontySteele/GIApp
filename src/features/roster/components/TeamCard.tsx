@@ -1,4 +1,5 @@
-import { Pencil, Trash2, Users, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Pencil, Trash2, Users, Zap, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, Team } from '@/types';
@@ -10,12 +11,27 @@ interface TeamCardProps {
   onEdit?: (team: Team) => void;
   onDelete?: (team: Team) => void;
   onExportToWfpsim?: (team: Team) => void;
+  /** Show link to material planner for this team */
+  showPlannerLink?: boolean;
 }
 
-export default function TeamCard({ team, members, onEdit, onDelete, onExportToWfpsim }: TeamCardProps) {
+export default function TeamCard({ team, members, onEdit, onDelete, onExportToWfpsim, showPlannerLink = true }: TeamCardProps) {
+  // Create query params for planner with team character IDs
+  const plannerUrl = `/planner?team=${encodeURIComponent(team.id)}`;
+
   return (
     <Card className="relative">
       <div className="absolute top-3 right-3 flex items-center gap-1">
+        {showPlannerLink && team.characterKeys.length > 0 && (
+          <Link
+            to={plannerUrl}
+            className="p-1.5 bg-green-700 hover:bg-green-600 rounded-md transition-colors"
+            title="Plan materials"
+            aria-label="Plan materials"
+          >
+            <Calendar className="w-4 h-4 text-white" aria-hidden="true" />
+          </Link>
+        )}
         {onExportToWfpsim && (
           <button
             onClick={() => onExportToWfpsim(team)}

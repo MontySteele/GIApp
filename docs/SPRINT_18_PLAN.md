@@ -2,7 +2,7 @@
 
 **Duration:** January 2026
 **Theme:** Restructure navigation for better workflows, add banner tracking, improve onboarding
-**Status:** Planning
+**Status:** In Progress (Phase 5 Complete)
 
 ---
 
@@ -134,10 +134,10 @@ New:     Dashboard | Roster | Teams | Pulls  | Planner
 #### 4. Add Planner Context Selector
 - [ ] Create `PlannerContextSelector` component
 - [ ] Support modes: single character, team, all main, custom
-- [ ] Persist last-used context in localStorage
-- [ ] Add deep-link support (`/planner?team=abc123`)
-- [ ] Character detail "Plan Materials" links to planner with character pre-selected
-- [ ] Team detail "Plan Materials" links to planner with team pre-selected
+- [x] Persist last-used context in localStorage (via `usePlannerState` hook)
+- [x] Add deep-link support (`/planner?team=abc123`, `/planner?character=key`)
+- [x] Character detail "Plan Materials" links to planner with character pre-selected
+- [x] Team detail "Plan Materials" links to planner with team pre-selected
 
 #### 5. Team-Level Planner Aggregation
 - [ ] Calculate shared materials across team members
@@ -155,8 +155,8 @@ New:     Dashboard | Roster | Teams | Pulls  | Planner
 
 #### 7. Update Mobile Navigation
 - [ ] Replace Wishes with Pulls
-- [ ] Add Planner to mobile nav
-- [ ] Move Settings to overflow menu or keep as 5th item
+- [x] Add Planner to mobile nav (as "Plan")
+- [x] Settings kept as 6th item (labels shortened: Dashboard→Home, Planner→Plan)
 
 ---
 
@@ -223,25 +223,25 @@ Create a guided first-run experience:
 5. Dashboard with "Getting Started" checklist
 
 **Implementation:**
-- [ ] Create `OnboardingWizard` component
-- [ ] Track onboarding completion in localStorage
-- [ ] Add "Getting Started" checklist to Dashboard for new users
-- [ ] Allow re-triggering from Settings
+- [x] Create `OnboardingWizard` component
+- [x] Track onboarding completion in localStorage (via `OnboardingContext`)
+- [x] Add "Getting Started" checklist to Dashboard for new users
+- [x] Allow re-triggering from Settings
 
 #### 11. Feature Tooltips
 Add contextual help for gacha mechanics:
 
 **Tooltip Locations:**
-- [ ] Pity counter: "Soft pity begins at 74 pulls, hard pity at 90"
-- [ ] Guaranteed indicator: "After losing 50/50, next 5★ is guaranteed featured"
-- [ ] Capturing Radiance: "55% base rate, guaranteed after 3 consecutive losses"
+- [x] Pity counter: "Soft pity begins at 74 pulls, hard pity at 90"
+- [x] Guaranteed indicator: "After losing 50/50, next 5★ is guaranteed featured"
+- [x] Capturing Radiance: "55% base rate, guaranteed after 3 consecutive losses"
 - [ ] Fate Points: "Weapon banner epitomized path mechanics"
 - [ ] Probability percentages: "Based on X Monte Carlo simulations"
 
 **Implementation:**
-- [ ] Create reusable `InfoTooltip` component
-- [ ] Add `?` icons next to key metrics
-- [ ] Store tooltip content in constants file
+- [x] Create reusable `InfoTooltip` component
+- [x] Add `?` icons next to key metrics
+- [x] Store tooltip content in constants file
 
 ---
 
@@ -266,21 +266,21 @@ async function fetchWithRetry<T>(
 ): Promise<T>
 ```
 
-- [ ] Implement exponential backoff (2s, 4s, 8s, max 16s)
-- [ ] Max 4 retry attempts
-- [ ] Show user-friendly error after all retries fail
+- [x] Implement exponential backoff (1s, 2s, 4s, 8s max)
+- [x] Max 4 retry attempts (configurable)
+- [x] Show user-friendly error after all retries fail
 - [ ] Add toast notification for retry attempts
 
 #### 13. Error Path Test Coverage
 Expand tests to cover failure scenarios:
 
 **Test Cases:**
-- [ ] Network timeout handling
+- [x] Network timeout handling (fetchWithRetry tests)
 - [ ] Invalid import data handling
 - [ ] Database write failures
 - [ ] Empty state edge cases
 - [ ] Concurrent modification conflicts
-- [ ] LocalStorage quota exceeded
+- [x] LocalStorage quota exceeded (usePlannerState graceful handling)
 
 **Target:** Increase branch coverage from 68% to 75%
 
