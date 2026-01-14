@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Users, Sword, Gem } from 'lucide-react';
+import { Users, Sword, Gem, Layers } from 'lucide-react';
 
 const SUB_TABS = [
   { id: 'characters', label: 'Characters', path: '/roster', icon: Users, end: true },
   { id: 'weapons', label: 'Weapons', path: '/roster/weapons', icon: Sword, end: false },
   { id: 'artifacts', label: 'Artifacts', path: '/roster/artifacts', icon: Gem, end: false },
+  { id: 'builds', label: 'Builds', path: '/roster/builds', icon: Layers, end: false },
 ] as const;
 
 export default function RosterSubNav() {

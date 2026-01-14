@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { ScrollText, Calculator, Coins } from 'lucide-react';
+import { Target, Package, Calendar } from 'lucide-react';
 
 const SUB_TABS = [
-  { id: 'history', label: 'History', path: '/wishes', icon: ScrollText, end: true },
-  { id: 'calculator', label: 'Calculator', path: '/wishes/calculator', icon: Calculator, end: false },
-  { id: 'budget', label: 'Budget', path: '/wishes/budget', icon: Coins, end: false },
+  { id: 'overview', label: 'Overview', path: '/planner', icon: Target, end: true },
+  { id: 'materials', label: 'Materials', path: '/planner/materials', icon: Package, end: false },
+  { id: 'domains', label: 'Domains', path: '/planner/domains', icon: Calendar, end: false },
 ] as const;
 
-export default function WishesSubNav() {
+export default function PlannerSubNav() {
   return (
     <div className="flex gap-1 mb-6 border-b border-slate-800 pb-4">
       {SUB_TABS.map((tab) => {

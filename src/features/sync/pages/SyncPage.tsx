@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
-import { CheckCircle2, Clock3, Download, RefreshCw, Eye, EyeOff, Sun, Moon, Monitor, Upload, Share2 } from 'lucide-react';
+import { CheckCircle2, Clock3, Download, RefreshCw, Eye, EyeOff, Sun, Moon, Monitor, Upload, Share2, Sparkles } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
@@ -7,6 +7,7 @@ import { useAppMetaStatus } from '../hooks/useAppMetaStatus';
 import { appMetaService, parseDateString, resolveBackupCadenceDays } from '../services/appMetaService';
 import { useUIStore, type ThemeMode } from '@/stores/uiStore';
 import { useTheme } from '@/hooks/useTheme';
+import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import ImportBackup from '../components/ImportBackup';
 import DataTransfer from '../components/DataTransfer';
 
@@ -27,6 +28,7 @@ export default function SyncPage() {
   const { status, isLoading } = useAppMetaStatus();
   const { settings, updateSettings, resetSettings } = useUIStore();
   const { theme, setTheme } = useTheme();
+  const { openWizard, resetOnboarding } = useOnboardingContext();
   const [isMarking, setIsMarking] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -303,6 +305,34 @@ export default function SyncPage() {
         </CardHeader>
         <CardContent>
           <ImportBackup />
+        </CardContent>
+      </Card>
+
+      {/* Onboarding */}
+      <Card>
+        <CardHeader className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-primary-400" />
+            <h2 className="text-xl font-semibold text-slate-100">Getting Started</h2>
+          </div>
+          <p className="text-slate-400 text-sm">
+            Review the welcome tutorial and getting started checklist.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" onClick={openWizard}>
+              <Sparkles className="w-4 h-4" />
+              View Welcome Tutorial
+            </Button>
+            <Button variant="ghost" onClick={resetOnboarding}>
+              <RefreshCw className="w-4 h-4" />
+              Reset Onboarding
+            </Button>
+          </div>
+          <p className="text-xs text-slate-500">
+            Resetting onboarding will show the welcome wizard again and reset the getting started checklist.
+          </p>
         </CardContent>
       </Card>
     </div>

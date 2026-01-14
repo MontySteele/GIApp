@@ -1,4 +1,5 @@
 import { db } from '@/db/schema';
+import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry';
 import type { Character, SlotKey } from '@/types';
 
 // Enka.network API types (simplified)
@@ -20,8 +21,6 @@ export interface EnkaResponse {
 
 const ENKA_CACHE_PREFIX = 'enka:';
 const DEFAULT_CACHE_TTL_SECONDS = 300;
-const RETRY_DELAYS_MS = [0, 500, 1000];
-const RETRYABLE_STATUSES = [429, 500, 502, 503, 504];
 
 function buildCacheKey(uid: string) {
   return `${ENKA_CACHE_PREFIX}${uid}`;
@@ -59,43 +58,6 @@ async function cacheEnka(uid: string, data: EnkaResponse) {
     fetchedAt: now,
     expiresAt,
   });
-}
-
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function shouldRetry(status: number) {
-  return RETRYABLE_STATUSES.includes(status);
-}
-
-async function fetchWithRetry(url: string) {
-  let lastError: unknown;
-  let response: Response | null = null;
-
-  for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt++) {
-    const delayMs = RETRY_DELAYS_MS[attempt];
-    if (attempt > 0 && delayMs !== undefined) {
-      await sleep(delayMs);
-    }
-
-    try {
-      response = await fetch(url);
-    } catch (error) {
-      lastError = error;
-      continue;
-    }
-
-    if (response.ok || !shouldRetry(response.status)) {
-      return response;
-    }
-  }
-
-  if (response) {
-    return response;
-  }
-
-  throw lastError ?? new Error('Network request failed');
 }
 
 export interface EnkaShowcase {
@@ -620,10 +582,14 @@ export async function fetchEnkaData(uid: string): Promise<EnkaResponse> {
     primaryError = error;
   }
 
-  if (!response || (response.status >= 500 && shouldRetry(response.status))) {
-    // If direct fetch fails due to CORS, try CORS proxy
+  // If direct fetch fails due to CORS or server error, try CORS proxy
+  if (!response || (response.status >= 500)) {
     console.warn('Direct fetch failed, trying CORS proxy...');
-    response = await fetchWithRetry(proxyUrl);
+    try {
+      response = await fetchWithRetry(proxyUrl);
+    } catch (error) {
+      if (!primaryError) primaryError = error;
+    }
   }
 
   if (!response) {
@@ -637,10 +603,7 @@ export async function fetchEnkaData(uid: string): Promise<EnkaResponse> {
     if (response.status === 424) {
       throw new Error('Game server maintenance. Please try again later.');
     }
-    if (response.status === 429) {
-      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-    }
-    throw new Error(`Failed to fetch data: ${response.statusText || response.status}`);
+    throw new Error(getUserFriendlyError(response));
   }
 
   const data = (await response.json()) as EnkaResponse;

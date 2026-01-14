@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
+import { useTeams } from '@/features/roster/hooks/useTeams';
 import { getCharacterMaterials } from '@/lib/services/genshinDbService';
 import { getTodayName, type DayName } from '@/features/planner/domain/farmingSchedule';
 import { DOMAIN_SCHEDULE, TALENT_BOOK_REGIONS } from '@/features/planner/domain/materialConstants';
@@ -83,14 +84,27 @@ function getNextAvailableDay(series: string, today: DayName): DayName {
 
 export function useTodayFarming(): TodayFarmingData {
   const { characters, isLoading: charactersLoading } = useCharacters();
+  const { teams, isLoading: teamsLoading } = useTeams();
   const [characterBookNeeds, setCharacterBookNeeds] = useState<CharacterBookNeed[]>([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
 
   const today = useMemo(() => getTodayName(), []);
 
-  // Fetch material data for all characters
+  // Filter to only characters that are in at least one team
+  const teamCharacters = useMemo(() => {
+    if (teams.length === 0) return [];
+    const teamCharacterKeys = new Set<string>();
+    for (const team of teams) {
+      for (const key of team.characterKeys) {
+        teamCharacterKeys.add(key);
+      }
+    }
+    return characters.filter((c) => teamCharacterKeys.has(c.key));
+  }, [characters, teams]);
+
+  // Fetch material data for team characters only
   useEffect(() => {
-    if (charactersLoading || characters.length === 0) {
+    if (charactersLoading || teamsLoading || teamCharacters.length === 0) {
       setCharacterBookNeeds([]);
       return;
     }
@@ -103,8 +117,8 @@ export function useTodayFarming(): TodayFarmingData {
 
       // Fetch in parallel with a concurrency limit
       const batchSize = 5;
-      for (let i = 0; i < characters.length; i += batchSize) {
-        const batch = characters.slice(i, i + batchSize);
+      for (let i = 0; i < teamCharacters.length; i += batchSize) {
+        const batch = teamCharacters.slice(i, i + batchSize);
         const results = await Promise.allSettled(
           batch.map(async (char) => {
             const { data } = await getCharacterMaterials(char.key, {
@@ -145,7 +159,7 @@ export function useTodayFarming(): TodayFarmingData {
     return () => {
       cancelled = true;
     };
-  }, [characters, charactersLoading, today]);
+  }, [teamCharacters, charactersLoading, teamsLoading, today]);
 
   // Group characters by book series
   const charactersByBook = useMemo(() => {
@@ -208,7 +222,7 @@ export function useTodayFarming(): TodayFarmingData {
 
   return {
     today,
-    isLoading: charactersLoading || isLoadingMaterials,
+    isLoading: charactersLoading || teamsLoading || isLoadingMaterials,
     charactersByBook,
     availableTodayWithCharacters,
     notAvailableToday,

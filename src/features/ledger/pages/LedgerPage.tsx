@@ -14,6 +14,7 @@ import {
   calculateAvailablePulls,
   calculateWishSpending,
 } from '../domain/resourceCalculations';
+import { markChecklistItem } from '@/hooks/useOnboarding';
 import type { FateType, PrimogemEntry } from '@/types';
 
 const FAR_FUTURE = '9999-12-31T23:59:59.999Z';
@@ -53,6 +54,11 @@ export default function LedgerPage() {
 
   // Editing purchase state (used for scrolling to purchase ledger when editing from transaction log)
   const [, setEditingPurchase] = useState<PrimogemEntry | null>(null);
+
+  // Mark pulls as visited for onboarding checklist
+  useEffect(() => {
+    markChecklistItem('hasCheckedPulls');
+  }, []);
 
   // Sync snapshot values when latest snapshot changes
   useEffect(() => {

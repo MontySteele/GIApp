@@ -12,16 +12,17 @@ import {
   Users,
   UsersRound,
   Sparkles,
-  Settings,
+  Target,
 } from 'lucide-react';
 
 // Mobile-optimized navigation items (subset of main tabs)
+// Settings accessible via header menu on mobile
 const MOBILE_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
   { id: 'roster', label: 'Roster', path: '/roster', icon: Users },
   { id: 'teams', label: 'Teams', path: '/teams', icon: UsersRound },
-  { id: 'wishes', label: 'Wishes', path: '/wishes', icon: Sparkles },
-  { id: 'settings', label: 'Settings', path: '/settings', icon: Settings },
+  { id: 'pulls', label: 'Pulls', path: '/pulls', icon: Sparkles },
+  { id: 'planner', label: 'Planner', path: '/planner', icon: Target },
 ] as const;
 
 export default function MobileBottomNav() {

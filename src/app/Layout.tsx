@@ -5,7 +5,9 @@ import MobileBottomNav from '@/components/common/MobileBottomNav';
 import BackupReminderBanner from '@/features/sync/components/BackupReminderBanner';
 import ToastContainer from '@/components/ui/Toast';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import OnboardingWizard from '@/components/common/OnboardingWizard';
 import { useTheme } from '@/hooks/useTheme';
+import { useOnboardingContext } from '@/contexts/OnboardingContext';
 
 /** Skip link component for keyboard navigation */
 function SkipLink() {
@@ -22,6 +24,8 @@ function SkipLink() {
 export default function Layout() {
   // Initialize theme on mount
   useTheme();
+
+  const { showWizard, closeWizard, completeOnboarding } = useOnboardingContext();
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 dark:bg-slate-950 light:bg-slate-50 text-slate-100 dark:text-slate-100 light:text-slate-900">
@@ -42,6 +46,11 @@ export default function Layout() {
       </main>
       <MobileBottomNav />
       <ToastContainer />
+      <OnboardingWizard
+        isOpen={showWizard}
+        onClose={closeWizard}
+        onComplete={completeOnboarding}
+      />
     </div>
   );
 }

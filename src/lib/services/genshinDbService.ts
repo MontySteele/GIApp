@@ -2,7 +2,7 @@
  * Genshin DB API Service
  *
  * Fetches character and talent data from genshin-db-api.vercel.app
- * with IndexedDB caching for offline support
+ * with IndexedDB caching for offline support and automatic retry
  */
 
 import { db } from '@/db/schema';
@@ -12,6 +12,7 @@ import type {
   GenshinDbTalentResponse,
 } from '@/features/planner/domain/characterMaterials';
 import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
+import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry';
 
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -116,28 +117,28 @@ function getCacheKey(characterKey: string): string {
 }
 
 /**
- * Fetch character data from API
+ * Fetch character data from API with retry
  */
 async function fetchCharacterData(characterKey: string): Promise<GenshinDbCharacterResponse> {
   const url = `${API_BASE_URL}/characters?query=${encodeURIComponent(characterKey)}&matchCategories=true`;
-  const response = await fetch(url);
+  const response = await fetchWithRetry(url);
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch character data: ${response.statusText}`);
+    throw new Error(getUserFriendlyError(response));
   }
 
   return response.json();
 }
 
 /**
- * Fetch talent data from API
+ * Fetch talent data from API with retry
  */
 async function fetchTalentData(characterKey: string): Promise<GenshinDbTalentResponse> {
   const url = `${API_BASE_URL}/talents?query=${encodeURIComponent(characterKey)}&matchCategories=true`;
-  const response = await fetch(url);
+  const response = await fetchWithRetry(url);
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch talent data: ${response.statusText}`);
+    throw new Error(getUserFriendlyError(response));
   }
 
   return response.json();

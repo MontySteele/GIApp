@@ -5,6 +5,7 @@ import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useMaterials } from '../hooks/useMaterials';
 import { useMultiCharacterPlan, type GoalType } from '../hooks/useMultiCharacterPlan';
 import { useWeaponPlan } from '../hooks/useWeaponPlan';
+import { markChecklistItem } from '@/hooks/useOnboarding';
 
 // Sub-components
 import ResinTracker from '../components/ResinTracker';
@@ -54,6 +55,11 @@ export default function PlannerPage() {
   const [summary, setSummary] = useState<AscensionSummary | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
+
+  // Mark planner as visited for onboarding checklist
+  useEffect(() => {
+    markChecklistItem('hasVisitedPlanner');
+  }, []);
 
   // Transform enriched weapons for hooks
   const weaponsForPlan = useMemo(() => {
