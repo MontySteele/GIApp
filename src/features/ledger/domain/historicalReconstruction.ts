@@ -127,8 +127,10 @@ export function buildHistoricalData(
   const latestSnapshotDate = startOfDay(parseISO(latestSnapshot.timestamp));
 
   // Work backwards from latest snapshot
-  let currentPrimogems = latestSnapshot.primogems;
-  let currentPrimogemsWithPurchases = latestSnapshot.primogems;
+  // Include intertwined fates as primogem-equivalent to avoid dips when converting primos to fates
+  const latestSnapshotTotal = latestSnapshot.primogems + (latestSnapshot.intertwined * PRIMOGEMS_PER_PULL);
+  let currentPrimogems = latestSnapshotTotal;
+  let currentPrimogemsWithPurchases = latestSnapshotTotal;
   let cumulativePulls = 0;
   let cumulativePurchases = 0;
 
@@ -149,9 +151,10 @@ export function buildHistoricalData(
     // Check if there's a snapshot on this date
     const snapshotOnDate = snapshotByDate.get(dateKey);
     if (snapshotOnDate && !isBefore(currentDate, latestSnapshotDate)) {
-      // Use snapshot value directly
-      currentPrimogems = snapshotOnDate.primogems;
-      currentPrimogemsWithPurchases = snapshotOnDate.primogems;
+      // Use snapshot value directly (include intertwined fates as primogem-equivalent)
+      const snapshotTotal = snapshotOnDate.primogems + (snapshotOnDate.intertwined * PRIMOGEMS_PER_PULL);
+      currentPrimogems = snapshotTotal;
+      currentPrimogemsWithPurchases = snapshotTotal;
     }
 
     // Apply wish spending for the day
@@ -185,8 +188,8 @@ export function buildHistoricalData(
 
   // Now work backwards from latest snapshot to fill in historical data
   currentDate = addDays(latestSnapshotDate, -1);
-  currentPrimogems = latestSnapshot.primogems;
-  currentPrimogemsWithPurchases = latestSnapshot.primogems;
+  currentPrimogems = latestSnapshotTotal;
+  currentPrimogemsWithPurchases = latestSnapshotTotal;
 
   const historicalData: HistoricalDataPoint[] = [];
 
@@ -196,8 +199,10 @@ export function buildHistoricalData(
     // Check for snapshot on this date
     const snapshotOnDate = snapshotByDate.get(dateKey);
     if (snapshotOnDate) {
-      currentPrimogems = snapshotOnDate.primogems;
-      currentPrimogemsWithPurchases = snapshotOnDate.primogems;
+      // Include intertwined fates as primogem-equivalent
+      const snapshotTotal = snapshotOnDate.primogems + (snapshotOnDate.intertwined * PRIMOGEMS_PER_PULL);
+      currentPrimogems = snapshotTotal;
+      currentPrimogemsWithPurchases = snapshotTotal;
     } else {
       // Work backwards: add back wishes that were spent the next day
       const nextDay = addDays(currentDate, 1);
