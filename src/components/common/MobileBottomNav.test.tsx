@@ -23,30 +23,32 @@ describe('MobileBottomNav', () => {
     it('renders all navigation items', () => {
       renderNav();
 
-      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument();
       expect(screen.getByText('Roster')).toBeInTheDocument();
       expect(screen.getByText('Teams')).toBeInTheDocument();
-      expect(screen.getByText('Wishes')).toBeInTheDocument();
+      expect(screen.getByText('Pulls')).toBeInTheDocument();
+      expect(screen.getByText('Plan')).toBeInTheDocument();
       expect(screen.getByText('Settings')).toBeInTheDocument();
     });
 
     it('renders links with correct hrefs', () => {
       renderNav();
 
-      expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute('href', '/');
+      expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('href', '/');
       expect(screen.getByRole('link', { name: /roster/i })).toHaveAttribute('href', '/roster');
       expect(screen.getByRole('link', { name: /teams/i })).toHaveAttribute('href', '/teams');
-      expect(screen.getByRole('link', { name: /wishes/i })).toHaveAttribute('href', '/wishes');
+      expect(screen.getByRole('link', { name: /pulls/i })).toHaveAttribute('href', '/pulls');
+      expect(screen.getByRole('link', { name: /plan/i })).toHaveAttribute('href', '/planner');
       expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('href', '/settings');
     });
   });
 
   describe('active state', () => {
-    it('highlights dashboard when on home route', () => {
+    it('highlights home when on home route', () => {
       renderNav('/');
 
-      const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
-      expect(dashboardLink).toHaveClass('text-primary-400');
+      const homeLink = screen.getByRole('link', { name: /home/i });
+      expect(homeLink).toHaveClass('text-primary-400');
     });
 
     it('highlights roster when on roster route', () => {
@@ -63,11 +65,18 @@ describe('MobileBottomNav', () => {
       expect(teamsLink).toHaveClass('text-primary-400');
     });
 
-    it('highlights wishes when on wishes route', () => {
-      renderNav('/wishes');
+    it('highlights pulls when on pulls route', () => {
+      renderNav('/pulls');
 
-      const wishesLink = screen.getByRole('link', { name: /wishes/i });
-      expect(wishesLink).toHaveClass('text-primary-400');
+      const pullsLink = screen.getByRole('link', { name: /pulls/i });
+      expect(pullsLink).toHaveClass('text-primary-400');
+    });
+
+    it('highlights planner when on planner route', () => {
+      renderNav('/planner');
+
+      const planLink = screen.getByRole('link', { name: /plan/i });
+      expect(planLink).toHaveClass('text-primary-400');
     });
 
     it('highlights settings when on settings route', () => {
@@ -80,10 +89,10 @@ describe('MobileBottomNav', () => {
     it('does not highlight non-active links', () => {
       renderNav('/roster');
 
-      const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
+      const homeLink = screen.getByRole('link', { name: /home/i });
       const teamsLink = screen.getByRole('link', { name: /teams/i });
 
-      expect(dashboardLink).not.toHaveClass('text-primary-400');
+      expect(homeLink).not.toHaveClass('text-primary-400');
       expect(teamsLink).not.toHaveClass('text-primary-400');
     });
   });
@@ -101,7 +110,7 @@ describe('MobileBottomNav', () => {
 
       // Each nav item should have an SVG icon
       const icons = container.querySelectorAll('svg');
-      expect(icons.length).toBe(5);
+      expect(icons.length).toBe(6);
     });
   });
 

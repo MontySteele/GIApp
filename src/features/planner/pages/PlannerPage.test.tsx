@@ -1,7 +1,17 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import PlannerPage from './PlannerPage';
+
+// Helper to wrap component with router
+function renderWithRouter(ui: React.ReactElement, initialEntries = ['/']) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      {ui}
+    </MemoryRouter>
+  );
+}
 
 // Mock characters
 const mockCharacters = [
@@ -64,6 +74,16 @@ vi.mock('@/features/roster/hooks/useCharacters', () => ({
     isLoading: false,
   }),
 }));
+
+vi.mock('@/features/roster/hooks/useTeams', () => ({
+  useTeams: () => ({
+    teams: [],
+    isLoading: false,
+  }),
+}));
+
+// Use actual usePlannerState (works with jsdom localStorage)
+// This allows tests to verify actual state changes
 
 vi.mock('@/features/weapons/hooks/useWeapons', () => ({
   useWeapons: () => ({
@@ -170,44 +190,46 @@ vi.mock('../domain/ascensionCalculator', () => ({
 describe('PlannerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear localStorage to ensure clean state between tests
+    localStorage.clear();
   });
 
   describe('rendering', () => {
     it('renders the page title', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByRole('heading', { name: /ascension planner/i })).toBeInTheDocument();
       expect(screen.getByText(/calculate materials needed/i)).toBeInTheDocument();
     });
 
     it('renders mode switcher buttons', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByRole('button', { name: /single/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /multi/i })).toBeInTheDocument();
     });
 
     it('renders material inventory status', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByText(/material inventory/i)).toBeInTheDocument();
       expect(screen.getByText(/2 material types tracked/i)).toBeInTheDocument();
     });
 
     it('renders resin tracker in sidebar', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByTestId('resin-tracker')).toBeInTheDocument();
     });
 
     it('renders domain schedule card', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByText(/today's domains/i)).toBeInTheDocument();
     });
 
     it('renders resin tips', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByText(/resin tips/i)).toBeInTheDocument();
       expect(screen.getByText(/daily resin regeneration/i)).toBeInTheDocument();
@@ -216,20 +238,20 @@ describe('PlannerPage', () => {
 
   describe('single character mode', () => {
     it('single mode is active by default', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       const singleButton = screen.getByRole('button', { name: /single/i });
       expect(singleButton).toHaveClass('bg-primary-600');
     });
 
     it('renders character selection section', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByRole('heading', { name: /select character/i })).toBeInTheDocument();
     });
 
     it('renders character dropdown with characters', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       // Labels aren't properly associated, so query by text content
       expect(screen.getByText('Character')).toBeInTheDocument();
@@ -238,7 +260,7 @@ describe('PlannerPage', () => {
     });
 
     it('renders goal type dropdown', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       // Labels aren't properly associated, so query by text content
       expect(screen.getByText('Goal')).toBeInTheDocument();
@@ -248,13 +270,13 @@ describe('PlannerPage', () => {
     });
 
     it('shows empty state when no character selected', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByText(/select a character to calculate materials/i)).toBeInTheDocument();
     });
 
     it('shows goal options in dropdown', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       // Verify goal options are in the dropdown by checking their text
       expect(screen.getByRole('option', { name: /next ascension/i })).toBeInTheDocument();
@@ -267,7 +289,7 @@ describe('PlannerPage', () => {
   describe('multi character mode', () => {
     it('can switch to multi mode', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
 
@@ -277,7 +299,7 @@ describe('PlannerPage', () => {
 
     it('shows character and weapon tabs in multi mode', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
 
@@ -287,7 +309,7 @@ describe('PlannerPage', () => {
 
     it('shows select all and clear buttons', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
 
@@ -298,7 +320,7 @@ describe('PlannerPage', () => {
 
     it('shows goal type selector in multi mode', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
 
@@ -307,7 +329,7 @@ describe('PlannerPage', () => {
 
     it('shows character grid in multi mode', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
 
@@ -318,7 +340,7 @@ describe('PlannerPage', () => {
 
     it('shows empty state when no characters selected', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
 
@@ -329,7 +351,7 @@ describe('PlannerPage', () => {
   describe('weapon tab in multi mode', () => {
     it('can switch to weapons tab', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
       await user.click(screen.getByRole('button', { name: /weapons/i }));
@@ -339,7 +361,7 @@ describe('PlannerPage', () => {
 
     it('shows weapon goal options', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       await user.click(screen.getByRole('button', { name: /multi/i }));
       await user.click(screen.getByRole('button', { name: /weapons/i }));
@@ -353,13 +375,13 @@ describe('PlannerPage', () => {
 
   describe('mora input', () => {
     it('renders mora input field', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByPlaceholderText(/enter mora/i)).toBeInTheDocument();
     });
 
     it('shows mora label', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByText(/mora:/i)).toBeInTheDocument();
     });
@@ -368,7 +390,7 @@ describe('PlannerPage', () => {
   describe('character selection', () => {
     it('selects character from dropdown', async () => {
       const user = userEvent.setup();
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       // Get the first combobox (character selector)
       const comboboxes = screen.getAllByRole('combobox');
@@ -387,7 +409,7 @@ describe('PlannerPage', () => {
 
   describe('domain schedule', () => {
     it('shows today day name', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       // The day name should be visible
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -396,7 +418,7 @@ describe('PlannerPage', () => {
     });
 
     it('shows schedule reference', () => {
-      render(<PlannerPage />);
+      renderWithRouter(<PlannerPage />);
 
       expect(screen.getByText(/schedule/i)).toBeInTheDocument();
       expect(screen.getByText(/mon\/thu/i)).toBeInTheDocument();
@@ -439,7 +461,7 @@ describe('PlannerPage loading state', () => {
 
     const { default: PlannerPageLoading } = await import('./PlannerPage');
 
-    render(<PlannerPageLoading />);
+    renderWithRouter(<PlannerPageLoading />);
 
     expect(screen.getByText(/loading.../i)).toBeInTheDocument();
   });
@@ -478,7 +500,7 @@ describe('PlannerPage without materials', () => {
 
     const { default: PlannerPageNoMats } = await import('./PlannerPage');
 
-    render(<PlannerPageNoMats />);
+    renderWithRouter(<PlannerPageNoMats />);
 
     expect(screen.getByText(/import from irminsul to track materials/i)).toBeInTheDocument();
   });

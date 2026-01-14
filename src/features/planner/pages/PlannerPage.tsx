@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { User, Users } from 'lucide-react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useMaterials } from '../hooks/useMaterials';
-import { useMultiCharacterPlan, type GoalType } from '../hooks/useMultiCharacterPlan';
+import { useMultiCharacterPlan } from '../hooks/useMultiCharacterPlan';
 import { useWeaponPlan } from '../hooks/useWeaponPlan';
+import { usePlannerState } from '../hooks/usePlannerState';
 import { markChecklistItem } from '@/hooks/useOnboarding';
 
 // Sub-components
@@ -39,9 +40,6 @@ import {
   type AscensionSummary,
 } from '../domain/ascensionCalculator';
 
-type PlannerMode = 'single' | 'multi';
-type MultiTab = 'characters' | 'weapons';
-
 export default function PlannerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { characters, isLoading: loadingChars } = useCharacters();
@@ -49,9 +47,19 @@ export default function PlannerPage() {
   const { weapons: enrichedWeapons, isLoading: loadingWeapons, hasWeapons } = useWeapons();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
 
-  // Check for team query param to auto-select characters
+  // Check for query params to auto-select characters
   const teamIdFromUrl = searchParams.get('team');
+  const characterKeyFromUrl = searchParams.get('character');
   const teamFromUrl = teamIdFromUrl ? teams.find((t) => t.id === teamIdFromUrl) : null;
+
+  // Find character by key for single-character mode
+  const characterFromUrl = useMemo(() => {
+    if (characterKeyFromUrl) {
+      return characters.find((c) => c.key.toLowerCase() === characterKeyFromUrl.toLowerCase());
+    }
+    return null;
+  }, [characterKeyFromUrl, characters]);
+
   const initialSelectedKeys = useMemo(() => {
     if (teamFromUrl) {
       // Map team character keys to actual character keys (case-insensitive matching)
@@ -62,20 +70,40 @@ export default function PlannerPage() {
     return [];
   }, [teamFromUrl, characters]);
 
-  // Planner mode state - default to multi if coming from team link
-  const [plannerMode, setPlannerMode] = useState<PlannerMode>(teamFromUrl ? 'multi' : 'single');
-  const [multiTab, setMultiTab] = useState<MultiTab>('characters');
+  // Use persisted planner state with URL param overrides
+  const plannerState = usePlannerState({
+    initialModeFromUrl: teamFromUrl ? 'multi' : undefined,
+    initialCharacterKeysFromUrl: initialSelectedKeys,
+    initialCharacterIdFromUrl: characterFromUrl?.id,
+  });
 
-  // Clear team param after initial load to prevent re-selection on navigation
+  const {
+    plannerMode,
+    setPlannerMode,
+    selectedCharacterId,
+    setSelectedCharacterId,
+    singleGoalType: goalType,
+    setSingleGoalType: setGoalType,
+    multiTab,
+    setMultiTab,
+    multiSelectedKeys,
+    setMultiSelectedKeys,
+  } = plannerState;
+
+  // Clear query params after initial load to prevent re-selection on navigation
   useEffect(() => {
-    if (teamIdFromUrl && teamFromUrl) {
+    if ((teamIdFromUrl && teamFromUrl) || (characterKeyFromUrl && characterFromUrl)) {
       setSearchParams({}, { replace: true });
     }
-  }, [teamIdFromUrl, teamFromUrl, setSearchParams]);
+  }, [teamIdFromUrl, teamFromUrl, characterKeyFromUrl, characterFromUrl, setSearchParams]);
 
-  // Single character mode state
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
-  const [goalType, setGoalType] = useState<GoalType>('next');
+  // Auto-select character from URL param (when character data loads after URL parse)
+  useEffect(() => {
+    if (characterFromUrl && !selectedCharacterId) {
+      setSelectedCharacterId(characterFromUrl.id);
+    }
+  }, [characterFromUrl, selectedCharacterId, setSelectedCharacterId]);
+
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview', 'materials']));
   const [summary, setSummary] = useState<AscensionSummary | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -99,13 +127,26 @@ export default function PlannerPage() {
     }));
   }, [enrichedWeapons]);
 
-  // Multi-character mode hook
+  // Multi-character mode hook - use persisted keys as initial selection
   const multiPlan = useMultiCharacterPlan({
     characters,
     inventory: materials,
-    initialGoalType: goalType,
-    initialSelectedKeys,
+    initialGoalType: plannerState.multiGoalType,
+    initialSelectedKeys: multiSelectedKeys.length > 0 ? multiSelectedKeys : initialSelectedKeys,
   });
+
+  // Track if we've synced initial state
+  const hasSyncedMultiPlan = useRef(false);
+
+  // Sync multi-plan selection changes to persisted state
+  useEffect(() => {
+    // Skip the first render to avoid overwriting persisted state
+    if (!hasSyncedMultiPlan.current) {
+      hasSyncedMultiPlan.current = true;
+      return;
+    }
+    setMultiSelectedKeys(multiPlan.selectedCharacterKeys);
+  }, [multiPlan.selectedCharacterKeys, setMultiSelectedKeys]);
 
   // Weapon plan hook
   const weaponPlan = useWeaponPlan({
