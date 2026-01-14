@@ -19,7 +19,8 @@ test.describe('Modal Navigation Patterns', () => {
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(sampleGOODData));
-    await page.waitForTimeout(2000);
+    // Wait for import to complete by checking for success indicator
+    await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
 
   test.describe('Character Form Modal', () => {
@@ -29,7 +30,8 @@ test.describe('Modal Navigation Patterns', () => {
 
       // Open add character modal
       await roster.openAddCharacterModal();
-      await page.waitForTimeout(500);
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible();
 
       // Fill partial data
       const nameInput = page.getByLabel(/name|character/i).or(
@@ -45,6 +47,7 @@ test.describe('Modal Navigation Patterns', () => {
       );
       if (await levelInput.isVisible()) {
         await levelInput.fill('80');
+        await expect(levelInput).toHaveValue('80');
       }
 
       // Look for tabs or sections within the modal
@@ -54,11 +57,11 @@ test.describe('Modal Navigation Patterns', () => {
       if (tabCount > 1) {
         // Click on a different tab
         await tabs.nth(1).click();
-        await page.waitForTimeout(300);
+        await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true').catch(() => {});
 
         // Return to the first tab
         await tabs.first().click();
-        await page.waitForTimeout(300);
+        await expect(tabs.first()).toHaveAttribute('aria-selected', 'true').catch(() => {});
 
         // Verify data is preserved
         const currentLevel = await levelInput.inputValue();
@@ -71,7 +74,8 @@ test.describe('Modal Navigation Patterns', () => {
       await roster.goto();
 
       await roster.openAddCharacterModal();
-      await page.waitForTimeout(500);
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible();
 
       // Fill data
       const nameInput = page.getByLabel(/name|character/i).or(
@@ -91,7 +95,8 @@ test.describe('Modal Navigation Patterns', () => {
         await page.keyboard.press('Escape');
       }
 
-      await page.waitForTimeout(500);
+      // Wait for modal to close
+      await expect(modal).not.toBeVisible();
 
       // Verify character was not added
       const characterList = page.locator('text=/UnsavedCharacter/i');
@@ -103,7 +108,6 @@ test.describe('Modal Navigation Patterns', () => {
       await roster.goto();
 
       await roster.openAddCharacterModal();
-      await page.waitForTimeout(500);
 
       // Modal should be visible
       const modal = page.locator('[role="dialog"]');
@@ -111,7 +115,6 @@ test.describe('Modal Navigation Patterns', () => {
 
       // Press Escape to close
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
 
       // Modal should be closed
       await expect(modal).not.toBeVisible();
@@ -124,7 +127,8 @@ test.describe('Modal Navigation Patterns', () => {
       await teams.goto();
 
       await teams.openCreateTeamModal();
-      await page.waitForTimeout(500);
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible();
 
       // Fill team name
       await teams.fillTeamName('Navigation Test Team');
@@ -135,7 +139,7 @@ test.describe('Modal Navigation Patterns', () => {
 
       if (checkboxCount > 0) {
         await characterCheckboxes.first().check();
-        await page.waitForTimeout(300);
+        await expect(characterCheckboxes.first()).toBeChecked();
 
         // Check a second character if available
         if (checkboxCount > 1) {
@@ -149,9 +153,9 @@ test.describe('Modal Navigation Patterns', () => {
         if (tabCount > 1) {
           // Navigate away and back
           await tabs.nth(1).click();
-          await page.waitForTimeout(300);
+          await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true').catch(() => {});
           await tabs.first().click();
-          await page.waitForTimeout(300);
+          await expect(tabs.first()).toHaveAttribute('aria-selected', 'true').catch(() => {});
 
           // Verify selections are preserved
           expect(await characterCheckboxes.first().isChecked()).toBeTruthy();
@@ -164,16 +168,15 @@ test.describe('Modal Navigation Patterns', () => {
       await teams.goto();
 
       await teams.openCreateTeamModal();
-      await page.waitForTimeout(500);
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible();
 
       // Try to save without required fields
       const saveButton = page.getByRole('button', { name: /save|create/i });
       if (await saveButton.isVisible()) {
         await saveButton.click();
-        await page.waitForTimeout(500);
 
-        // Modal should still be open (validation failed)
-        const modal = page.locator('[role="dialog"]');
+        // Modal should still be open (validation failed) or show error
         const isModalStillOpen = await modal.isVisible();
 
         // Either modal stays open with error, or it closes (depends on validation)
@@ -188,7 +191,6 @@ test.describe('Modal Navigation Patterns', () => {
       await roster.goto();
 
       await roster.openAddCharacterModal();
-      await page.waitForTimeout(500);
 
       const modal = page.locator('[role="dialog"]');
       await expect(modal).toBeVisible();
@@ -214,7 +216,6 @@ test.describe('Modal Navigation Patterns', () => {
       await roster.goto();
 
       await roster.openAddCharacterModal();
-      await page.waitForTimeout(500);
 
       const modal = page.locator('[role="dialog"]');
       await expect(modal).toBeVisible();
@@ -244,19 +245,20 @@ test.describe('Modal Navigation Patterns', () => {
       }
 
       await teams.saveTeam();
-      await page.waitForTimeout(1000);
+      // Wait for team to appear in the list
+      await expect(page.locator('text=/Nested Modal Test/i').first()).toBeVisible({ timeout: 5000 });
 
       // Now try to open a team and delete it
       const teamCard = page.locator('text=/Nested Modal Test/i').first();
       if (await teamCard.isVisible()) {
         await teamCard.click();
-        await page.waitForTimeout(500);
+        const modal = page.locator('[role="dialog"]');
+        await expect(modal).toBeVisible();
 
         // Look for delete button
         const deleteButton = page.getByRole('button', { name: /delete/i });
         if (await deleteButton.isVisible()) {
           await deleteButton.click();
-          await page.waitForTimeout(500);
 
           // Should show confirmation dialog
           const confirmDialog = page.locator('[role="alertdialog"], [role="dialog"]').filter({
@@ -277,14 +279,18 @@ test.describe('Modal Navigation Patterns', () => {
       const initialUrl = page.url();
 
       await roster.openAddCharacterModal();
-      await page.waitForTimeout(500);
 
       const modal = page.locator('[role="dialog"]');
       await expect(modal).toBeVisible();
 
       // Press browser back
       await page.goBack();
-      await page.waitForTimeout(500);
+
+      // Wait for either modal to close or navigation to complete
+      await Promise.race([
+        expect(modal).not.toBeVisible(),
+        page.waitForURL((url) => url.href !== initialUrl, { timeout: 3000 }).catch(() => {}),
+      ]);
 
       // Modal should be closed (behavior depends on implementation)
       const isModalVisible = await modal.isVisible().catch(() => false);

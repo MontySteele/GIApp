@@ -41,8 +41,8 @@ test.describe('Character CRUD', () => {
       // Submit
       await roster.submitCharacterForm();
 
-      // Wait for toast or modal close
-      await page.waitForTimeout(1000);
+      // Wait for character to appear in the list
+      await expect(page.locator('text=/Furina/i').first()).toBeVisible({ timeout: 5000 });
 
       // Verify character was added
       const newCount = await roster.getCharacterCount();
@@ -96,7 +96,9 @@ test.describe('Character CRUD', () => {
       await roster.selectImportMethod('manual');
       await roster.fillManualCharacterForm({ name: 'Kazuha', level: 90 });
       await roster.submitCharacterForm();
-      await page.waitForTimeout(1000);
+
+      // Wait for character to appear
+      await expect(page.locator('text=/Kazuha/i').first()).toBeVisible({ timeout: 5000 });
 
       // Search for the character
       await roster.searchCharacter('Kazuha');
@@ -120,7 +122,9 @@ test.describe('Character CRUD', () => {
       await roster.selectImportMethod('manual');
       await roster.fillManualCharacterForm({ name: 'Bennett', level: 80 });
       await roster.submitCharacterForm();
-      await page.waitForTimeout(1000);
+
+      // Wait for character to appear
+      await expect(page.locator('text=/Bennett/i').first()).toBeVisible({ timeout: 5000 });
 
       // Click on the character
       await roster.openCharacterDetail('Bennett');
@@ -143,7 +147,9 @@ test.describe('Character CRUD', () => {
       await roster.selectImportMethod('manual');
       await roster.fillManualCharacterForm({ name: 'Xiangling', level: 70 });
       await roster.submitCharacterForm();
-      await page.waitForTimeout(1000);
+
+      // Wait for character to appear
+      await expect(page.locator('text=/Xiangling/i').first()).toBeVisible({ timeout: 5000 });
 
       // Open character detail
       await roster.openCharacterDetail('Xiangling');
@@ -174,7 +180,9 @@ test.describe('Character CRUD', () => {
       await roster.selectImportMethod('manual');
       await roster.fillManualCharacterForm({ name: 'Amber', level: 20 });
       await roster.submitCharacterForm();
-      await page.waitForTimeout(1000);
+
+      // Wait for character to appear
+      await expect(page.locator('text=/Amber/i').first()).toBeVisible({ timeout: 5000 });
 
       const countBefore = await roster.getCharacterCount();
 
@@ -205,7 +213,9 @@ test.describe('Character CRUD', () => {
       await roster.selectImportMethod('manual');
       await roster.fillManualCharacterForm({ name: 'Lisa', level: 40 });
       await roster.submitCharacterForm();
-      await page.waitForTimeout(1000);
+
+      // Wait for character to appear
+      await expect(page.locator('text=/Lisa/i').first()).toBeVisible({ timeout: 5000 });
 
       // Open character detail
       await roster.openCharacterDetail('Lisa');
@@ -241,7 +251,8 @@ test.describe('Character CRUD', () => {
         await roster.selectImportMethod('manual');
         await roster.fillManualCharacterForm(char);
         await roster.submitCharacterForm();
-        await page.waitForTimeout(500);
+        // Wait for character to appear before adding next
+        await expect(page.locator(`text=/${char.name}/i`).first()).toBeVisible({ timeout: 5000 });
       }
 
       // Apply element filter (Hydro)

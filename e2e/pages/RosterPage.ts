@@ -9,27 +9,43 @@ import { BasePage } from './BasePage';
 export class RosterPage extends BasePage {
   readonly characterGrid: Locator;
   readonly addCharacterButton: Locator;
+  readonly exportRosterButton: Locator;
   readonly searchInput: Locator;
   readonly filterButton: Locator;
   readonly sortSelect: Locator;
-  readonly viewToggle: Locator;
+  readonly gridViewButton: Locator;
+  readonly listViewButton: Locator;
   readonly characterCards: Locator;
   readonly emptyState: Locator;
   readonly weaponsTab: Locator;
   readonly artifactsTab: Locator;
+  readonly filterPanel: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.characterGrid = page.locator('[data-testid="character-grid"], .grid').first();
-    this.addCharacterButton = page.getByRole('button', { name: /add character/i });
-    this.searchInput = page.getByPlaceholder(/search/i);
-    this.filterButton = page.getByRole('button', { name: /filter/i });
-    this.sortSelect = page.getByLabel(/sort/i);
-    this.viewToggle = page.locator('[data-testid="view-toggle"]');
-    this.characterCards = page.locator('[data-testid="character-card"], .cursor-pointer').filter({ has: page.locator('img') });
-    this.emptyState = page.locator('text=/no characters/i').or(page.locator('[data-testid="empty-roster"]'));
+    this.characterGrid = page.locator('.grid').first();
+    // Header has "Add Character" button with Plus icon
+    this.addCharacterButton = page.getByRole('button', { name: /add character/i }).first();
+    this.exportRosterButton = page.getByRole('button', { name: /export roster/i });
+    // Search input has specific placeholder and aria-label
+    this.searchInput = page.getByPlaceholder('Search characters...');
+    // Filter button has aria-expanded attribute
+    this.filterButton = page.getByRole('button').filter({ has: page.locator('text=/filter/i') })
+      .or(page.locator('button[aria-controls="character-filters"]'));
+    this.sortSelect = page.getByRole('combobox').filter({ hasText: /sort|name|priority|level/i });
+    // View toggle buttons
+    this.gridViewButton = page.getByRole('button', { name: /grid view/i });
+    this.listViewButton = page.getByRole('button', { name: /list view/i });
+    // Character cards - cards with h3 character name and edit/delete buttons
+    this.characterCards = page.locator('[class*="cursor-pointer"]').filter({
+      has: page.locator('h3'),
+    }).filter({
+      has: page.getByRole('button', { name: /edit character/i }),
+    });
+    this.emptyState = page.locator('text=/no characters/i');
     this.weaponsTab = page.getByRole('link', { name: /weapons/i });
     this.artifactsTab = page.getByRole('link', { name: /artifacts/i });
+    this.filterPanel = page.locator('#character-filters');
   }
 
   async goto(): Promise<void> {
@@ -41,7 +57,8 @@ export class RosterPage extends BasePage {
    * Get the count of character cards displayed
    */
   async getCharacterCount(): Promise<number> {
-    await this.page.waitForTimeout(500); // Wait for grid to populate
+    // Wait for page content to stabilize
+    await this.page.waitForTimeout(500);
     return await this.characterCards.count();
   }
 
@@ -50,7 +67,9 @@ export class RosterPage extends BasePage {
    */
   async searchCharacter(name: string): Promise<void> {
     await this.searchInput.fill(name);
-    await this.page.waitForTimeout(300); // Debounce
+    await expect(this.searchInput).toHaveValue(name);
+    // Wait for filter to apply
+    await this.page.waitForTimeout(300);
   }
 
   /**
@@ -58,7 +77,7 @@ export class RosterPage extends BasePage {
    */
   async clearSearch(): Promise<void> {
     await this.searchInput.clear();
-    await this.page.waitForTimeout(300);
+    await expect(this.searchInput).toHaveValue('');
   }
 
   /**
@@ -73,24 +92,24 @@ export class RosterPage extends BasePage {
 
   /**
    * Select an import method from the Add Character modal
+   * Methods: "Manual Entry", "Import from Enka.network", "Import GOOD Format (JSON)", "Import from Irminsul"
    */
   async selectImportMethod(method: 'manual' | 'enka' | 'good' | 'irminsul'): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
 
     const methodText = {
-      manual: /manual/i,
-      enka: /enka/i,
-      good: /good|json/i,
+      manual: /manual entry/i,
+      enka: /enka\.network/i,
+      good: /good format|json/i,
       irminsul: /irminsul/i,
     };
 
-    await modal.getByRole('button', { name: methodText[method] })
-      .or(modal.locator(`text=${methodText[method]}`))
-      .click();
+    await modal.getByRole('button', { name: methodText[method] }).click();
   }
 
   /**
    * Fill the manual character form
+   * Note: Character name is a text input with placeholder "e.g., Furina, Neuvillette"
    */
   async fillManualCharacterForm(data: {
     name: string;
@@ -102,18 +121,21 @@ export class RosterPage extends BasePage {
   }): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
 
-    // Select character from dropdown
-    await modal.getByLabel(/character/i).first().click();
-    await this.page.getByRole('option', { name: data.name }).click();
+    // Character name is a text input
+    const nameInput = modal.getByPlaceholder(/furina|neuvillette/i)
+      .or(modal.locator('input').first());
+    await nameInput.fill(data.name);
 
-    // Fill level
+    // Fill level - use first spinbutton with name "Level" (character level, not weapon level)
     if (data.level) {
-      await modal.getByLabel(/level/i).first().fill(String(data.level));
+      const levelInput = modal.getByRole('spinbutton', { name: /^level$/i }).first();
+      await levelInput.fill(String(data.level));
     }
 
-    // Fill constellation
+    // Fill constellation - it's a select dropdown (C0-C6)
     if (data.constellation !== undefined) {
-      await modal.getByLabel(/constellation/i).fill(String(data.constellation));
+      const constellationSelect = modal.getByLabel(/constellation/i);
+      await constellationSelect.selectOption(`C${data.constellation}`);
     }
 
     // Fill talents
@@ -122,14 +144,33 @@ export class RosterPage extends BasePage {
       await modal.getByLabel(/skill/i).fill(String(data.talents.skill));
       await modal.getByLabel(/burst/i).fill(String(data.talents.burst));
     }
+
+    // Fill weapon if provided
+    if (data.weapon) {
+      const weaponInput = modal.getByLabel(/weapon name/i)
+        .or(modal.getByPlaceholder(/weapon/i));
+      await weaponInput.fill(data.weapon);
+    }
+
+    if (data.weaponLevel) {
+      const weaponLevelInput = modal.getByLabel(/weapon level/i);
+      await weaponLevelInput.fill(String(data.weaponLevel));
+    }
   }
 
   /**
    * Submit the character form
+   * Submit button text is "Add Character" or "Save"
    */
   async submitCharacterForm(): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
-    await modal.getByRole('button', { name: /save|add|create|submit/i }).click();
+    // The submit button is at the bottom of the form content area
+    // Use exact match for "Add Character" button, or find the last button matching save/add
+    const submitButton = modal.getByRole('button', { name: /^add character$/i })
+      .or(modal.getByRole('button', { name: /^save$/i }));
+    await submitButton.click();
+    // Wait for modal to close
+    await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
 
   /**
@@ -138,17 +179,25 @@ export class RosterPage extends BasePage {
   async importFromEnka(uid: string): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
     await modal.getByLabel(/uid/i).fill(uid);
-    await modal.getByRole('button', { name: /import/i }).click();
+    // Click the import button (starts with "Import", not "Back to import options")
+    await modal.getByRole('button', { name: /^import/i }).click();
   }
 
   /**
    * Import characters using GOOD JSON format
+   * The import button text is "Import (Preview: X chars)" after filling textarea
    */
   async importFromGOOD(jsonData: string): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
     const textarea = modal.locator('textarea');
     await textarea.fill(jsonData);
-    await modal.getByRole('button', { name: /import/i }).click();
+    // Wait for preview to update, then click import button
+    // Button text is like "Import (Preview: 402 chars)"
+    const importButton = modal.getByRole('button', { name: /^import \(/i })
+      .or(modal.getByRole('button', { name: /^import$/i }));
+    await importButton.click();
+    // Wait for modal to close on successful import
+    await modal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
   /**
@@ -163,12 +212,27 @@ export class RosterPage extends BasePage {
   }
 
   /**
+   * Edit a character from the roster grid (hover to reveal edit button)
+   */
+  async editCharacter(characterName: string): Promise<void> {
+    const card = this.characterCards.filter({ hasText: characterName }).first();
+    await card.hover();
+    await card.getByRole('button', { name: /edit character/i })
+      .or(card.locator('[aria-label="Edit character"]'))
+      .click();
+  }
+
+  /**
    * Delete a character from the detail page
    */
   async deleteCharacter(): Promise<void> {
-    await this.page.getByRole('button', { name: /delete/i }).click();
-    // Confirm deletion
-    await this.page.getByRole('button', { name: /confirm|yes|delete/i }).click();
+    // Click delete button (appears on hover or in detail view)
+    await this.page.getByRole('button', { name: /delete/i })
+      .or(this.page.locator('[aria-label="Delete character"]'))
+      .click();
+    // Confirm deletion in the modal
+    const confirmModal = this.page.locator('[role="dialog"]');
+    await confirmModal.getByRole('button', { name: /delete|confirm|yes/i }).click();
   }
 
   /**
@@ -188,27 +252,38 @@ export class RosterPage extends BasePage {
   }
 
   /**
+   * Open the filter panel
+   */
+  async openFilters(): Promise<void> {
+    const isExpanded = await this.filterButton.getAttribute('aria-expanded');
+    if (isExpanded !== 'true') {
+      await this.filterButton.click();
+      await this.filterPanel.waitFor({ state: 'visible' });
+    }
+  }
+
+  /**
    * Apply a filter
    */
-  async applyFilter(filterType: 'element' | 'weapon' | 'rarity', value: string): Promise<void> {
-    // Open filter panel if not visible
-    if (!(await this.page.locator('[data-testid="filter-panel"]').isVisible())) {
-      await this.filterButton.click();
-    }
+  async applyFilter(filterType: 'element' | 'weapon' | 'rarity' | 'priority', value: string): Promise<void> {
+    await this.openFilters();
 
-    const filterLabel = {
-      element: /element/i,
-      weapon: /weapon/i,
-      rarity: /rarity|star/i,
-    };
+    // Filter panel has select dropdowns for each filter type
+    const filterSelect = this.filterPanel.locator('select').filter({ hasText: new RegExp(filterType, 'i') })
+      .or(this.filterPanel.getByRole('combobox').nth(
+        filterType === 'element' ? 0 :
+        filterType === 'weapon' ? 1 :
+        filterType === 'rarity' ? 2 : 3
+      ));
 
-    await this.page.getByLabel(filterLabel[filterType]).selectOption(value);
+    await filterSelect.selectOption(value);
   }
 
   /**
    * Check if a character exists in the roster
    */
   async hasCharacter(name: string): Promise<boolean> {
+    await this.page.waitForTimeout(300); // Wait for any filtering
     return await this.characterCards.filter({ hasText: name }).count() > 0;
   }
 
@@ -216,7 +291,7 @@ export class RosterPage extends BasePage {
    * Export roster to GOOD format
    */
   async exportRoster(): Promise<void> {
-    await this.page.getByRole('button', { name: /export/i }).click();
+    await this.exportRosterButton.click();
     const modal = this.page.locator('[role="dialog"]');
     await modal.waitFor({ state: 'visible' });
   }

@@ -4,41 +4,37 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { DashboardPage, RosterPage, TeamsPage, WishesPage } from '../pages';
+import { DashboardPage, RosterPage, TeamsPage, PullsPage } from '../pages';
 
 test.describe('Navigation', () => {
   test.describe('Main Tab Navigation', () => {
     test('should navigate between all main tabs', async ({ page }) => {
-      // Extended timeout for this multi-step navigation test
-      test.setTimeout(120000);
-
       const dashboard = new DashboardPage(page);
       await dashboard.goto();
-      await page.waitForLoadState('domcontentloaded');
 
       // Navigate to Roster
       await dashboard.navigateToTab('Roster');
-      await expect(page).toHaveURL(/\/roster/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/roster/);
 
       // Navigate to Teams
       await page.getByRole('link', { name: /teams/i }).click();
-      await expect(page).toHaveURL(/\/teams/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/teams/);
 
-      // Navigate to Wishes
-      await page.getByRole('link', { name: /wishes/i }).click();
-      await expect(page).toHaveURL(/\/wishes/, { timeout: 15000 });
+      // Navigate to Pulls (renamed from Wishes)
+      await page.getByRole('link', { name: /pulls/i }).click();
+      await expect(page).toHaveURL(/\/pulls/);
 
-      // Navigate to Calendar
-      await page.getByRole('link', { name: /calendar/i }).click();
-      await expect(page).toHaveURL(/\/calendar/, { timeout: 15000 });
+      // Navigate to Planner (now top-level)
+      await page.getByRole('link', { name: /planner/i }).click();
+      await expect(page).toHaveURL(/\/planner/);
 
       // Navigate to Settings
       await page.getByRole('link', { name: /settings/i }).click();
-      await expect(page).toHaveURL(/\/settings/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/settings/);
 
-      // Return to Dashboard (URL ends with port/ or contains /dashboard)
+      // Return to Dashboard
       await page.getByRole('link', { name: /dashboard|home/i }).click();
-      await expect(page).toHaveURL(/:\d+\/?$|\/dashboard/, { timeout: 15000 });
+      await expect(page).toHaveURL(/:\d+\/?$/);
     });
 
     test('should highlight active tab', async ({ page }) => {
@@ -79,32 +75,39 @@ test.describe('Navigation', () => {
       const teams = new TeamsPage(page);
       await teams.goto();
 
-      // Navigate to Planner
-      await teams.goToPlanner();
-      await expect(page).toHaveURL(/planner/);
-
-      // Navigate to Templates
-      await teams.goToTemplates();
-      await expect(page).toHaveURL(/templates/);
-
-      // Navigate to Bosses
+      // Navigate to Bosses (only sub-tab under Teams now)
       await teams.goToBosses();
-      await expect(page).toHaveURL(/bosses/);
+      await expect(page).toHaveURL(/\/teams\/bosses/);
+
+      // Navigate to Planner (now top-level)
+      await teams.goToPlanner();
+      await expect(page).toHaveURL(/\/planner/);
+
+      // Navigate to Templates (now under Roster)
+      await teams.goToTemplates();
+      await expect(page).toHaveURL(/\/roster\/builds/);
     });
   });
 
-  test.describe('Wishes Sub-Navigation', () => {
-    test('should navigate between Wishes sub-tabs', async ({ page }) => {
-      const wishes = new WishesPage(page);
-      await wishes.goto();
+  test.describe('Pulls Sub-Navigation', () => {
+    test('should navigate between Pulls sub-tabs', async ({ page }) => {
+      const pulls = new PullsPage(page);
+      await pulls.goto();
+
+      // Default is Budget tab
+      await expect(page).toHaveURL(/\/pulls$/);
 
       // Navigate to Calculator
-      await wishes.goToCalculator();
-      await expect(page).toHaveURL(/\/wishes\/calculator/);
+      await pulls.goToCalculator();
+      await expect(page).toHaveURL(/\/pulls\/calculator/);
 
-      // Navigate to Budget
-      await wishes.goToBudget();
-      await expect(page).toHaveURL(/\/wishes\/budget/);
+      // Navigate to History
+      await pulls.goToHistory();
+      await expect(page).toHaveURL(/\/pulls\/history/);
+
+      // Navigate to Banners
+      await pulls.goToBanners();
+      await expect(page).toHaveURL(/\/pulls\/banners/);
     });
   });
 
@@ -121,9 +124,9 @@ test.describe('Navigation', () => {
       await page.goBack();
       await expect(page).toHaveURL(/\/roster/);
 
-      // Go back again to root (URL ends with / or /dashboard)
+      // Go back again to root
       await page.goBack();
-      await expect(page).toHaveURL(/:\d+\/?$|\/dashboard/);
+      await expect(page).toHaveURL(/:\d+\/?$/);
 
       // Go forward
       await page.goForward();
@@ -132,11 +135,25 @@ test.describe('Navigation', () => {
 
     test('should handle direct URL navigation', async ({ page }) => {
       // Navigate directly to a nested route
-      await page.goto('/wishes/calculator');
-      await expect(page).toHaveURL(/\/wishes\/calculator/);
+      await page.goto('/pulls/calculator');
+      await expect(page).toHaveURL(/\/pulls\/calculator/);
 
       // Should show calculator content
       await expect(page.locator('main')).toBeVisible();
+    });
+
+    test('should handle legacy routes with redirects', async ({ page }) => {
+      // Old /wishes route should redirect to /pulls
+      await page.goto('/wishes');
+      await expect(page).toHaveURL(/\/pulls/);
+
+      // Old /wishes/calculator route should redirect to /pulls/calculator
+      await page.goto('/wishes/calculator');
+      await expect(page).toHaveURL(/\/pulls\/calculator/);
+
+      // Old /calendar route should redirect to /planner/domains
+      await page.goto('/calendar');
+      await expect(page).toHaveURL(/\/planner\/domains/);
     });
 
     test('should handle invalid routes gracefully', async ({ page }) => {

@@ -64,6 +64,8 @@ export const sampleTeams = {
 
 /**
  * Sample GOOD format export data
+ * Note: weapons must have 'lock' property for validation to pass
+ * Note: each character needs a weapon with matching 'location' for import to work
  */
 export const sampleGOODData = {
   format: 'GOOD',
@@ -92,6 +94,15 @@ export const sampleGOODData = {
       ascension: 6,
       refinement: 1,
       location: 'Furina',
+      lock: true,
+    },
+    {
+      key: 'FreedomSworn',
+      level: 90,
+      ascension: 6,
+      refinement: 1,
+      location: 'KaedeharaKazuha',
+      lock: true,
     },
   ],
   artifacts: [],
@@ -126,8 +137,8 @@ export async function clearDatabase(page: Page): Promise<void> {
   if (wasOnApp) {
     // Navigate away from the app to close Dexie connections
     await page.goto('about:blank');
-    // Wait for navigation and connection cleanup
-    await page.waitForTimeout(300);
+    // Wait for navigation to complete
+    await page.waitForLoadState('domcontentloaded');
   }
 
   try {
@@ -146,9 +157,6 @@ export async function clearDatabase(page: Page): Promise<void> {
   } catch {
     // Ignore errors - database might not exist
   }
-
-  // Small delay to ensure cleanup completes
-  await page.waitForTimeout(100);
 }
 
 /**
@@ -165,13 +173,35 @@ export async function seedCharacters(page: Page): Promise<void> {
 }
 
 /**
+ * Dismiss the welcome tutorial modal if it appears
+ */
+export async function dismissWelcomeModal(page: Page): Promise<void> {
+  const welcomeModal = page.locator('[role="dialog"]').filter({ hasText: /welcome to giapp/i });
+  const isVisible = await welcomeModal.isVisible().catch(() => false);
+
+  if (isVisible) {
+    // Click "Skip tutorial" button to dismiss
+    const skipButton = welcomeModal.getByRole('button', { name: /skip tutorial/i });
+    await skipButton.click();
+    // Wait for modal to close
+    await welcomeModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+  }
+}
+
+/**
  * Wait for the app to fully load (IndexedDB ready, initial data loaded)
  */
 export async function waitForAppReady(page: Page): Promise<void> {
   // Wait for the main content to be visible
   await page.waitForSelector('[data-testid="app-ready"], main', { timeout: 10000 });
-  // Give IndexedDB a moment to initialize
-  await page.waitForTimeout(500);
+
+  // Dismiss welcome modal if it appears
+  await dismissWelcomeModal(page);
+
+  // Wait for any loading skeletons to disappear
+  await page.locator('[data-testid="loading-skeleton"], .animate-pulse').first()
+    .waitFor({ state: 'hidden', timeout: 5000 })
+    .catch(() => {}); // Ignore if no skeleton was ever visible
 }
 
 /**

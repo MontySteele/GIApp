@@ -1,37 +1,65 @@
 /**
  * Planner Page Object Model
  * Interactions with material planning
+ * Title: "Ascension Planner"
  */
 
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class PlannerPage extends BasePage {
-  readonly singleModeTab: Locator;
-  readonly multiModeTab: Locator;
+  // Mode switcher - buttons with User/Users icons
+  readonly singleModeButton: Locator;
+  readonly multiModeButton: Locator;
+
+  // Single mode controls
   readonly characterSelect: Locator;
-  readonly goalTypeSelect: Locator;
+  readonly goalSelect: Locator;
+
+  // Multi mode controls
+  readonly charactersTab: Locator;
+  readonly weaponsTab: Locator;
+  readonly selectAllButton: Locator;
+  readonly deselectAllButton: Locator;
+  readonly characterCheckboxes: Locator;
+
+  // Results displays
   readonly materialsList: Locator;
   readonly resinEstimate: Locator;
   readonly farmingRecommendations: Locator;
-  readonly deficitPriority: Locator;
-  readonly selectAllButton: Locator;
+  readonly goalSummary: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.singleModeTab = page.getByRole('tab', { name: /single/i });
-    this.multiModeTab = page.getByRole('tab', { name: /multi/i });
-    this.characterSelect = page.getByLabel(/character/i).or(page.locator('select').first());
-    this.goalTypeSelect = page.getByLabel(/goal/i).or(page.locator('[data-testid="goal-type"]'));
-    this.materialsList = page.locator('[data-testid="materials-list"]').or(page.locator('text=/materials needed/i').locator('..'));
-    this.resinEstimate = page.locator('[data-testid="resin-estimate"]').or(page.locator('text=/resin/i'));
-    this.farmingRecommendations = page.locator('[data-testid="farming-recommendations"]').or(page.locator('text=/today.*farming/i').locator('..'));
-    this.deficitPriority = page.locator('[data-testid="deficit-priority"]').or(page.locator('text=/deficit|priority/i').locator('..'));
+    // Mode switcher - buttons in flex container (bg-slate-800)
+    // Single button has User icon, Multi has Users icon
+    this.singleModeButton = page.getByRole('button').filter({ has: page.locator('svg') })
+      .locator('xpath=..').locator('button').first();
+    this.multiModeButton = page.getByRole('button').filter({ has: page.locator('svg') })
+      .locator('xpath=..').locator('button').last();
+
+    // Single mode - selects with labels
+    this.characterSelect = page.getByLabel(/^character$/i)
+      .or(page.locator('select').filter({ hasText: /select a character/i }));
+    this.goalSelect = page.getByLabel(/^goal$/i)
+      .or(page.locator('select').filter({ hasText: /next ascension|functional|comfortable|full/i }));
+
+    // Multi mode - tabs for Characters/Weapons
+    this.charactersTab = page.getByRole('button', { name: /characters/i });
+    this.weaponsTab = page.getByRole('button', { name: /weapons/i });
     this.selectAllButton = page.getByRole('button', { name: /select all/i });
+    this.deselectAllButton = page.getByRole('button', { name: /deselect all/i });
+    this.characterCheckboxes = page.locator('input[type="checkbox"]');
+
+    // Results
+    this.materialsList = page.locator('text=/materials/i').locator('..');
+    this.resinEstimate = page.locator('text=/resin/i');
+    this.farmingRecommendations = page.locator('text=/today|farming|recommend/i').locator('..');
+    this.goalSummary = page.locator('text=/goal summary/i').locator('..');
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/teams/planner');
+    await this.page.goto('/planner');
     await this.waitForLoad();
   }
 
@@ -39,38 +67,59 @@ export class PlannerPage extends BasePage {
    * Select single character planning mode
    */
   async selectSingleMode(): Promise<void> {
-    await this.singleModeTab.click();
+    // Click the first mode button (User icon = single mode)
+    const modeButtons = this.page.locator('button').filter({
+      has: this.page.locator('svg')
+    });
+    // Find buttons in the mode switcher container
+    const switcher = this.page.locator('.bg-slate-800').filter({
+      has: modeButtons
+    }).first();
+    await switcher.locator('button').first().click();
   }
 
   /**
    * Select multi-character planning mode
    */
   async selectMultiMode(): Promise<void> {
-    await this.multiModeTab.click();
+    // Click the second mode button (Users icon = multi mode)
+    const modeButtons = this.page.locator('button').filter({
+      has: this.page.locator('svg')
+    });
+    const switcher = this.page.locator('.bg-slate-800').filter({
+      has: modeButtons
+    }).first();
+    await switcher.locator('button').last().click();
   }
 
   /**
-   * Select a character for planning
+   * Select a character for planning (single mode)
+   * Character select shows "Character (Lv. X)" format
    */
   async selectCharacter(name: string): Promise<void> {
-    await this.characterSelect.click();
-    await this.page.getByRole('option', { name: new RegExp(name, 'i') }).click();
-    await this.page.waitForTimeout(500); // Wait for calculation
+    const select = this.page.locator('select').first();
+    // Find option containing the character name
+    await select.selectOption({ label: new RegExp(name, 'i') });
+    // Wait for calculation
+    await this.page.waitForTimeout(500);
   }
 
   /**
    * Select a goal type
+   * Options: "Next Ascension", "Functional (80/1/6/6)", "Comfortable (80/8/8/8)", "Full Build (90/10/10/10)"
    */
   async selectGoalType(type: 'full' | 'comfortable' | 'functional' | 'next'): Promise<void> {
     const goalLabels = {
-      full: /full|max/i,
+      full: /full build/i,
       comfortable: /comfortable/i,
       functional: /functional/i,
-      next: /next/i,
+      next: /next ascension/i,
     };
 
-    await this.goalTypeSelect.click();
-    await this.page.getByRole('option', { name: goalLabels[type] }).click();
+    // Goal is the second select on the page
+    const select = this.page.locator('select').nth(1);
+    await select.selectOption({ label: goalLabels[type] });
+    // Wait for recalculation
     await this.page.waitForTimeout(500);
   }
 
@@ -78,8 +127,8 @@ export class PlannerPage extends BasePage {
    * Get the total resin estimate
    */
   async getResinEstimate(): Promise<number> {
-    const text = await this.resinEstimate.textContent();
-    const match = text?.match(/(\d+)/);
+    const resinText = await this.resinEstimate.first().textContent();
+    const match = resinText?.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   }
 
@@ -94,9 +143,7 @@ export class PlannerPage extends BasePage {
    * Get the count of materials needed
    */
   async getMaterialCount(): Promise<number> {
-    const items = this.materialsList.locator('[data-testid="material-item"]').or(
-      this.materialsList.locator('li, tr')
-    );
+    const items = this.materialsList.locator('li, tr, .grid > div');
     return await items.count();
   }
 
@@ -105,6 +152,14 @@ export class PlannerPage extends BasePage {
    */
   async toggleSelectAll(): Promise<void> {
     await this.selectAllButton.click();
+    await this.page.waitForTimeout(500);
+  }
+
+  /**
+   * Deselect all characters (multi mode)
+   */
+  async deselectAll(): Promise<void> {
+    await this.deselectAllButton.click();
     await this.page.waitForTimeout(500);
   }
 
@@ -138,6 +193,35 @@ export class PlannerPage extends BasePage {
     const materialRow = this.materialsList.locator(`text=${materialName}`).locator('..');
     const input = materialRow.locator('input[type="number"]');
     await input.fill(String(count));
-    await this.page.waitForTimeout(300);
+    await expect(input).toHaveValue(String(count));
+  }
+
+  /**
+   * Switch to Characters tab in multi mode
+   */
+  async switchToCharactersTab(): Promise<void> {
+    await this.charactersTab.click();
+  }
+
+  /**
+   * Switch to Weapons tab in multi mode
+   */
+  async switchToWeaponsTab(): Promise<void> {
+    await this.weaponsTab.click();
+  }
+
+  /**
+   * Get selected character count in multi mode
+   */
+  async getSelectedCount(): Promise<number> {
+    return await this.characterCheckboxes.filter({ checked: true }).count();
+  }
+
+  /**
+   * Select a specific character by checkbox in multi mode
+   */
+  async selectCharacterCheckbox(name: string): Promise<void> {
+    const row = this.page.locator('text=' + name).locator('..');
+    await row.locator('input[type="checkbox"]').check();
   }
 }

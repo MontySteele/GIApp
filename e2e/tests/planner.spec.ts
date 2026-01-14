@@ -20,7 +20,8 @@ test.describe('Material Planner', () => {
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(sampleGOODData));
-    await page.waitForTimeout(2000);
+    // Wait for import to complete
+    await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
 
   test.describe('Single Character Planning', () => {
@@ -135,7 +136,8 @@ test.describe('Material Planner', () => {
 
       if (await materialInput.isVisible()) {
         await materialInput.fill('100');
-        await page.waitForTimeout(500);
+        // Wait for value to update
+        await expect(materialInput).toHaveValue('100');
 
         // Resin estimate may change
         const newResin = await planner.getResinEstimate();

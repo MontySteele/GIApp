@@ -41,7 +41,8 @@ test.describe('Multi-Character Planning Flow', () => {
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(extendedGOODData));
-    await page.waitForTimeout(2000);
+    // Wait for import to complete
+    await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
 
   test('can select multiple characters and see aggregated materials', async ({ page }) => {
@@ -54,7 +55,6 @@ test.describe('Multi-Character Planning Flow', () => {
 
     // Select all characters
     await planner.toggleSelectAll();
-    await page.waitForTimeout(500);
 
     // Verify material aggregation is displayed
     const hasMaterials = await planner.hasMaterials();
@@ -76,7 +76,9 @@ test.describe('Multi-Character Planning Flow', () => {
     // Switch to multi mode and select all
     await planner.selectMultiMode();
     await planner.toggleSelectAll();
-    await page.waitForTimeout(500);
+
+    // Wait for recalculation
+    await expect(planner.resinEstimate).toBeVisible();
 
     const multiResin = await planner.getResinEstimate();
 
@@ -119,12 +121,11 @@ test.describe('Multi-Character Planning Flow', () => {
 
     // Select all first
     await planner.toggleSelectAll();
-    await page.waitForTimeout(500);
+    await expect(planner.resinEstimate).toBeVisible();
     const allSelectedResin = await planner.getResinEstimate();
 
     // Deselect all
     await planner.toggleSelectAll();
-    await page.waitForTimeout(500);
 
     // Find and click on individual character checkboxes
     const characterCheckboxes = page.locator('input[type="checkbox"]');
@@ -133,7 +134,7 @@ test.describe('Multi-Character Planning Flow', () => {
     if (checkboxCount > 0) {
       // Select just one character
       await characterCheckboxes.first().check();
-      await page.waitForTimeout(500);
+      await expect(characterCheckboxes.first()).toBeChecked();
 
       const singleSelectedResin = await planner.getResinEstimate();
 
@@ -148,7 +149,9 @@ test.describe('Multi-Character Planning Flow', () => {
 
     await planner.selectMultiMode();
     await planner.toggleSelectAll();
-    await page.waitForTimeout(500);
+
+    // Wait for initial calculation
+    await expect(planner.resinEstimate).toBeVisible();
 
     // Get resin for full goal
     await planner.selectGoalType('full');
