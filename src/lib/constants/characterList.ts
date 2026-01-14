@@ -11,7 +11,7 @@ export interface CharacterInfo {
   weapon: 'Sword' | 'Claymore' | 'Polearm' | 'Bow' | 'Catalyst';
 }
 
-// All playable characters as of version 5.3
+// All playable characters as of version 6.2
 export const ALL_CHARACTERS: CharacterInfo[] = [
   // Traveler (special - can use multiple elements)
   { key: 'TravelerAnemo', name: 'Traveler (Anemo)', rarity: 5, element: 'Anemo', weapon: 'Sword' },
@@ -72,6 +72,13 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Zhongli', name: 'Zhongli', rarity: 5, element: 'Geo', weapon: 'Polearm' },
   { key: 'Arlecchino', name: 'Arlecchino', rarity: 5, element: 'Pyro', weapon: 'Polearm' },
   { key: 'Aloy', name: 'Aloy', rarity: 5, element: 'Cryo', weapon: 'Bow' },
+  { key: 'Durin', name: 'Durin', rarity: 5, element: 'Pyro', weapon: 'Sword' },
+  { key: 'Flins', name: 'Flins', rarity: 5, element: 'Electro', weapon: 'Polearm' },
+  { key: 'Lauma', name: 'Lauma', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
+  { key: 'Mizuki', name: 'Yumemizuki Mizuki', rarity: 5, element: 'Anemo', weapon: 'Catalyst' },
+  { key: 'Nefer', name: 'Nefer', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
+  { key: 'Skirk', name: 'Skirk', rarity: 5, element: 'Cryo', weapon: 'Sword' },
+  { key: 'Varesa', name: 'Varesa', rarity: 5, element: 'Electro', weapon: 'Catalyst' },
 
   // 4-Star Characters
   { key: 'Amber', name: 'Amber', rarity: 4, element: 'Pyro', weapon: 'Bow' },
@@ -117,6 +124,11 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Yanfei', name: 'Yanfei', rarity: 4, element: 'Pyro', weapon: 'Catalyst' },
   { key: 'Yaoyao', name: 'Yaoyao', rarity: 4, element: 'Dendro', weapon: 'Polearm' },
   { key: 'YunJin', name: 'Yun Jin', rarity: 4, element: 'Geo', weapon: 'Polearm' },
+  { key: 'Aino', name: 'Aino', rarity: 4, element: 'Hydro', weapon: 'Claymore' },
+  { key: 'Dahlia', name: 'Dahlia', rarity: 4, element: 'Hydro', weapon: 'Sword' },
+  { key: 'Iansan', name: 'Iansan', rarity: 4, element: 'Electro', weapon: 'Polearm' },
+  { key: 'Ifa', name: 'Ifa', rarity: 4, element: 'Anemo', weapon: 'Catalyst' },
+  { key: 'Jahoda', name: 'Jahoda', rarity: 4, element: 'Anemo', weapon: 'Bow' },
 ];
 
 // Create lookup maps for fast access

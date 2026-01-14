@@ -299,6 +299,7 @@ export default function LedgerPage() {
           wishes={wishRecords ?? []}
           purchases={purchaseEntries}
           currentPrimogems={effectivePrimogems}
+          currentIntertwined={effectiveIntertwined}
         />
       </section>
 
