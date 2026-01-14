@@ -122,9 +122,9 @@ export class RosterPage extends BasePage {
       .or(modal.locator('input').first());
     await nameInput.fill(data.name);
 
-    // Fill level
+    // Fill level - use first spinbutton with name "Level" (character level, not weapon level)
     if (data.level) {
-      const levelInput = modal.getByLabel(/^level$/i).or(modal.locator('input[type="number"]').first());
+      const levelInput = modal.getByRole('spinbutton', { name: /^level$/i }).first();
       await levelInput.fill(String(data.level));
     }
 
@@ -156,11 +156,17 @@ export class RosterPage extends BasePage {
 
   /**
    * Submit the character form
+   * Submit button text is "Add Character" or "Save"
    */
   async submitCharacterForm(): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
-    // Look for save button with Save icon
-    await modal.getByRole('button', { name: /save|add|create|submit/i }).click();
+    // The submit button is at the bottom of the form content area
+    // Use exact match for "Add Character" button, or find the last button matching save/add
+    const submitButton = modal.getByRole('button', { name: /^add character$/i })
+      .or(modal.getByRole('button', { name: /^save$/i }));
+    await submitButton.click();
+    // Wait for modal to close
+    await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
 
   /**
