@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Download, Search } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
@@ -13,7 +13,7 @@ import CharacterForm from '../components/CharacterForm';
 import CharacterToolbar, { type FilterState } from '../components/CharacterToolbar';
 import TeamSection from '../components/TeamSection';
 import TeamForm from '../components/TeamForm';
-import AddCharacterModal from '../components/AddCharacterModal';
+import AddCharacterModal, { type AddModalView } from '../components/AddCharacterModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import EmptyState from '../components/EmptyState';
 import GOODExport from '../components/GOODExport';
@@ -27,10 +27,23 @@ interface RosterPageProps {
   enableSorting?: boolean;
 }
 
+const VALID_IMPORT_VIEWS: AddModalView[] = ['enka', 'good', 'irminsul', 'manual'];
+
 export default function RosterPage({ enableFilters = true, enableSorting = true }: RosterPageProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const modals = useRosterModals();
   const toast = useToast();
+
+  // Auto-open add modal from URL query param (e.g., from onboarding wizard)
+  useEffect(() => {
+    const importMethod = searchParams.get('import') as AddModalView | null;
+    if (importMethod && VALID_IMPORT_VIEWS.includes(importMethod)) {
+      modals.openAddModal(importMethod);
+      // Clear the query param to prevent re-opening on navigation
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, modals]);
 
   // Filter and sort state
   const [sortField, setSortField] = useState<CharacterSortField>('name');
@@ -156,7 +169,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
               Export Roster
             </Button>
           )}
-          <Button variant="secondary" onClick={modals.openAddModal}>
+          <Button variant="secondary" onClick={() => modals.openAddModal()}>
             <Plus className="w-4 h-4" aria-hidden="true" />
             Add Character
           </Button>
@@ -177,7 +190,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
 
       {/* Characters Section */}
       {characters.length === 0 && (allCharacters?.length ?? 0) === 0 ? (
-        <EmptyState onAddCharacter={modals.openAddModal} />
+        <EmptyState onAddCharacter={() => modals.openAddModal()} />
       ) : (
         <>
           <CharacterToolbar
@@ -235,6 +248,7 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         isOpen={modals.showAddModal}
         onClose={modals.closeAddModal}
         onCreateCharacter={handleCreateCharacter}
+        initialView={modals.addModalInitialView}
       />
 
       <Modal

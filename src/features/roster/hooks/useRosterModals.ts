@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { Character, Team } from '@/types';
+import type { AddModalView } from '../components/AddCharacterModal';
 
 type ExportModalView = null | 'good' | 'teams';
 type TeamModalMode = 'create' | 'edit';
@@ -7,6 +8,7 @@ type TeamModalMode = 'create' | 'edit';
 interface RosterModalsState {
   // Add character modal
   showAddModal: boolean;
+  addModalInitialView: AddModalView;
   // Edit character modal
   editingCharacter: Character | null;
   // Delete character modal
@@ -26,6 +28,7 @@ interface RosterModalsState {
 export function useRosterModals() {
   const [state, setState] = useState<RosterModalsState>({
     showAddModal: false,
+    addModalInitialView: 'options',
     editingCharacter: null,
     deletingCharacter: null,
     exportModalView: null,
@@ -37,12 +40,12 @@ export function useRosterModals() {
   });
 
   // Add Character Modal
-  const openAddModal = useCallback(() => {
-    setState((s) => ({ ...s, showAddModal: true }));
+  const openAddModal = useCallback((initialView: AddModalView = 'options') => {
+    setState((s) => ({ ...s, showAddModal: true, addModalInitialView: initialView }));
   }, []);
 
   const closeAddModal = useCallback(() => {
-    setState((s) => ({ ...s, showAddModal: false }));
+    setState((s) => ({ ...s, showAddModal: false, addModalInitialView: 'options' }));
   }, []);
 
   // Edit Character Modal
@@ -116,6 +119,7 @@ export function useRosterModals() {
   return {
     // State
     showAddModal: state.showAddModal,
+    addModalInitialView: state.addModalInitialView,
     editingCharacter: state.editingCharacter,
     deletingCharacter: state.deletingCharacter,
     exportModalView: state.exportModalView,

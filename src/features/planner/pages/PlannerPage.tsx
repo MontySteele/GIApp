@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { User, Users } from 'lucide-react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
+import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useMaterials } from '../hooks/useMaterials';
 import { useMultiCharacterPlan, type GoalType } from '../hooks/useMultiCharacterPlan';
@@ -24,6 +26,7 @@ import {
   ResinTipsCard,
 } from '../components/PlannerStatusCards';
 import { SingleModeEmptyState, MultiModeEmptyState } from '../components/PlannerEmptyStates';
+import WishlistSection from '../components/WishlistSection';
 
 // Domain logic
 import {
@@ -40,13 +43,35 @@ type PlannerMode = 'single' | 'multi';
 type MultiTab = 'characters' | 'weapons';
 
 export default function PlannerPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { characters, isLoading: loadingChars } = useCharacters();
+  const { teams } = useTeams();
   const { weapons: enrichedWeapons, isLoading: loadingWeapons, hasWeapons } = useWeapons();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
 
-  // Planner mode state
-  const [plannerMode, setPlannerMode] = useState<PlannerMode>('single');
+  // Check for team query param to auto-select characters
+  const teamIdFromUrl = searchParams.get('team');
+  const teamFromUrl = teamIdFromUrl ? teams.find((t) => t.id === teamIdFromUrl) : null;
+  const initialSelectedKeys = useMemo(() => {
+    if (teamFromUrl) {
+      // Map team character keys to actual character keys (case-insensitive matching)
+      return teamFromUrl.characterKeys.filter((key) =>
+        characters.some((c) => c.key.toLowerCase() === key.toLowerCase())
+      );
+    }
+    return [];
+  }, [teamFromUrl, characters]);
+
+  // Planner mode state - default to multi if coming from team link
+  const [plannerMode, setPlannerMode] = useState<PlannerMode>(teamFromUrl ? 'multi' : 'single');
   const [multiTab, setMultiTab] = useState<MultiTab>('characters');
+
+  // Clear team param after initial load to prevent re-selection on navigation
+  useEffect(() => {
+    if (teamIdFromUrl && teamFromUrl) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [teamIdFromUrl, teamFromUrl, setSearchParams]);
 
   // Single character mode state
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
@@ -79,6 +104,7 @@ export default function PlannerPage() {
     characters,
     inventory: materials,
     initialGoalType: goalType,
+    initialSelectedKeys,
   });
 
   // Weapon plan hook
@@ -248,6 +274,13 @@ export default function PlannerPage() {
             onToggleWeapon={weaponPlan.toggleWeapon}
             onSelectAllWeapons={weaponPlan.selectAll}
             onDeselectAllWeapons={weaponPlan.deselectAll}
+          />
+        )}
+
+        {/* Wishlist Section - Pre-farm for characters not yet owned */}
+        {plannerMode === 'multi' && multiTab === 'characters' && (
+          <WishlistSection
+            ownedCharacterKeys={characters.map((c) => c.key)}
           />
         )}
 

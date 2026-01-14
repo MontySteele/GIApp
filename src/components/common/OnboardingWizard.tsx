@@ -123,7 +123,12 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
 
   const handleStartImport = () => {
     onComplete();
-    navigate('/roster');
+    // Navigate to roster with import method as query param to auto-open the modal
+    if (selectedImport) {
+      navigate(`/roster?import=${selectedImport}`);
+    } else {
+      navigate('/roster');
+    }
   };
 
   const handleSkip = () => {

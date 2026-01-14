@@ -5,9 +5,9 @@
  * and which characters in the roster need them.
  */
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, ArrowRight, Sparkles, Users, Clock } from 'lucide-react';
+import { BookOpen, ArrowRight, Sparkles, Users, Clock, Star, UserCheck } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
@@ -15,7 +15,13 @@ import {
   TALENT_BOOK_REGIONS,
 } from '@/features/planner/domain/materialConstants';
 import { getTodayName, type DayName } from '@/features/planner/domain/farmingSchedule';
-import { useTodayFarming } from '../hooks/useTodayFarming';
+import { useTodayFarming, type FarmingScope } from '../hooks/useTodayFarming';
+
+const SCOPE_OPTIONS: { value: FarmingScope; label: string; icon: React.ReactNode }[] = [
+  { value: 'team', label: 'Teams', icon: <UserCheck className="w-3 h-3" /> },
+  { value: 'priority', label: 'Priority', icon: <Star className="w-3 h-3" /> },
+  { value: 'all', label: 'All', icon: <Users className="w-3 h-3" /> },
+];
 
 interface DomainInfo {
   series: string;
@@ -73,6 +79,7 @@ const REGION_COLORS: Record<string, 'primary' | 'default' | 'success' | 'warning
 };
 
 export default function TodayFarmingWidget() {
+  const [scope, setScope] = useState<FarmingScope>('team');
   const today = useMemo(() => getTodayName(), []);
   const availableDomains = useMemo(() => getAvailableDomains(today), [today]);
   const groupedDomains = useMemo(() => groupByRegion(availableDomains), [availableDomains]);
@@ -82,13 +89,15 @@ export default function TodayFarmingWidget() {
     availableTodayWithCharacters,
     notAvailableToday,
     totalCharactersProcessed,
-  } = useTodayFarming();
+  } = useTodayFarming({ scope });
 
   const isSunday = today === 'Sunday';
 
   // Check if user has characters and material data
   const hasCharacterData = totalCharactersProcessed > 0;
   const hasRecommendations = availableTodayWithCharacters.length > 0;
+
+  const scopeLabel = scope === 'team' ? 'team members' : scope === 'priority' ? 'priority characters' : 'characters';
 
   return (
     <Card>
@@ -100,12 +109,32 @@ export default function TodayFarmingWidget() {
             {today}
           </Badge>
         </div>
-        <Link
-          to="/teams/planner"
-          className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
-        >
-          Planner <ArrowRight className="w-3 h-3" />
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Scope Toggle */}
+          <div className="flex items-center gap-0.5 bg-slate-800 rounded-lg p-0.5">
+            {SCOPE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setScope(option.value)}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                  scope === option.value
+                    ? 'bg-primary-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title={`Show ${option.label.toLowerCase()}`}
+              >
+                {option.icon}
+                <span className="hidden sm:inline">{option.label}</span>
+              </button>
+            ))}
+          </div>
+          <Link
+            to="/teams/planner"
+            className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
+          >
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </CardHeader>
       <CardContent>
         {isSunday ? (
@@ -184,7 +213,7 @@ export default function TodayFarmingWidget() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>None of your characters need today's books</span>
+                  <span>None of your {scopeLabel} need today's books</span>
                 </div>
                 {notAvailableToday.length > 0 && (
                   <div className="text-xs text-slate-500">
@@ -224,8 +253,8 @@ export default function TodayFarmingWidget() {
           <div className="mt-4 pt-3 border-t border-slate-700/50">
             <p className="text-xs text-slate-500">
               {hasCharacterData
-                ? `${totalCharactersProcessed} characters analyzed • Talent book domains rotate daily`
-                : 'Add characters to see personalized recommendations'}
+                ? `${totalCharactersProcessed} ${scopeLabel} analyzed • Talent book domains rotate daily`
+                : `Add characters to see personalized recommendations`}
             </p>
           </div>
         )}
