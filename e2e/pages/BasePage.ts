@@ -30,6 +30,10 @@ export abstract class BasePage {
    */
   async waitForLoad(): Promise<void> {
     await this.mainContent.waitFor({ state: 'visible' });
+
+    // Dismiss welcome modal if it appears
+    await this.dismissWelcomeModal();
+
     // Wait for skeleton loaders to disappear
     await this.page.waitForFunction(() => {
       const skeletons = document.querySelectorAll('.animate-pulse');
@@ -37,6 +41,20 @@ export abstract class BasePage {
     }, { timeout: 10000 }).catch(() => {
       // Ignore timeout - some pages may not have skeletons
     });
+  }
+
+  /**
+   * Dismiss the welcome tutorial modal if it appears
+   */
+  async dismissWelcomeModal(): Promise<void> {
+    const welcomeModal = this.page.locator('[role="dialog"]').filter({ hasText: /welcome to giapp/i });
+    const isVisible = await welcomeModal.isVisible().catch(() => false);
+
+    if (isVisible) {
+      const skipButton = welcomeModal.getByRole('button', { name: /skip tutorial/i });
+      await skipButton.click();
+      await welcomeModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    }
   }
 
   /**

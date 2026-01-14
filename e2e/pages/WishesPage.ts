@@ -7,26 +7,19 @@ import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class PullsPage extends BasePage {
-  readonly budgetSection: Locator;
-  readonly pityHeader: Locator;
   readonly calculatorTab: Locator;
   readonly budgetTab: Locator;
   readonly historyTab: Locator;
   readonly bannersTab: Locator;
-  readonly bannerTabs: Locator;
   readonly emptyState: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.budgetSection = page.locator('[data-testid="budget-section"]').or(page.locator('main'));
-    this.pityHeader = page.locator('[data-testid="pity-header"]').or(page.locator('text=/pity/i').locator('..'));
+    // Sub-navigation tabs/links
     this.calculatorTab = page.getByRole('link', { name: /calculator/i });
     this.budgetTab = page.getByRole('link', { name: /budget/i });
     this.historyTab = page.getByRole('link', { name: /history/i });
     this.bannersTab = page.getByRole('link', { name: /banners/i });
-    this.bannerTabs = page.locator('[data-testid="banner-tabs"]').or(
-      page.locator('[role="tablist"]')
-    );
     this.emptyState = page.locator('text=/no pulls|no wishes|get started/i');
   }
 
@@ -68,15 +61,6 @@ export class PullsPage extends BasePage {
   }
 
   /**
-   * Select a banner tab
-   */
-  async selectBanner(type: 'character' | 'weapon' | 'standard' | 'chronicled'): Promise<void> {
-    await this.bannerTabs.getByRole('button', { name: new RegExp(type, 'i') })
-      .or(this.page.getByRole('tab', { name: new RegExp(type, 'i') }))
-      .click();
-  }
-
-  /**
    * Check if there are any pulls displayed
    */
   async hasPulls(): Promise<boolean> {
@@ -86,29 +70,52 @@ export class PullsPage extends BasePage {
 
 /**
  * Calculator Page Object Model (Pulls sub-page)
+ * Tab buttons: "Single Target" (Target icon), "Multi-Target" (Calculator icon), "Reverse Calculator" (TrendingUp icon)
  */
 export class CalculatorPage extends BasePage {
+  // Tab buttons - these are buttons, not role="tab"
   readonly singleTargetTab: Locator;
   readonly multiTargetTab: Locator;
   readonly reverseTab: Locator;
-  readonly primogemInput: Locator;
-  readonly pityInput: Locator;
-  readonly guaranteedToggle: Locator;
+
+  // Single target form inputs
+  readonly currentPityInput: Locator;
+  readonly availablePullsInput: Locator;
+  readonly guaranteeStatusSelect: Locator;
+  readonly radiantStreakInput: Locator;
+  readonly useCurrentPityButton: Locator;
+
+  // Calculate button and results
   readonly calculateButton: Locator;
   readonly resultSection: Locator;
+  readonly probabilityDisplay: Locator;
+  readonly confidenceLevels: Locator;
   readonly probabilityChart: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.singleTargetTab = page.getByRole('tab', { name: /single/i });
-    this.multiTargetTab = page.getByRole('tab', { name: /multi/i });
-    this.reverseTab = page.getByRole('tab', { name: /reverse/i });
-    this.primogemInput = page.getByLabel(/primogem|primo|gems|pulls/i);
-    this.pityInput = page.getByLabel(/pity/i);
-    this.guaranteedToggle = page.getByLabel(/guaranteed/i);
-    this.calculateButton = page.getByRole('button', { name: /calculate/i });
-    this.resultSection = page.locator('[data-testid="result"]').or(page.locator('text=/probability|chance/i').locator('..'));
-    this.probabilityChart = page.locator('[data-testid="probability-chart"]').or(page.locator('.recharts-wrapper, canvas'));
+    // Tab buttons with specific text
+    this.singleTargetTab = page.getByRole('button', { name: /single target/i });
+    this.multiTargetTab = page.getByRole('button', { name: /multi-target/i });
+    this.reverseTab = page.getByRole('button', { name: /reverse calculator/i });
+
+    // Form inputs - based on actual UI labels
+    this.currentPityInput = page.getByLabel(/current pity/i)
+      .or(page.locator('input[type="number"]').first());
+    this.availablePullsInput = page.getByLabel(/available pulls/i)
+      .or(page.locator('input[type="number"]').nth(1));
+    this.guaranteeStatusSelect = page.getByLabel(/guarantee/i)
+      .or(page.locator('select').first());
+    this.radiantStreakInput = page.getByLabel(/radiant streak/i)
+      .or(page.locator('input[type="number"]').nth(2));
+    this.useCurrentPityButton = page.getByRole('button', { name: /use current pity/i });
+
+    // Results
+    this.calculateButton = page.getByRole('button', { name: /calculate probability/i });
+    this.resultSection = page.locator('text=/probability with/i').locator('..');
+    this.probabilityDisplay = page.locator('text=/\\d+\\.?\\d*%/').first();
+    this.confidenceLevels = page.locator('text=/confidence/i').locator('..');
+    this.probabilityChart = page.locator('canvas').or(page.locator('.recharts-wrapper'));
   }
 
   async goto(): Promise<void> {
@@ -120,39 +127,53 @@ export class CalculatorPage extends BasePage {
    * Calculate probability for a single target
    */
   async calculateSingleTarget(data: {
-    primogems: number;
+    pulls: number;
     pity: number;
     guaranteed?: boolean;
   }): Promise<void> {
-    await this.primogemInput.fill(String(data.primogems));
-    await this.pityInput.fill(String(data.pity));
+    // Fill pity
+    await this.currentPityInput.fill(String(data.pity));
 
+    // Fill available pulls
+    await this.availablePullsInput.fill(String(data.pulls));
+
+    // Set guarantee status if needed
     if (data.guaranteed) {
-      await this.guaranteedToggle.check();
+      await this.guaranteeStatusSelect.selectOption({ label: /guaranteed/i });
     }
 
+    // Click calculate
     await this.calculateButton.click();
-    await this.resultSection.waitFor({ state: 'visible' });
+
+    // Wait for results
+    await this.resultSection.waitFor({ state: 'visible', timeout: 30000 });
   }
 
   /**
-   * Get the calculated probability
+   * Get the calculated probability percentage
    */
   async getProbability(): Promise<number> {
-    const resultText = await this.resultSection.locator('text=/\\d+(\\.\\d+)?%/').first().textContent();
-    const match = resultText?.match(/(\d+(\.\d+)?)/);
+    const text = await this.probabilityDisplay.textContent();
+    const match = text?.match(/(\d+\.?\d*)/);
     return match ? parseFloat(match[1]) : 0;
   }
 
   /**
-   * Switch to Multi-Target calculator
+   * Switch to Single Target calculator tab
+   */
+  async switchToSingleTarget(): Promise<void> {
+    await this.singleTargetTab.click();
+  }
+
+  /**
+   * Switch to Multi-Target calculator tab
    */
   async switchToMultiTarget(): Promise<void> {
     await this.multiTargetTab.click();
   }
 
   /**
-   * Switch to Reverse calculator
+   * Switch to Reverse calculator tab
    */
   async switchToReverse(): Promise<void> {
     await this.reverseTab.click();
@@ -163,6 +184,35 @@ export class CalculatorPage extends BasePage {
    */
   async hasChart(): Promise<boolean> {
     return await this.probabilityChart.isVisible();
+  }
+
+  /**
+   * Set current pity value
+   */
+  async setPity(value: number): Promise<void> {
+    await this.currentPityInput.fill(String(value));
+    await expect(this.currentPityInput).toHaveValue(String(value));
+  }
+
+  /**
+   * Set available pulls value
+   */
+  async setPulls(value: number): Promise<void> {
+    await this.availablePullsInput.fill(String(value));
+    await expect(this.availablePullsInput).toHaveValue(String(value));
+  }
+
+  /**
+   * Get confidence level pulls (50%, 80%, 90%, 99%)
+   */
+  async getConfidenceLevel(percentage: 50 | 80 | 90 | 99): Promise<number> {
+    const confidenceText = await this.page
+      .locator(`text=/${percentage}% confidence/i`)
+      .locator('..')
+      .locator('text=/\\d+ pulls/i')
+      .textContent();
+    const match = confidenceText?.match(/(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
   }
 }
 

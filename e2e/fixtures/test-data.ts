@@ -162,11 +162,31 @@ export async function seedCharacters(page: Page): Promise<void> {
 }
 
 /**
+ * Dismiss the welcome tutorial modal if it appears
+ */
+export async function dismissWelcomeModal(page: Page): Promise<void> {
+  const welcomeModal = page.locator('[role="dialog"]').filter({ hasText: /welcome to giapp/i });
+  const isVisible = await welcomeModal.isVisible().catch(() => false);
+
+  if (isVisible) {
+    // Click "Skip tutorial" button to dismiss
+    const skipButton = welcomeModal.getByRole('button', { name: /skip tutorial/i });
+    await skipButton.click();
+    // Wait for modal to close
+    await welcomeModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+  }
+}
+
+/**
  * Wait for the app to fully load (IndexedDB ready, initial data loaded)
  */
 export async function waitForAppReady(page: Page): Promise<void> {
   // Wait for the main content to be visible
   await page.waitForSelector('[data-testid="app-ready"], main', { timeout: 10000 });
+
+  // Dismiss welcome modal if it appears
+  await dismissWelcomeModal(page);
+
   // Wait for any loading skeletons to disappear
   await page.locator('[data-testid="loading-skeleton"], .animate-pulse').first()
     .waitFor({ state: 'hidden', timeout: 5000 })
