@@ -210,9 +210,10 @@ export default function LedgerPage() {
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Wishes Available</p>
           <p className="text-3xl font-bold text-amber-400">{Math.floor(wishesAvailable)}</p>
-          <p className="text-xs text-slate-500 mt-1">
-            Including fates ({effectiveIntertwined} intertwined, {effectiveAcquaint} acquaint)
-          </p>
+          <div className="text-xs text-slate-500 mt-1 space-y-0.5">
+            <p>{Math.floor(effectivePrimogems / 160)} from primogems</p>
+            <p>{effectiveIntertwined} intertwined + {effectiveAcquaint} acquaint fates</p>
+          </div>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm text-slate-400">Pulls Since Snapshot</p>
@@ -298,6 +299,7 @@ export default function LedgerPage() {
           wishes={wishRecords ?? []}
           purchases={purchaseEntries}
           currentPrimogems={effectivePrimogems}
+          currentIntertwined={effectiveIntertwined}
         />
       </section>
 

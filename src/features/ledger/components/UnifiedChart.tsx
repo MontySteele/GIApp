@@ -29,13 +29,14 @@ interface UnifiedChartProps {
   wishes: WishRecord[];
   purchases: PrimogemEntry[];
   currentPrimogems: number;
+  currentIntertwined?: number;
 }
 
 type ProjectionDays = 30 | 60 | 90 | 180;
 type LookbackDays = 30 | 60 | 90 | 180;
 type RateLookbackDays = 14 | 30 | 60 | 90;
 
-export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems }: UnifiedChartProps) {
+export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, currentIntertwined = 0 }: UnifiedChartProps) {
   const [projectionDays, setProjectionDays] = useState<ProjectionDays>(60);
   const [lookbackDays, setLookbackDays] = useState<LookbackDays>(90);
   const [rateLookbackDays, setRateLookbackDays] = useState<RateLookbackDays>(30);
@@ -63,9 +64,10 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems }:
   // Calculate summary stats
   const finalProjection = chartData[chartData.length - 1];
 
-  const currentPulls = Math.floor(currentPrimogems / PRIMOS_PER_PULL);
+  const pullsFromPrimos = Math.floor(currentPrimogems / PRIMOS_PER_PULL);
+  const currentPulls = pullsFromPrimos + currentIntertwined;
   const projectedPrimogems = finalProjection?.projected ?? currentPrimogems;
-  const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL);
+  const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL) + currentIntertwined;
   const daysForOnePity = effectiveDailyRate > 0 ? Math.ceil((90 * PRIMOS_PER_PULL) / effectiveDailyRate) : Infinity;
 
   interface TooltipPayload {
@@ -214,7 +216,9 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems }:
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
           <p className="text-xs text-slate-400">Current Pulls</p>
           <p className="text-xl font-bold text-amber-400">{currentPulls}</p>
-          <p className="text-xs text-slate-500">from {currentPrimogems.toLocaleString()} primos</p>
+          <p className="text-xs text-slate-500">
+            {pullsFromPrimos} from primos{currentIntertwined > 0 && ` + ${currentIntertwined} fates`}
+          </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
           <p className="text-xs text-slate-400">Projected Pulls ({projectionDays}d)</p>
