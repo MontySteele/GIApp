@@ -1,5 +1,80 @@
 # Changelog
 
+## 2026-01-14 (Sprint 18 Phase 5 - UX Improvements from External Review)
+
+### Character → Planner Integration
+- **Plan Materials button** on Character Detail page
+  - One-click deep-link to planner with character pre-selected
+  - Uses `?character=<key>` query param for single-character mode
+  - Calendar icon button next to Edit/Delete actions
+
+### Mobile Navigation Enhancement
+- **Settings added to mobile bottom nav**
+  - Critical for new users accessing data import on mobile
+  - 6 navigation items: Home, Roster, Teams, Pulls, Plan, Settings
+  - Shortened labels (Dashboard→Home, Planner→Plan) to fit compactly
+  - Flex layout for responsive spacing
+
+### Planner State Persistence
+- **New `usePlannerState` hook** - Persists planner selections across navigation
+  - Planner mode (single/multi)
+  - Selected character ID (single mode)
+  - Selected character keys (multi mode)
+  - Goal type selections
+  - Tab state (characters/weapons)
+- URL params override persisted state (for deep-linking)
+- 12 unit tests covering persistence, restoration, and edge cases
+
+### Technical
+- New files: 2 (`usePlannerState.ts`, `usePlannerState.test.ts`)
+- Modified files: 5 (PlannerPage, CharacterDetailPage, MobileBottomNav, tests)
+- Test coverage: 148 tests passing for affected features
+
+---
+
+## 2026-01-14 (Sprint 18 Phase 5 - User-Facing Improvements)
+
+### Enhanced Onboarding
+- **OnboardingWizard component** - Guided first-run experience
+  - Import method selection (Enka, GOOD, Irminsul, Manual)
+  - Animated transitions between steps
+  - "Getting Started" checklist on Dashboard for new users
+  - Progress tracking via OnboardingContext
+- **GettingStartedChecklist component** - Actionable task list
+  - Direct links to import pages and key features
+  - Dismiss option with localStorage persistence
+  - Progress indicator (X of Y completed)
+
+### Wishlist Pre-Farming
+- **WishlistSection component** - Plan materials for unowned characters
+  - Search from all game characters (not just owned)
+  - Calculate materials before pulling for a character
+  - Appears in multi-character planner tab
+
+### Today's Farming Scope Toggle
+- **Team/Priority/All filter** - Filter farming recommendations
+  - Team: Characters in at least one team
+  - Priority: Main and secondary priority characters
+  - All: Entire roster
+  - Persisted scope selection
+
+### Feature Tooltips
+- **InfoTooltip component** with gacha mechanics explanations
+- Tooltips added to: pity counter, guaranteed indicator, Capturing Radiance
+
+### API Resilience
+- **Centralized retry logic** (`fetchWithRetry.ts`)
+  - Exponential backoff (1s, 2s, 4s, 8s max)
+  - Configurable max retries and delays
+  - Applied to genshinDbService and enkaService
+
+### Bug Fixes (User Testing Feedback)
+- Fixed team member finding with case-insensitive key matching
+- Fixed character detail page showing N/A for valid constellations
+- Fixed stale material cache not refreshing on version updates
+
+---
+
 ## 2026-01-13 (Sprint 17 - Type Safety & Validation)
 
 ### TypeScript Error Fixes (P0)
