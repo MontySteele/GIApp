@@ -84,7 +84,8 @@ test.describe('wfpsim Export Flow', () => {
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(fourCharacterGOODData));
-    await page.waitForTimeout(2000);
+    // Wait for import to complete
+    await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
 
   test('can export team to wfpsim format', async ({ page }) => {
@@ -104,18 +105,19 @@ test.describe('wfpsim Export Flow', () => {
     }
 
     await teams.saveTeam();
-    await page.waitForTimeout(1000);
+    // Wait for team to appear
+    await expect(page.locator('text=/National Raiden/i').first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to team detail or find export button
     const teamCard = page.locator('text=/National Raiden/i').first();
     await teamCard.click();
-    await page.waitForTimeout(500);
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
 
     // Look for export button
     const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
     if (await exportButton.isVisible()) {
       await exportButton.click();
-      await page.waitForTimeout(500);
 
       // Export modal should appear
       const exportModal = page.locator('[role="dialog"]').filter({ hasText: /export|gcsim|wfpsim/i });
@@ -138,19 +140,20 @@ test.describe('wfpsim Export Flow', () => {
     }
 
     await teams.saveTeam();
-    await page.waitForTimeout(1000);
+    // Wait for team to appear
+    await expect(page.locator('text=/Export Test Team/i').first()).toBeVisible({ timeout: 5000 });
 
     // Open team detail
     const teamCard = page.locator('text=/Export Test Team/i').first();
     if (await teamCard.isVisible()) {
       await teamCard.click();
-      await page.waitForTimeout(500);
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible();
 
       // Open export modal
       const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(500);
 
         // Should show export options
         const exportModal = page.locator('[role="dialog"]');
@@ -179,18 +182,19 @@ test.describe('wfpsim Export Flow', () => {
     }
 
     await teams.saveTeam();
-    await page.waitForTimeout(1000);
+    // Wait for team to appear
+    await expect(page.locator('text=/Clipboard Test Team/i').first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to team
     const teamCard = page.locator('text=/Clipboard Test Team/i').first();
     if (await teamCard.isVisible()) {
       await teamCard.click();
-      await page.waitForTimeout(500);
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible();
 
       const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(500);
 
         // Find copy button
         const copyButton = page.getByRole('button', { name: /copy/i });
@@ -227,18 +231,19 @@ test.describe('wfpsim Export Flow', () => {
     }
 
     await teams.saveTeam();
-    await page.waitForTimeout(1000);
+    // Wait for team to appear
+    await expect(page.locator('text=/Structure Test Team/i').first()).toBeVisible({ timeout: 5000 });
 
     // Navigate to team
     const teamCard = page.locator('text=/Structure Test Team/i').first();
     if (await teamCard.isVisible()) {
       await teamCard.click();
-      await page.waitForTimeout(500);
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible();
 
       const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(500);
 
         // Look for the config preview textarea/code block
         const configPreview = page.locator('textarea, pre, code').filter({ hasText: /char|weapon|set/i });

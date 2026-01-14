@@ -41,7 +41,8 @@ export class RosterPage extends BasePage {
    * Get the count of character cards displayed
    */
   async getCharacterCount(): Promise<number> {
-    await this.page.waitForTimeout(500); // Wait for grid to populate
+    // Wait for grid to stabilize by checking for presence of cards or empty state
+    await this.characterGrid.or(this.emptyState).waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
     return await this.characterCards.count();
   }
 
@@ -50,7 +51,8 @@ export class RosterPage extends BasePage {
    */
   async searchCharacter(name: string): Promise<void> {
     await this.searchInput.fill(name);
-    await this.page.waitForTimeout(300); // Debounce
+    // Wait for debounce by checking input value
+    await expect(this.searchInput).toHaveValue(name);
   }
 
   /**
@@ -58,7 +60,7 @@ export class RosterPage extends BasePage {
    */
   async clearSearch(): Promise<void> {
     await this.searchInput.clear();
-    await this.page.waitForTimeout(300);
+    await expect(this.searchInput).toHaveValue('');
   }
 
   /**

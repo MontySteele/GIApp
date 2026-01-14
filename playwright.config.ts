@@ -7,22 +7,22 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e/tests',
 
-  /* Run tests in files in parallel - disabled for stability in containers */
-  fullyParallel: false,
+  /* Run tests in files in parallel for faster execution */
+  fullyParallel: true,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
 
-  /* Retry failed tests for better stability */
-  retries: 2,
+  /* Retry failed tests - reduced to 1 for faster feedback */
+  retries: process.env.CI ? 1 : 0,
 
-  /* Serial execution for stability in containerized environments */
-  workers: 1,
+  /* Parallel execution with multiple workers */
+  workers: process.env.CI ? 2 : 4,
 
-  /* Longer timeout for restricted environments */
-  timeout: 60000,
+  /* Reasonable timeout - tests should be fast */
+  timeout: 30000,
   expect: {
-    timeout: 10000,
+    timeout: 5000,
   },
 
   /* Reporter to use */

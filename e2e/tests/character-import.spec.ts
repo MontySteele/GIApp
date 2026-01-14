@@ -29,11 +29,11 @@ test.describe('Character Import', () => {
       // Paste GOOD JSON data
       await roster.importFromGOOD(JSON.stringify(sampleGOODData));
 
-      // Wait for import to complete
-      await page.waitForTimeout(2000);
-
-      // Should show success toast
-      const toast = await roster.waitForToast({ text: /imported|success/i }).catch(() => null);
+      // Wait for import to complete by checking for success or modal closing
+      await Promise.race([
+        expect(page.locator('[role="alert"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }),
+        expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 10000 }),
+      ]).catch(() => {});
 
       // Modal should close
       const modalClosed = await page.locator('[role="dialog"]').isHidden().catch(() => true);
@@ -97,7 +97,12 @@ test.describe('Character Import', () => {
       await roster.openAddCharacterModal();
       await roster.selectImportMethod('good');
       await roster.importFromGOOD(JSON.stringify(sampleGOODData));
-      await page.waitForTimeout(2000);
+
+      // Wait for import to complete
+      await Promise.race([
+        expect(page.locator('[role="alert"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }),
+        expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 10000 }),
+      ]).catch(() => {});
 
       const countAfterFirst = await roster.getCharacterCount();
 
@@ -105,7 +110,12 @@ test.describe('Character Import', () => {
       await roster.openAddCharacterModal();
       await roster.selectImportMethod('good');
       await roster.importFromGOOD(JSON.stringify(sampleGOODData));
-      await page.waitForTimeout(2000);
+
+      // Wait for second import to complete
+      await Promise.race([
+        expect(page.locator('[role="alert"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }),
+        expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 10000 }),
+      ]).catch(() => {});
 
       // Should not duplicate characters
       const countAfterSecond = await roster.getCharacterCount();
@@ -153,8 +163,8 @@ test.describe('Character Import', () => {
       // Use a known test UID (would need a real public showcase)
       await roster.importFromEnka('800000001');
 
-      // Wait for network request
-      await page.waitForTimeout(5000);
+      // Wait for result to appear
+      await expect(page.locator('text=/imported|no showcase|error/i')).toBeVisible({ timeout: 10000 });
 
       // Check for success or appropriate error
       const hasResult = await page.locator('text=/imported|no showcase|error/i').isVisible();
@@ -193,12 +203,9 @@ test.describe('Character Import', () => {
       await roster.selectImportMethod('good');
       await roster.importFromGOOD(JSON.stringify(sampleGOODData));
 
-      // Wait for import
-      await page.waitForTimeout(2000);
-
-      // Modal should close
+      // Wait for import to complete
       const modal = page.locator('[role="dialog"]');
-      await expect(modal).toBeHidden();
+      await expect(modal).toBeHidden({ timeout: 10000 });
     });
 
     test('should allow modal close via escape key', async ({ page }) => {

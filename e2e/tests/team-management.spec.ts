@@ -20,7 +20,8 @@ test.describe('Team Management', () => {
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(sampleGOODData));
-    await page.waitForTimeout(2000);
+    // Wait for import to complete by checking for success indicator
+    await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
 
   test.describe('Create Team', () => {
@@ -36,8 +37,8 @@ test.describe('Team Management', () => {
         members: ['Furina'],
       });
 
-      // Wait for creation
-      await page.waitForTimeout(1000);
+      // Wait for team to appear
+      await expect(page.locator('text=/Test Team/i').first()).toBeVisible({ timeout: 5000 });
 
       // Team count should increase
       const newCount = await teams.getTeamCount();
@@ -57,7 +58,8 @@ test.describe('Team Management', () => {
         members: ['Furina', 'Kazuha'],
       });
 
-      await page.waitForTimeout(1000);
+      // Wait for team to appear
+      await expect(page.locator('text=/Multi-Member Team/i').first()).toBeVisible({ timeout: 5000 });
 
       // Check member count
       const memberCount = await teams.getTeamMemberCount('Multi-Member Team');
@@ -97,10 +99,7 @@ test.describe('Team Management', () => {
       const searchInput = modal.getByPlaceholder(/search/i);
       await searchInput.fill('Furina');
 
-      // Should filter to matching character
-      await page.waitForTimeout(300);
-
-      // Furina should be visible in options
+      // Furina should be visible in options - wait for filter to apply
       await expect(modal.locator('text=Furina')).toBeVisible();
     });
   });
@@ -114,7 +113,8 @@ test.describe('Team Management', () => {
         name: 'View Test Team',
         members: ['Furina'],
       });
-      await page.waitForTimeout(1000);
+      // Wait for team to appear
+      await expect(page.locator('text=/View Test Team/i').first()).toBeVisible({ timeout: 5000 });
     });
 
     test('should display team in grid', async ({ page }) => {
@@ -148,7 +148,8 @@ test.describe('Team Management', () => {
         name: 'Edit Test Team',
         members: ['Furina'],
       });
-      await page.waitForTimeout(1000);
+      // Wait for team to appear
+      await expect(page.locator('text=/Edit Test Team/i').first()).toBeVisible({ timeout: 5000 });
     });
 
     test('should edit team name', async ({ page }) => {
@@ -165,7 +166,8 @@ test.describe('Team Management', () => {
       // Save
       await modal.getByRole('button', { name: /save|update/i }).click();
 
-      await page.waitForTimeout(1000);
+      // Wait for renamed team to appear
+      await expect(page.locator('text=/Renamed Team/i').first()).toBeVisible({ timeout: 5000 });
 
       // New name should be visible
       const hasNewName = await teams.hasTeam('Renamed Team');
@@ -185,7 +187,8 @@ test.describe('Team Management', () => {
         name: 'Delete Test Team',
         members: ['Furina'],
       });
-      await page.waitForTimeout(1000);
+      // Wait for team to appear
+      await expect(page.locator('text=/Delete Test Team/i').first()).toBeVisible({ timeout: 5000 });
     });
 
     test('should delete a team', async ({ page }) => {
@@ -196,7 +199,8 @@ test.describe('Team Management', () => {
 
       await teams.deleteTeam('Delete Test Team');
 
-      await page.waitForTimeout(1000);
+      // Wait for team to disappear
+      await expect(page.locator('text=/Delete Test Team/i').first()).not.toBeVisible({ timeout: 5000 });
 
       // Team count should decrease
       const countAfter = await teams.getTeamCount();
@@ -216,7 +220,8 @@ test.describe('Team Management', () => {
         name: 'Export Test Team',
         members: ['Furina'],
       });
-      await page.waitForTimeout(1000);
+      // Wait for team to appear
+      await expect(page.locator('text=/Export Test Team/i').first()).toBeVisible({ timeout: 5000 });
     });
 
     test('should open wfpsim export modal', async ({ page }) => {

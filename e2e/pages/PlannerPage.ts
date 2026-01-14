@@ -55,7 +55,8 @@ export class PlannerPage extends BasePage {
   async selectCharacter(name: string): Promise<void> {
     await this.characterSelect.click();
     await this.page.getByRole('option', { name: new RegExp(name, 'i') }).click();
-    await this.page.waitForTimeout(500); // Wait for calculation
+    // Wait for calculation to complete by checking for resin estimate
+    await expect(this.resinEstimate).toBeVisible();
   }
 
   /**
@@ -71,7 +72,8 @@ export class PlannerPage extends BasePage {
 
     await this.goalTypeSelect.click();
     await this.page.getByRole('option', { name: goalLabels[type] }).click();
-    await this.page.waitForTimeout(500);
+    // Wait for recalculation
+    await expect(this.resinEstimate).toBeVisible();
   }
 
   /**
@@ -105,7 +107,8 @@ export class PlannerPage extends BasePage {
    */
   async toggleSelectAll(): Promise<void> {
     await this.selectAllButton.click();
-    await this.page.waitForTimeout(500);
+    // Wait for calculation to update
+    await expect(this.resinEstimate).toBeVisible();
   }
 
   /**
@@ -138,6 +141,7 @@ export class PlannerPage extends BasePage {
     const materialRow = this.materialsList.locator(`text=${materialName}`).locator('..');
     const input = materialRow.locator('input[type="number"]');
     await input.fill(String(count));
-    await this.page.waitForTimeout(300);
+    // Wait for value to be set
+    await expect(input).toHaveValue(String(count));
   }
 }

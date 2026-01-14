@@ -126,8 +126,8 @@ export async function clearDatabase(page: Page): Promise<void> {
   if (wasOnApp) {
     // Navigate away from the app to close Dexie connections
     await page.goto('about:blank');
-    // Wait for navigation and connection cleanup
-    await page.waitForTimeout(300);
+    // Wait for navigation to complete
+    await page.waitForLoadState('domcontentloaded');
   }
 
   try {
@@ -146,9 +146,6 @@ export async function clearDatabase(page: Page): Promise<void> {
   } catch {
     // Ignore errors - database might not exist
   }
-
-  // Small delay to ensure cleanup completes
-  await page.waitForTimeout(100);
 }
 
 /**
@@ -170,8 +167,10 @@ export async function seedCharacters(page: Page): Promise<void> {
 export async function waitForAppReady(page: Page): Promise<void> {
   // Wait for the main content to be visible
   await page.waitForSelector('[data-testid="app-ready"], main', { timeout: 10000 });
-  // Give IndexedDB a moment to initialize
-  await page.waitForTimeout(500);
+  // Wait for any loading skeletons to disappear
+  await page.locator('[data-testid="loading-skeleton"], .animate-pulse').first()
+    .waitFor({ state: 'hidden', timeout: 5000 })
+    .catch(() => {}); // Ignore if no skeleton was ever visible
 }
 
 /**

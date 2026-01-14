@@ -20,7 +20,8 @@ test.describe('Data Export', () => {
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(sampleGOODData));
-    await page.waitForTimeout(2000);
+    // Wait for import to complete
+    await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
 
   test.describe('GOOD Format Export', () => {
@@ -180,7 +181,11 @@ test.describe('Data Export', () => {
       await roster.selectImportMethod('good');
       await roster.importFromGOOD(exportedData);
 
-      await page.waitForTimeout(2000);
+      // Wait for import to complete
+      await Promise.race([
+        expect(page.locator('[role="alert"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }),
+        expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 10000 }),
+      ]).catch(() => {});
 
       // Should have characters again
       const count = await roster.getCharacterCount();

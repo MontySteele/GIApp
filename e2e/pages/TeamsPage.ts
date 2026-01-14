@@ -39,7 +39,8 @@ export class TeamsPage extends BasePage {
    * Get the count of team cards displayed
    */
   async getTeamCount(): Promise<number> {
-    await this.page.waitForTimeout(500);
+    // Wait for grid to stabilize
+    await this.teamGrid.or(this.emptyState).waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
     return await this.teamCards.count();
   }
 
@@ -75,7 +76,8 @@ export class TeamsPage extends BasePage {
         .or(modal.getByPlaceholder(/search/i));
 
       await searchInput.fill(member);
-      await this.page.waitForTimeout(300);
+      // Wait for search to filter
+      await expect(searchInput).toHaveValue(member);
 
       // Click on the character to select
       await modal.getByRole('option', { name: new RegExp(member, 'i') })
@@ -186,5 +188,22 @@ export class TeamsPage extends BasePage {
     const memberText = await teamCard.locator('text=/\\d+ members?/i').textContent();
     const match = memberText?.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
+  }
+
+  /**
+   * Fill in the team name in an open modal
+   */
+  async fillTeamName(name: string): Promise<void> {
+    const modal = this.page.locator('[role="dialog"]');
+    await modal.getByLabel(/name/i).fill(name);
+    await expect(modal.getByLabel(/name/i)).toHaveValue(name);
+  }
+
+  /**
+   * Save/submit the team form
+   */
+  async saveTeam(): Promise<void> {
+    const modal = this.page.locator('[role="dialog"]');
+    await modal.getByRole('button', { name: /create|save|add/i }).click();
   }
 }
