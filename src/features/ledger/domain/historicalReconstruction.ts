@@ -120,11 +120,17 @@ export function buildHistoricalData(
 
   const result: HistoricalDataPoint[] = [];
 
-  // Find the most recent snapshot to use as anchor
+  // Find the most recent and oldest snapshots
   const latestSnapshot = sortedSnapshots[sortedSnapshots.length - 1];
-  if (!latestSnapshot) return [];
+  const oldestSnapshot = sortedSnapshots[0];
+  if (!latestSnapshot || !oldestSnapshot) return [];
 
   const latestSnapshotDate = startOfDay(parseISO(latestSnapshot.timestamp));
+  const oldestSnapshotDate = startOfDay(parseISO(oldestSnapshot.timestamp));
+
+  // Only go back to oldest snapshot (we can't reconstruct before we have ground truth data)
+  // But also respect the lookback limit if it's more recent than the oldest snapshot
+  const effectiveStartDate = isBefore(oldestSnapshotDate, startDate) ? startDate : oldestSnapshotDate;
 
   // Work backwards from latest snapshot
   // Include intertwined fates as primogem-equivalent to avoid dips when converting primos to fates
@@ -193,7 +199,7 @@ export function buildHistoricalData(
 
   const historicalData: HistoricalDataPoint[] = [];
 
-  while (!isBefore(currentDate, startDate)) {
+  while (!isBefore(currentDate, effectiveStartDate)) {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
 
     // Check for snapshot on this date
@@ -417,9 +423,84 @@ export function buildTransactionLog(
 }
 
 /**
- * Calculate daily income rate from wish history
+ * Calculate daily income rate from snapshots and wish spending
+ * This is more accurate than wish-based calculation because it measures actual income:
+ * Income = (newer_snapshot - older_snapshot) + (pulls_between * 160)
+ */
+export function calculateDailyRateFromSnapshots(
+  snapshots: ResourceSnapshot[],
+  wishes: WishRecord[],
+  lookbackDays: number = 30
+): number {
+  if (snapshots.length < 2) return 0;
+
+  const now = new Date();
+  const cutoffDate = addDays(now, -lookbackDays);
+
+  // Sort snapshots by date ascending
+  const sortedSnapshots = [...snapshots].sort(
+    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
+  );
+
+  // Filter to snapshots within the lookback window (or the two most recent if none in window)
+  const recentSnapshots = sortedSnapshots.filter(s => isAfter(parseISO(s.timestamp), cutoffDate));
+
+  // Need at least 2 snapshots to calculate a rate
+  let snapshotsToUse: ResourceSnapshot[];
+  if (recentSnapshots.length >= 2) {
+    snapshotsToUse = recentSnapshots;
+  } else if (sortedSnapshots.length >= 2) {
+    // Use the two most recent snapshots even if outside lookback window
+    snapshotsToUse = sortedSnapshots.slice(-2);
+  } else {
+    return 0;
+  }
+
+  // Filter wishes to intertwined only
+  const intertwinedWishes = filterToIntertwinedWishes(wishes);
+
+  // Calculate income between consecutive snapshot pairs
+  let totalIncome = 0;
+  let totalDays = 0;
+
+  for (let i = 1; i < snapshotsToUse.length; i++) {
+    const older = snapshotsToUse[i - 1];
+    const newer = snapshotsToUse[i];
+
+    if (!older || !newer) continue;
+
+    const olderDate = parseISO(older.timestamp);
+    const newerDate = parseISO(newer.timestamp);
+    const daysBetween = differenceInDays(newerDate, olderDate);
+
+    if (daysBetween <= 0) continue;
+
+    // Calculate total resources at each snapshot (primogems + intertwined fates as primogem-equivalent)
+    const olderTotal = older.primogems + (older.intertwined * PRIMOGEMS_PER_PULL);
+    const newerTotal = newer.primogems + (newer.intertwined * PRIMOGEMS_PER_PULL);
+
+    // Count pulls made between snapshots
+    const pullsBetween = intertwinedWishes.filter(w => {
+      const wishDate = parseISO(w.timestamp);
+      return isAfter(wishDate, olderDate) && !isAfter(wishDate, newerDate);
+    }).length;
+
+    // Income = change in resources + spending
+    const income = (newerTotal - olderTotal) + (pullsBetween * PRIMOGEMS_PER_PULL);
+
+    totalIncome += income;
+    totalDays += daysBetween;
+  }
+
+  if (totalDays === 0) return 0;
+
+  return totalIncome / totalDays;
+}
+
+/**
+ * Calculate daily income rate from wish history (fallback method)
  * Only counts intertwined fate banners (character/weapon/chronicled) since standard uses acquaint fates
- * Assumes user maintains roughly constant primogem stash, so pulls ≈ income
+ * Note: This assumes pulls ≈ income, which is only accurate if the user spends consistently
  */
 export function calculateDailyRateFromWishes(
   wishes: WishRecord[],
