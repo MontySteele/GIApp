@@ -1,4 +1,4 @@
-import { parseISO, format, addDays, addWeeks, isBefore, isAfter, startOfDay, startOfWeek, differenceInDays } from 'date-fns';
+import { parseISO, format, addDays, isBefore, isAfter, startOfDay, differenceInDays } from 'date-fns';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry, BannerType } from '@/types';
 
 const PRIMOGEMS_PER_PULL = 160;
@@ -545,7 +545,30 @@ export interface IncomeRateDataPoint {
 export const ACCOUNT_START_DATE = '2025-10-29';
 
 /**
- * Calculate income rate trend over weekly periods
+ * Reference banner start date for aligning banner periods
+ * Jan 13, 2026 is the start of a known banner (first half of 5.3)
+ */
+const REFERENCE_BANNER_DATE = '2026-01-13';
+const BANNER_DURATION_DAYS = 21;
+
+/**
+ * Get the start of the banner period containing a given date
+ * Works by calculating days from reference date and finding the banner boundary
+ */
+function getBannerPeriodStart(date: Date): Date {
+  const reference = parseISO(REFERENCE_BANNER_DATE);
+  const daysDiff = differenceInDays(date, reference);
+
+  // Calculate which banner period this date falls into
+  // Negative means before reference, positive means after
+  const bannerOffset = Math.floor(daysDiff / BANNER_DURATION_DAYS);
+
+  // Get the start of that banner period
+  return addDays(reference, bannerOffset * BANNER_DURATION_DAYS);
+}
+
+/**
+ * Calculate income rate trend over banner periods (21 days each)
  * Uses snapshots when available, otherwise estimates from wish spending
  */
 export function calculateIncomeRateTrend(
@@ -582,19 +605,12 @@ export function calculateIncomeRateTrend(
     startDate = firstSnapshotDate;
   }
 
-  // Build snapshot lookup by date
-  const snapshotByDate = new Map<string, ResourceSnapshot>();
-  for (const snapshot of sortedSnapshots) {
-    const dateKey = format(startOfDay(parseISO(snapshot.timestamp)), 'yyyy-MM-dd');
-    snapshotByDate.set(dateKey, snapshot);
-  }
-
-  // Generate weekly periods from start to now
+  // Generate banner periods from start to now
   const result: IncomeRateDataPoint[] = [];
-  let periodStart = startOfWeek(startDate, { weekStartsOn: 1 });
+  let periodStart = getBannerPeriodStart(startDate);
 
   while (isBefore(periodStart, now)) {
-    const periodEnd = addWeeks(periodStart, 1);
+    const periodEnd = addDays(periodStart, BANNER_DURATION_DAYS);
     const actualPeriodEnd = isAfter(periodEnd, now) ? now : periodEnd;
     const days = differenceInDays(actualPeriodEnd, periodStart);
 

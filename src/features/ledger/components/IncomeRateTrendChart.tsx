@@ -66,7 +66,7 @@ export function IncomeRateTrendChart({ snapshots, wishes }: IncomeRateTrendChart
       return (
         <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
           <p className="text-slate-100 font-semibold mb-2">
-            Week of {data.label}
+            Banner starting {data.label}
           </p>
           <div className="space-y-1 text-sm">
             <p className="text-primary-400">
@@ -178,9 +178,9 @@ export function IncomeRateTrendChart({ snapshots, wishes }: IncomeRateTrendChart
       </div>
 
       <div className="text-xs text-slate-500 space-y-1">
-        <p>• Each bar represents average daily primogem income for that week</p>
-        <p>• Solid bars with green border = calculated from snapshot data (accurate)</p>
-        <p>• Faded bars = estimated from wish spending (assumes spending ≈ income)</p>
+        <p>• Each bar represents average daily primogem income for that banner period (21 days)</p>
+        <p>• Bars with snapshot data = calculated from actual resource changes (accurate)</p>
+        <p>• Bars without snapshots = estimated from wish spending (assumes spending ≈ income)</p>
         <p>• Yellow dashed line = overall average daily rate</p>
         {trendDirection && trendDirection.changePercent < -10 && (
           <p className="text-amber-400">
