@@ -1,4 +1,4 @@
-import { parseISO, format, addDays, isBefore, isAfter, startOfDay, differenceInDays } from 'date-fns';
+import { parseISO, format, addDays, addWeeks, isBefore, isAfter, startOfDay, startOfWeek, differenceInDays } from 'date-fns';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry, BannerType } from '@/types';
 
 const PRIMOGEMS_PER_PULL = 160;
@@ -523,4 +523,156 @@ export function calculateDailyRateFromWishes(
   const totalPrimogems = recentWishes.length * PRIMOGEMS_PER_PULL;
 
   return totalPrimogems / lookbackDays;
+}
+
+/**
+ * Data point for income rate trend over time
+ */
+export interface IncomeRateDataPoint {
+  periodStart: string;
+  periodEnd: string;
+  label: string;
+  dailyRate: number;
+  totalIncome: number;
+  days: number;
+  hasSnapshotData: boolean; // true if calculated from snapshots, false if estimated from wishes
+}
+
+/**
+ * Account start date for income estimation when no snapshots exist
+ * This is used to estimate minimum income from wish history
+ */
+export const ACCOUNT_START_DATE = '2025-10-29';
+
+/**
+ * Calculate income rate trend over weekly periods
+ * Uses snapshots when available, otherwise estimates from wish spending
+ */
+export function calculateIncomeRateTrend(
+  snapshots: ResourceSnapshot[],
+  wishes: WishRecord[],
+): IncomeRateDataPoint[] {
+  const intertwinedWishes = filterToIntertwinedWishes(wishes);
+
+  if (intertwinedWishes.length === 0 && snapshots.length === 0) {
+    return [];
+  }
+
+  // Sort snapshots and wishes by date
+  const sortedSnapshots = [...snapshots].sort(
+    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
+  );
+  const sortedWishes = [...intertwinedWishes].sort(
+    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
+  );
+
+  // Determine date range
+  const accountStart = parseISO(ACCOUNT_START_DATE);
+  const now = startOfDay(new Date());
+
+  // Find earliest date from wishes or snapshots
+  const firstWishDate = sortedWishes[0] ? parseISO(sortedWishes[0].timestamp) : null;
+  const firstSnapshotDate = sortedSnapshots[0] ? parseISO(sortedSnapshots[0].timestamp) : null;
+
+  let startDate = accountStart;
+  if (firstWishDate && isBefore(firstWishDate, startDate)) {
+    startDate = firstWishDate;
+  }
+  if (firstSnapshotDate && isBefore(firstSnapshotDate, startDate)) {
+    startDate = firstSnapshotDate;
+  }
+
+  // Build snapshot lookup by date
+  const snapshotByDate = new Map<string, ResourceSnapshot>();
+  for (const snapshot of sortedSnapshots) {
+    const dateKey = format(startOfDay(parseISO(snapshot.timestamp)), 'yyyy-MM-dd');
+    snapshotByDate.set(dateKey, snapshot);
+  }
+
+  // Generate weekly periods from start to now
+  const result: IncomeRateDataPoint[] = [];
+  let periodStart = startOfWeek(startDate, { weekStartsOn: 1 });
+
+  while (isBefore(periodStart, now)) {
+    const periodEnd = addWeeks(periodStart, 1);
+    const actualPeriodEnd = isAfter(periodEnd, now) ? now : periodEnd;
+    const days = differenceInDays(actualPeriodEnd, periodStart);
+
+    if (days <= 0) {
+      periodStart = periodEnd;
+      continue;
+    }
+
+    // Find snapshots within or bounding this period
+    const snapshotsInPeriod = sortedSnapshots.filter(s => {
+      const sDate = parseISO(s.timestamp);
+      return !isBefore(sDate, periodStart) && isBefore(sDate, periodEnd);
+    });
+
+    // Find snapshot just before period start
+    const snapshotBeforePeriod = sortedSnapshots
+      .filter(s => isBefore(parseISO(s.timestamp), periodStart))
+      .pop();
+
+    // Find snapshot at or after period end
+    const snapshotAfterPeriod = sortedSnapshots
+      .find(s => !isBefore(parseISO(s.timestamp), periodStart) && !isBefore(parseISO(s.timestamp), actualPeriodEnd));
+
+    // Count wishes in this period
+    const wishesInPeriod = sortedWishes.filter(w => {
+      const wDate = parseISO(w.timestamp);
+      return !isBefore(wDate, periodStart) && isBefore(wDate, periodEnd);
+    });
+    const pullsInPeriod = wishesInPeriod.length;
+    const spendingInPeriod = pullsInPeriod * PRIMOGEMS_PER_PULL;
+
+    let totalIncome: number;
+    let hasSnapshotData: boolean;
+
+    if (snapshotBeforePeriod && (snapshotsInPeriod.length > 0 || snapshotAfterPeriod)) {
+      // We have snapshot data bounding this period - calculate actual income
+      const startSnapshot = snapshotsInPeriod[0] || snapshotAfterPeriod || snapshotBeforePeriod;
+      const endSnapshot = snapshotsInPeriod[snapshotsInPeriod.length - 1] || snapshotAfterPeriod;
+
+      if (startSnapshot && endSnapshot && startSnapshot !== endSnapshot) {
+        const startTotal = snapshotBeforePeriod.primogems + (snapshotBeforePeriod.intertwined * PRIMOGEMS_PER_PULL);
+        const endTotal = endSnapshot.primogems + (endSnapshot.intertwined * PRIMOGEMS_PER_PULL);
+
+        // Count wishes between these specific snapshots
+        const wishesBetween = sortedWishes.filter(w => {
+          const wDate = parseISO(w.timestamp);
+          return isAfter(wDate, parseISO(snapshotBeforePeriod.timestamp)) &&
+                 !isAfter(wDate, parseISO(endSnapshot.timestamp));
+        }).length;
+
+        totalIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL);
+        hasSnapshotData = true;
+      } else {
+        // Fall back to wish-based estimation
+        totalIncome = spendingInPeriod;
+        hasSnapshotData = false;
+      }
+    } else {
+      // No snapshot data for this period - estimate from wish spending
+      // This assumes the user is spending roughly what they earn
+      totalIncome = spendingInPeriod;
+      hasSnapshotData = false;
+    }
+
+    const dailyRate = days > 0 ? totalIncome / days : 0;
+
+    result.push({
+      periodStart: format(periodStart, 'yyyy-MM-dd'),
+      periodEnd: format(actualPeriodEnd, 'yyyy-MM-dd'),
+      label: format(periodStart, 'MMM d'),
+      dailyRate: Math.round(dailyRate),
+      totalIncome: Math.round(totalIncome),
+      days,
+      hasSnapshotData,
+    });
+
+    periodStart = periodEnd;
+  }
+
+  return result;
 }
