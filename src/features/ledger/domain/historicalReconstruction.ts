@@ -475,12 +475,11 @@ export function calculateDailyRateFromSnapshots(
 
   if (!firstSnapshot || !lastSnapshot || firstSnapshot === lastSnapshot) return 0;
 
-  const firstDate = parseISO(firstSnapshot.timestamp);
-  const lastDate = parseISO(lastSnapshot.timestamp);
+  // Use startOfDay to ensure consistent day counting regardless of snapshot time
+  const firstDate = startOfDay(parseISO(firstSnapshot.timestamp));
+  const lastDate = startOfDay(parseISO(lastSnapshot.timestamp));
 
-  // Use precise time difference (not rounded days)
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const totalDays = (lastDate.getTime() - firstDate.getTime()) / msPerDay;
+  const totalDays = differenceInDays(lastDate, firstDate);
 
   if (totalDays <= 0) return 0;
 
@@ -488,10 +487,13 @@ export function calculateDailyRateFromSnapshots(
   const firstTotal = firstSnapshot.primogems + (firstSnapshot.intertwined * PRIMOGEMS_PER_PULL);
   const lastTotal = lastSnapshot.primogems + (lastSnapshot.intertwined * PRIMOGEMS_PER_PULL);
 
-  // Count all pulls made between first and last snapshot
+  // Count all pulls made between first and last snapshot (inclusive of both boundary days)
+  // Using startOfDay for boundaries means we count all wishes from start of first day
+  // through end of last day (i.e., before start of day after last snapshot)
+  const dayAfterLast = addDays(lastDate, 1);
   const pullsBetween = intertwinedWishes.filter(w => {
     const wishDate = parseISO(w.timestamp);
-    return isAfter(wishDate, firstDate) && !isAfter(wishDate, lastDate);
+    return !isBefore(wishDate, firstDate) && isBefore(wishDate, dayAfterLast);
   }).length;
 
   // Income = change in resources + spending

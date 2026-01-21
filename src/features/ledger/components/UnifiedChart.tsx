@@ -68,7 +68,10 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
   const pullsFromPrimos = Math.floor(currentPrimogems / PRIMOS_PER_PULL);
   const currentPulls = pullsFromPrimos + currentIntertwined;
   const projectedPrimogems = finalProjection?.projected ?? currentPrimogems;
-  const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL) + currentIntertwined;
+  // Note: projectedPrimogems already includes intertwined fates as primogem-equivalent
+  // (from buildHistoricalData which adds intertwined * 160 to the total)
+  // So we don't add currentIntertwined again here
+  const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL);
   const daysForOnePity = effectiveDailyRate > 0 ? Math.ceil((90 * PRIMOS_PER_PULL) / effectiveDailyRate) : Infinity;
 
   interface TooltipPayload {
