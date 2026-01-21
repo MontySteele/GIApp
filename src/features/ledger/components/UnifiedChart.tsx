@@ -20,7 +20,6 @@ import {
   buildUnifiedChartData,
   calculateDailyRateFromSnapshots,
   calculateDailyRateFromWishes,
-  filterToIntertwinedWishes,
   type ChartDataPoint,
 } from '../domain/historicalReconstruction';
 import { PRIMOS_PER_PULL } from '@/lib/constants';
@@ -44,14 +43,13 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
   const [customDailyRate, setCustomDailyRate] = useState<number | null>(null);
   const [showPurchases, setShowPurchases] = useState(true);
 
-  // Filter to intertwined fate wishes only (character/weapon/chronicled banners)
-  const intertwinedWishes = useMemo(() => filterToIntertwinedWishes(wishes), [wishes]);
-
   // Prefer snapshot-based calculation (more accurate), fall back to wish-based
-  const calculatedDailyRate = useMemo(() => {
+  const { calculatedDailyRate, rateSource } = useMemo(() => {
     const snapshotRate = calculateDailyRateFromSnapshots(snapshots, wishes, rateLookbackDays);
-    if (snapshotRate > 0) return snapshotRate;
-    return calculateDailyRateFromWishes(wishes, rateLookbackDays);
+    if (snapshotRate > 0) {
+      return { calculatedDailyRate: snapshotRate, rateSource: 'snapshots' as const };
+    }
+    return { calculatedDailyRate: calculateDailyRateFromWishes(wishes, rateLookbackDays), rateSource: 'wishes' as const };
   }, [snapshots, wishes, rateLookbackDays]);
 
   const effectiveDailyRate = customDailyRate ?? calculatedDailyRate;
@@ -213,7 +211,11 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
             {Math.round(effectiveDailyRate).toLocaleString()}
           </p>
           <p className="text-xs text-slate-500">
-            {customDailyRate !== null ? 'manual override' : `${intertwinedWishes.length} pulls / ${rateLookbackDays}d`}
+            {customDailyRate !== null
+              ? 'manual override'
+              : rateSource === 'snapshots'
+                ? `from ${rateLookbackDays}d snapshots`
+                : `from ${rateLookbackDays}d wish history`}
           </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">

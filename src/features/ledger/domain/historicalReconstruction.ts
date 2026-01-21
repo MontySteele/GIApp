@@ -459,40 +459,34 @@ export function calculateDailyRateFromSnapshots(
   // Filter wishes to intertwined only
   const intertwinedWishes = filterToIntertwinedWishes(wishes);
 
-  // Calculate income between consecutive snapshot pairs
-  let totalIncome = 0;
-  let totalDays = 0;
+  // Calculate total income from first to last snapshot in the window
+  // This is more accurate than summing consecutive pairs, which can have rounding issues
+  const firstSnapshot = snapshotsToUse[0];
+  const lastSnapshot = snapshotsToUse[snapshotsToUse.length - 1];
 
-  for (let i = 1; i < snapshotsToUse.length; i++) {
-    const older = snapshotsToUse[i - 1];
-    const newer = snapshotsToUse[i];
+  if (!firstSnapshot || !lastSnapshot || firstSnapshot === lastSnapshot) return 0;
 
-    if (!older || !newer) continue;
+  const firstDate = parseISO(firstSnapshot.timestamp);
+  const lastDate = parseISO(lastSnapshot.timestamp);
 
-    const olderDate = parseISO(older.timestamp);
-    const newerDate = parseISO(newer.timestamp);
-    const daysBetween = differenceInDays(newerDate, olderDate);
+  // Use precise time difference (not rounded days)
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const totalDays = (lastDate.getTime() - firstDate.getTime()) / msPerDay;
 
-    if (daysBetween <= 0) continue;
+  if (totalDays <= 0) return 0;
 
-    // Calculate total resources at each snapshot (primogems + intertwined fates as primogem-equivalent)
-    const olderTotal = older.primogems + (older.intertwined * PRIMOGEMS_PER_PULL);
-    const newerTotal = newer.primogems + (newer.intertwined * PRIMOGEMS_PER_PULL);
+  // Calculate total resources at each snapshot (primogems + intertwined fates as primogem-equivalent)
+  const firstTotal = firstSnapshot.primogems + (firstSnapshot.intertwined * PRIMOGEMS_PER_PULL);
+  const lastTotal = lastSnapshot.primogems + (lastSnapshot.intertwined * PRIMOGEMS_PER_PULL);
 
-    // Count pulls made between snapshots
-    const pullsBetween = intertwinedWishes.filter(w => {
-      const wishDate = parseISO(w.timestamp);
-      return isAfter(wishDate, olderDate) && !isAfter(wishDate, newerDate);
-    }).length;
+  // Count all pulls made between first and last snapshot
+  const pullsBetween = intertwinedWishes.filter(w => {
+    const wishDate = parseISO(w.timestamp);
+    return isAfter(wishDate, firstDate) && !isAfter(wishDate, lastDate);
+  }).length;
 
-    // Income = change in resources + spending
-    const income = (newerTotal - olderTotal) + (pullsBetween * PRIMOGEMS_PER_PULL);
-
-    totalIncome += income;
-    totalDays += daysBetween;
-  }
-
-  if (totalDays === 0) return 0;
+  // Income = change in resources + spending
+  const totalIncome = (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL);
 
   return totalIncome / totalDays;
 }
