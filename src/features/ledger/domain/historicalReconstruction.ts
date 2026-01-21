@@ -158,22 +158,27 @@ export function buildHistoricalData(
     const snapshotOnDate = snapshotByDate.get(dateKey);
     if (snapshotOnDate && !isBefore(currentDate, latestSnapshotDate)) {
       // Use snapshot value directly (include intertwined fates as primogem-equivalent)
+      // The snapshot is ground truth and already reflects any wishes made before it was taken
       const snapshotTotal = snapshotOnDate.primogems + (snapshotOnDate.intertwined * PRIMOGEMS_PER_PULL);
       currentPrimogems = snapshotTotal;
       currentPrimogemsWithPurchases = snapshotTotal;
     }
 
-    // Apply wish spending for the day
+    // Apply wish spending for the day - but only if there's no snapshot
+    // (snapshots already reflect spending that occurred before they were taken)
     const wishesToday = wishCountByDate.get(dateKey) ?? 0;
     if (wishesToday > 0) {
       cumulativePulls += wishesToday;
-      currentPrimogems -= wishesToday * PRIMOGEMS_PER_PULL;
-      currentPrimogemsWithPurchases -= wishesToday * PRIMOGEMS_PER_PULL;
+      if (!snapshotOnDate) {
+        currentPrimogems -= wishesToday * PRIMOGEMS_PER_PULL;
+        currentPrimogemsWithPurchases -= wishesToday * PRIMOGEMS_PER_PULL;
+      }
     }
 
     // Apply purchases for the day (only affects "with purchases" line)
+    // Only apply if no snapshot (snapshot already reflects purchases before it was taken)
     const purchasesToday = purchaseByDate.get(dateKey) ?? 0;
-    if (purchasesToday > 0 && isAfter(currentDate, latestSnapshotDate)) {
+    if (purchasesToday > 0 && isAfter(currentDate, latestSnapshotDate) && !snapshotOnDate) {
       cumulativePurchases += purchasesToday;
       currentPrimogemsWithPurchases += purchasesToday;
     }
@@ -201,6 +206,9 @@ export function buildHistoricalData(
 
   while (!isBefore(currentDate, effectiveStartDate)) {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
+    const nextDay = addDays(currentDate, 1);
+    const nextDayKey = format(nextDay, 'yyyy-MM-dd');
+    const nextDayHasSnapshot = snapshotByDate.has(nextDayKey);
 
     // Check for snapshot on this date
     const snapshotOnDate = snapshotByDate.get(dateKey);
@@ -211,18 +219,19 @@ export function buildHistoricalData(
       currentPrimogemsWithPurchases = snapshotTotal;
     } else {
       // Work backwards: add back wishes that were spent the next day
-      const nextDay = addDays(currentDate, 1);
-      const nextDayKey = format(nextDay, 'yyyy-MM-dd');
-      const wishesNextDay = wishCountByDate.get(nextDayKey) ?? 0;
-      if (wishesNextDay > 0) {
-        currentPrimogems += wishesNextDay * PRIMOGEMS_PER_PULL;
-        currentPrimogemsWithPurchases += wishesNextDay * PRIMOGEMS_PER_PULL;
-      }
+      // But only if next day doesn't have a snapshot (snapshots are ground truth)
+      if (!nextDayHasSnapshot) {
+        const wishesNextDay = wishCountByDate.get(nextDayKey) ?? 0;
+        if (wishesNextDay > 0) {
+          currentPrimogems += wishesNextDay * PRIMOGEMS_PER_PULL;
+          currentPrimogemsWithPurchases += wishesNextDay * PRIMOGEMS_PER_PULL;
+        }
 
-      // Subtract purchases that were made the next day
-      const purchasesNextDay = purchaseByDate.get(nextDayKey) ?? 0;
-      if (purchasesNextDay > 0) {
-        currentPrimogemsWithPurchases -= purchasesNextDay;
+        // Subtract purchases that were made the next day
+        const purchasesNextDay = purchaseByDate.get(nextDayKey) ?? 0;
+        if (purchasesNextDay > 0) {
+          currentPrimogemsWithPurchases -= purchasesNextDay;
+        }
       }
     }
 
