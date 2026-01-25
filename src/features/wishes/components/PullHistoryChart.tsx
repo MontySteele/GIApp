@@ -59,9 +59,9 @@ function addInterval(date: Date, interval: GroupInterval): Date {
 function formatLabel(date: Date, interval: GroupInterval): string {
   switch (interval) {
     case 'day':
-      return format(date, 'yyyy-MM-dd');
+      return format(date, 'MMM d');
     case 'week':
-      return format(date, "'W'w yyyy");
+      return format(date, 'MMM d');
     case 'month':
       return format(date, 'MMM yyyy');
   }

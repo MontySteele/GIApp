@@ -8,6 +8,7 @@ import { fateEntryRepo } from '../repo/fateEntryRepo';
 import { resourceSnapshotRepo } from '../repo/resourceSnapshotRepo';
 import { wishRepo } from '@/features/wishes/repo/wishRepo';
 import { UnifiedChart } from '../components/UnifiedChart';
+import { IncomeRateTrendChart } from '../components/IncomeRateTrendChart';
 import { TransactionLog } from '../components/TransactionLog';
 import { PurchaseLedger } from '../components/PurchaseLedger';
 import {
@@ -300,6 +301,20 @@ export default function LedgerPage() {
           purchases={purchaseEntries}
           currentPrimogems={effectivePrimogems}
           currentIntertwined={effectiveIntertwined}
+        />
+      </section>
+
+      {/* Income Rate Trend Chart */}
+      <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Income Rate Trend</h2>
+          <p className="text-slate-400 text-sm">
+            Track how your daily primogem income changes over time. Useful for seeing when new player bonuses taper off.
+          </p>
+        </div>
+        <IncomeRateTrendChart
+          snapshots={allSnapshots ?? []}
+          wishes={wishRecords ?? []}
         />
       </section>
 

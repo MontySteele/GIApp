@@ -18,8 +18,8 @@ import Input from '@/components/ui/Input';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry } from '@/types';
 import {
   buildUnifiedChartData,
+  calculateDailyRateFromSnapshots,
   calculateDailyRateFromWishes,
-  filterToIntertwinedWishes,
   type ChartDataPoint,
 } from '../domain/historicalReconstruction';
 import { PRIMOS_PER_PULL } from '@/lib/constants';
@@ -32,24 +32,25 @@ interface UnifiedChartProps {
   currentIntertwined?: number;
 }
 
-type ProjectionDays = 30 | 60 | 90 | 180;
+type ProjectionDays = 21 | 42 | 63 | 84;
 type LookbackDays = 30 | 60 | 90 | 180;
 type RateLookbackDays = 14 | 30 | 60 | 90;
 
 export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, currentIntertwined = 0 }: UnifiedChartProps) {
-  const [projectionDays, setProjectionDays] = useState<ProjectionDays>(60);
+  const [projectionDays, setProjectionDays] = useState<ProjectionDays>(42);
   const [lookbackDays, setLookbackDays] = useState<LookbackDays>(90);
-  const [rateLookbackDays, setRateLookbackDays] = useState<RateLookbackDays>(30);
+  const [rateLookbackDays, setRateLookbackDays] = useState<RateLookbackDays>(14);
   const [customDailyRate, setCustomDailyRate] = useState<number | null>(null);
   const [showPurchases, setShowPurchases] = useState(true);
 
-  // Filter to intertwined fate wishes only (character/weapon/chronicled banners)
-  const intertwinedWishes = useMemo(() => filterToIntertwinedWishes(wishes), [wishes]);
-
-  const calculatedDailyRate = useMemo(
-    () => calculateDailyRateFromWishes(wishes, rateLookbackDays),
-    [wishes, rateLookbackDays]
-  );
+  // Prefer snapshot-based calculation (more accurate), fall back to wish-based
+  const { calculatedDailyRate, rateSource } = useMemo(() => {
+    const snapshotRate = calculateDailyRateFromSnapshots(snapshots, wishes, rateLookbackDays);
+    if (snapshotRate > 0) {
+      return { calculatedDailyRate: snapshotRate, rateSource: 'snapshots' as const };
+    }
+    return { calculatedDailyRate: calculateDailyRateFromWishes(wishes, rateLookbackDays), rateSource: 'wishes' as const };
+  }, [snapshots, wishes, rateLookbackDays]);
 
   const effectiveDailyRate = customDailyRate ?? calculatedDailyRate;
 
@@ -67,7 +68,10 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
   const pullsFromPrimos = Math.floor(currentPrimogems / PRIMOS_PER_PULL);
   const currentPulls = pullsFromPrimos + currentIntertwined;
   const projectedPrimogems = finalProjection?.projected ?? currentPrimogems;
-  const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL) + currentIntertwined;
+  // Note: projectedPrimogems already includes intertwined fates as primogem-equivalent
+  // (from buildHistoricalData which adds intertwined * 160 to the total)
+  // So we don't add currentIntertwined again here
+  const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL);
   const daysForOnePity = effectiveDailyRate > 0 ? Math.ceil((90 * PRIMOS_PER_PULL) / effectiveDailyRate) : Infinity;
 
   interface TooltipPayload {
@@ -143,10 +147,10 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
           value={projectionDays.toString()}
           onChange={(e) => setProjectionDays(Number(e.target.value) as ProjectionDays)}
           options={[
-            { value: '30', label: '30 days' },
-            { value: '60', label: '60 days' },
-            { value: '90', label: '90 days (1 patch)' },
-            { value: '180', label: '180 days (3 patches)' },
+            { value: '21', label: '21 days (1 banner)' },
+            { value: '42', label: '42 days (1 patch)' },
+            { value: '63', label: '63 days (3 banners)' },
+            { value: '84', label: '84 days (2 patches)' },
           ]}
         />
         <Select
@@ -210,7 +214,11 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
             {Math.round(effectiveDailyRate).toLocaleString()}
           </p>
           <p className="text-xs text-slate-500">
-            {customDailyRate !== null ? 'manual override' : `${intertwinedWishes.length} pulls / ${rateLookbackDays}d`}
+            {customDailyRate !== null
+              ? 'manual override'
+              : rateSource === 'snapshots'
+                ? `from ${rateLookbackDays}d snapshots`
+                : `from ${rateLookbackDays}d wish history`}
           </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
@@ -314,7 +322,7 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
       <div className="text-xs text-slate-500 space-y-1">
         <p>• Historical data reconstructed from snapshots and intertwined fate spending (160 primos per pull)</p>
         <p>• Standard banner pulls excluded (use acquaint fates, not primogems)</p>
-        <p>• Daily rate = pulls in rate window ÷ days (assumes pulls ≈ income)</p>
+        <p>• Daily rate = (change in resources + spending) ÷ days between snapshots</p>
         <p>• Green dots indicate snapshot points (ground truth data)</p>
         {!showPurchases && <p>• F2P view: Purchased primogems excluded from calculations</p>}
       </div>
