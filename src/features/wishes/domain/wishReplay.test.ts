@@ -27,6 +27,49 @@ function createWish(override: Partial<TestWish>): TestWish {
 }
 
 describe('replayWishHistory', () => {
+  it('orders wishes in a 10-pull by gachaId when timestamps are identical', () => {
+    // Simulate a 10-pull where all wishes have identical timestamp and createdAt
+    // but different gachaIds (original API IDs) that indicate actual order
+    const batchTime = '2024-01-01T12:00:00.000Z';
+    const wishes: TestWish[] = [
+      // Deliberately pass these out of gachaId order to test sorting
+      createWish({
+        id: 'uuid-zzz', // alphabetically last
+        gachaId: '1704110400000000003', // third pull
+        rarity: 5,
+        isFeatured: true, // This would be a 50/50 win
+        timestamp: batchTime,
+        createdAt: batchTime,
+      }),
+      createWish({
+        id: 'uuid-aaa', // alphabetically first
+        gachaId: '1704110400000000001', // first pull
+        rarity: 5,
+        isFeatured: false, // This should be the 50/50 loss (comes first)
+        timestamp: batchTime,
+        createdAt: batchTime,
+      }),
+      createWish({
+        id: 'uuid-mmm', // alphabetically middle
+        gachaId: '1704110400000000002', // second pull (filler)
+        rarity: 3,
+        timestamp: batchTime,
+        createdAt: batchTime,
+      }),
+    ];
+
+    const result = replayWishHistory(wishes);
+
+    // If sorted correctly by gachaId:
+    // 1. First 5★ (gachaId ...001) loses 50/50 -> guaranteed becomes true
+    // 2. Second (gachaId ...002) is 3★ filler
+    // 3. Third 5★ (gachaId ...003) should be guaranteed
+    expect(result.computed['uuid-aaa'].wasGuaranteed).toBe(false);
+    expect(result.computed['uuid-aaa'].won5050).toBe(false);
+    expect(result.computed['uuid-zzz'].wasGuaranteed).toBe(true);
+    expect(result.pityState.character.guaranteed).toBe(false);
+  });
+
   it('orders wishes with identical timestamps by creation time', () => {
     const wishes: TestWish[] = [
       createWish({

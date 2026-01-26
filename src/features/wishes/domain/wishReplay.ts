@@ -35,6 +35,13 @@ const initialPityState: BannerPityState = {
   },
 };
 
+function compareGachaIds(a: string, b: string): number {
+  // Genshin gacha IDs are snowflake-like numeric strings where larger = later
+  // Compare by length first (longer number is bigger), then lexicographically
+  if (a.length !== b.length) return a.length - b.length;
+  return a.localeCompare(b);
+}
+
 function sortWishesByTime(wishes: WishWithMetadata[]): WishWithMetadata[] {
   return [...wishes].sort((a, b) => {
     const timeDiff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
@@ -44,6 +51,12 @@ function sortWishesByTime(wishes: WishWithMetadata[]): WishWithMetadata[] {
       new Date(a.createdAt || a.timestamp).getTime() -
       new Date(b.createdAt || b.timestamp).getTime();
     if (createdDiff !== 0) return createdDiff;
+
+    // Use gachaId (original API ID) for ordering within same timestamp batch
+    // This preserves the actual pull order from the game API
+    if (a.gachaId && b.gachaId) {
+      return compareGachaIds(a.gachaId, b.gachaId);
+    }
 
     return a.id.localeCompare(b.id);
   });
