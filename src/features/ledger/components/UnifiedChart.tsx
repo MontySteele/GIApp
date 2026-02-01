@@ -41,18 +41,17 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
   const [lookbackDays, setLookbackDays] = useState<LookbackDays>(90);
   const [rateLookbackDays, setRateLookbackDays] = useState<RateLookbackDays>(14);
   const [customDailyRate, setCustomDailyRate] = useState<number | null>(null);
-  const [showPurchases, setShowPurchases] = useState(true);
+  const [excludePurchases, setExcludePurchases] = useState(true);
 
   // Prefer snapshot-based calculation (more accurate), fall back to wish-based
-  // When showPurchases is false, exclude purchases from rate calculation to show F2P income rate
+  // When excludePurchases is true, exclude purchases from rate calculation to show F2P income rate
   const { calculatedDailyRate, rateSource } = useMemo(() => {
-    const excludePurchasesFromRate = !showPurchases;
-    const snapshotRate = calculateDailyRateFromSnapshots(snapshots, wishes, rateLookbackDays, purchases, excludePurchasesFromRate);
+    const snapshotRate = calculateDailyRateFromSnapshots(snapshots, wishes, rateLookbackDays, purchases, excludePurchases);
     if (snapshotRate > 0) {
       return { calculatedDailyRate: snapshotRate, rateSource: 'snapshots' as const };
     }
     return { calculatedDailyRate: calculateDailyRateFromWishes(wishes, rateLookbackDays), rateSource: 'wishes' as const };
-  }, [snapshots, wishes, rateLookbackDays, purchases, showPurchases]);
+  }, [snapshots, wishes, rateLookbackDays, purchases, excludePurchases]);
 
   const effectiveDailyRate = customDailyRate ?? calculatedDailyRate;
 
@@ -90,7 +89,7 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
     const firstPayload = payload?.[0];
     if (active && firstPayload) {
       const data = firstPayload.payload;
-      const displayValue = showPurchases
+      const displayValue = !excludePurchases
         ? (data.historicalWithPurchases ?? data.projectedWithPurchases ?? data.historical ?? data.projected)
         : (data.historical ?? data.projected);
       const pullsAtPoint = Math.floor((displayValue ?? 0) / PRIMOS_PER_PULL);
@@ -105,12 +104,12 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
           <div className="space-y-1 text-sm">
             {data.historical !== undefined && (
               <p className="text-primary-400">
-                Historical: <span className="font-semibold">{Math.round(showPurchases ? (data.historicalWithPurchases ?? 0) : data.historical).toLocaleString()}</span>
+                Historical: <span className="font-semibold">{Math.round(!excludePurchases ? (data.historicalWithPurchases ?? 0) : data.historical).toLocaleString()}</span>
               </p>
             )}
             {data.projected !== undefined && (
               <p className="text-green-400">
-                Projected: <span className="font-semibold">{Math.round(showPurchases ? (data.projectedWithPurchases ?? 0) : data.projected).toLocaleString()}</span>
+                Projected: <span className="font-semibold">{Math.round(!excludePurchases ? (data.projectedWithPurchases ?? 0) : data.projected).toLocaleString()}</span>
               </p>
             )}
             <p className="text-amber-400">
@@ -179,11 +178,11 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
         <label className="flex items-center gap-2 text-sm text-slate-200 mb-1">
           <input
             type="checkbox"
-            checked={showPurchases}
-            onChange={(e) => setShowPurchases(e.target.checked)}
+            checked={excludePurchases}
+            onChange={(e) => setExcludePurchases(e.target.checked)}
             className="rounded border-slate-600 bg-slate-800"
           />
-          Include purchases (uncheck for F2P view)
+          Exclude purchases (show earned income only)
         </label>
       </div>
 
@@ -276,7 +275,7 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
               {/* Historical data */}
               <Area
                 type="monotone"
-                dataKey={showPurchases ? 'historicalWithPurchases' : 'historical'}
+                dataKey={!excludePurchases ? 'historicalWithPurchases' : 'historical'}
                 name="Historical"
                 stroke="#0ea5e9"
                 strokeWidth={2}
@@ -287,7 +286,7 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
               {/* Projection data */}
               <Line
                 type="monotone"
-                dataKey={showPurchases ? 'projectedWithPurchases' : 'projected'}
+                dataKey={!excludePurchases ? 'projectedWithPurchases' : 'projected'}
                 name="Projected"
                 stroke="#22c55e"
                 strokeWidth={2}
@@ -309,7 +308,7 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
                 <ReferenceDot
                   key={point.date}
                   x={point.label}
-                  y={showPurchases ? point.historicalWithPurchases : point.historical}
+                  y={!excludePurchases ? point.historicalWithPurchases : point.historical}
                   r={6}
                   fill="#22c55e"
                   stroke="#fff"
@@ -326,7 +325,7 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
         <p>• Standard banner pulls excluded (use acquaint fates, not primogems)</p>
         <p>• Daily rate = (change in resources + spending) ÷ days between snapshots</p>
         <p>• Green dots indicate snapshot points (ground truth data)</p>
-        {!showPurchases && <p>• F2P view: Purchased primogems excluded from calculations</p>}
+        {!!excludePurchases && <p>• F2P view: Purchased primogems excluded from calculations</p>}
       </div>
     </div>
   );

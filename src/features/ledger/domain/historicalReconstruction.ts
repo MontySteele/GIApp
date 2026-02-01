@@ -666,30 +666,44 @@ export function calculateIncomeRateTrend(
 
     if (snapshotBeforePeriod && (snapshotsInPeriod.length > 0 || snapshotAfterPeriod)) {
       // We have snapshot data bounding this period - calculate actual income
-      const startSnapshot = snapshotsInPeriod[0] || snapshotAfterPeriod || snapshotBeforePeriod;
       const endSnapshot = snapshotsInPeriod[snapshotsInPeriod.length - 1] || snapshotAfterPeriod;
 
-      if (startSnapshot && endSnapshot && startSnapshot !== endSnapshot) {
+      if (endSnapshot && snapshotBeforePeriod !== endSnapshot) {
         const startTotal = snapshotBeforePeriod.primogems + (snapshotBeforePeriod.intertwined * PRIMOGEMS_PER_PULL);
         const endTotal = endSnapshot.primogems + (endSnapshot.intertwined * PRIMOGEMS_PER_PULL);
 
-        // Count wishes between these specific snapshots
-        const wishesBetween = sortedWishes.filter(w => {
-          const wDate = parseISO(w.timestamp);
-          return isAfter(wDate, parseISO(snapshotBeforePeriod.timestamp)) &&
-                 !isAfter(wDate, parseISO(endSnapshot.timestamp));
-        }).length;
+        // Calculate actual days between the snapshots we're using
+        const snapshotStartDate = startOfDay(parseISO(snapshotBeforePeriod.timestamp));
+        const snapshotEndDate = startOfDay(parseISO(endSnapshot.timestamp));
+        const actualSnapshotDays = differenceInDays(snapshotEndDate, snapshotStartDate);
 
-        // Count purchases between these specific snapshots
-        const purchasesBetween = excludePurchases ? sortedPurchases.filter(p => {
-          const pDate = parseISO(p.timestamp);
-          return isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
-                 !isAfter(pDate, parseISO(endSnapshot.timestamp));
-        }).reduce((sum, p) => sum + p.amount, 0) : 0;
+        if (actualSnapshotDays <= 0) {
+          // Snapshots on same day - can't calculate rate, fall back to wish-based
+          totalIncome = spendingInPeriod;
+          hasSnapshotData = false;
+        } else {
+          // Count wishes between these specific snapshots
+          const wishesBetween = sortedWishes.filter(w => {
+            const wDate = parseISO(w.timestamp);
+            return isAfter(wDate, parseISO(snapshotBeforePeriod.timestamp)) &&
+                   !isAfter(wDate, parseISO(endSnapshot.timestamp));
+          }).length;
 
-        // Income = change in resources + spending - purchases (purchases aren't earned income)
-        totalIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - purchasesBetween;
-        hasSnapshotData = true;
+          // Count purchases between these specific snapshots
+          const purchasesBetween = excludePurchases ? sortedPurchases.filter(p => {
+            const pDate = parseISO(p.timestamp);
+            return isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
+                   !isAfter(pDate, parseISO(endSnapshot.timestamp));
+          }).reduce((sum, p) => sum + p.amount, 0) : 0;
+
+          // Income over the snapshot span
+          const snapshotSpanIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - purchasesBetween;
+
+          // Daily rate from the snapshot span, then estimate income for this period
+          const dailyRateFromSnapshots = snapshotSpanIncome / actualSnapshotDays;
+          totalIncome = dailyRateFromSnapshots * days;
+          hasSnapshotData = true;
+        }
       } else {
         // Fall back to wish-based estimation
         totalIncome = spendingInPeriod;
