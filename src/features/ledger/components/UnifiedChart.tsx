@@ -44,13 +44,15 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
   const [showPurchases, setShowPurchases] = useState(true);
 
   // Prefer snapshot-based calculation (more accurate), fall back to wish-based
+  // When showPurchases is false, exclude purchases from rate calculation to show F2P income rate
   const { calculatedDailyRate, rateSource } = useMemo(() => {
-    const snapshotRate = calculateDailyRateFromSnapshots(snapshots, wishes, rateLookbackDays);
+    const excludePurchasesFromRate = !showPurchases;
+    const snapshotRate = calculateDailyRateFromSnapshots(snapshots, wishes, rateLookbackDays, purchases, excludePurchasesFromRate);
     if (snapshotRate > 0) {
       return { calculatedDailyRate: snapshotRate, rateSource: 'snapshots' as const };
     }
     return { calculatedDailyRate: calculateDailyRateFromWishes(wishes, rateLookbackDays), rateSource: 'wishes' as const };
-  }, [snapshots, wishes, rateLookbackDays]);
+  }, [snapshots, wishes, rateLookbackDays, purchases, showPurchases]);
 
   const effectiveDailyRate = customDailyRate ?? calculatedDailyRate;
 

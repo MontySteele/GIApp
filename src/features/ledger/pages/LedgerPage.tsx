@@ -315,6 +315,7 @@ export default function LedgerPage() {
         <IncomeRateTrendChart
           snapshots={allSnapshots ?? []}
           wishes={wishRecords ?? []}
+          purchases={purchaseEntries}
         />
       </section>
 

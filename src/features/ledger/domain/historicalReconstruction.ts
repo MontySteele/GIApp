@@ -434,12 +434,14 @@ export function buildTransactionLog(
 /**
  * Calculate daily income rate from snapshots and wish spending
  * This is more accurate than wish-based calculation because it measures actual income:
- * Income = (newer_snapshot - older_snapshot) + (pulls_between * 160)
+ * Income = (newer_snapshot - older_snapshot) + (pulls_between * 160) - purchases_between
  */
 export function calculateDailyRateFromSnapshots(
   snapshots: ResourceSnapshot[],
   wishes: WishRecord[],
-  lookbackDays: number = 30
+  lookbackDays: number = 30,
+  purchases: PrimogemEntry[] = [],
+  excludePurchases: boolean = true
 ): number {
   if (snapshots.length < 2) return 0;
 
@@ -496,8 +498,14 @@ export function calculateDailyRateFromSnapshots(
     return !isBefore(wishDate, firstDate) && isBefore(wishDate, dayAfterLast);
   }).length;
 
-  // Income = change in resources + spending
-  const totalIncome = (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL);
+  // Count purchases between snapshots (purchases inflate snapshot values but aren't earned income)
+  const purchasesBetween = excludePurchases ? purchases.filter(p => {
+    const purchaseDate = parseISO(p.timestamp);
+    return !isBefore(purchaseDate, firstDate) && isBefore(purchaseDate, dayAfterLast);
+  }).reduce((sum, p) => sum + p.amount, 0) : 0;
+
+  // Income = change in resources + spending - purchases
+  const totalIncome = (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - purchasesBetween;
 
   return totalIncome / totalDays;
 }
@@ -579,6 +587,8 @@ function getBannerPeriodStart(date: Date): Date {
 export function calculateIncomeRateTrend(
   snapshots: ResourceSnapshot[],
   wishes: WishRecord[],
+  purchases: PrimogemEntry[] = [],
+  excludePurchases: boolean = true,
 ): IncomeRateDataPoint[] {
   const intertwinedWishes = filterToIntertwinedWishes(wishes);
 
@@ -591,6 +601,9 @@ export function calculateIncomeRateTrend(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
   const sortedWishes = [...intertwinedWishes].sort(
+    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
+  );
+  const sortedPurchases = [...purchases].sort(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
@@ -647,6 +660,7 @@ export function calculateIncomeRateTrend(
     const pullsInPeriod = wishesInPeriod.length;
     const spendingInPeriod = pullsInPeriod * PRIMOGEMS_PER_PULL;
 
+
     let totalIncome: number;
     let hasSnapshotData: boolean;
 
@@ -666,7 +680,15 @@ export function calculateIncomeRateTrend(
                  !isAfter(wDate, parseISO(endSnapshot.timestamp));
         }).length;
 
-        totalIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL);
+        // Count purchases between these specific snapshots
+        const purchasesBetween = excludePurchases ? sortedPurchases.filter(p => {
+          const pDate = parseISO(p.timestamp);
+          return isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
+                 !isAfter(pDate, parseISO(endSnapshot.timestamp));
+        }).reduce((sum, p) => sum + p.amount, 0) : 0;
+
+        // Income = change in resources + spending - purchases (purchases aren't earned income)
+        totalIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - purchasesBetween;
         hasSnapshotData = true;
       } else {
         // Fall back to wish-based estimation
