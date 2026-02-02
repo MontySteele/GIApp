@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -11,7 +11,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
-import type { ResourceSnapshot, WishRecord } from '@/types';
+import type { ResourceSnapshot, WishRecord, PrimogemEntry } from '@/types';
 import {
   calculateIncomeRateTrend,
   type IncomeRateDataPoint,
@@ -20,12 +20,15 @@ import {
 interface IncomeRateTrendChartProps {
   snapshots: ResourceSnapshot[];
   wishes: WishRecord[];
+  purchases: PrimogemEntry[];
 }
 
-export function IncomeRateTrendChart({ snapshots, wishes }: IncomeRateTrendChartProps) {
+export function IncomeRateTrendChart({ snapshots, wishes, purchases }: IncomeRateTrendChartProps) {
+  const [excludePurchases, setExcludePurchases] = useState(true);
+
   const trendData = useMemo(
-    () => calculateIncomeRateTrend(snapshots, wishes),
-    [snapshots, wishes]
+    () => calculateIncomeRateTrend(snapshots, wishes, purchases, excludePurchases),
+    [snapshots, wishes, purchases, excludePurchases]
   );
 
   // Calculate average and trend
@@ -100,6 +103,17 @@ export function IncomeRateTrendChart({ snapshots, wishes }: IncomeRateTrendChart
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <label className="flex items-center gap-2 text-sm text-slate-200">
+          <input
+            type="checkbox"
+            checked={excludePurchases}
+            onChange={(e) => setExcludePurchases(e.target.checked)}
+            className="rounded border-slate-600 bg-slate-800"
+          />
+          Exclude purchases (show earned income only)
+        </label>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
           <p className="text-xs text-slate-400">Average Daily Rate</p>
