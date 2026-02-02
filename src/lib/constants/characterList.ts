@@ -79,6 +79,8 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Nefer', name: 'Nefer', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
   { key: 'Skirk', name: 'Skirk', rarity: 5, element: 'Cryo', weapon: 'Sword' },
   { key: 'Varesa', name: 'Varesa', rarity: 5, element: 'Electro', weapon: 'Catalyst' },
+  { key: 'Columbina', name: 'Columbina', rarity: 5, element: 'Cryo', weapon: 'Catalyst' },
+  { key: 'Ineffa', name: 'Ineffa', rarity: 5, element: 'Electro', weapon: 'Polearm' },
 
   // 4-Star Characters
   { key: 'Amber', name: 'Amber', rarity: 4, element: 'Pyro', weapon: 'Bow' },
