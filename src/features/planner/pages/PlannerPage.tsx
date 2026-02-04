@@ -9,6 +9,7 @@ import { useMultiCharacterPlan } from '../hooks/useMultiCharacterPlan';
 import { useWeaponPlan } from '../hooks/useWeaponPlan';
 import { usePlannerState } from '../hooks/usePlannerState';
 import { markChecklistItem } from '@/hooks/useOnboarding';
+import { useWishlist } from '@/hooks/useWishlist';
 
 // Sub-components
 import ResinTracker from '../components/ResinTracker';
@@ -46,6 +47,7 @@ export default function PlannerPage() {
   const { teams } = useTeams();
   const { weapons: enrichedWeapons, isLoading: loadingWeapons, hasWeapons } = useWeapons();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
+  const { wishlistCharacters, removeCharacter: removeWishlistCharacter } = useWishlist();
 
   // Check for query params to auto-select characters
   const teamIdFromUrl = searchParams.get('team');
@@ -133,6 +135,7 @@ export default function PlannerPage() {
     inventory: materials,
     initialGoalType: plannerState.multiGoalType,
     initialSelectedKeys: multiSelectedKeys.length > 0 ? multiSelectedKeys : initialSelectedKeys,
+    wishlistCharacters,
   });
 
   // Track if we've synced initial state
@@ -337,6 +340,8 @@ export default function PlannerPage() {
             selectedCharacters={multiPlan.selectedCharacters}
             summary={multiPlan.summary}
             onDeselectCharacter={multiPlan.deselectCharacter}
+            wishlistCharacters={wishlistCharacters}
+            onRemoveWishlistCharacter={removeWishlistCharacter}
           />
         )}
 

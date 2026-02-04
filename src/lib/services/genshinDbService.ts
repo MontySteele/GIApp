@@ -17,7 +17,7 @@ import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
-const CACHE_SCHEMA_VERSION = 4; // Increment when cache structure changes - v4: added Natlan common materials
+const CACHE_SCHEMA_VERSION = 5; // Increment when cache structure changes - v5: improved material tier detection with fallback patterns
 
 /**
  * In-memory cache for character materials
@@ -78,6 +78,12 @@ const COMMON_TIER_PATTERNS = {
     // Natlan materials (5.0+)
     'Saurian Claw', 'Ignited Stone', 'Blazing Sacrificial Heart\'s Terror',
     'Meshing Gear', 'Foreigners\' Deciphered Notes',
+    // Additional Natlan/newer materials
+    'Desiccated Shell', 'Juvenile Fang', 'Sentry\'s Wooden Whistle',
+    'Withered Starconch', 'Whopperflower Nectar', 'Weathered Arrowhead',
+    'Recruit\'s Insignia', 'Old Handguard',
+    // Snezhnaya/Fatui materials (potential future)
+    'Fatui Insignia', 'Recruit\'s Insignia',
   ],
   // Tier 2 (Green) patterns
   tier2: [
@@ -91,7 +97,11 @@ const COMMON_TIER_PATTERNS = {
     'Splintered Hilt', 'Sheath of the Secret Source',
     // Natlan materials (5.0+)
     'Sturdy Saurian Claw', 'Blazing Core', 'Blazing Sacrificial Heart\'s Resolve',
-    'Mechanical Spur Gear', 'Foreigners\'Erta',
+    'Mechanical Spur Gear', 'Foreigners\' Erta',
+    // Additional Natlan/newer materials
+    'Marked Shell', 'Seasoned Fang', 'Sentry\'s Brass Whistle',
+    'Aged Starconch', 'Shimmering Nectar', 'Sharp Arrowhead',
+    'Sergeant\'s Insignia', 'Kageuchi Handguard',
   ],
   // Tier 3 (Blue) patterns
   tier3: [
@@ -106,6 +116,10 @@ const COMMON_TIER_PATTERNS = {
     // Natlan materials (5.0+)
     'Tempered Saurian Claw', 'Roiling Magma Drop', 'Blazing Sacrificial Heart\'s Splendor',
     'Artificed Dynamic Gear', 'Foreigners\' Zekhava',
+    // Additional Natlan/newer materials
+    'Alien Shell', 'Tyrant\'s Fang', 'Sentry\'s Golden Whistle',
+    'Polished Starconch', 'Energy Nectar', 'Weathered Arrowhead',
+    'Lieutenant\'s Insignia', 'Famed Handguard',
   ],
 };
 
@@ -304,6 +318,34 @@ function identifyCommonTier(name: string): 1 | 2 | 3 | 0 {
 }
 
 /**
+ * Try to infer tier from material name patterns when not in known patterns
+ * Uses common naming conventions for tiered materials
+ */
+function inferTierFromNamePatterns(name: string): 1 | 2 | 3 | 0 {
+  const nameLower = name.toLowerCase();
+
+  // Tier 1 (Gray) patterns - typically base/damaged/old/fragile prefixes
+  const tier1Prefixes = ['damaged', 'old', 'fragile', 'faded', 'recruit', 'firm', 'divining', 'whopperflower', 'treasure hoarder', 'gloomy', 'dismal', 'heavy', 'dead', 'feathery', 'ruined', 'axis', 'shard of a shattered'];
+  for (const prefix of tier1Prefixes) {
+    if (nameLower.includes(prefix)) return 1;
+  }
+
+  // Tier 2 (Green) patterns - typically mid-level prefixes
+  const tier2Prefixes = ['stained', 'sturdy', 'sealed', 'sharp', 'shimmering', 'sergeant', 'silver', 'agent', 'kageuchi', 'dark', 'crystal', 'black bronze', 'trimmed', 'seasoned', 'budding', 'foul legacy', 'operative\'s standard', 'lunar', 'splintered', 'sheath'];
+  for (const prefix of tier2Prefixes) {
+    if (nameLower.includes(prefix)) return 2;
+  }
+
+  // Tier 3 (Blue) patterns - typically top-level prefixes
+  const tier3Prefixes = ['ominous', 'forbidden', 'weathered', 'energy', 'lieutenant', 'golden', 'fossilized', 'inspector', 'famed', 'deathly', 'polarizing', 'black crystal', 'rich', 'tyrant', 'wilting', 'conquered will', 'operative\'s constancy', 'chasmlight', 'still-smoldering', 'heart of'];
+  for (const prefix of tier3Prefixes) {
+    if (nameLower.includes(prefix)) return 3;
+  }
+
+  return 0;
+}
+
+/**
  * Process raw API responses into structured material data
  */
 function processCharacterMaterials(
@@ -395,7 +437,13 @@ function processCharacterMaterials(
           materials.ascensionMaterials.localSpecialty.totalCount += item.count;
         } else {
           // Check if it's a common material by tier
-          const tier = identifyCommonTier(name);
+          let tier = identifyCommonTier(name);
+
+          // If not found in known patterns, try to infer from naming conventions
+          if (tier === 0) {
+            tier = inferTierFromNamePatterns(name);
+          }
+
           if (tier > 0) {
             materials.ascensionMaterials.common.name = name;
             materials.ascensionMaterials.common.baseName = getBaseCommonName(name);
@@ -471,7 +519,13 @@ function processCharacterMaterials(
           continue;
         } else {
           // Check if it's a common material by tier
-          const tier = identifyCommonTier(name);
+          let tier = identifyCommonTier(name);
+
+          // If not found in known patterns, try to infer from naming conventions
+          if (tier === 0) {
+            tier = inferTierFromNamePatterns(name);
+          }
+
           if (tier > 0) {
             const baseName = getBaseCommonName(name);
             materials.talentMaterials.common.name = name;

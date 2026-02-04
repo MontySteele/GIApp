@@ -102,6 +102,7 @@ export const CHARACTER_METADATA: CharacterMetadata[] = [
   { key: 'Skirk', element: 'Cryo', weaponType: 'Sword', rarity: 5 },
   { key: 'Dahlia', element: 'Hydro', weaponType: 'Sword', rarity: 4 },
   { key: 'Ineffa', element: 'Electro', weaponType: 'Polearm', rarity: 5 },
+  { key: 'Columbina', element: 'Cryo', weaponType: 'Catalyst', rarity: 5 },
   { key: 'Lauma', element: 'Dendro', weaponType: 'Catalyst', rarity: 5 },
   { key: 'Flins', element: 'Electro', weaponType: 'Polearm', rarity: 5 },
   { key: 'Aino', element: 'Hydro', weaponType: 'Claymore', rarity: 4 },

@@ -11,6 +11,7 @@ import {
   type AggregatedMaterialSummary,
 } from '../domain/multiCharacterCalculator';
 import type { Character } from '@/types';
+import type { WishlistCharacter } from '@/hooks/useWishlist';
 
 export type GoalType = 'full' | 'comfortable' | 'functional' | 'next';
 
@@ -19,6 +20,8 @@ interface UseMultiCharacterPlanOptions {
   inventory: Record<string, number>;
   initialSelectedKeys?: string[];
   initialGoalType?: GoalType;
+  /** Wishlist characters (not yet owned) to include in planning */
+  wishlistCharacters?: WishlistCharacter[];
 }
 
 interface UseMultiCharacterPlanResult {
@@ -82,6 +85,7 @@ export function useMultiCharacterPlan({
   inventory,
   initialSelectedKeys = [],
   initialGoalType = 'full',
+  wishlistCharacters = [],
 }: UseMultiCharacterPlanOptions): UseMultiCharacterPlanResult {
   // Selection state
   const [selectedCharacterKeys, setSelectedCharacterKeys] = useState<string[]>(
@@ -103,7 +107,9 @@ export function useMultiCharacterPlan({
   );
 
   const selectedCount = selectedCharacterKeys.length;
-  const hasSelection = selectedCount > 0;
+  const wishlistCount = wishlistCharacters.length;
+  const totalSelectedCount = selectedCount + wishlistCount;
+  const hasSelection = totalSelectedCount > 0;
 
   // Selection handlers
   const selectCharacter = useCallback((key: string) => {
@@ -138,7 +144,10 @@ export function useMultiCharacterPlan({
 
   // Calculate summary when selection or goal type changes
   const calculateSummary = useCallback(async () => {
-    if (selectedCharacters.length === 0) {
+    const hasOwnedSelection = selectedCharacters.length > 0;
+    const hasWishlistSelection = wishlistCharacters.length > 0;
+
+    if (!hasOwnedSelection && !hasWishlistSelection) {
       setSummary(EMPTY_SUMMARY);
       setCalculationError(null);
       return;
@@ -148,7 +157,8 @@ export function useMultiCharacterPlan({
     setCalculationError(null);
 
     try {
-      const goals = createGoalsFromCharacters(
+      // Create goals from owned characters
+      const ownedGoals = createGoalsFromCharacters(
         selectedCharacters.map((c) => ({
           key: c.key,
           level: c.level,
@@ -158,7 +168,36 @@ export function useMultiCharacterPlan({
         goalType
       );
 
-      const result = await calculateMultiCharacterSummary(goals, inventory);
+      // Create goals from wishlist characters (starting from level 1)
+      const wishlistGoals = createGoalsFromCharacters(
+        wishlistCharacters.map((wc) => ({
+          key: wc.key,
+          level: 1,
+          ascension: 0,
+          talent: { auto: 1, skill: 1, burst: 1 },
+        })),
+        // Use the wishlist character's specified goal type
+        undefined // Will be handled individually below
+      );
+
+      // Override wishlist goals with their individual target goals
+      const adjustedWishlistGoals = wishlistCharacters.map((wc) => {
+        const goals = createGoalsFromCharacters(
+          [{
+            key: wc.key,
+            level: 1,
+            ascension: 0,
+            talent: { auto: 1, skill: 1, burst: 1 },
+          }],
+          wc.targetGoal
+        );
+        return goals[0];
+      }).filter((g): g is NonNullable<typeof g> => g !== undefined);
+
+      // Combine all goals
+      const allGoals = [...ownedGoals, ...adjustedWishlistGoals];
+
+      const result = await calculateMultiCharacterSummary(allGoals, inventory);
       setSummary(result);
 
       // Set error if any character failed
@@ -172,7 +211,7 @@ export function useMultiCharacterPlan({
     } finally {
       setIsCalculating(false);
     }
-  }, [selectedCharacters, goalType, inventory]);
+  }, [selectedCharacters, goalType, inventory, wishlistCharacters]);
 
   // Auto-calculate when dependencies change
   // Note: we include selectedCharacterKeys directly to ensure the effect fires
@@ -180,7 +219,7 @@ export function useMultiCharacterPlan({
   // memoized selectedCharacters array doesn't trigger properly
   useEffect(() => {
     void calculateSummary();
-  }, [calculateSummary, selectedCharacterKeys]);
+  }, [calculateSummary, selectedCharacterKeys, wishlistCharacters]);
 
   return {
     // Selection state

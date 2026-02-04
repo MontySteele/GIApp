@@ -444,7 +444,40 @@ export async function calculateAscensionSummary(
 
   // Calculate EXP needed
   const expNeeded = calculateExpNeeded(goal.currentLevel, goal.targetLevel);
+
+  // Get owned EXP books of all tiers
+  const ownedHerosWit = getMaterialCount(
+    inventory,
+    'HeroesWit',
+    'HerosWit',
+    "Hero's Wit",
+    'heros_wit'
+  );
+  const ownedAdventurersExp = getMaterialCount(
+    inventory,
+    'AdventurersExperience',
+    "Adventurer's Experience",
+    'adventurers_experience'
+  );
+  const ownedWanderersAdvice = getMaterialCount(
+    inventory,
+    'WanderersAdvice',
+    "Wanderer's Advice",
+    'wanderers_advice'
+  );
+
+  // Calculate total EXP from all owned books
+  const totalOwnedExp =
+    (ownedHerosWit * EXP_BOOK_VALUES.herosWit) +
+    (ownedAdventurersExp * EXP_BOOK_VALUES.adventurersExperience) +
+    (ownedWanderersAdvice * EXP_BOOK_VALUES.wanderersAdvice);
+
+  // Calculate EXP deficit
+  const expDeficit = Math.max(0, expNeeded - totalOwnedExp);
+
+  // Convert deficit to Hero's Wit equivalent for display (how many more Hero's Wit would be needed)
   const herosWitNeeded = Math.ceil(expNeeded / EXP_BOOK_VALUES.herosWit);
+  const herosWitDeficit = Math.ceil(expDeficit / EXP_BOOK_VALUES.herosWit);
 
   // Total mora (ascension + talents + leveling)
   const levelingMora = Math.round(expNeeded * 0.1); // ~10% of EXP value in mora
@@ -467,22 +500,44 @@ export async function calculateAscensionSummary(
     deficit: Math.max(0, totalMora - ownedMora),
   });
 
-  // Add EXP requirement
-  const ownedHerosWit = getMaterialCount(
-    inventory,
-    'HeroesWit',
-    'HerosWit',
-    "Hero's Wit",
-    'heros_wit'
-  );
+  // Add EXP requirements for all book tiers
+  // Hero's Wit (20,000 EXP each)
   materials.push({
     key: findInventoryKey("Hero's Wit", inventory),
     name: "Hero's Wit",
     category: 'exp',
+    tier: 3,
     required: herosWitNeeded,
     owned: ownedHerosWit,
-    deficit: Math.max(0, herosWitNeeded - ownedHerosWit),
+    // Deficit is calculated based on total EXP from all books
+    deficit: herosWitDeficit,
   });
+
+  // Adventurer's Experience (5,000 EXP each) - show owned count, contributes to total
+  if (ownedAdventurersExp > 0 || expNeeded > 0) {
+    materials.push({
+      key: findInventoryKey("Adventurer's Experience", inventory),
+      name: "Adventurer's Experience",
+      category: 'exp',
+      tier: 2,
+      required: 0, // We don't require specific counts, they contribute to total
+      owned: ownedAdventurersExp,
+      deficit: 0, // Deficit shown only on Hero's Wit equivalent
+    });
+  }
+
+  // Wanderer's Advice (1,000 EXP each) - show owned count, contributes to total
+  if (ownedWanderersAdvice > 0 || expNeeded > 0) {
+    materials.push({
+      key: findInventoryKey("Wanderer's Advice", inventory),
+      name: "Wanderer's Advice",
+      category: 'exp',
+      tier: 1,
+      required: 0, // We don't require specific counts, they contribute to total
+      owned: ownedWanderersAdvice,
+      deficit: 0, // Deficit shown only on Hero's Wit equivalent
+    });
+  }
 
   // Add API-sourced materials
   materials.push(...apiMaterials);
@@ -508,7 +563,10 @@ export async function calculateAscensionSummary(
 
   const talentDomainRuns = Math.ceil(purpleEquivNeeded / purpleEquivPerRun);
 
-  const adjustedExpLeyLines = Math.max(0, Math.ceil(herosWitNeeded / 4.5) - Math.floor(ownedHerosWit / 4.5));
+  // Calculate ley line runs needed based on EXP deficit (accounting for all book types)
+  // Average ~4.5 Hero's Wit equivalent per run (90,000 EXP)
+  const expPerLeyLineRun = 4.5 * EXP_BOOK_VALUES.herosWit; // 90,000 EXP per run
+  const adjustedExpLeyLines = Math.max(0, Math.ceil(expDeficit / expPerLeyLineRun));
   const moraLeyLines = Math.ceil(Math.max(0, totalMora - ownedMora) / 60000);
 
   // Calculate resin breakdown

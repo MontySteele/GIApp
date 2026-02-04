@@ -1,9 +1,11 @@
-import { Clock, Check } from 'lucide-react';
+import { Clock, Check, Star } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character } from '@/types';
 import type { AscensionGoal, AscensionSummary } from '../domain/ascensionCalculator';
 import type { AggregatedMaterialSummary } from '../domain/multiCharacterCalculator';
+import type { WishlistCharacter } from '@/hooks/useWishlist';
+import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 
 interface SingleGoalSummaryProps {
   character: Character;
@@ -70,6 +72,10 @@ interface MultiGoalSummaryProps {
   selectedCharacters: Character[];
   summary: AggregatedMaterialSummary;
   onDeselectCharacter: (key: string) => void;
+  /** Wishlist characters to display */
+  wishlistCharacters?: WishlistCharacter[];
+  /** Callback to remove a wishlist character */
+  onRemoveWishlistCharacter?: (key: string) => void;
 }
 
 export function MultiGoalSummary({
@@ -77,13 +83,23 @@ export function MultiGoalSummary({
   selectedCharacters,
   summary,
   onDeselectCharacter,
+  wishlistCharacters = [],
+  onRemoveWishlistCharacter,
 }: MultiGoalSummaryProps) {
+  const totalCount = selectedCount + wishlistCharacters.length;
+
+  // Get display name for wishlist character
+  const getWishlistCharacterName = (key: string): string => {
+    const charInfo = ALL_CHARACTERS.find((c) => c.key === key);
+    return charInfo?.name || key;
+  };
+
   return (
     <Card className="mb-6">
       <CardHeader>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {selectedCount} Characters - Combined Goal
+            {totalCount} Characters - Combined Goal
           </h2>
           {summary.allCanAscend && (
             <Badge variant="success" className="flex items-center gap-1">
@@ -105,6 +121,25 @@ export function MultiGoalSummary({
               >
                 ×
               </button>
+            </Badge>
+          ))}
+          {/* Wishlist Character Tags - styled differently */}
+          {wishlistCharacters.map((wc) => (
+            <Badge
+              key={`wishlist-${wc.key}`}
+              variant="default"
+              className="flex items-center gap-1 bg-yellow-900/30 border-yellow-700/50"
+            >
+              <Star className="w-3 h-3 text-yellow-400" />
+              {getWishlistCharacterName(wc.key)}
+              {onRemoveWishlistCharacter && (
+                <button
+                  className="ml-1 text-slate-400 hover:text-slate-200"
+                  onClick={() => onRemoveWishlistCharacter(wc.key)}
+                >
+                  ×
+                </button>
+              )}
             </Badge>
           ))}
         </div>
