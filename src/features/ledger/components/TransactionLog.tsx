@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Camera, CreditCard, Sparkles, Filter } from 'lucide-react';
+import { Camera, CreditCard, Sparkles, Filter, MinusCircle } from 'lucide-react';
 import Select from '@/components/ui/Select';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry } from '@/types';
 import { buildTransactionLog, type TransactionLogEntry } from '../domain/historicalReconstruction';
@@ -13,7 +13,7 @@ interface TransactionLogProps {
   onDeletePurchase?: (id: string) => void;
 }
 
-type FilterType = 'all' | 'snapshot' | 'purchase' | 'wish_spending';
+type FilterType = 'all' | 'snapshot' | 'purchase' | 'wish_spending' | 'cosmetic_spending';
 
 export function TransactionLog({
   snapshots,
@@ -46,6 +46,8 @@ export function TransactionLog({
         return <CreditCard className="w-4 h-4 text-indigo-400" />;
       case 'wish_spending':
         return <Sparkles className="w-4 h-4 text-amber-400" />;
+      case 'cosmetic_spending':
+        return <MinusCircle className="w-4 h-4 text-rose-400" />;
     }
   };
 
@@ -57,6 +59,8 @@ export function TransactionLog({
         return 'Purchase';
       case 'wish_spending':
         return 'Wish Spending';
+      case 'cosmetic_spending':
+        return 'Cosmetic Spending';
     }
   };
 
@@ -86,6 +90,7 @@ export function TransactionLog({
             { value: 'snapshot', label: 'Snapshots' },
             { value: 'purchase', label: 'Purchases' },
             { value: 'wish_spending', label: 'Wish Spending' },
+            { value: 'cosmetic_spending', label: 'Cosmetic Spending' },
           ]}
         />
         <span className="text-sm text-slate-400">
@@ -127,7 +132,7 @@ export function TransactionLog({
               <p className="text-xs text-slate-500">primogems</p>
             </div>
 
-            {entry.editable && entry.type === 'purchase' && (
+            {entry.editable && (entry.type === 'purchase' || entry.type === 'cosmetic_spending') && (
               <div className="flex-shrink-0 flex gap-2">
                 {onEditPurchase && (
                   <button

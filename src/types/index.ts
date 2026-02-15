@@ -15,6 +15,7 @@ export type PrimogemSource =
   | 'battle_pass'
   | 'purchase'
   | 'wish_conversion'
+  | 'cosmetic'
   | 'other';
 
 export type FateSource =

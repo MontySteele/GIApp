@@ -16,7 +16,8 @@ import {
   calculateWishSpending,
 } from '../domain/resourceCalculations';
 import { markChecklistItem } from '@/hooks/useOnboarding';
-import type { FateType, PrimogemEntry } from '@/types';
+import type { FateType, PrimogemEntry, PrimogemSource } from '@/types';
+import { SPENDING_SOURCES } from '../domain/resourceCalculations';
 
 const FAR_FUTURE = '9999-12-31T23:59:59.999Z';
 
@@ -74,27 +75,38 @@ export default function LedgerPage() {
     });
   }, [latestSnapshot]);
 
-  // Calculate purchase entries (source === 'purchase')
+  // Calculate purchase and spending entries (source === 'purchase' or spending sources)
   const purchaseEntries = useMemo(
-    () => (allPrimogemEntries ?? []).filter((e) => e.source === 'purchase'),
+    () => (allPrimogemEntries ?? []).filter((e) => e.source === 'purchase' || SPENDING_SOURCES.includes(e.source)),
     [allPrimogemEntries]
   );
 
-  // Calculate post-snapshot purchases
+  // Calculate post-snapshot purchases (exclude spending entries from this total)
   const postSnapshotPurchases = useMemo(
     () => (postSnapshotPrimogemEntries ?? []).filter((e) => e.source === 'purchase'),
     [postSnapshotPrimogemEntries]
   );
 
+  // Calculate post-snapshot cosmetic spending
+  const postSnapshotSpending = useMemo(
+    () => (postSnapshotPrimogemEntries ?? []).filter((e) => SPENDING_SOURCES.includes(e.source)),
+    [postSnapshotPrimogemEntries]
+  );
+
   // Calculate totals
   const totalPurchased = useMemo(
-    () => purchaseEntries.reduce((sum, e) => sum + e.amount, 0),
+    () => purchaseEntries.filter((e) => e.source === 'purchase').reduce((sum, e) => sum + e.amount, 0),
     [purchaseEntries]
   );
 
   const postSnapshotPurchasedTotal = useMemo(
     () => postSnapshotPurchases.reduce((sum, e) => sum + e.amount, 0),
     [postSnapshotPurchases]
+  );
+
+  const postSnapshotSpendingTotal = useMemo(
+    () => postSnapshotSpending.reduce((sum, e) => sum + e.amount, 0), // negative
+    [postSnapshotSpending]
   );
 
   const fateTotals = useMemo(() => {
@@ -121,7 +133,7 @@ export default function LedgerPage() {
   // Calculate effective current values
   const basePrimogems = latestSnapshot?.primogems ?? 0;
   const primogemGross = basePrimogems + postSnapshotPurchasedTotal;
-  const primogemAfterSpending = primogemGross - (wishSpending?.primogemEquivalent ?? 0);
+  const primogemAfterSpending = primogemGross - (wishSpending?.primogemEquivalent ?? 0) + postSnapshotSpendingTotal; // spendingTotal is negative
   const effectivePrimogems = Math.max(0, primogemAfterSpending);
 
   const effectiveIntertwined = Math.max(
@@ -159,18 +171,19 @@ export default function LedgerPage() {
     });
   };
 
-  const handleAddPurchase = async (amount: number, timestamp: string, notes: string) => {
+  const handleAddPurchase = async (amount: number, timestamp: string, notes: string, source: PrimogemSource = 'purchase') => {
     await primogemEntryRepo.create({
       amount,
-      source: 'purchase',
+      source,
       notes,
       timestamp,
     });
   };
 
-  const handleUpdatePurchase = async (id: string, amount: number, timestamp: string, notes: string) => {
+  const handleUpdatePurchase = async (id: string, amount: number, timestamp: string, notes: string, source: PrimogemSource = 'purchase') => {
     await primogemEntryRepo.update(id, {
       amount,
+      source,
       timestamp,
       notes,
     });
@@ -196,7 +209,7 @@ export default function LedgerPage() {
           <p className="text-sm text-slate-400">Current Primogems</p>
           <p className="text-3xl font-bold text-primary-400">{effectivePrimogems.toLocaleString()}</p>
           <p className="text-xs text-slate-500 mt-1">
-            {latestSnapshot ? 'Snapshot + purchases - wish spending' : 'Add a snapshot to track'}
+            {latestSnapshot ? 'Snapshot + purchases - spending' : 'Add a snapshot to track'}
           </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">

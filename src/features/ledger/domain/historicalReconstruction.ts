@@ -1,5 +1,6 @@
 import { parseISO, format, addDays, isBefore, isAfter, startOfDay, differenceInDays } from 'date-fns';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry, BannerType } from '@/types';
+import { SPENDING_SOURCES } from './resourceCalculations';
 
 const PRIMOGEMS_PER_PULL = 160;
 
@@ -54,13 +55,18 @@ export interface ChartDataPoint {
 export interface TransactionLogEntry {
   id: string;
   date: string;
-  type: 'snapshot' | 'purchase' | 'wish_spending';
+  type: 'snapshot' | 'purchase' | 'wish_spending' | 'cosmetic_spending';
   description: string;
   amount: number; // positive for gains, negative for spending
   notes?: string;
   // For editable entries
   editable: boolean;
   originalEntry?: PrimogemEntry | ResourceSnapshot | WishRecord[];
+}
+
+/** Filter entries to only non-wish spending (cosmetic, etc.) */
+function filterSpendingEntries(entries: PrimogemEntry[]): PrimogemEntry[] {
+  return entries.filter(e => SPENDING_SOURCES.includes(e.source));
 }
 
 /**
@@ -92,8 +98,12 @@ export function buildHistoricalData(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
+  // Split purchases from spending entries
+  const purchaseOnlyEntries = purchases.filter(p => !SPENDING_SOURCES.includes(p.source));
+  const spendingEntries = filterSpendingEntries(purchases);
+
   // Sort purchases by date ascending
-  const sortedPurchases = [...purchases].sort(
+  const sortedPurchases = [...purchaseOnlyEntries].sort(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
@@ -104,11 +114,18 @@ export function buildHistoricalData(
     wishCountByDate.set(dateKey, (wishCountByDate.get(dateKey) ?? 0) + 1);
   }
 
-  // Build a map of daily purchase amounts
+  // Build a map of daily purchase amounts (positive, genesis crystal purchases only)
   const purchaseByDate = new Map<string, number>();
   for (const purchase of sortedPurchases) {
     const dateKey = format(parseISO(purchase.timestamp), 'yyyy-MM-dd');
     purchaseByDate.set(dateKey, (purchaseByDate.get(dateKey) ?? 0) + purchase.amount);
+  }
+
+  // Build a map of daily cosmetic spending amounts (negative values)
+  const cosmeticSpendByDate = new Map<string, number>();
+  for (const entry of spendingEntries) {
+    const dateKey = format(parseISO(entry.timestamp), 'yyyy-MM-dd');
+    cosmeticSpendByDate.set(dateKey, (cosmeticSpendByDate.get(dateKey) ?? 0) + entry.amount);
   }
 
   // Build snapshot lookup by date
@@ -175,6 +192,14 @@ export function buildHistoricalData(
       }
     }
 
+    // Apply cosmetic spending for the day (negative values reduce primogems)
+    // Only apply if no snapshot (snapshot already reflects spending before it was taken)
+    const cosmeticToday = cosmeticSpendByDate.get(dateKey) ?? 0;
+    if (cosmeticToday !== 0 && isAfter(currentDate, latestSnapshotDate) && !snapshotOnDate) {
+      currentPrimogems += cosmeticToday; // cosmeticToday is negative
+      currentPrimogemsWithPurchases += cosmeticToday;
+    }
+
     // Apply purchases for the day (only affects "with purchases" line)
     // Only apply if no snapshot (snapshot already reflects purchases before it was taken)
     const purchasesToday = purchaseByDate.get(dateKey) ?? 0;
@@ -225,6 +250,13 @@ export function buildHistoricalData(
         if (wishesNextDay > 0) {
           currentPrimogems += wishesNextDay * PRIMOGEMS_PER_PULL;
           currentPrimogemsWithPurchases += wishesNextDay * PRIMOGEMS_PER_PULL;
+        }
+
+        // Add back cosmetic spending from the next day (reverse the negative)
+        const cosmeticNextDay = cosmeticSpendByDate.get(nextDayKey) ?? 0;
+        if (cosmeticNextDay !== 0) {
+          currentPrimogems -= cosmeticNextDay; // cosmeticNextDay is negative, so subtracting adds back
+          currentPrimogemsWithPurchases -= cosmeticNextDay;
         }
 
         // Subtract purchases that were made the next day
@@ -375,13 +407,16 @@ export function buildTransactionLog(
     });
   }
 
-  // Add purchases
+  // Add purchases and cosmetic spending
   for (const purchase of purchases) {
+    const isSpending = SPENDING_SOURCES.includes(purchase.source);
     entries.push({
-      id: `purchase-${purchase.id}`,
+      id: `${isSpending ? 'cosmetic' : 'purchase'}-${purchase.id}`,
       date: purchase.timestamp,
-      type: 'purchase',
-      description: `Purchased ${purchase.amount.toLocaleString()} primogems`,
+      type: isSpending ? 'cosmetic_spending' : 'purchase',
+      description: isSpending
+        ? `Spent ${Math.abs(purchase.amount).toLocaleString()} primogems (cosmetic)`
+        : `Purchased ${purchase.amount.toLocaleString()} primogems`,
       amount: purchase.amount,
       notes: purchase.notes,
       editable: true,
@@ -501,11 +536,19 @@ export function calculateDailyRateFromSnapshots(
   // Count purchases between snapshots (purchases inflate snapshot values but aren't earned income)
   const purchasesBetween = excludePurchases ? purchases.filter(p => {
     const purchaseDate = parseISO(p.timestamp);
-    return !isBefore(purchaseDate, firstDate) && isBefore(purchaseDate, dayAfterLast);
+    return !SPENDING_SOURCES.includes(p.source) &&
+      !isBefore(purchaseDate, firstDate) && isBefore(purchaseDate, dayAfterLast);
   }).reduce((sum, p) => sum + p.amount, 0) : 0;
 
-  // Income = change in resources + spending - purchases
-  const totalIncome = (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - purchasesBetween;
+  // Count non-wish spending between snapshots (cosmetic purchases reduce snapshot value but aren't negative income)
+  const nonWishSpendingBetween = filterSpendingEntries(purchases).filter(p => {
+    const spendDate = parseISO(p.timestamp);
+    return !isBefore(spendDate, firstDate) && isBefore(spendDate, dayAfterLast);
+  }).reduce((sum, p) => sum + p.amount, 0); // negative total
+
+  // Income = change in resources + wish spending + non-wish spending (add back) - purchases
+  // nonWishSpendingBetween is negative, so subtracting it adds the amount back
+  const totalIncome = (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - nonWishSpendingBetween - purchasesBetween;
 
   return totalIncome / totalDays;
 }
@@ -689,15 +732,24 @@ export function calculateIncomeRateTrend(
                    !isAfter(wDate, parseISO(endSnapshot.timestamp));
           }).length;
 
-          // Count purchases between these specific snapshots
+          // Count purchases between these specific snapshots (exclude spending entries)
           const purchasesBetween = excludePurchases ? sortedPurchases.filter(p => {
             const pDate = parseISO(p.timestamp);
-            return isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
+            return !SPENDING_SOURCES.includes(p.source) &&
+                   isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
                    !isAfter(pDate, parseISO(endSnapshot.timestamp));
           }).reduce((sum, p) => sum + p.amount, 0) : 0;
 
+          // Count non-wish spending between these specific snapshots
+          const nonWishSpendBetween = filterSpendingEntries(sortedPurchases).filter(p => {
+            const pDate = parseISO(p.timestamp);
+            return isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
+                   !isAfter(pDate, parseISO(endSnapshot.timestamp));
+          }).reduce((sum, p) => sum + p.amount, 0); // negative total
+
           // Income over the snapshot span
-          const snapshotSpanIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - purchasesBetween;
+          // nonWishSpendBetween is negative, so subtracting it adds back the spending amount
+          const snapshotSpanIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - nonWishSpendBetween - purchasesBetween;
 
           // Daily rate from the snapshot span, then estimate income for this period
           const dailyRateFromSnapshots = snapshotSpanIncome / actualSnapshotDays;
