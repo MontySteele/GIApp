@@ -14,8 +14,12 @@ export const PRIMOGEM_SOURCES: PrimogemSource[] = [
   'battle_pass',
   'purchase',
   'wish_conversion',
+  'cosmetic',
   'other',
 ];
+
+/** Sources that represent non-wish primogem spending (negative amounts) */
+export const SPENDING_SOURCES: PrimogemSource[] = ['cosmetic'];
 
 export interface WishSpendingTotals {
   totalPulls: number;
@@ -48,6 +52,7 @@ export interface IncomeBucket {
     total: number;
     earned: number;
     purchased: number;
+    spent: number;
     sources: Record<PrimogemSource, number>;
   };
 }
@@ -98,6 +103,8 @@ export function splitPrimogemIncome(entries: PrimogemEntry[]) {
     (acc, entry) => {
       if (entry.source === 'purchase') {
         acc.purchased += entry.amount;
+      } else if (SPENDING_SOURCES.includes(entry.source)) {
+        acc.spent += entry.amount; // negative values
       } else {
         acc.earned += entry.amount;
       }
@@ -105,7 +112,7 @@ export function splitPrimogemIncome(entries: PrimogemEntry[]) {
       acc.total += entry.amount;
       return acc;
     },
-    { earned: 0, purchased: 0, total: 0 }
+    { earned: 0, purchased: 0, spent: 0, total: 0 }
   );
 }
 
@@ -148,6 +155,7 @@ export function bucketPrimogemEntries(entries: PrimogemEntry[], filters: IncomeB
           total: 0,
           earned: 0,
           purchased: 0,
+          spent: 0,
           sources: initialSources,
         },
       };
@@ -157,6 +165,8 @@ export function bucketPrimogemEntries(entries: PrimogemEntry[], filters: IncomeB
 
     if (entry.source === 'purchase') {
       bucket.totals.purchased += entry.amount;
+    } else if (SPENDING_SOURCES.includes(entry.source)) {
+      bucket.totals.spent += entry.amount;
     } else {
       bucket.totals.earned += entry.amount;
     }
