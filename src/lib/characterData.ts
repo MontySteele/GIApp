@@ -110,7 +110,12 @@ const CHARACTER_ICON_NAMES: Record<number, string> = {
   10000121: 'Aino',
   10000122: 'Nefer',
   10000123: 'Durin',
+  10000117: 'MannequinBoy', // Manekin (male)
+  10000118: 'MannequinGirl', // Manekina (female)
   10000124: 'Jahoda',
+  10000125: 'Columbina',
+  10000126: 'Zibai',
+  10000127: 'Illuga',
 };
 
 // Reverse mapping: Character key (GOOD format) to avatarId
@@ -250,7 +255,12 @@ const CHARACTER_KEY_TO_ID: Record<string, number> = {
   'aino': 10000121,
   'nefer': 10000122,
   'durin': 10000123,
+  'manekin': 10000117,
+  'manekina': 10000118,
   'jahoda': 10000124,
+  'columbina': 10000125,
+  'zibai': 10000126,
+  'illuga': 10000127,
 };
 
 /**
