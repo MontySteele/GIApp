@@ -3,7 +3,7 @@ import { Star, Pencil, Trash2, User } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, CharacterPriority } from '@/types';
-import { getCharacterPortraitUrl } from '@/lib/gameData';
+import { getCharacterPortraitUrl, getCharacterPortraitUrlByKey } from '@/lib/gameData';
 import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
 import {
   calculateCharacterArtifactScore,
@@ -21,7 +21,7 @@ interface CharacterCardProps {
 
 export default function CharacterCard({ character, onClick, onEdit, onDelete, teamNames }: CharacterCardProps) {
   const [imageError, setImageError] = useState(false);
-  const portraitUrl = getCharacterPortraitUrl(character.avatarId);
+  const portraitUrl = getCharacterPortraitUrl(character.avatarId) ?? getCharacterPortraitUrlByKey(character.key);
 
   // Calculate artifact score
   const artifactScore = useMemo(() => {

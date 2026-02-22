@@ -104,8 +104,10 @@ export const characterRepo = {
 
       if (existing) {
         // Update existing character, preserving teamIds and other user data
+        const avatarId = char.avatarId ?? existing.avatarId ?? getAvatarIdFromKey(char.key);
         await db.characters.update(existing.id, {
           ...char,
+          ...(avatarId !== undefined ? { avatarId } : {}),
           teamIds: existing.teamIds, // Preserve team associations
           updatedAt: now,
         });

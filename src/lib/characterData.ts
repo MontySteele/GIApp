@@ -280,6 +280,17 @@ export function getCharacterPortraitUrl(avatarId: number | undefined): string | 
 }
 
 /**
+ * Gets the Enka CDN portrait URL for a character by key (GOOD format)
+ * Falls back to key-based lookup when avatarId is not available
+ * @param characterKey - The character key in GOOD format (e.g. "Furina", "HuTao")
+ * @returns The portrait URL or undefined if not found
+ */
+export function getCharacterPortraitUrlByKey(characterKey: string): string | undefined {
+  const avatarId = getAvatarIdFromKey(characterKey);
+  return getCharacterPortraitUrl(avatarId);
+}
+
+/**
  * Gets the Enka CDN gacha splash art URL for a character
  * @param avatarId - The Enka avatar ID
  * @returns The gacha art URL or undefined if not found

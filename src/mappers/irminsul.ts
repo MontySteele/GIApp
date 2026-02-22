@@ -368,6 +368,6 @@ export function mergeCharacter(
     notes: existing.notes,
     priority: existing.priority,
     teamIds: existing.teamIds,
-    avatarId: existing.avatarId,
+    avatarId: existing.avatarId ?? imported.avatarId ?? getAvatarIdFromKey(existing.key),
   };
 }

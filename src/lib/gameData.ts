@@ -22,6 +22,7 @@ export {
 export {
   getAvatarIdFromKey,
   getCharacterPortraitUrl,
+  getCharacterPortraitUrlByKey,
   getCharacterGachaArtUrl,
   toGoodCharacterKey,
   toGoodWeaponKey,

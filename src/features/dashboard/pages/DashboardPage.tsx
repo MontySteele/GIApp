@@ -7,9 +7,7 @@ import {
   Sparkles,
   Zap,
   TrendingUp,
-  Calendar,
   ArrowRight,
-  Target,
 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -258,30 +256,6 @@ export default function DashboardPage() {
       {/* Notes & Reminders Widget */}
       <QuickNotesWidget maxStickies={4} maxNotes={2} />
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <QuickLink
-          to="/roster"
-          icon={<Users className="w-5 h-5" />}
-          label="Manage Roster"
-        />
-        <QuickLink
-          to="/teams"
-          icon={<Target className="w-5 h-5" />}
-          label="Team Builder"
-        />
-        <QuickLink
-          to="/pulls"
-          icon={<Sparkles className="w-5 h-5" />}
-          label="Pull Tracker"
-        />
-        <QuickLink
-          to="/planner"
-          icon={<Calendar className="w-5 h-5" />}
-          label="Material Planner"
-        />
-      </div>
-
       {/* Empty State */}
       {charStats.total === 0 && (
         <Card>
@@ -328,20 +302,3 @@ function StatCard({ icon, label, value, subtext, color, to }: StatCardProps) {
   );
 }
 
-interface QuickLinkProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-}
-
-function QuickLink({ to, icon, label }: QuickLinkProps) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center gap-2 p-3 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg text-slate-300 hover:text-slate-100 transition-colors"
-    >
-      {icon}
-      <span className="text-sm">{label}</span>
-    </Link>
-  );
-}
