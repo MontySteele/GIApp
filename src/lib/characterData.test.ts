@@ -225,6 +225,27 @@ describe('metadata completeness guards', () => {
       );
     }
   });
+
+  it('at least 100 characters have avatarId mappings (catches accidental truncation of KEY_TO_ID)', () => {
+    let resolvedCount = 0;
+    for (const entry of CHARACTER_METADATA) {
+      if (getAvatarIdFromKey(entry.key) !== undefined) {
+        resolvedCount++;
+      }
+    }
+    expect(resolvedCount).toBeGreaterThanOrEqual(100);
+  });
+
+  it('at least 80 characters have portrait icon mappings (catches accidental truncation of ICON_NAMES)', () => {
+    let withPortrait = 0;
+    for (const entry of CHARACTER_METADATA) {
+      const avatarId = getAvatarIdFromKey(entry.key);
+      if (avatarId && getCharacterPortraitUrl(avatarId)) {
+        withPortrait++;
+      }
+    }
+    expect(withPortrait).toBeGreaterThanOrEqual(80);
+  });
 });
 
 describe('getDisplayName', () => {
