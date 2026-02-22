@@ -123,6 +123,7 @@ export const CHARACTER_METADATA: CharacterMetadata[] = [
   { key: 'Manekina', element: 'Anemo', weaponType: 'Sword', rarity: 5 },
   { key: 'Illuga', element: 'Geo', weaponType: 'Polearm', rarity: 4 },
   { key: 'Zibai', element: 'Geo', weaponType: 'Sword', rarity: 5 },
+  { key: 'Varka', element: 'Anemo', weaponType: 'Claymore', rarity: 5 },
   // Upcoming / leaked (metadata only, may not have avatarId yet)
   { key: 'Avero', element: 'Anemo', weaponType: 'Bow', rarity: 4 },
   { key: 'Iljane', element: 'Hydro', weaponType: 'Claymore', rarity: 4 },
