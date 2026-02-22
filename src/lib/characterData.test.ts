@@ -4,6 +4,7 @@ import {
   getCharacterPortraitUrl,
   getCharacterGachaArtUrl,
   toGoodCharacterKey,
+  getDisplayName,
 } from './characterData';
 import { CHARACTER_METADATA } from '@/features/roster/data/characterMetadata';
 
@@ -223,5 +224,42 @@ describe('metadata completeness guards', () => {
           `\n\nRemove duplicates — keep one canonical key per character`
       );
     }
+  });
+});
+
+describe('getDisplayName', () => {
+  it('converts PascalCase compound names to spaces', () => {
+    expect(getDisplayName('KamisatoAyaka')).toBe('Kamisato Ayaka');
+    expect(getDisplayName('KaedeharaKazuha')).toBe('Kaedehara Kazuha');
+    expect(getDisplayName('SangonomiyaKokomi')).toBe('Sangonomiya Kokomi');
+    expect(getDisplayName('ShikanoinHeizou')).toBe('Shikanoin Heizou');
+  });
+
+  it('handles "HuTao" correctly', () => {
+    expect(getDisplayName('HuTao')).toBe('Hu Tao');
+  });
+
+  it('preserves already-spaced names', () => {
+    expect(getDisplayName('Hu Tao')).toBe('Hu Tao');
+    expect(getDisplayName('Kamisato Ayaka')).toBe('Kamisato Ayaka');
+    expect(getDisplayName('Yumemizuki Mizuki')).toBe('Yumemizuki Mizuki');
+  });
+
+  it('handles single-word names unchanged', () => {
+    expect(getDisplayName('Furina')).toBe('Furina');
+    expect(getDisplayName('Bennett')).toBe('Bennett');
+    expect(getDisplayName('Xiao')).toBe('Xiao');
+    expect(getDisplayName('Itto')).toBe('Itto');
+  });
+
+  it('handles special character names from metadata lookup', () => {
+    // These have known display names in CHARACTER_METADATA
+    expect(getDisplayName('YaeMiko')).toBe('Yae Miko');
+    expect(getDisplayName('RaidenShogun')).toBe('Raiden Shogun');
+    expect(getDisplayName('AratakiItto')).toBe('Arataki Itto');
+  });
+
+  it('returns key unchanged for empty or single-char input', () => {
+    expect(getDisplayName('')).toBe('');
   });
 });

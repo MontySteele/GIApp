@@ -358,3 +358,18 @@ export function toGoodWeaponKey(weaponKey: string): string {
 
   return weaponKey;
 }
+
+/**
+ * Converts a GOOD-format character key to a human-readable display name.
+ * Uses PascalCase splitting (e.g. "KamisatoAyaka" → "Kamisato Ayaka").
+ * Already-spaced names pass through unchanged.
+ */
+export function getDisplayName(key: string): string {
+  if (!key) return key;
+
+  // If the key already contains spaces, return as-is
+  if (key.includes(' ')) return key;
+
+  // Split PascalCase: insert space before each uppercase letter that follows a lowercase letter
+  return key.replace(/([a-z])([A-Z])/g, '$1 $2');
+}

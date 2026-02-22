@@ -24,6 +24,7 @@ export {
   getCharacterPortraitUrl,
   getCharacterPortraitUrlByKey,
   getCharacterGachaArtUrl,
+  getDisplayName,
   toGoodCharacterKey,
   toGoodWeaponKey,
 } from './characterData';
