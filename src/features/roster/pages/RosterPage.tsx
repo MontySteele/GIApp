@@ -16,6 +16,7 @@ import TeamForm from '../components/TeamForm';
 import AddCharacterModal, { type AddModalView } from '../components/AddCharacterModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import EmptyState from '../components/EmptyState';
+import RosterWishlist from '../components/RosterWishlist';
 import GOODExport from '../components/GOODExport';
 import TeamSnapshotExport from '../components/TeamSnapshotExport';
 import WfpsimExportModal from '@/features/teams/components/WfpsimExportModal';
@@ -187,6 +188,9 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         onExportTeams={() => modals.openExportModal('teams')}
         onExportToWfpsim={modals.openWfpsimExportModal}
       />
+
+      {/* Wishlist Section */}
+      <RosterWishlist ownedKeys={(allCharacters ?? []).map((c) => c.key)} />
 
       {/* Characters Section */}
       {characters.length === 0 && (allCharacters?.length ?? 0) === 0 ? (

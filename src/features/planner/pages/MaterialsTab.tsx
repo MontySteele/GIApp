@@ -4,8 +4,8 @@
  * Shows material inventory status and deficit priorities across all planned characters.
  */
 
-import { useMemo } from 'react';
-import { Package, AlertCircle } from 'lucide-react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { Package, AlertCircle, Coins, Pencil } from 'lucide-react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useMaterials } from '../hooks/useMaterials';
 import { useMultiCharacterPlan } from '../hooks/useMultiCharacterPlan';
@@ -16,6 +16,11 @@ import { Card } from '@/components/ui/Card';
 export default function MaterialsTab() {
   const { characters, isLoading: loadingChars } = useCharacters();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
+
+  // Inline Mora editing state
+  const [editingMora, setEditingMora] = useState(false);
+  const [moraInput, setMoraInput] = useState('');
+  const moraInputRef = useRef<HTMLInputElement>(null);
 
   // Get all main priority characters for material planning
   const mainCharacters = useMemo(
@@ -32,6 +37,28 @@ export default function MaterialsTab() {
 
   const isLoading = loadingChars || loadingMats;
 
+  const currentMora = materials['Mora'] ?? materials['mora'] ?? 0;
+
+  const startEditingMora = useCallback(() => {
+    setMoraInput(String(currentMora));
+    setEditingMora(true);
+  }, [currentMora]);
+
+  const saveMora = useCallback(() => {
+    setEditingMora(false);
+    const parsed = parseInt(moraInput, 10);
+    if (!isNaN(parsed) && parsed >= 0 && parsed !== currentMora) {
+      setMaterial('Mora', parsed);
+    }
+  }, [moraInput, currentMora, setMaterial]);
+
+  useEffect(() => {
+    if (editingMora && moraInputRef.current) {
+      moraInputRef.current.focus();
+      moraInputRef.current.select();
+    }
+  }, [editingMora]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -39,8 +66,6 @@ export default function MaterialsTab() {
       </div>
     );
   }
-
-  const currentMora = materials['Mora'] ?? materials['mora'] ?? 0;
 
   return (
     <div className="space-y-6">
@@ -66,23 +91,35 @@ export default function MaterialsTab() {
               </span>
             </div>
             <div className="flex items-center gap-4 mt-1 text-sm">
-              <span className="text-slate-400">
-                Mora: <span className="text-amber-400 font-medium">{currentMora.toLocaleString()}</span>
-              </span>
-              <button
-                onClick={() => {
-                  const newValue = prompt('Enter current Mora:', String(currentMora));
-                  if (newValue !== null) {
-                    const parsed = parseInt(newValue, 10);
-                    if (!isNaN(parsed) && parsed >= 0) {
-                      setMaterial('Mora', parsed);
-                    }
-                  }
-                }}
-                className="text-primary-400 hover:text-primary-300 transition-colors"
-              >
-                Update
-              </button>
+              <Coins className="w-4 h-4 text-yellow-500" />
+              {editingMora ? (
+                <div className="flex items-center gap-2">
+                  <label className="text-slate-400">Mora:</label>
+                  <input
+                    ref={moraInputRef}
+                    type="text"
+                    inputMode="numeric"
+                    value={moraInput}
+                    onChange={(e) => setMoraInput(e.target.value.replace(/[^0-9]/g, ''))}
+                    onBlur={saveMora}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveMora();
+                      else if (e.key === 'Escape') setEditingMora(false);
+                    }}
+                    className="w-32 px-2 py-0.5 text-sm bg-slate-800 border border-primary-500 rounded text-slate-200 focus:outline-none"
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={startEditingMora}
+                  className="group flex items-center gap-1.5 text-slate-400 hover:text-primary-300 transition-colors"
+                >
+                  <span>
+                    Mora: <span className="text-amber-400 font-medium">{currentMora.toLocaleString()}</span>
+                  </span>
+                  <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary-400" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -119,7 +156,7 @@ export default function MaterialsTab() {
       {multiPlan.summary?.aggregatedMaterials && multiPlan.summary.aggregatedMaterials.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-4">All Required Materials</h2>
-          <MaterialsList materials={multiPlan.summary.aggregatedMaterials} />
+          <MaterialsList materials={multiPlan.summary.aggregatedMaterials} onUpdateMaterial={setMaterial} />
         </div>
       )}
 

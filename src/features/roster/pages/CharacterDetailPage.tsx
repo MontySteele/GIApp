@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft, Calendar } from 'lucide-react';
+import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useCharacter, useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
@@ -10,6 +10,7 @@ import Modal from '@/components/ui/Modal';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 import CharacterForm from '../components/CharacterForm';
+import CharacterProgression from '../components/CharacterProgression';
 import GoalsSection from '@/features/notes/components/GoalsSection';
 import { formatArtifactSetName, formatSlotName, formatStatName, formatStatValue } from '@/lib/gameData';
 import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
@@ -127,13 +128,6 @@ export default function CharacterDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            to={`/planner?character=${encodeURIComponent(character.key)}`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
-          >
-            <Calendar className="w-4 h-4" />
-            Plan Materials
-          </Link>
           <Button variant="secondary" onClick={() => setIsEditModalOpen(true)}>
             <Pencil className="w-4 h-4" />
             Edit
@@ -284,6 +278,9 @@ export default function CharacterDetailPage() {
 
         {/* Build Recommendations Card */}
         <BuildRecommendations character={character} />
+
+        {/* Progression Card */}
+        <CharacterProgression character={character} />
 
         {/* Artifacts Card */}
         <Card>

@@ -3,6 +3,49 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import DashboardPage from './DashboardPage';
 
+// Mock child widgets that have their own async hooks
+vi.mock('../components/TodayFarmingWidget', () => ({
+  default: () => <div data-testid="today-farming-widget">TodayFarmingWidget</div>,
+}));
+
+vi.mock('@/features/notes/components/QuickNotesWidget', () => ({
+  default: () => <div data-testid="quick-notes-widget">QuickNotesWidget</div>,
+}));
+
+vi.mock('@/components/common/GettingStartedChecklist', () => ({
+  default: () => <div data-testid="getting-started-checklist">GettingStartedChecklist</div>,
+}));
+
+// Mock useTeams
+vi.mock('@/features/roster/hooks/useTeams', () => ({
+  useTeams: () => ({
+    teams: [],
+    isLoading: false,
+  }),
+}));
+
+// Mock OnboardingContext
+vi.mock('@/contexts/OnboardingContext', () => ({
+  useOnboardingContext: () => ({
+    isComplete: true,
+    showWizard: false,
+    checklist: {
+      hasImportedCharacters: false,
+      hasCreatedTeam: false,
+      hasVisitedPlanner: false,
+      hasSetResin: false,
+    },
+    checklistProgress: 0,
+    checklistTotal: 4,
+    isChecklistComplete: false,
+    completeOnboarding: vi.fn(),
+    resetOnboarding: vi.fn(),
+    openWizard: vi.fn(),
+    closeWizard: vi.fn(),
+    updateChecklist: vi.fn(),
+  }),
+}));
+
 // Mock all the hooks
 vi.mock('@/features/roster/hooks/useCharacters', () => ({
   useCharacters: () => ({
@@ -111,13 +154,11 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Primogems')).toBeInTheDocument();
     });
 
-    it('renders quick link buttons', () => {
+    it('renders child widgets', () => {
       renderPage();
 
-      expect(screen.getByText('Manage Roster')).toBeInTheDocument();
-      expect(screen.getByText('Team Planner')).toBeInTheDocument();
-      expect(screen.getByText('Wish History')).toBeInTheDocument();
-      expect(screen.getByText('Reset Timers')).toBeInTheDocument();
+      expect(screen.getByTestId('today-farming-widget')).toBeInTheDocument();
+      expect(screen.getByTestId('quick-notes-widget')).toBeInTheDocument();
     });
   });
 
@@ -192,16 +233,14 @@ describe('DashboardPage', () => {
       // Available Pulls appears multiple times - get the one in the stat cards section
       const pullsLinks = screen.getAllByText('Available Pulls');
       const statCardPullsLink = pullsLinks[0].closest('a');
-      expect(statCardPullsLink).toHaveAttribute('href', '/wishes/budget');
+      expect(statCardPullsLink).toHaveAttribute('href', '/pulls');
     });
 
-    it('quick links point to correct pages', () => {
+    it('resin and primogem cards have nav links', () => {
       renderPage();
 
-      expect(screen.getByText('Manage Roster').closest('a')).toHaveAttribute('href', '/roster');
-      expect(screen.getByText('Team Planner').closest('a')).toHaveAttribute('href', '/teams');
-      expect(screen.getByText('Wish History').closest('a')).toHaveAttribute('href', '/wishes');
-      expect(screen.getByText('Reset Timers').closest('a')).toHaveAttribute('href', '/calendar');
+      expect(screen.getByText('Planner').closest('a')).toHaveAttribute('href', '/planner');
+      expect(screen.getByText('Budget').closest('a')).toHaveAttribute('href', '/pulls');
     });
 
     it('resin card has link to planner', () => {
@@ -275,6 +314,33 @@ describe('DashboardPage empty state', () => {
   });
 
   it('shows get started card when no characters', async () => {
+    vi.doMock('../components/TodayFarmingWidget', () => ({
+      default: () => <div data-testid="today-farming-widget">TodayFarmingWidget</div>,
+    }));
+    vi.doMock('@/features/notes/components/QuickNotesWidget', () => ({
+      default: () => <div data-testid="quick-notes-widget">QuickNotesWidget</div>,
+    }));
+    vi.doMock('@/components/common/GettingStartedChecklist', () => ({
+      default: () => <div data-testid="getting-started-checklist">GettingStartedChecklist</div>,
+    }));
+    vi.doMock('@/features/roster/hooks/useTeams', () => ({
+      useTeams: () => ({ teams: [], isLoading: false }),
+    }));
+    vi.doMock('@/contexts/OnboardingContext', () => ({
+      useOnboardingContext: () => ({
+        isComplete: true,
+        showWizard: false,
+        checklist: { hasImportedCharacters: false, hasCreatedTeam: false, hasVisitedPlanner: false, hasSetResin: false },
+        checklistProgress: 0,
+        checklistTotal: 4,
+        isChecklistComplete: false,
+        completeOnboarding: vi.fn(),
+        resetOnboarding: vi.fn(),
+        openWizard: vi.fn(),
+        closeWizard: vi.fn(),
+        updateChecklist: vi.fn(),
+      }),
+    }));
     vi.doMock('@/features/roster/hooks/useCharacters', () => ({
       useCharacters: () => ({
         characters: [],
@@ -303,6 +369,12 @@ describe('DashboardPage empty state', () => {
         totalPulls: 0,
         isLoading: false,
       }),
+    }));
+    vi.doMock('@/features/notes/hooks/useGoals', () => ({
+      useGoals: () => ({ goals: [], allGoals: [], createGoal: vi.fn(), updateGoal: vi.fn(), deleteGoal: vi.fn(), isLoading: false }),
+    }));
+    vi.doMock('@/features/notes/hooks/useNotes', () => ({
+      useNotes: () => ({ notes: [], allNotes: [], createNote: vi.fn(), updateNote: vi.fn(), deleteNote: vi.fn(), isLoading: false }),
     }));
 
     // Re-import after mocking

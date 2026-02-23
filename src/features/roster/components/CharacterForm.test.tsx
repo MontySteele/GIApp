@@ -3,6 +3,21 @@ import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import CharacterForm from './CharacterForm';
 
+// Mock the character and weapon lists so the SearchableSelect has known options
+vi.mock('@/lib/constants/characterList', () => ({
+  ALL_CHARACTERS: [
+    { key: 'Furina', name: 'Furina', rarity: 5, element: 'Hydro', weapon: 'Sword' },
+    { key: 'HuTao', name: 'Hu Tao', rarity: 5, element: 'Pyro', weapon: 'Polearm' },
+  ],
+}));
+
+vi.mock('@/lib/data/equipmentData', () => ({
+  WEAPONS: [
+    { key: 'SplendorOfTranquilWaters', name: 'Splendor of Tranquil Waters', type: 'Sword', rarity: 5 },
+    { key: 'StaffOfHoma', name: 'Staff of Homa', type: 'Polearm', rarity: 5 },
+  ],
+}));
+
 describe('CharacterForm', () => {
   const mockOnSubmit = vi.fn().mockResolvedValue(undefined);
   const mockOnCancel = vi.fn();
@@ -11,13 +26,18 @@ describe('CharacterForm', () => {
     vi.clearAllMocks();
   });
 
-  it('submits form data without avatarId (repo handles resolution)', async () => {
+  it('submits form data correctly', async () => {
     const user = userEvent.setup();
     render(<CharacterForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill required fields
-    await user.type(screen.getByLabelText(/character name/i), 'Furina');
-    await user.type(screen.getByLabelText(/weapon name/i), 'SplendorOfTranquilWaters');
+    // The character name field is now a SearchableSelect (combobox)
+    const charInput = screen.getByLabelText(/character name/i);
+    await user.clear(charInput);
+    await user.type(charInput, 'Furina');
+
+    const weaponInput = screen.getByLabelText(/weapon name/i);
+    await user.clear(weaponInput);
+    await user.type(weaponInput, 'SplendorOfTranquilWaters');
 
     await user.click(screen.getByRole('button', { name: /add character/i }));
 
@@ -25,10 +45,7 @@ describe('CharacterForm', () => {
 
     const submittedData = mockOnSubmit.mock.calls[0][0];
 
-    // avatarId should NOT be in form submission — the repo layer resolves it
     expect(submittedData).not.toHaveProperty('avatarId');
-
-    // Verify core fields are passed through
     expect(submittedData.key).toBe('Furina');
     expect(submittedData.weapon.key).toBe('SplendorOfTranquilWaters');
     expect(submittedData.artifacts).toEqual([]);
@@ -61,9 +78,14 @@ describe('CharacterForm', () => {
       />
     );
 
-    expect(screen.getByLabelText(/character name/i)).toHaveValue('HuTao');
-    expect(screen.getByLabelText(/weapon name/i)).toHaveValue('StaffOfHoma');
-    // Update button shows instead of Add
+    // SearchableSelect shows the display name from ALL_CHARACTERS
+    const charInput = screen.getByLabelText(/character name/i);
+    expect(charInput).toHaveValue('Hu Tao');
+    expect(charInput).toBeDisabled(); // Disabled in edit mode
+
+    const weaponInput = screen.getByLabelText(/weapon name/i);
+    expect(weaponInput).toHaveValue('Staff of Homa');
+
     expect(screen.getByRole('button', { name: /update character/i })).toBeInTheDocument();
   });
 
@@ -81,10 +103,8 @@ describe('CharacterForm', () => {
     const user = userEvent.setup();
     render(<CharacterForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Submit without filling any fields — HTML5 required or Zod should block
     await user.click(screen.getByRole('button', { name: /add character/i }));
 
-    // onSubmit should never be called with invalid data
     expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 });

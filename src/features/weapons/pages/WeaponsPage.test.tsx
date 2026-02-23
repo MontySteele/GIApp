@@ -287,7 +287,9 @@ describe('WeaponsPage loading state', () => {
     const { default: WeaponsPageLoading } = await import('./WeaponsPage');
     render(<WeaponsPageLoading />);
 
-    expect(screen.getByText(/loading weapons/i)).toBeInTheDocument();
+    // Loading state shows skeleton elements with animate-pulse class
+    const skeletonElements = document.querySelectorAll('.animate-pulse');
+    expect(skeletonElements.length).toBeGreaterThan(0);
   });
 });
 

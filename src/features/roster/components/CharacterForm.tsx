@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Save, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
+import SearchableSelect from '@/components/ui/SearchableSelect';
+import { ALL_CHARACTERS } from '@/lib/constants/characterList';
+import { WEAPONS } from '@/lib/data/equipmentData';
 import type { Character, CharacterPriority } from '@/types';
 import { characterSchema } from '@/lib/validation';
 
@@ -13,6 +16,7 @@ interface CharacterFormProps {
 }
 
 export default function CharacterForm({ onSubmit, onCancel, initialData }: CharacterFormProps) {
+  const isEditing = !!initialData;
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
@@ -30,6 +34,24 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
     priority: initialData?.priority ?? 'unbuilt' as CharacterPriority,
     notes: initialData?.notes ?? '',
   });
+
+  // Derive weapon type from selected character
+  const selectedCharInfo = useMemo(
+    () => ALL_CHARACTERS.find((c) => c.key.toLowerCase() === formData.key.toLowerCase() || c.name.toLowerCase() === formData.key.toLowerCase()),
+    [formData.key],
+  );
+
+  const characterOptions = useMemo(
+    () => ALL_CHARACTERS.map((c) => ({ value: c.key, label: c.name, sublabel: `${c.rarity}★ ${c.element} ${c.weapon}` })),
+    [],
+  );
+
+  const weaponOptions = useMemo(() => {
+    const filtered = selectedCharInfo
+      ? WEAPONS.filter((w) => w.type === selectedCharInfo.weapon)
+      : WEAPONS;
+    return filtered.map((w) => ({ value: w.key, label: w.name, sublabel: `${w.rarity}★ ${w.type}` }));
+  }, [selectedCharInfo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,12 +106,15 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-slate-200">Basic Information</h3>
 
-        <Input
+        <SearchableSelect
           label="Character Name"
-          placeholder="e.g., Furina, Neuvillette"
+          placeholder="Search characters..."
+          options={characterOptions}
           value={formData.key}
-          onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+          onChange={(val) => setFormData({ ...formData, key: val })}
           error={errors.key}
+          allowFreeText
+          disabled={isEditing}
           required
         />
 
@@ -195,12 +220,14 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-slate-200">Weapon</h3>
 
-        <Input
+        <SearchableSelect
           label="Weapon Name"
-          placeholder="e.g., Mistsplitter Reforged"
+          placeholder={selectedCharInfo ? `Search ${selectedCharInfo.weapon}s...` : 'Search weapons...'}
+          options={weaponOptions}
           value={formData.weaponKey}
-          onChange={(e) => setFormData({ ...formData, weaponKey: e.target.value })}
+          onChange={(val) => setFormData({ ...formData, weaponKey: val })}
           error={errors.weaponKey}
+          allowFreeText
           required
         />
 

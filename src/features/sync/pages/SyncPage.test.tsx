@@ -3,6 +3,28 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SyncPage from './SyncPage';
 
+// Mock OnboardingContext
+vi.mock('@/contexts/OnboardingContext', () => ({
+  useOnboardingContext: () => ({
+    isComplete: true,
+    showWizard: false,
+    checklist: {
+      hasImportedCharacters: false,
+      hasCreatedTeam: false,
+      hasVisitedPlanner: false,
+      hasSetResin: false,
+    },
+    checklistProgress: 0,
+    checklistTotal: 4,
+    isChecklistComplete: false,
+    completeOnboarding: vi.fn(),
+    resetOnboarding: vi.fn(),
+    openWizard: vi.fn(),
+    closeWizard: vi.fn(),
+    updateChecklist: vi.fn(),
+  }),
+}));
+
 // Mock app meta status hook
 vi.mock('../hooks/useAppMetaStatus', () => ({
   useAppMetaStatus: () => ({

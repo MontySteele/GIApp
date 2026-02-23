@@ -25,6 +25,24 @@ vi.mock('@/db/schema', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+// Mock fetchWithRetry to call global.fetch directly (no retries, no delays)
+vi.mock('@/lib/utils/fetchWithRetry', () => ({
+  fetchWithRetry: (url: string) => global.fetch(url),
+  getUserFriendlyError: (errorOrResponse: unknown) => {
+    if (errorOrResponse instanceof Error) {
+      return errorOrResponse.message;
+    }
+    // Response-like object (plain mock objects won't be instanceof Response)
+    const resp = errorOrResponse as { statusText?: string };
+    return `Failed to fetch character data: ${resp.statusText || 'unknown error'}`;
+  },
+}));
+
+// Mock static fallback to return null (so tests for API failures work as expected)
+vi.mock('@/lib/data/characterMaterialMap', () => ({
+  getStaticCharacterMaterials: () => null,
+}));
+
 describe('genshinDbService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -255,7 +273,7 @@ describe('genshinDbService', () => {
           cacheKey: 'genshin-character:hutao',
           data: {
             data: cachedMaterials,
-            schemaVersion: 4, // Current schema version
+            schemaVersion: 5, // Current schema version
           },
           fetchedAt: new Date().toISOString(),
           expiresAt: futureDate,
@@ -476,7 +494,7 @@ describe('genshinDbService', () => {
               rarity: 5,
               ascensionMaterials: {},
             },
-            schemaVersion: 4,
+            schemaVersion: 5,
           },
           fetchedAt: new Date().toISOString(),
           expiresAt: futureDate,

@@ -17,6 +17,7 @@ import {
 } from './materialConstants';
 import { getCharacterMaterials } from '@/lib/services/genshinDbService';
 import { findInventoryKey } from '@/lib/utils/materialNormalization';
+import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import type { CharacterMaterialData } from './characterMaterials';
 
 /**
@@ -240,6 +241,27 @@ export function estimateResinCost(summary: {
   return resin;
 }
 
+// Element → gem base name mapping for smart fallback
+const ELEMENT_GEMS: Record<string, string> = {
+  Pyro: 'Agnidus Agate',
+  Hydro: 'Varunada Lazurite',
+  Anemo: 'Vayuda Turquoise',
+  Electro: 'Vajrada Amethyst',
+  Dendro: 'Nagadus Emerald',
+  Cryo: 'Shivada Jade',
+  Geo: 'Prithiva Topaz',
+};
+
+/**
+ * Look up a character's element from the ALL_CHARACTERS list
+ */
+function getCharacterElement(characterKey: string): string | undefined {
+  const lower = characterKey.toLowerCase();
+  return ALL_CHARACTERS.find(
+    (c) => c.key.toLowerCase() === lower || c.name.toLowerCase() === lower
+  )?.element;
+}
+
 /**
  * Build material requirements using real character data from genshin-db API
  */
@@ -247,15 +269,21 @@ async function buildMaterialsWithApiData(
   inventory: Record<string, number>,
   ascensionMats: ReturnType<typeof calculateAscensionMaterials>,
   talentMats: ReturnType<typeof calculateTalentMaterials>,
-  characterData: CharacterMaterialData | null
+  characterData: CharacterMaterialData | null,
+  characterKey?: string
 ): Promise<{ materials: MaterialRequirement[]; isStale: boolean; error?: string }> {
   const materials: MaterialRequirement[] = [];
   let isStale = false;
   let error: string | undefined;
 
+  // Element-aware fallback for gem names
+  const element = characterData?.element || (characterKey ? getCharacterElement(characterKey) : undefined);
+  const fallbackGemBase = element ? ELEMENT_GEMS[element] : undefined;
+
   if (!characterData) {
-    // Fallback to generic materials if no API data
-    error = 'Using generic material names (API data unavailable)';
+    error = fallbackGemBase
+      ? 'Some material names may be approximate (API data unavailable)'
+      : 'Using generic material names (API data unavailable)';
   }
 
   // Helper to add material with inventory lookup and aggregation
@@ -309,7 +337,7 @@ async function buildMaterialsWithApiData(
   const gemTierNames = ['Sliver', 'Fragment', 'Chunk', 'Gemstone'];
   ascensionMats.gem.forEach((amt, tier) => {
     if (amt > 0) {
-      const gemBaseName = characterData?.ascensionMaterials?.gem?.baseName || 'Elemental';
+      const gemBaseName = characterData?.ascensionMaterials?.gem?.baseName || fallbackGemBase || 'Elemental';
       const gemFullName = `${gemBaseName} ${gemTierNames[tier]}`;
       addMaterial(gemFullName, gemFullName, 'gem', amt, tier + 1);
     }
@@ -485,7 +513,7 @@ export async function calculateAscensionSummary(
 
   // Build materials list with API data
   const { materials: apiMaterials, isStale: materialsStale, error: materialsError } =
-    await buildMaterialsWithApiData(inventory, ascensionMats, talentMats, characterData);
+    await buildMaterialsWithApiData(inventory, ascensionMats, talentMats, characterData, goal.characterKey);
 
   const materials: MaterialRequirement[] = [];
 
