@@ -805,6 +805,97 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
     weeklyBoss: 'Worldspan Fern',
   },
+  Durin: {
+    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Cyclic Military Kuuvahki Core', localSpecialty: 'Frostlamp Flower',
+    commonAscension: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    talentBook: 'Ballad', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    weeklyBoss: 'Eroded Sunfire',
+  },
+  Flins: {
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Precision Kuuvahki Stamping Die', localSpecialty: 'Frostlamp Flower',
+    commonAscension: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    talentBook: 'Vagrancy', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    weeklyBoss: 'Ascended Sample: Queen',
+  },
+  Lauma: {
+    element: 'Dendro', gem: GEMS.Dendro!, boss: 'Lightbearing Scale-Feather', localSpecialty: 'Moonfall Silver',
+    commonAscension: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    talentBook: 'Moonlight', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    weeklyBoss: 'Eroded Scale-Feather',
+  },
+  Nefer: {
+    element: 'Dendro', gem: GEMS.Dendro!, boss: 'Radiant Antler', localSpecialty: 'Moonfall Silver',
+    commonAscension: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    talentBook: 'Elysium', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    weeklyBoss: 'Ascended Sample: Rook',
+  },
+  Columbina: {
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Radiant Antler', localSpecialty: 'Winter Icelea',
+    commonAscension: ['Slime Condensate', 'Slime Secretions', 'Slime Concentrate'],
+    talentBook: 'Moonlight', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Slime Condensate', 'Slime Secretions', 'Slime Concentrate'],
+    weeklyBoss: 'Mask of the Virtuous Doctor',
+  },
+  Ineffa: {
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Secret Source Airflow Accumulator', localSpecialty: 'Glowing Hornshroom',
+    commonAscension: ['Sentry\'s Wooden Whistle', 'Warrior\'s Metal Whistle', 'Saurian-Crowned Warrior\'s Golden Whistle'],
+    talentBook: 'Conflict', talentBookRegion: 'Natlan',
+    commonTalent: ['Sentry\'s Wooden Whistle', 'Warrior\'s Metal Whistle', 'Saurian-Crowned Warrior\'s Golden Whistle'],
+    weeklyBoss: 'Eroded Sunfire',
+  },
+  Aino: {
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Precision Kuuvahki Stamping Die', localSpecialty: 'Portable Bearing',
+    commonAscension: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    talentBook: 'Elysium', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    weeklyBoss: 'Silken Feather',
+  },
+  Dahlia: {
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Secret Source Airflow Accumulator', localSpecialty: 'Calla Lily',
+    commonAscension: ['Firm Arrowhead', 'Sharp Arrowhead', 'Weathered Arrowhead'],
+    talentBook: 'Ballad', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Firm Arrowhead', 'Sharp Arrowhead', 'Weathered Arrowhead'],
+    weeklyBoss: 'Eroded Scale-Feather',
+  },
+  Ifa: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Sparkless Statue Core', localSpecialty: 'Saurian Claw Succulent',
+    commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    talentBook: 'Conflict', talentBookRegion: 'Natlan',
+    commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    weeklyBoss: 'Ascended Sample: Rook',
+  },
+  Jahoda: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Lightbearing Scale-Feather', localSpecialty: 'Portable Bearing',
+    commonAscension: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    talentBook: 'Vagrancy', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    weeklyBoss: 'Ascended Sample: Knight',
+  },
+  Zibai: {
+    element: 'Geo', gem: GEMS.Geo!, boss: 'Remnant of the Dreadwing', localSpecialty: 'Glaze Lily',
+    commonAscension: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    talentBook: 'Gold', talentBookRegion: 'Liyue',
+    commonTalent: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    weeklyBoss: 'Ascended Sample: Queen',
+  },
+  Illuga: {
+    element: 'Geo', gem: GEMS.Geo!, boss: 'Cyclic Military Kuuvahki Core', localSpecialty: 'Pine Amber',
+    commonAscension: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    talentBook: 'Elysium', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    weeklyBoss: 'Eroded Horn',
+  },
+  Varka: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Prismatic Severed Tail', localSpecialty: 'Wolfhook',
+    commonAscension: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    talentBook: 'Freedom', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    weeklyBoss: 'Ascended Sample: Rook',
+  },
 };
 
 /**
@@ -830,6 +921,8 @@ function getBaseName(tierNames: [string, string, string]): string {
   if (gray.includes('Statuette')) return 'Statuette';
   if (gray.includes('Prism')) return 'Prism';
   if (gray.includes('Horn')) return 'Horn';
+  if (gray.includes('Warrant')) return 'Warrant';
+  if (gray.includes('Drive Shaft')) return 'Drive Shaft';
   return gray;
 }
 

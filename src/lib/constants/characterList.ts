@@ -11,7 +11,7 @@ export interface CharacterInfo {
   weapon: 'Sword' | 'Claymore' | 'Polearm' | 'Bow' | 'Catalyst';
 }
 
-// All playable characters as of version 6.2
+// All playable characters as of version 6.4
 export const ALL_CHARACTERS: CharacterInfo[] = [
   // Traveler (special - can use multiple elements)
   { key: 'TravelerAnemo', name: 'Traveler (Anemo)', rarity: 5, element: 'Anemo', weapon: 'Sword' },
@@ -79,8 +79,10 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Nefer', name: 'Nefer', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
   { key: 'Skirk', name: 'Skirk', rarity: 5, element: 'Cryo', weapon: 'Sword' },
   { key: 'Varesa', name: 'Varesa', rarity: 5, element: 'Electro', weapon: 'Catalyst' },
-  { key: 'Columbina', name: 'Columbina', rarity: 5, element: 'Cryo', weapon: 'Catalyst' },
+  { key: 'Columbina', name: 'Columbina', rarity: 5, element: 'Hydro', weapon: 'Catalyst' },
   { key: 'Ineffa', name: 'Ineffa', rarity: 5, element: 'Electro', weapon: 'Polearm' },
+  { key: 'Zibai', name: 'Zibai', rarity: 5, element: 'Geo', weapon: 'Sword' },
+  { key: 'Varka', name: 'Varka', rarity: 5, element: 'Anemo', weapon: 'Claymore' },
 
   // 4-Star Characters
   { key: 'Amber', name: 'Amber', rarity: 4, element: 'Pyro', weapon: 'Bow' },
@@ -131,6 +133,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Iansan', name: 'Iansan', rarity: 4, element: 'Electro', weapon: 'Polearm' },
   { key: 'Ifa', name: 'Ifa', rarity: 4, element: 'Anemo', weapon: 'Catalyst' },
   { key: 'Jahoda', name: 'Jahoda', rarity: 4, element: 'Anemo', weapon: 'Bow' },
+  { key: 'Illuga', name: 'Illuga', rarity: 4, element: 'Geo', weapon: 'Polearm' },
 ];
 
 // Create lookup maps for fast access

@@ -134,6 +134,10 @@ export const DOMAIN_SCHEDULE: Record<string, string[]> = {
   'Contention': ['Monday', 'Thursday', 'Sunday'],
   'Kindling': ['Tuesday', 'Friday', 'Sunday'],
   'Conflict': ['Wednesday', 'Saturday', 'Sunday'],
+  // Nod-Krai talent books
+  'Moonlight': ['Monday', 'Thursday', 'Sunday'],
+  'Elysium': ['Tuesday', 'Friday', 'Sunday'],
+  'Vagrancy': ['Wednesday', 'Saturday', 'Sunday'],
 };
 
 // Estimated domain runs for materials (average drops at AR55+ level 90 domains)
