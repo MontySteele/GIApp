@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Heart, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, X, ChevronDown, ChevronUp } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';

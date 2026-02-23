@@ -115,7 +115,8 @@ export default function SearchableSelect({
       case 'Enter':
         e.preventDefault();
         if (highlightIndex >= 0 && highlightIndex < filtered.length) {
-          selectOption(filtered[highlightIndex]);
+          const option = filtered[highlightIndex];
+          if (option) selectOption(option);
         }
         break;
       case 'Escape':

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft } from 'lucide-react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useCharacter, useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
