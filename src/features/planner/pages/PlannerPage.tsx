@@ -210,6 +210,7 @@ export default function PlannerPage() {
           isExpanded={expandedSections.has('materials')}
           isCalculating={isCalculating}
           onToggle={() => toggleSection('materials')}
+          onUpdateMaterial={setMaterial}
         />
       )}
 

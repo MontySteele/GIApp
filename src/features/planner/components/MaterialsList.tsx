@@ -17,16 +17,21 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 interface MaterialsListProps {
   materials: MaterialRequirement[];
+  onUpdateMaterial?: (key: string, count: number) => void;
 }
 
 /**
  * Flat list of materials for single character view
  */
-export function MaterialsList({ materials }: MaterialsListProps) {
+export function MaterialsList({ materials, onUpdateMaterial }: MaterialsListProps) {
   return (
     <div className="space-y-3">
       {materials.map((mat) => (
-        <MaterialItem key={`${mat.key}-${mat.tier || 0}`} mat={mat} />
+        <MaterialItem
+          key={`${mat.key}-${mat.tier || 0}`}
+          mat={mat}
+          onUpdateOwned={onUpdateMaterial}
+        />
       ))}
     </div>
   );
@@ -34,12 +39,13 @@ export function MaterialsList({ materials }: MaterialsListProps) {
 
 interface GroupedMaterialsListProps {
   groupedMaterials: GroupedMaterials;
+  onUpdateMaterial?: (key: string, count: number) => void;
 }
 
 /**
  * Grouped materials list for multi-character view
  */
-export function GroupedMaterialsList({ groupedMaterials }: GroupedMaterialsListProps) {
+export function GroupedMaterialsList({ groupedMaterials, onUpdateMaterial }: GroupedMaterialsListProps) {
   const categories = [
     'mora',
     'exp',
@@ -65,7 +71,11 @@ export function GroupedMaterialsList({ groupedMaterials }: GroupedMaterialsListP
             </h3>
             <div className="space-y-2">
               {materials.map((mat) => (
-                <MaterialItem key={`${mat.key}-${mat.tier || 0}`} mat={mat} />
+                <MaterialItem
+                  key={`${mat.key}-${mat.tier || 0}`}
+                  mat={mat}
+                  onUpdateOwned={onUpdateMaterial}
+                />
               ))}
             </div>
           </div>

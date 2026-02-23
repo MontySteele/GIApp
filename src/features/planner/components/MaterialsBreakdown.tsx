@@ -83,6 +83,7 @@ interface SingleMaterialsBreakdownProps {
   isExpanded: boolean;
   isCalculating: boolean;
   onToggle: () => void;
+  onUpdateMaterial?: (key: string, count: number) => void;
 }
 
 export function SingleMaterialsBreakdown({
@@ -90,6 +91,7 @@ export function SingleMaterialsBreakdown({
   isExpanded,
   isCalculating,
   onToggle,
+  onUpdateMaterial,
 }: SingleMaterialsBreakdownProps) {
   return (
     <Card>
@@ -116,7 +118,7 @@ export function SingleMaterialsBreakdown({
       </CardHeader>
       {isExpanded && (
         <CardContent>
-          <MaterialsList materials={summary.materials} />
+          <MaterialsList materials={summary.materials} onUpdateMaterial={onUpdateMaterial} />
           <SummaryStats
             totalMora={summary.totalMora}
             totalExp={summary.totalExp}
@@ -135,6 +137,7 @@ interface MultiMaterialsBreakdownProps {
   isExpanded: boolean;
   isCalculating: boolean;
   onToggle: () => void;
+  onUpdateMaterial?: (key: string, count: number) => void;
 }
 
 export function MultiMaterialsBreakdown({
@@ -142,6 +145,7 @@ export function MultiMaterialsBreakdown({
   isExpanded,
   isCalculating,
   onToggle,
+  onUpdateMaterial,
 }: MultiMaterialsBreakdownProps) {
   return (
     <Card>
@@ -168,7 +172,7 @@ export function MultiMaterialsBreakdown({
       </CardHeader>
       {isExpanded && (
         <CardContent>
-          <GroupedMaterialsList groupedMaterials={summary.groupedMaterials} />
+          <GroupedMaterialsList groupedMaterials={summary.groupedMaterials} onUpdateMaterial={onUpdateMaterial} />
           <SummaryStats
             totalMora={summary.totalMora}
             totalExp={summary.totalExp}
