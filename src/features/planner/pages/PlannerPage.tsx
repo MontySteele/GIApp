@@ -9,7 +9,7 @@ import { useMultiCharacterPlan } from '../hooks/useMultiCharacterPlan';
 import { useWeaponPlan } from '../hooks/useWeaponPlan';
 import { usePlannerState } from '../hooks/usePlannerState';
 import { markChecklistItem } from '@/hooks/useOnboarding';
-import { useWishlist } from '@/hooks/useWishlist';
+import { useWishlistStore } from '@/stores/wishlistStore';
 
 // Sub-components
 import ResinTracker from '../components/ResinTracker';
@@ -47,7 +47,8 @@ export default function PlannerPage() {
   const { teams } = useTeams();
   const { weapons: enrichedWeapons, isLoading: loadingWeapons, hasWeapons } = useWeapons();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
-  const { wishlistCharacters, removeCharacter: removeWishlistCharacter } = useWishlist();
+  const wishlistCharacters = useWishlistStore((s) => s.characters);
+  const removeWishlistCharacter = useWishlistStore((s) => s.removeCharacter);
 
   // Check for query params to auto-select characters
   const teamIdFromUrl = searchParams.get('team');

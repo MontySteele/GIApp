@@ -82,6 +82,34 @@ describe('Character Repository', () => {
       expect(character?.artifacts).toHaveLength(1);
       expect(character?.notes).toBe('Main DPS');
     });
+
+    it('should auto-resolve avatarId from key when avatarId is not provided', async () => {
+      const id = await characterRepo.create(mockCharacterData); // key is 'Furina'
+      const character = await characterRepo.getById(id);
+
+      expect(character?.avatarId).toBe(10000089); // Furina's Enka avatarId
+    });
+
+    it('should preserve existing avatarId when already set', async () => {
+      const customAvatarId = 99999;
+      const id = await characterRepo.create({
+        ...mockCharacterData,
+        avatarId: customAvatarId,
+      });
+      const character = await characterRepo.getById(id);
+
+      expect(character?.avatarId).toBe(customAvatarId);
+    });
+
+    it('should leave avatarId undefined for unknown character keys', async () => {
+      const id = await characterRepo.create({
+        ...mockCharacterData,
+        key: 'UnknownNewCharacter',
+      });
+      const character = await characterRepo.getById(id);
+
+      expect(character?.avatarId).toBeUndefined();
+    });
   });
 
   describe('getAll', () => {

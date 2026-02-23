@@ -9,7 +9,7 @@ import { Plus, X, Search, Star, Trash2 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
-import { useWishlist, type WishlistCharacter } from '@/hooks/useWishlist';
+import { useWishlistStore, type WishlistCharacter } from '@/stores/wishlistStore';
 import { ALL_CHARACTERS, searchCharacters, type CharacterInfo } from '@/lib/constants/characterList';
 
 const ELEMENT_COLORS: Record<string, string> = {
@@ -25,19 +25,18 @@ const ELEMENT_COLORS: Record<string, string> = {
 interface WishlistSectionProps {
   /** Keys of characters already owned */
   ownedCharacterKeys: string[];
-  /** Callback when wishlist changes for recalculation */
-  onWishlistChange?: (wishlist: WishlistCharacter[]) => void;
 }
 
-export default function WishlistSection({ ownedCharacterKeys, onWishlistChange }: WishlistSectionProps) {
+export default function WishlistSection({ ownedCharacterKeys }: WishlistSectionProps) {
   const {
-    wishlistCharacters,
+    characters: wishlistCharacters,
     addCharacter,
     removeCharacter,
     updateCharacter,
     isWishlisted,
-    wishlistCount,
-  } = useWishlist();
+  } = useWishlistStore();
+
+  const wishlistCount = wishlistCharacters.length;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,11 +61,6 @@ export default function WishlistSection({ ownedCharacterKeys, onWishlistChange }
   const handleAddCharacter = () => {
     if (selectedCharacter) {
       addCharacter(selectedCharacter.key, targetGoal);
-      onWishlistChange?.([...wishlistCharacters, {
-        key: selectedCharacter.key,
-        targetGoal,
-        addedAt: new Date().toISOString(),
-      }]);
       setSelectedCharacter(null);
       setSearchQuery('');
       setShowAddForm(false);
@@ -75,14 +69,10 @@ export default function WishlistSection({ ownedCharacterKeys, onWishlistChange }
 
   const handleRemoveCharacter = (key: string) => {
     removeCharacter(key);
-    onWishlistChange?.(wishlistCharacters.filter((c) => c.key !== key));
   };
 
   const handleUpdateGoal = (key: string, newGoal: WishlistCharacter['targetGoal']) => {
     updateCharacter(key, { targetGoal: newGoal });
-    onWishlistChange?.(wishlistCharacters.map((c) =>
-      c.key === key ? { ...c, targetGoal: newGoal } : c
-    ));
   };
 
   const getCharacterInfo = (key: string): CharacterInfo | undefined => {

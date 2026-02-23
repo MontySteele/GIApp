@@ -168,19 +168,7 @@ export function useMultiCharacterPlan({
         goalType
       );
 
-      // Create goals from wishlist characters (starting from level 1)
-      const wishlistGoals = createGoalsFromCharacters(
-        wishlistCharacters.map((wc) => ({
-          key: wc.key,
-          level: 1,
-          ascension: 0,
-          talent: { auto: 1, skill: 1, burst: 1 },
-        })),
-        // Use the wishlist character's specified goal type
-        undefined // Will be handled individually below
-      );
-
-      // Override wishlist goals with their individual target goals
+      // Create goals from wishlist characters with their individual target goals
       const adjustedWishlistGoals = wishlistCharacters.map((wc) => {
         const goals = createGoalsFromCharacters(
           [{

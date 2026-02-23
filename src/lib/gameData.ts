@@ -22,7 +22,9 @@ export {
 export {
   getAvatarIdFromKey,
   getCharacterPortraitUrl,
+  getCharacterPortraitUrlByKey,
   getCharacterGachaArtUrl,
+  getDisplayName,
   toGoodCharacterKey,
   toGoodWeaponKey,
 } from './characterData';

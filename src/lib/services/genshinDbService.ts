@@ -13,6 +13,7 @@ import type {
 } from '@/features/planner/domain/characterMaterials';
 import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
 import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry';
+import { getStaticCharacterMaterials } from '@/lib/data/characterMaterialMap';
 
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -664,7 +665,16 @@ export async function getCharacterMaterials(
       };
     }
 
-    // No cache available
+    // No cache available — try static fallback map
+    const staticData = getStaticCharacterMaterials(characterKey);
+    if (staticData) {
+      return {
+        data: staticData,
+        isStale: true,
+        error: 'Using offline material data (API unavailable)',
+      };
+    }
+
     return {
       data: null,
       isStale: false,

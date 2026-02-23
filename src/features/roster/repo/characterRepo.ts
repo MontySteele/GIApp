@@ -1,5 +1,6 @@
 import { db } from '@/db/schema';
 import type { Character } from '@/types';
+import { getAvatarIdFromKey } from '@/lib/characterData';
 
 export const characterRepo = {
   async getAll(): Promise<Character[]> {
@@ -17,9 +18,11 @@ export const characterRepo = {
   async create(character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
+    const avatarId = character.avatarId ?? getAvatarIdFromKey(character.key);
 
     await db.characters.add({
       ...character,
+      ...(avatarId !== undefined ? { avatarId } : {}),
       id,
       createdAt: now,
       updatedAt: now,
@@ -71,12 +74,16 @@ export const characterRepo = {
 
   async bulkCreate(characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<void> {
     const now = new Date().toISOString();
-    const withMetadata = characters.map((char) => ({
-      ...char,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    }));
+    const withMetadata = characters.map((char) => {
+      const avatarId = char.avatarId ?? getAvatarIdFromKey(char.key);
+      return {
+        ...char,
+        ...(avatarId !== undefined ? { avatarId } : {}),
+        id: crypto.randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+      };
+    });
 
     await db.characters.bulkAdd(withMetadata);
   },
@@ -97,16 +104,20 @@ export const characterRepo = {
 
       if (existing) {
         // Update existing character, preserving teamIds and other user data
+        const avatarId = char.avatarId ?? existing.avatarId ?? getAvatarIdFromKey(char.key);
         await db.characters.update(existing.id, {
           ...char,
+          ...(avatarId !== undefined ? { avatarId } : {}),
           teamIds: existing.teamIds, // Preserve team associations
           updatedAt: now,
         });
         updated++;
       } else {
         // Create new character
+        const avatarId = char.avatarId ?? getAvatarIdFromKey(char.key);
         await db.characters.add({
           ...char,
+          ...(avatarId !== undefined ? { avatarId } : {}),
           id: crypto.randomUUID(),
           createdAt: now,
           updatedAt: now,
