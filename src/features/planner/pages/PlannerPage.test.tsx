@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import PlannerPage from './PlannerPage';
@@ -47,20 +47,6 @@ const mockCharacters = [
   },
 ];
 
-// Mock weapons
-const mockWeapons = [
-  {
-    id: 'w1',
-    key: 'SkywardBlade',
-    level: 80,
-    ascension: 5,
-    refinement: 1,
-    displayName: 'Skyward Blade',
-    displayRarity: 5,
-    location: null,
-  },
-];
-
 // Mock materials
 const mockMaterials: Record<string, number> = {
   Mora: 1000000,
@@ -75,24 +61,6 @@ vi.mock('@/features/roster/hooks/useCharacters', () => ({
   }),
 }));
 
-vi.mock('@/features/roster/hooks/useTeams', () => ({
-  useTeams: () => ({
-    teams: [],
-    isLoading: false,
-  }),
-}));
-
-// Use actual usePlannerState (works with jsdom localStorage)
-// This allows tests to verify actual state changes
-
-vi.mock('@/features/weapons/hooks/useWeapons', () => ({
-  useWeapons: () => ({
-    weapons: mockWeapons,
-    isLoading: false,
-    hasWeapons: true,
-  }),
-}));
-
 vi.mock('../hooks/useMaterials', () => ({
   useMaterials: () => ({
     materials: mockMaterials,
@@ -103,40 +71,6 @@ vi.mock('../hooks/useMaterials', () => ({
   }),
 }));
 
-vi.mock('../hooks/useMultiCharacterPlan', () => ({
-  useMultiCharacterPlan: () => ({
-    selectedCount: 0,
-    selectedCharacters: [],
-    hasSelection: false,
-    isSelected: vi.fn().mockReturnValue(false),
-    toggleCharacter: vi.fn(),
-    selectAll: vi.fn(),
-    deselectAll: vi.fn(),
-    deselectCharacter: vi.fn(),
-    goalType: 'next',
-    setGoalType: vi.fn(),
-    summary: null,
-    isCalculating: false,
-    calculationError: null,
-  }),
-}));
-
-vi.mock('../hooks/useWeaponPlan', () => ({
-  useWeaponPlan: () => ({
-    selectedCount: 0,
-    selectedWeapons: [],
-    hasSelection: false,
-    isSelected: vi.fn().mockReturnValue(false),
-    toggleWeapon: vi.fn(),
-    selectAll: vi.fn(),
-    deselectAll: vi.fn(),
-    goalType: 'full',
-    setGoalType: vi.fn(),
-    summary: null,
-    isCalculating: false,
-  }),
-}));
-
 // Mock components
 vi.mock('../components/ResinTracker', () => ({
   default: () => <div data-testid="resin-tracker">Resin Tracker</div>,
@@ -144,14 +78,6 @@ vi.mock('../components/ResinTracker', () => ({
 
 vi.mock('../components/TodaysFarmingRecommendations', () => ({
   default: () => <div data-testid="farming-recommendations">Farming Recommendations</div>,
-}));
-
-vi.mock('../components/DeficitPriorityCard', () => ({
-  default: () => <div data-testid="deficit-priority">Deficit Priority</div>,
-}));
-
-vi.mock('../components/ResinEfficiencyCard', () => ({
-  default: () => <div data-testid="resin-efficiency">Resin Efficiency</div>,
 }));
 
 // Mock the ascension calculator
@@ -190,7 +116,6 @@ vi.mock('../domain/ascensionCalculator', () => ({
 describe('PlannerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Clear localStorage to ensure clean state between tests
     localStorage.clear();
   });
 
@@ -199,14 +124,7 @@ describe('PlannerPage', () => {
       renderWithRouter(<PlannerPage />);
 
       expect(screen.getByRole('heading', { name: /ascension planner/i })).toBeInTheDocument();
-      expect(screen.getByText(/calculate materials needed/i)).toBeInTheDocument();
-    });
-
-    it('renders mode switcher buttons', () => {
-      renderWithRouter(<PlannerPage />);
-
-      expect(screen.getByRole('button', { name: /single/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /multi/i })).toBeInTheDocument();
+      expect(screen.getByText(/select a character to see the materials needed/i)).toBeInTheDocument();
     });
 
     it('renders material inventory status', () => {
@@ -216,7 +134,7 @@ describe('PlannerPage', () => {
       expect(screen.getByText(/2 material types tracked/i)).toBeInTheDocument();
     });
 
-    it('renders resin tracker in sidebar', () => {
+    it('renders resin tracker', () => {
       renderWithRouter(<PlannerPage />);
 
       expect(screen.getByTestId('resin-tracker')).toBeInTheDocument();
@@ -237,13 +155,6 @@ describe('PlannerPage', () => {
   });
 
   describe('single character mode', () => {
-    it('single mode is active by default', () => {
-      renderWithRouter(<PlannerPage />);
-
-      const singleButton = screen.getByRole('button', { name: /single/i });
-      expect(singleButton).toHaveClass('bg-primary-600');
-    });
-
     it('renders character selection section', () => {
       renderWithRouter(<PlannerPage />);
 
@@ -253,7 +164,6 @@ describe('PlannerPage', () => {
     it('renders character dropdown with characters', () => {
       renderWithRouter(<PlannerPage />);
 
-      // Labels aren't properly associated, so query by text content
       expect(screen.getByText('Character')).toBeInTheDocument();
       const comboboxes = screen.getAllByRole('combobox');
       expect(comboboxes.length).toBeGreaterThanOrEqual(1);
@@ -262,9 +172,7 @@ describe('PlannerPage', () => {
     it('renders goal type dropdown', () => {
       renderWithRouter(<PlannerPage />);
 
-      // Labels aren't properly associated, so query by text content
       expect(screen.getByText('Goal')).toBeInTheDocument();
-      // Should have at least 2 dropdowns (character + goal)
       const comboboxes = screen.getAllByRole('combobox');
       expect(comboboxes.length).toBeGreaterThanOrEqual(2);
     });
@@ -278,98 +186,10 @@ describe('PlannerPage', () => {
     it('shows goal options in dropdown', () => {
       renderWithRouter(<PlannerPage />);
 
-      // Verify goal options are in the dropdown by checking their text
       expect(screen.getByRole('option', { name: /next ascension/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /functional/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /comfortable/i })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: /full build/i })).toBeInTheDocument();
-    });
-  });
-
-  describe('multi character mode', () => {
-    it('can switch to multi mode', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-
-      const multiButton = screen.getByRole('button', { name: /multi/i });
-      expect(multiButton).toHaveClass('bg-primary-600');
-    });
-
-    it('shows character and weapon tabs in multi mode', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-
-      expect(screen.getByRole('button', { name: /characters/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /weapons/i })).toBeInTheDocument();
-    });
-
-    it('shows select all and clear buttons', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-
-      // These are button elements with exact text
-      expect(screen.getByText('Select All')).toBeInTheDocument();
-      expect(screen.getByText('Clear')).toBeInTheDocument();
-    });
-
-    it('shows goal type selector in multi mode', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-
-      expect(screen.getByText(/goal for all characters/i)).toBeInTheDocument();
-    });
-
-    it('shows character grid in multi mode', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-
-      // Should show character names in the grid
-      expect(screen.getByText('Furina')).toBeInTheDocument();
-      expect(screen.getByText('Neuvillette')).toBeInTheDocument();
-    });
-
-    it('shows empty state when no characters selected', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-
-      expect(screen.getByText(/select characters to calculate combined materials/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('weapon tab in multi mode', () => {
-    it('can switch to weapons tab', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-      await user.click(screen.getByRole('button', { name: /weapons/i }));
-
-      expect(screen.getByText(/goal for all weapons/i)).toBeInTheDocument();
-    });
-
-    it('shows weapon goal options', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<PlannerPage />);
-
-      await user.click(screen.getByRole('button', { name: /multi/i }));
-      await user.click(screen.getByRole('button', { name: /weapons/i }));
-
-      // Should show weapon-specific goal label and dropdown
-      expect(screen.getByText(/goal for all weapons/i)).toBeInTheDocument();
-      // Verify there's at least one combobox
-      expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -392,17 +212,13 @@ describe('PlannerPage', () => {
       const user = userEvent.setup();
       renderWithRouter(<PlannerPage />);
 
-      // Get the first combobox (character selector)
       const comboboxes = screen.getAllByRole('combobox');
       const characterSelect = comboboxes[0]!;
 
-      // Verify options exist with character names
       expect(screen.getByRole('option', { name: /furina/i })).toBeInTheDocument();
 
-      // Select Furina
       await user.selectOptions(characterSelect, '1');
 
-      // The selection should update the select value
       expect(characterSelect).toHaveValue('1');
     });
   });
@@ -411,7 +227,6 @@ describe('PlannerPage', () => {
     it('shows today day name', () => {
       renderWithRouter(<PlannerPage />);
 
-      // The day name should be visible
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const today = days[new Date().getDay()];
       expect(screen.getByText(today!)).toBeInTheDocument();
@@ -438,14 +253,6 @@ describe('PlannerPage loading state', () => {
       useCharacters: () => ({
         characters: [],
         isLoading: true,
-      }),
-    }));
-
-    vi.doMock('@/features/weapons/hooks/useWeapons', () => ({
-      useWeapons: () => ({
-        weapons: [],
-        isLoading: true,
-        hasWeapons: false,
       }),
     }));
 
@@ -477,14 +284,6 @@ describe('PlannerPage without materials', () => {
       useCharacters: () => ({
         characters: mockCharacters,
         isLoading: false,
-      }),
-    }));
-
-    vi.doMock('@/features/weapons/hooks/useWeapons', () => ({
-      useWeapons: () => ({
-        weapons: [],
-        isLoading: false,
-        hasWeapons: false,
       }),
     }));
 
