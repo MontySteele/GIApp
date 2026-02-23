@@ -708,6 +708,103 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
     weeklyBoss: 'Silken Feather',
   },
+
+  // ==================== CROSSOVER ====================
+  Aloy: {
+    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Crystalline Bloom', localSpecialty: 'Crystal Marrow',
+    commonAscension: ['Spectral Husk', 'Spectral Heart', 'Spectral Nucleus'],
+    talentBook: 'Freedom', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Spectral Husk', 'Spectral Heart', 'Spectral Nucleus'],
+    weeklyBoss: 'Molten Moment',
+  },
+
+  // ==================== TRAVELER VARIANTS ====================
+  TravelerAnemo: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Brilliant Diamond', localSpecialty: 'Windwheel Aster',
+    commonAscension: ['Damaged Mask', 'Stained Mask', 'Ominous Mask'],
+    talentBook: 'Freedom', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
+    weeklyBoss: 'Dvalin\'s Sigh',
+  },
+  TravelerGeo: {
+    element: 'Geo', gem: GEMS.Geo!, boss: 'Brilliant Diamond', localSpecialty: 'Windwheel Aster',
+    commonAscension: ['Damaged Mask', 'Stained Mask', 'Ominous Mask'],
+    talentBook: 'Freedom', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
+    weeklyBoss: 'Tail of Boreas',
+  },
+  TravelerElectro: {
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Brilliant Diamond', localSpecialty: 'Windwheel Aster',
+    commonAscension: ['Damaged Mask', 'Stained Mask', 'Ominous Mask'],
+    talentBook: 'Transience', talentBookRegion: 'Inazuma',
+    commonTalent: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
+    weeklyBoss: 'Dragon Lord\'s Crown',
+  },
+  TravelerDendro: {
+    element: 'Dendro', gem: GEMS.Dendro!, boss: 'Brilliant Diamond', localSpecialty: 'Windwheel Aster',
+    commonAscension: ['Damaged Mask', 'Stained Mask', 'Ominous Mask'],
+    talentBook: 'Admonition', talentBookRegion: 'Sumeru',
+    commonTalent: ['Fungal Spores', 'Luminescent Pollen', 'Crystalline Cyst Dust'],
+    weeklyBoss: 'Mudra of the Malefic General',
+  },
+  TravelerHydro: {
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Brilliant Diamond', localSpecialty: 'Windwheel Aster',
+    commonAscension: ['Damaged Mask', 'Stained Mask', 'Ominous Mask'],
+    talentBook: 'Equity', talentBookRegion: 'Fontaine',
+    commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
+    weeklyBoss: 'Worldspan Fern',
+  },
+  TravelerPyro: {
+    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Brilliant Diamond', localSpecialty: 'Windwheel Aster',
+    commonAscension: ['Damaged Mask', 'Stained Mask', 'Ominous Mask'],
+    talentBook: 'Contention', talentBookRegion: 'Natlan',
+    commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    weeklyBoss: 'Eroded Horn',
+  },
+
+  // ==================== NEWER CHARACTERS ====================
+  LanYan: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Cloudseam Scale', localSpecialty: 'Clearwater Jade',
+    commonAscension: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
+    talentBook: 'Gold', talentBookRegion: 'Liyue',
+    commonTalent: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
+    weeklyBoss: 'Tail of Boreas',
+  },
+  'Lan Yan': {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Cloudseam Scale', localSpecialty: 'Clearwater Jade',
+    commonAscension: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
+    talentBook: 'Gold', talentBookRegion: 'Liyue',
+    commonTalent: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
+    weeklyBoss: 'Tail of Boreas',
+  },
+  Mizuki: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Cloudseam Scale', localSpecialty: 'Fluorescent Fungus',
+    commonAscension: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
+    talentBook: 'Light', talentBookRegion: 'Inazuma',
+    commonTalent: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
+    weeklyBoss: 'Mudra of the Malefic General',
+  },
+  Iansan: {
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Overripe Flamegranate', localSpecialty: 'Quenepa Berry',
+    commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    talentBook: 'Conflict', talentBookRegion: 'Natlan',
+    commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    weeklyBoss: 'Eroded Horn',
+  },
+  Varesa: {
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Overripe Flamegranate', localSpecialty: 'Quenepa Berry',
+    commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    talentBook: 'Contention', talentBookRegion: 'Natlan',
+    commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    weeklyBoss: 'Eroded Horn',
+  },
+  Skirk: {
+    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Fontemer Unihorn', localSpecialty: 'Romaritime Flower',
+    commonAscension: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
+    talentBook: 'Order', talentBookRegion: 'Fontaine',
+    commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
+    weeklyBoss: 'Worldspan Fern',
+  },
 };
 
 /**
