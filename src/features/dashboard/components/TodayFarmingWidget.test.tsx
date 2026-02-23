@@ -57,8 +57,10 @@ describe('TodayFarmingWidget', () => {
     it('shows planner link', () => {
       renderWidget();
 
-      const link = screen.getByRole('link', { name: /planner/i });
-      expect(link).toHaveAttribute('href', '/teams/planner');
+      // The planner link is an icon-only link (ArrowRight svg, no text)
+      const links = screen.getAllByRole('link');
+      const plannerLink = links.find(link => link.getAttribute('href') === '/teams/planner');
+      expect(plannerLink).toBeDefined();
     });
   });
 
@@ -173,7 +175,7 @@ describe('TodayFarmingWidget', () => {
 
       renderWidget();
 
-      expect(screen.getByText(/5 characters analyzed/i)).toBeInTheDocument();
+      expect(screen.getByText(/5 team members analyzed/i)).toBeInTheDocument();
       expect(screen.getByText(/talent book domains rotate daily/i)).toBeInTheDocument();
     });
 
@@ -268,7 +270,7 @@ describe('TodayFarmingWidget', () => {
       renderWidget();
 
       // Should show message about no books needed today
-      expect(screen.getByText(/none of your characters need today's books/i)).toBeInTheDocument();
+      expect(screen.getByText(/none of your team members need today's books/i)).toBeInTheDocument();
       // Should show next farming day
       expect(screen.getByText(/wednesday/i)).toBeInTheDocument();
     });

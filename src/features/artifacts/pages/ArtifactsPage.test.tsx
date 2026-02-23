@@ -303,7 +303,9 @@ describe('ArtifactsPage loading state', () => {
     const { default: ArtifactsPageLoading } = await import('./ArtifactsPage');
     render(<ArtifactsPageLoading />);
 
-    expect(screen.getByText(/loading artifacts/i)).toBeInTheDocument();
+    // Loading state shows skeleton elements with animate-pulse class
+    const skeletonElements = document.querySelectorAll('.animate-pulse');
+    expect(skeletonElements.length).toBeGreaterThan(0);
   });
 });
 
