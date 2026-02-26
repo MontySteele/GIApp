@@ -7,10 +7,18 @@ const PRIMOGEMS_PER_PULL = 160;
 /**
  * Calculate the total primogem-equivalent value of a snapshot.
  * Includes primogems, genesis crystals (1:1 convertible to primos),
- * and intertwined fates (160 primos each).
+ * intertwined fates, and acquaint fates (160 primos each).
+ *
+ * Acquaint fates must be included because players can convert primogems
+ * to acquaint fates. Without tracking them, those primos become an
+ * unaccounted resource drain that makes the income formula go negative
+ * when purchases are excluded.
  */
 function snapshotTotal(snapshot: ResourceSnapshot): number {
-  return snapshot.primogems + (snapshot.genesisCrystals ?? 0) + (snapshot.intertwined * PRIMOGEMS_PER_PULL);
+  return snapshot.primogems
+    + (snapshot.genesisCrystals ?? 0)
+    + (snapshot.intertwined * PRIMOGEMS_PER_PULL)
+    + ((snapshot.acquaint ?? 0) * PRIMOGEMS_PER_PULL);
 }
 
 /**
@@ -101,9 +109,8 @@ export function buildHistoricalData(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
-  // Sort wishes by date ascending - only include intertwined fate banners (cost primogems)
-  const intertwinedWishes = filterToIntertwinedWishes(wishes);
-  const sortedWishes = [...intertwinedWishes].sort(
+  // Sort ALL wishes by date ascending (all banner types, since snapshot total includes acquaint fates)
+  const sortedWishes = [...wishes].sort(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
@@ -511,9 +518,6 @@ export function calculateDailyRateFromSnapshots(
     return 0;
   }
 
-  // Filter wishes to intertwined only
-  const intertwinedWishes = filterToIntertwinedWishes(wishes);
-
   // Calculate total income from first to last snapshot in the window
   // This is more accurate than summing consecutive pairs, which can have rounding issues
   const firstSnapshot = snapshotsToUse[0];
@@ -529,15 +533,15 @@ export function calculateDailyRateFromSnapshots(
 
   if (totalDays <= 0) return 0;
 
-  // Calculate total resources at each snapshot (primogems + genesis crystals + intertwined fates as primogem-equivalent)
+  // Calculate total resources at each snapshot (primogems + genesis crystals + all fates as primogem-equivalent)
   const firstTotal = snapshotTotal(firstSnapshot);
   const lastTotal = snapshotTotal(lastSnapshot);
 
-  // Count all pulls made between first and last snapshot (inclusive of both boundary days)
-  // Using startOfDay for boundaries means we count all wishes from start of first day
-  // through end of last day (i.e., before start of day after last snapshot)
+  // Count ALL pulls (all banner types) made between first and last snapshot.
+  // Must include standard/acquaint wishes because snapshot total includes acquaint fates;
+  // without adding back acquaint wish spending, those fates disappearing would look like lost income.
   const dayAfterLast = addDays(lastDate, 1);
-  const pullsBetween = intertwinedWishes.filter(w => {
+  const pullsBetween = wishes.filter(w => {
     const wishDate = parseISO(w.timestamp);
     return !isBefore(wishDate, firstDate) && isBefore(wishDate, dayAfterLast);
   }).length;
@@ -655,7 +659,13 @@ export function calculateIncomeRateTrend(
   const sortedSnapshots = [...snapshots].sort(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
-  const sortedWishes = [...intertwinedWishes].sort(
+  // Intertwined-only wishes for the fallback estimation (standard wishes don't cost primos)
+  const sortedIntertwinedWishes = [...intertwinedWishes].sort(
+    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
+  );
+  // ALL wishes for snapshot-based calculation (total includes acquaint fates, so we must
+  // add back acquaint wish spending too, otherwise those fates look like lost income)
+  const sortedAllWishes = [...wishes].sort(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
   const sortedPurchases = [...purchases].sort(
@@ -667,7 +677,7 @@ export function calculateIncomeRateTrend(
   const now = startOfDay(new Date());
 
   // Find earliest date from wishes or snapshots
-  const firstWishDate = sortedWishes[0] ? parseISO(sortedWishes[0].timestamp) : null;
+  const firstWishDate = sortedAllWishes[0] ? parseISO(sortedAllWishes[0].timestamp) : null;
   const firstSnapshotDate = sortedSnapshots[0] ? parseISO(sortedSnapshots[0].timestamp) : null;
 
   let startDate = accountStart;
@@ -707,13 +717,12 @@ export function calculateIncomeRateTrend(
     const snapshotAfterPeriod = sortedSnapshots
       .find(s => !isBefore(parseISO(s.timestamp), periodStart) && !isBefore(parseISO(s.timestamp), actualPeriodEnd));
 
-    // Count wishes in this period
-    const wishesInPeriod = sortedWishes.filter(w => {
+    // Count intertwined wishes in this period (for fallback estimation - standard wishes don't cost primos)
+    const intertwinedInPeriod = sortedIntertwinedWishes.filter(w => {
       const wDate = parseISO(w.timestamp);
       return !isBefore(wDate, periodStart) && isBefore(wDate, periodEnd);
     });
-    const pullsInPeriod = wishesInPeriod.length;
-    const spendingInPeriod = pullsInPeriod * PRIMOGEMS_PER_PULL;
+    const spendingInPeriod = intertwinedInPeriod.length * PRIMOGEMS_PER_PULL;
 
 
     let totalIncome: number;
@@ -737,8 +746,9 @@ export function calculateIncomeRateTrend(
           totalIncome = spendingInPeriod;
           hasSnapshotData = false;
         } else {
-          // Count wishes between these specific snapshots
-          const wishesBetween = sortedWishes.filter(w => {
+          // Count ALL wishes between these specific snapshots (all banner types,
+          // since snapshot total includes acquaint fates)
+          const wishesBetween = sortedAllWishes.filter(w => {
             const wDate = parseISO(w.timestamp);
             return isAfter(wDate, parseISO(snapshotBeforePeriod.timestamp)) &&
                    !isAfter(wDate, parseISO(endSnapshot.timestamp));
