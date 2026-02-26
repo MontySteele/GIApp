@@ -5,6 +5,15 @@ import { SPENDING_SOURCES } from './resourceCalculations';
 const PRIMOGEMS_PER_PULL = 160;
 
 /**
+ * Calculate the total primogem-equivalent value of a snapshot.
+ * Includes primogems, genesis crystals (1:1 convertible to primos),
+ * and intertwined fates (160 primos each).
+ */
+function snapshotTotal(snapshot: ResourceSnapshot): number {
+  return snapshot.primogems + (snapshot.genesisCrystals ?? 0) + (snapshot.intertwined * PRIMOGEMS_PER_PULL);
+}
+
+/**
  * Banner types that use intertwined fates (cost primogems)
  * Standard banner uses acquaint fates which are obtained separately
  */
@@ -151,7 +160,7 @@ export function buildHistoricalData(
 
   // Work backwards from latest snapshot
   // Include intertwined fates as primogem-equivalent to avoid dips when converting primos to fates
-  const latestSnapshotTotal = latestSnapshot.primogems + (latestSnapshot.intertwined * PRIMOGEMS_PER_PULL);
+  const latestSnapshotTotal = snapshotTotal(latestSnapshot);
   let currentPrimogems = latestSnapshotTotal;
   let currentPrimogemsWithPurchases = latestSnapshotTotal;
   let cumulativePulls = 0;
@@ -176,9 +185,9 @@ export function buildHistoricalData(
     if (snapshotOnDate && !isBefore(currentDate, latestSnapshotDate)) {
       // Use snapshot value directly (include intertwined fates as primogem-equivalent)
       // The snapshot is ground truth and already reflects any wishes made before it was taken
-      const snapshotTotal = snapshotOnDate.primogems + (snapshotOnDate.intertwined * PRIMOGEMS_PER_PULL);
-      currentPrimogems = snapshotTotal;
-      currentPrimogemsWithPurchases = snapshotTotal;
+      const snapTotal = snapshotTotal(snapshotOnDate);
+      currentPrimogems = snapTotal;
+      currentPrimogemsWithPurchases = snapTotal;
     }
 
     // Apply wish spending for the day - but only if there's no snapshot
@@ -239,9 +248,9 @@ export function buildHistoricalData(
     const snapshotOnDate = snapshotByDate.get(dateKey);
     if (snapshotOnDate) {
       // Include intertwined fates as primogem-equivalent
-      const snapshotTotal = snapshotOnDate.primogems + (snapshotOnDate.intertwined * PRIMOGEMS_PER_PULL);
-      currentPrimogems = snapshotTotal;
-      currentPrimogemsWithPurchases = snapshotTotal;
+      const snapTotal = snapshotTotal(snapshotOnDate);
+      currentPrimogems = snapTotal;
+      currentPrimogemsWithPurchases = snapTotal;
     } else {
       // Work backwards: add back wishes that were spent the next day
       // But only if next day doesn't have a snapshot (snapshots are ground truth)
@@ -520,9 +529,9 @@ export function calculateDailyRateFromSnapshots(
 
   if (totalDays <= 0) return 0;
 
-  // Calculate total resources at each snapshot (primogems + intertwined fates as primogem-equivalent)
-  const firstTotal = firstSnapshot.primogems + (firstSnapshot.intertwined * PRIMOGEMS_PER_PULL);
-  const lastTotal = lastSnapshot.primogems + (lastSnapshot.intertwined * PRIMOGEMS_PER_PULL);
+  // Calculate total resources at each snapshot (primogems + genesis crystals + intertwined fates as primogem-equivalent)
+  const firstTotal = snapshotTotal(firstSnapshot);
+  const lastTotal = snapshotTotal(lastSnapshot);
 
   // Count all pulls made between first and last snapshot (inclusive of both boundary days)
   // Using startOfDay for boundaries means we count all wishes from start of first day
@@ -712,8 +721,8 @@ export function calculateIncomeRateTrend(
       const endSnapshot = snapshotsInPeriod[snapshotsInPeriod.length - 1] || snapshotAfterPeriod;
 
       if (endSnapshot && snapshotBeforePeriod !== endSnapshot) {
-        const startTotal = snapshotBeforePeriod.primogems + (snapshotBeforePeriod.intertwined * PRIMOGEMS_PER_PULL);
-        const endTotal = endSnapshot.primogems + (endSnapshot.intertwined * PRIMOGEMS_PER_PULL);
+        const startTotal = snapshotTotal(snapshotBeforePeriod);
+        const endTotal = snapshotTotal(endSnapshot);
 
         // Calculate actual days between the snapshots we're using
         const snapshotStartDate = startOfDay(parseISO(snapshotBeforePeriod.timestamp));
