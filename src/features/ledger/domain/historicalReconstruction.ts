@@ -557,7 +557,10 @@ export function calculateDailyRateFromSnapshots(
 
   // Income = change in resources + wish spending + non-wish spending (add back) - purchases
   // nonWishSpendingBetween is negative, so subtracting it adds the amount back
-  const totalIncome = (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - nonWishSpendingBetween - purchasesBetween;
+  // Clamp to 0: income can never be negative in practice. A negative value indicates
+  // data inconsistency (e.g., wish history not re-imported after a wishing session,
+  // or unconverted genesis crystals). Showing 0 is more accurate than a negative rate.
+  const totalIncome = Math.max(0, (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - nonWishSpendingBetween - purchasesBetween);
 
   return totalIncome / totalDays;
 }
@@ -758,7 +761,9 @@ export function calculateIncomeRateTrend(
 
           // Income over the snapshot span
           // nonWishSpendBetween is negative, so subtracting it adds back the spending amount
-          const snapshotSpanIncome = (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - nonWishSpendBetween - purchasesBetween;
+          // Clamp to 0: income can never be negative in practice. A negative value indicates
+          // data inconsistency (e.g., wish history not re-imported after a wishing session).
+          const snapshotSpanIncome = Math.max(0, (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - nonWishSpendBetween - purchasesBetween);
 
           // Daily rate from the snapshot span, then estimate income for this period
           const dailyRateFromSnapshots = snapshotSpanIncome / actualSnapshotDays;
