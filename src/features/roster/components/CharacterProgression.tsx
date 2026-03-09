@@ -14,7 +14,6 @@ import {
   type AscensionSummary,
 } from '@/features/planner/domain/ascensionCalculator';
 import { useMaterials } from '@/features/planner/hooks/useMaterials';
-import { RESIN_REGEN } from '@/features/planner/domain/materialConstants';
 import type { Character } from '@/types';
 
 type GoalPreset = 'next' | 'functional' | 'comfortable' | 'full';
