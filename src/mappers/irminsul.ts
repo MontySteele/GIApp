@@ -216,15 +216,18 @@ function isValidWeapon(weapon: unknown): weapon is IrminsulWeapon {
 // ============================================
 
 /**
- * Generate a deterministic ID for an artifact based on its properties
- * This allows us to detect duplicates across imports
+ * Generate a deterministic ID for an artifact based on its properties.
+ * Includes an occurrence index so that two in-game artifacts with
+ * identical visible properties (common for unleveled pieces) get
+ * distinct IDs instead of silently colliding.
  */
-function generateArtifactId(artifact: IrminsulArtifact): string {
+function generateArtifactId(artifact: IrminsulArtifact, occurrenceIndex: number): string {
   const substatsKey = artifact.substats
     .map((s) => `${s.key}:${s.value}`)
     .sort()
     .join('|');
-  return `artifact:${artifact.setKey}:${artifact.slotKey}:${artifact.mainStatKey}:${artifact.rarity}:${artifact.level}:${substatsKey}`;
+  const baseKey = `artifact:${artifact.setKey}:${artifact.slotKey}:${artifact.mainStatKey}:${artifact.rarity}:${artifact.level}:${substatsKey}`;
+  return occurrenceIndex === 0 ? baseKey : `${baseKey}:${occurrenceIndex}`;
 }
 
 /**
@@ -298,6 +301,9 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
   }
 
   // Process all artifacts (including unequipped)
+  // Track how many times each base key appears so that artifacts with
+  // identical visible properties get distinct IDs.
+  const artifactKeyOccurrences = new Map<string, number>();
   for (const artifact of data.artifacts || []) {
     const substats: ExtendedSubstat[] = artifact.substats.map((s) => ({
       key: s.key,
@@ -305,8 +311,13 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
       initialValue: s.initialValue,
     }));
 
+    // Count occurrences of this property-based key to disambiguate duplicates
+    const tempId = generateArtifactId(artifact, 0);
+    const occurrence = artifactKeyOccurrences.get(tempId) || 0;
+    artifactKeyOccurrences.set(tempId, occurrence + 1);
+
     artifacts.push({
-      id: generateArtifactId(artifact),
+      id: generateArtifactId(artifact, occurrence),
       setKey: artifact.setKey,
       slotKey: artifact.slotKey as SlotKey,
       level: artifact.level,
