@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { toGOOD, fromGOOD, validateGOOD, type GOODFormat } from './good';
+import { toGOOD, fromGOOD, fromGOODWithInventory, toGOODWithInventory, validateGOOD, type GOODFormat } from './good';
 import { toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
-import type { Character } from '@/types';
+import type { Character, InventoryArtifact, InventoryWeapon } from '@/types';
 
 describe('GOOD Mapper', () => {
   const mockCharacter: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -569,6 +569,195 @@ describe('GOOD Mapper', () => {
 
       expect(result).toHaveLength(2);
       expect(result.map((c) => c.key)).toEqual(['Furina', 'Neuvillette']);
+    });
+  });
+
+  describe('fromGOODWithInventory', () => {
+    it('should extract both characters and inventory artifacts', () => {
+      const goodData: GOODFormat = {
+        format: 'GOOD',
+        version: 3,
+        source: 'Genshin Progress Tracker',
+        characters: [
+          {
+            key: 'Furina',
+            level: 90,
+            ascension: 6,
+            constellation: 2,
+            talent: { auto: 9, skill: 10, burst: 10 },
+          },
+        ],
+        weapons: [
+          {
+            key: 'SplendorOfTranquilWaters',
+            level: 90,
+            ascension: 6,
+            refinement: 1,
+            location: 'Furina',
+            lock: true,
+          },
+        ],
+        artifacts: [
+          // Equipped on Furina
+          {
+            setKey: 'GoldenTroupe',
+            slotKey: 'flower',
+            level: 20,
+            rarity: 5,
+            mainStatKey: 'hp',
+            location: 'Furina',
+            lock: true,
+            substats: [
+              { key: 'critRate_', value: 3.9 },
+              { key: 'critDMG_', value: 14.8 },
+            ],
+          },
+          // Unequipped artifact (should go into inventory)
+          {
+            setKey: 'EmblemOfSeveredFate',
+            slotKey: 'sands',
+            level: 20,
+            rarity: 5,
+            mainStatKey: 'enerRech_',
+            location: '',
+            lock: false,
+            substats: [
+              { key: 'critRate_', value: 10.5 },
+              { key: 'critDMG_', value: 21.0 },
+              { key: 'atk_', value: 11.7 },
+              { key: 'hp', value: 299 },
+            ],
+          },
+        ],
+      };
+
+      const result = fromGOODWithInventory(goodData);
+
+      // Should have 1 character
+      expect(result.characters).toHaveLength(1);
+      expect(result.characters[0].key).toBe('Furina');
+
+      // Should have 2 inventory artifacts (both equipped and unequipped)
+      expect(result.inventoryArtifacts).toHaveLength(2);
+
+      // The unequipped one should have empty location
+      const unequipped = result.inventoryArtifacts.find(
+        (a) => a.setKey === 'EmblemOfSeveredFate'
+      );
+      expect(unequipped).toBeDefined();
+      expect(unequipped!.location).toBe('');
+      expect(unequipped!.substats).toHaveLength(4);
+    });
+
+    it('should handle GOOD v3 with materials', () => {
+      const goodData: GOODFormat = {
+        format: 'GOOD',
+        version: 3,
+        source: 'Test',
+        materials: { 'MoraItem': 1000000, 'HeroWit': 200 },
+      };
+
+      const result = fromGOODWithInventory(goodData);
+
+      expect(result.materials).toEqual({ 'MoraItem': 1000000, 'HeroWit': 200 });
+    });
+
+    it('should generate deterministic IDs for artifacts', () => {
+      const goodData: GOODFormat = {
+        format: 'GOOD',
+        version: 3,
+        source: 'Test',
+        artifacts: [
+          {
+            setKey: 'EmblemOfSeveredFate',
+            slotKey: 'sands',
+            level: 20,
+            rarity: 5,
+            mainStatKey: 'enerRech_',
+            location: '',
+            lock: false,
+            substats: [{ key: 'critRate_', value: 10.5 }],
+          },
+        ],
+      };
+
+      const result1 = fromGOODWithInventory(goodData);
+      const result2 = fromGOODWithInventory(goodData);
+
+      // Same input should produce same ID (for dedup on re-import)
+      expect(result1.inventoryArtifacts[0].id).toBe(result2.inventoryArtifacts[0].id);
+    });
+
+    it('should extract unequipped weapons into inventory', () => {
+      const goodData: GOODFormat = {
+        format: 'GOOD',
+        version: 3,
+        source: 'Test',
+        weapons: [
+          {
+            key: 'FavoniusSword',
+            level: 90,
+            ascension: 6,
+            refinement: 5,
+            location: '',
+            lock: false,
+          },
+        ],
+      };
+
+      const result = fromGOODWithInventory(goodData);
+
+      expect(result.inventoryWeapons).toHaveLength(1);
+      expect(result.inventoryWeapons[0].key).toBe('FavoniusSword');
+      expect(result.inventoryWeapons[0].location).toBe('');
+    });
+
+    it('should round-trip through toGOODWithInventory and back', () => {
+      const unequippedArtifact: InventoryArtifact = {
+        id: 'test-artifact-1',
+        setKey: 'CrimsonWitchOfFlames',
+        slotKey: 'goblet',
+        level: 20,
+        rarity: 5,
+        mainStatKey: 'pyro_dmg_',
+        substats: [
+          { key: 'critRate_', value: 7.8 },
+          { key: 'critDMG_', value: 15.5 },
+          { key: 'atk_', value: 9.3 },
+          { key: 'eleMas', value: 23 },
+        ],
+        location: '',
+        lock: false,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+      };
+
+      const exported = toGOODWithInventory({
+        characters: [mockCharacter as Character],
+        inventoryArtifacts: [unequippedArtifact],
+        inventoryWeapons: [],
+        materials: {},
+      });
+
+      const imported = fromGOODWithInventory(exported);
+
+      // Characters should survive round-trip
+      expect(imported.characters).toHaveLength(1);
+
+      // Should find the unequipped CW goblet in inventory
+      const cwGoblet = imported.inventoryArtifacts.find(
+        (a) => a.setKey === 'CrimsonWitchOfFlames' && a.slotKey === 'goblet'
+      );
+      expect(cwGoblet).toBeDefined();
+      expect(cwGoblet!.mainStatKey).toBe('pyro_dmg_');
+      expect(cwGoblet!.substats).toHaveLength(4);
+      expect(cwGoblet!.location).toBe('');
+    });
+
+    it('should throw error for invalid format', () => {
+      expect(() => fromGOODWithInventory({ format: 'INVALID' } as GOODFormat)).toThrow(
+        'Invalid format: expected GOOD format'
+      );
     });
   });
 });
