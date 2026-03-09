@@ -204,18 +204,84 @@ function normalizeMainStatForDemand(mainStatKey: string): string {
 }
 
 /**
- * Offset preservation: After individual scoring, un-mark artifacts as strongbox
- * trash if doing so would leave fewer than OFFSET_PRESERVE_MINIMUM unequipped
- * 5-star pieces with a valuable offset main stat.
+ * Minimum unequipped 5-star pieces to keep per demanded set+slot+mainStat combo.
+ * This prevents the strongbox filter from trashing all copies when you don't
+ * have enough good alternatives yet.
+ */
+export const COVERAGE_MINIMUM = 2;
+
+/**
+ * Build a grouping key for coverage preservation.
+ * - Sands/goblet/circlet: set + slot + mainStat (each main stat serves different builds)
+ * - Flower/plume: set + slot (main stat is fixed, so all flowers for a set compete)
+ */
+function coverageKey(artifact: ArtifactWithScore): string {
+  if (artifact.slotKey === 'flower' || artifact.slotKey === 'plume') {
+    return `${artifact.setKey}::${artifact.slotKey}`;
+  }
+  return `${artifact.setKey}::${artifact.slotKey}::${normalizeMainStatForDemand(artifact.mainStatKey)}`;
+}
+
+/**
+ * Coverage preservation: After individual scoring, ensure we keep at least
+ * COVERAGE_MINIMUM unequipped 5-star pieces per demanded set+slot+mainStat
+ * combination. This prevents the filter from being too aggressive when the
+ * player doesn't have deep artifact reserves yet.
  *
- * This ensures the player always keeps a handful of elemental DMG% goblets
- * and crit circlets around as flex/offset pieces.
+ * Also includes the previous offset preservation logic for valuable offset
+ * main stats (elemental DMG% goblets, crit circlets).
  */
 function applyOffsetPreservation(artifacts: ArtifactWithScore[]): void {
+  // --- Pass 1: Coverage preservation for ALL demanded combos ---
+  const groups = new Map<string, ArtifactWithScore[]>();
+
+  for (const a of artifacts) {
+    // Only consider unequipped 5-star pieces
+    if (a.rarity !== 5 || a.location !== '') continue;
+    // Only protect combos that at least one build actually wants
+    if (!a.score.qualityFilter || a.score.qualityFilter.buildDemand === 0) continue;
+
+    const key = coverageKey(a);
+    let group = groups.get(key);
+    if (!group) {
+      group = [];
+      groups.set(key, group);
+    }
+    group.push(a);
+  }
+
+  for (const group of groups.values()) {
+    const keptCount = group.filter((a) => !a.score.isStrongboxTrash).length;
+    if (keptCount >= COVERAGE_MINIMUM) continue;
+
+    // Un-mark the best trash pieces to reach the minimum
+    const trashPieces = group
+      .filter((a) => a.score.isStrongboxTrash)
+      .sort((a, b) => b.score.score - a.score.score);
+
+    const toProtect = COVERAGE_MINIMUM - keptCount;
+    for (let i = 0; i < Math.min(toProtect, trashPieces.length); i++) {
+      const piece = trashPieces[i];
+      if (!piece) continue;
+      piece.score = {
+        ...piece.score,
+        isStrongboxTrash: false,
+        trashReason: undefined,
+        qualityFilter: piece.score.qualityFilter ? {
+          ...piece.score.qualityFilter,
+          isUseless: false,
+          reason: `Kept for coverage (best available for this combo)`,
+        } : undefined,
+      };
+    }
+  }
+
+  // --- Pass 2: Offset preservation for valuable offset main stats ---
+  // This is a stricter pass that also protects pieces even when buildDemand=0,
+  // since elemental goblets and crit circlets are universally valuable offsets.
   const categories = getAllOffsetCategories();
 
   for (const { slotKey, mainStatKey } of categories) {
-    // Find all unequipped 5-star pieces in this offset category
     const unequippedInCategory = artifacts.filter((a) =>
       a.rarity === 5 &&
       a.location === '' &&
@@ -223,12 +289,9 @@ function applyOffsetPreservation(artifacts: ArtifactWithScore[]): void {
       normalizeMainStatForDemand(a.mainStatKey) === mainStatKey
     );
 
-    // Count how many are NOT marked as trash
     const keptCount = unequippedInCategory.filter((a) => !a.score.isStrongboxTrash).length;
-
     if (keptCount >= OFFSET_PRESERVE_MINIMUM) continue;
 
-    // Need to protect some pieces. Pick the best trash-marked ones by score.
     const trashPieces = unequippedInCategory
       .filter((a) => a.score.isStrongboxTrash)
       .sort((a, b) => b.score.score - a.score.score);
