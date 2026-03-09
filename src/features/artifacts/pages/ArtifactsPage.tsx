@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Trash2, Filter, Package, AlertTriangle, ShieldX } from 'lucide-react';
+import { Trash2, Filter, Package, AlertTriangle, ShieldX, Gem } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -143,6 +143,49 @@ export default function ArtifactsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Offset Piece Inventory */}
+      {stats.offsetCounts && stats.offsetCounts.some((c) => c.total > 0) && (
+        <Card className="mb-6">
+          <CardHeader>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Gem className="w-5 h-5 text-purple-400" />
+              Offset Piece Reserve
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Unequipped 5-star pieces with valuable main stats kept as flex pieces
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              {stats.offsetCounts
+                .filter((c) => c.total > 0)
+                .map((c) => (
+                  <div
+                    key={`${c.slotKey}-${c.mainStatKey}`}
+                    className={`px-3 py-2 rounded-lg border text-sm ${
+                      c.belowMinimum
+                        ? 'border-amber-700/50 bg-amber-900/20'
+                        : 'border-slate-700 bg-slate-800/50'
+                    }`}
+                  >
+                    <div className="text-slate-300 font-medium text-xs">{c.label}</div>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className={`text-lg font-bold ${c.belowMinimum ? 'text-amber-400' : 'text-slate-200'}`}>
+                        {c.unequipped}
+                      </span>
+                      <span className="text-xs text-slate-500">free</span>
+                      <span className="text-xs text-slate-600 ml-auto">/ {c.total} total</span>
+                    </div>
+                    {c.belowMinimum && (
+                      <div className="text-xs text-amber-500 mt-1">Low reserve</div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* View Toggle & Filters */}
       <div className="flex items-center gap-3 mb-4">

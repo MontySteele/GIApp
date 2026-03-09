@@ -652,6 +652,63 @@ function formatStatKeyShort(key: string): string {
 }
 
 /**
+ * Main stats considered universally valuable as offset pieces.
+ * These are stats where the main stat value matters more than the set bonus,
+ * so players should keep a reserve of unequipped pieces with these stats.
+ */
+const VALUABLE_OFFSET_MAIN_STATS: Record<string, string[]> = {
+  goblet: [
+    'pyro_dmg_', 'hydro_dmg_', 'cryo_dmg_', 'electro_dmg_',
+    'anemo_dmg_', 'geo_dmg_', 'dendro_dmg_', 'physical_dmg_',
+  ],
+  circlet: ['critRate_', 'critDMG_'],
+};
+
+/**
+ * Minimum number of unequipped pieces to keep per valuable offset main stat.
+ * If the player has fewer than this many unequipped 5-star pieces with a given
+ * valuable main stat, the system will protect the best ones from strongbox.
+ */
+export const OFFSET_PRESERVE_MINIMUM = 2;
+
+/**
+ * Check if a slot + main stat combination qualifies as a valuable offset piece.
+ */
+export function isValuableOffsetMainStat(slotKey: string, mainStatKey: string): boolean {
+  const valuableStats = VALUABLE_OFFSET_MAIN_STATS[slotKey];
+  if (!valuableStats) return false;
+  const normalized = normalizeMainStatForDemand(mainStatKey);
+  return valuableStats.includes(normalized);
+}
+
+/**
+ * Get a display-friendly category label for an offset main stat.
+ */
+export function getOffsetCategory(slotKey: string, mainStatKey: string): string {
+  const normalized = normalizeMainStatForDemand(mainStatKey);
+  const slotLabel = slotKey === 'goblet' ? 'Goblet' : 'Circlet';
+  return `${formatStatKeyShort(normalized)} ${slotLabel}`;
+}
+
+/**
+ * Get all valuable offset main stat categories (for iteration).
+ * Returns { slotKey, mainStatKey, label } for each category.
+ */
+export function getAllOffsetCategories(): Array<{ slotKey: string; mainStatKey: string; label: string }> {
+  const categories: Array<{ slotKey: string; mainStatKey: string; label: string }> = [];
+  for (const [slotKey, stats] of Object.entries(VALUABLE_OFFSET_MAIN_STATS)) {
+    for (const mainStatKey of stats) {
+      categories.push({
+        slotKey,
+        mainStatKey,
+        label: getOffsetCategory(slotKey, mainStatKey),
+      });
+    }
+  }
+  return categories;
+}
+
+/**
  * Get all sets tracked in the demand data.
  */
 export function getTrackedSets(): string[] {
