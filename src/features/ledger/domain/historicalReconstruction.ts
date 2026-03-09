@@ -566,7 +566,12 @@ export function calculateDailyRateFromSnapshots(
   // or unconverted genesis crystals). Showing 0 is more accurate than a negative rate.
   const totalIncome = Math.max(0, (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - nonWishSpendingBetween - purchasesBetween);
 
-  return totalIncome / totalDays;
+  // When excluding purchases, earned income can't be negative. A negative value means
+  // there's untracked non-wish spending (e.g., outfits bought with genesis crystals but not logged).
+  // Floor at 0 since negative "earned income" is nonsensical.
+  const adjustedIncome = excludePurchases ? Math.max(0, totalIncome) : totalIncome;
+
+  return adjustedIncome / totalDays;
 }
 
 /**
@@ -792,14 +797,17 @@ export function calculateIncomeRateTrend(
       hasSnapshotData = false;
     }
 
-    const dailyRate = days > 0 ? totalIncome / days : 0;
+    // When excluding purchases, earned income can't be negative. A negative value means
+    // there's untracked non-wish spending (e.g., outfits bought with genesis crystals but not logged).
+    const adjustedIncome = excludePurchases ? Math.max(0, totalIncome) : totalIncome;
+    const dailyRate = days > 0 ? adjustedIncome / days : 0;
 
     result.push({
       periodStart: format(periodStart, 'yyyy-MM-dd'),
       periodEnd: format(actualPeriodEnd, 'yyyy-MM-dd'),
       label: format(periodStart, 'MMM d'),
       dailyRate: Math.round(dailyRate),
-      totalIncome: Math.round(totalIncome),
+      totalIncome: Math.round(adjustedIncome),
       days,
       hasSnapshotData,
     });
