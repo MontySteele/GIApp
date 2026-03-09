@@ -169,6 +169,20 @@ export async function importIrminsul(
             updatedAt: now,
           }));
 
+          // Reconcile: remove artifacts that are no longer in the scan.
+          // Without this, artifacts that were foddered/strongboxed in-game
+          // would accumulate in the database forever.
+          if (!opts.replaceAll) {
+            const importedIds = new Set(result.artifacts.map((a) => a.id));
+            const existingArtifacts = await db.inventoryArtifacts.toArray();
+            const staleIds = existingArtifacts
+              .filter((a) => !importedIds.has(a.id))
+              .map((a) => a.id);
+            if (staleIds.length > 0) {
+              await db.inventoryArtifacts.bulkDelete(staleIds);
+            }
+          }
+
           // Use bulkPut to upsert (will update if ID exists)
           await db.inventoryArtifacts.bulkPut(artifactsWithTimestamps);
           artifactsImported = result.artifacts.length;
