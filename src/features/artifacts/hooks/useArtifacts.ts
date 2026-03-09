@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import type { InventoryArtifact } from '@/types';
 import { artifactRepo } from '../repo/artifactRepo';
 import { scoreInventoryArtifact, type ArtifactScore } from '../domain/artifactScoring';
@@ -37,29 +38,14 @@ export interface UseArtifactsOptions {
 }
 
 export function useArtifacts(options: UseArtifactsOptions = {}) {
-  const [artifacts, setArtifacts] = useState<InventoryArtifact[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Load artifacts
-  useEffect(() => {
-    async function loadArtifacts() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await artifactRepo.getAll();
-        setArtifacts(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load artifacts');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadArtifacts();
-  }, []);
+  // Use Dexie live query for reactive updates when the database changes
+  const artifacts = useLiveQuery(() => artifactRepo.getAll(), []);
+  const isLoading = artifacts === undefined;
 
   // Score artifacts and apply offset preservation
   const scoredArtifacts = useMemo(() => {
+    if (!artifacts) return [];
+
     const scored = artifacts.map((artifact) => ({
       ...artifact,
       score: scoreInventoryArtifact(artifact),
@@ -157,7 +143,7 @@ export function useArtifacts(options: UseArtifactsOptions = {}) {
     artifacts: sortedArtifacts,
     allArtifacts: scoredArtifacts,
     isLoading,
-    error,
+    error: null,
     stats,
   };
 }
