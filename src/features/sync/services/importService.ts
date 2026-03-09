@@ -386,24 +386,31 @@ export async function importBackup(
       }
       stageIndex++;
 
-      // Inventory Artifacts
+      // Inventory Artifacts — replace wholesale since these represent a
+      // point-in-time snapshot, not individually authored records.
       if (data.inventoryArtifacts?.length) {
         onProgress?.('Importing inventory artifacts...', (stageIndex / stages.length) * 100);
-        result.stats.inventoryArtifacts = await mergeTable('inventoryArtifacts', data.inventoryArtifacts, strategy);
+        await db.inventoryArtifacts.clear();
+        await db.inventoryArtifacts.bulkPut(data.inventoryArtifacts);
+        result.stats.inventoryArtifacts = { created: data.inventoryArtifacts.length, updated: 0, skipped: 0 };
       }
       stageIndex++;
 
-      // Inventory Weapons
+      // Inventory Weapons — same: replace wholesale.
       if (data.inventoryWeapons?.length) {
         onProgress?.('Importing inventory weapons...', (stageIndex / stages.length) * 100);
-        result.stats.inventoryWeapons = await mergeTable('inventoryWeapons', data.inventoryWeapons, strategy);
+        await db.inventoryWeapons.clear();
+        await db.inventoryWeapons.bulkPut(data.inventoryWeapons);
+        result.stats.inventoryWeapons = { created: data.inventoryWeapons.length, updated: 0, skipped: 0 };
       }
       stageIndex++;
 
-      // Material Inventory
+      // Material Inventory — same: replace wholesale.
       if (data.materialInventory?.length) {
         onProgress?.('Importing material inventory...', (stageIndex / stages.length) * 100);
-        result.stats.materialInventory = await mergeTable('materialInventory', data.materialInventory, strategy);
+        await db.materialInventory.clear();
+        await db.materialInventory.bulkPut(data.materialInventory);
+        result.stats.materialInventory = { created: data.materialInventory.length, updated: 0, skipped: 0 };
       }
     });
 
