@@ -5,6 +5,10 @@
  * Determines if an artifact's set + slot + main stat combo is used
  * by ANY meta build. If no build wants it, it's safe to strongbox.
  *
+ * For flowers/plumes (fixed main stats), evaluates substats against
+ * the aggregated substat priorities of all builds using that set,
+ * plus universal offset value (high CV, ER, EM).
+ *
  * Data source: Community build spreadsheet (March 2026, Varka patch)
  * Numbers represent how many character builds use that set+slot+mainStat combo.
  */
@@ -253,6 +257,102 @@ const ARTIFACT_DEMAND: DemandMatrix = {
 };
 
 /**
+ * Per-set desired substats, aggregated from all character builds using each set.
+ *
+ * Weights represent aggregate importance:
+ *   5 = critical (nearly all builds using this set want it)
+ *   3 = important (many builds want it)
+ *   1 = nice to have (some builds want it)
+ *
+ * These are used to evaluate flower/plume quality since those slots have
+ * fixed main stats and only differ by substats.
+ */
+const SET_DESIRED_SUBSTATS: Record<string, Record<string, number>> = {
+  // Universal DPS / offset sets
+  ADayCarvedFromRisingWinds: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 3, eleMas: 1 },
+  EchoesOfAnOffering: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 3, eleMas: 1 },
+  GladiatorsFinale: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 3, eleMas: 1 },
+  ShimenawasReminiscence: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 3, eleMas: 1 },
+  FragmentOfHarmonicWhimsy: { critRate_: 5, critDMG_: 5, atk_: 3, eleMas: 3 },
+  NighttimeWhispersInTheEchoingWoods: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 3, eleMas: 1 },
+  VermillionHereafter: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+  UnfinishedReverie: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+
+  // Elemental DPS sets
+  CrimsonWitchOfFlames: { critRate_: 5, critDMG_: 5, eleMas: 3, atk_: 3, hp_: 1, enerRech_: 1 },
+  BlizzardStrayer: { critDMG_: 5, atk_: 5, enerRech_: 3, critRate_: 1 }, // 4pc gives CR
+  ThunderingFury: { critRate_: 5, critDMG_: 5, eleMas: 3, atk_: 3, enerRech_: 1 },
+  Thundersoother: { critRate_: 5, critDMG_: 5, atk_: 3, eleMas: 1, enerRech_: 1 },
+  HeartOfDepth: { critRate_: 5, critDMG_: 5, atk_: 3, hp_: 1, enerRech_: 1, eleMas: 1 },
+  DesertPavilionChronicle: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+  NymphsDream: { critRate_: 5, critDMG_: 5, atk_: 3, hp_: 1, enerRech_: 1 },
+  PaleFlame: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+  BloodstainedChivalry: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+  Lavawalker: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+  LongNightsOath: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 3 },
+  ObsidianCodex: { critRate_: 5, critDMG_: 5, atk_: 3, eleMas: 1, enerRech_: 1 },
+  FinaleOfTheDeepGalleries: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+
+  // HP-scaling DPS sets
+  MarechausseeHunter: { critRate_: 5, critDMG_: 5, hp_: 3, atk_: 1, enerRech_: 3, eleMas: 1 },
+
+  // Burst / Sub-DPS sets
+  EmblemOfSeveredFate: { enerRech_: 5, critRate_: 5, critDMG_: 5, atk_: 3, eleMas: 1, hp_: 1 },
+  NoblesseOblige: { enerRech_: 5, critRate_: 5, critDMG_: 5, atk_: 3, hp_: 3, eleMas: 1 },
+
+  // EM / Reaction sets
+  GildedDreams: { eleMas: 5, critRate_: 3, critDMG_: 3, atk_: 3, enerRech_: 3 },
+  FlowerOfParadiseLost: { eleMas: 5, enerRech_: 3, hp_: 1, critRate_: 1, critDMG_: 1 },
+  WanderersTroupe: { critRate_: 5, critDMG_: 5, eleMas: 3, atk_: 3, enerRech_: 1 },
+  AubadeOfMorningstarAndMoon: { critRate_: 5, critDMG_: 5, enerRech_: 3, atk_: 3, eleMas: 3 },
+  NightOfTheSkysUnveiling: { critRate_: 5, critDMG_: 5, eleMas: 3, atk_: 3, enerRech_: 1 },
+
+  // Support / HP sets
+  TenacityOfTheMillelith: { hp_: 5, enerRech_: 5, critRate_: 1 },
+  VourukashasGlow: { hp_: 5, enerRech_: 3, critRate_: 1, critDMG_: 1 },
+  MaidenBeloved: { hp_: 5, enerRech_: 5 },
+  OceanHuedClam: { hp_: 5, enerRech_: 5, atk_: 1 },
+  SongOfDaysPast: { hp_: 5, enerRech_: 5, atk_: 1, critRate_: 1 },
+  SilkenMoonsSerenade: { enerRech_: 5, eleMas: 3, critRate_: 3, critDMG_: 1, atk_: 1 },
+  ScrollOfTheHeroOfCinderCity: { enerRech_: 5, hp_: 3, critRate_: 3, critDMG_: 1, atk_: 1 },
+
+  // Dendro support
+  DeepwoodMemories: { enerRech_: 5, hp_: 3, eleMas: 3, critRate_: 3, critDMG_: 1 },
+
+  // Anemo support
+  ViridescentVenerer: { eleMas: 5, enerRech_: 5, critRate_: 1, critDMG_: 1 },
+
+  // DEF scaling
+  HuskOfOpulentDreams: { def_: 5, critRate_: 5, critDMG_: 5, enerRech_: 1 },
+  ArchaicPetra: { def_: 3, critRate_: 5, critDMG_: 5, enerRech_: 1, hp_: 1 },
+  RetracingBolide: { critRate_: 5, critDMG_: 5, def_: 1, hp_: 1 },
+
+  // Off-field DPS
+  GoldenTroupe: { critRate_: 5, critDMG_: 5, hp_: 3, atk_: 3, enerRech_: 3 },
+
+  // Instructor / 4-star sets
+  Instructor: { enerRech_: 5, eleMas: 3, hp_: 3, critRate_: 1 },
+  Exile: { enerRech_: 5, critRate_: 3, critDMG_: 1 },
+};
+
+/**
+ * Thresholds for flower/plume offset piece evaluation.
+ * A piece is a valuable offset if it exceeds these thresholds.
+ */
+const OFFSET_THRESHOLDS = {
+  /** CV at or above this is universally valuable as an offset */
+  highCV: 35,
+  /** Minimum CV to consider keeping (combined with other stats) */
+  minCV: 20,
+  /** ER% at or above this makes a piece valuable for support offsets */
+  highER: 15,
+  /** EM at or above this makes a piece valuable for reaction offsets */
+  highEM: 60,
+  /** Minimum number of desired substats to keep a flower/plume for its set */
+  minDesiredSubstats: 2,
+};
+
+/**
  * Normalize a set key from various formats to our GOOD-style key.
  * Handles spaces, apostrophes, and other variations.
  */
@@ -309,6 +409,10 @@ export interface QualityFilterResult {
   buildDemand: number;
   /** Human-readable reason */
   reason: string;
+  /** For flowers/plumes: how many desired substats this piece has */
+  desiredSubstatCount?: number;
+  /** For flowers/plumes: whether this is a valuable universal offset piece */
+  isGoodOffset?: boolean;
 }
 
 /**
@@ -332,21 +436,9 @@ export function checkArtifactQuality(artifact: InventoryArtifact): QualityFilter
     };
   }
 
-  // Flowers and plumes have fixed main stats
-  // If the set is in our data, SOMEONE uses it, so the flower/plume is potentially useful
+  // Flowers and plumes: evaluate substats against set's desired substats + offset value
   if (artifact.slotKey === 'flower' || artifact.slotKey === 'plume') {
-    // Sum up total demand across all slots for this set to gauge overall popularity
-    const totalDemand = ['sands', 'goblet', 'circlet'].reduce((sum, slot) => {
-      const slotData = setData[slot as keyof typeof setData];
-      if (!slotData) return sum;
-      return sum + Object.values(slotData).reduce((s, v) => s + v, 0);
-    }, 0);
-
-    return {
-      isUseless: false,
-      buildDemand: totalDemand,
-      reason: `${totalDemand} builds use this set`,
-    };
+    return evaluateFlowerPlume(artifact, setKey, setData);
   }
 
   // For sands/goblet/circlet, check the specific main stat
@@ -387,6 +479,150 @@ export function checkArtifactQuality(artifact: InventoryArtifact): QualityFilter
     isUseless: false,
     buildDemand: demand,
     reason: `${demand} build${demand !== 1 ? 's' : ''} use this combo`,
+  };
+}
+
+/**
+ * Evaluate a flower or plume artifact.
+ *
+ * Since main stats are fixed, quality depends on:
+ * 1. Set value: does any build use this set?
+ * 2. Substat match: do substats align with what builds using this set want?
+ * 3. Universal offset value: high CV, ER, or EM makes any piece valuable
+ *
+ * A flower/plume is "useless" if:
+ * - It has fewer than 2 desired substats for its set, AND
+ * - It's not a good universal offset piece
+ */
+function evaluateFlowerPlume(
+  artifact: InventoryArtifact,
+  setKey: string,
+  setData: DemandMatrix[string],
+): QualityFilterResult {
+  // Calculate total set demand
+  const totalDemand = (['sands', 'goblet', 'circlet'] as const).reduce((sum, slot) => {
+    const slotData = setData[slot];
+    if (!slotData) return sum;
+    return sum + Object.values(slotData).reduce((s, v) => s + v, 0);
+  }, 0);
+
+  // Calculate CV and collect substat values
+  let cv = 0;
+  let totalER = 0;
+  let totalEM = 0;
+  for (const sub of artifact.substats) {
+    const normalized = normalizeStatKey(sub.key);
+    if (normalized === 'critRate_') cv += sub.value * 2;
+    else if (normalized === 'critDMG_') cv += sub.value;
+    else if (normalized === 'enerRech_') totalER += sub.value;
+    else if (normalized === 'eleMas') totalEM += sub.value;
+  }
+  cv = Math.round(cv * 10) / 10;
+
+  // Check universal offset value
+  const isHighCV = cv >= OFFSET_THRESHOLDS.highCV;
+  const isDecentCV = cv >= OFFSET_THRESHOLDS.minCV;
+  const isHighER = totalER >= OFFSET_THRESHOLDS.highER;
+  const isHighEM = totalEM >= OFFSET_THRESHOLDS.highEM;
+  const isGoodOffset = isHighCV || (isDecentCV && (isHighER || isHighEM));
+
+  // If it's a universally great offset piece, keep it regardless of set
+  if (isHighCV) {
+    return {
+      isUseless: false,
+      buildDemand: totalDemand,
+      reason: `High CV offset (${cv}CV)`,
+      isGoodOffset: true,
+    };
+  }
+
+  // No substats yet (unleveled) - keep if set has demand
+  if (artifact.substats.length === 0) {
+    return {
+      isUseless: totalDemand === 0,
+      buildDemand: totalDemand,
+      reason: totalDemand > 0 ? `${totalDemand} builds use this set` : 'Set not used in any known build',
+      desiredSubstatCount: 0,
+    };
+  }
+
+  // Count how many substats match the set's desired substats
+  const desiredSubs = SET_DESIRED_SUBSTATS[setKey];
+
+  if (!desiredSubs) {
+    // Set has demand data but no substat priorities defined
+    // Fall back to checking offset value only
+    if (isGoodOffset) {
+      return {
+        isUseless: false,
+        buildDemand: totalDemand,
+        reason: `Good offset (${cv}CV${isHighER ? ` + ${totalER.toFixed(1)}%ER` : ''}${isHighEM ? ` + ${Math.round(totalEM)}EM` : ''})`,
+        isGoodOffset: true,
+      };
+    }
+    return {
+      isUseless: false, // Be conservative if we don't have substat data
+      buildDemand: totalDemand,
+      reason: `${totalDemand} builds use this set`,
+    };
+  }
+
+  let desiredCount = 0;
+  let totalWeight = 0;
+  const matchedSubs: string[] = [];
+  const missedSubs: string[] = [];
+
+  for (const sub of artifact.substats) {
+    const normalized = normalizeStatKey(sub.key);
+    const weight = desiredSubs[normalized];
+    if (weight && weight > 0) {
+      desiredCount++;
+      totalWeight += weight;
+      matchedSubs.push(formatStatKeyShort(normalized));
+    } else {
+      missedSubs.push(formatStatKeyShort(normalized));
+    }
+  }
+
+  // Good for its set: has enough desired substats
+  if (desiredCount >= OFFSET_THRESHOLDS.minDesiredSubstats) {
+    const qualityNote = totalWeight >= 15
+      ? 'Excellent substats'
+      : totalWeight >= 10
+        ? 'Good substats'
+        : 'Usable substats';
+    return {
+      isUseless: false,
+      buildDemand: totalDemand,
+      reason: `${qualityNote} for set (${matchedSubs.join(', ')})`,
+      desiredSubstatCount: desiredCount,
+      isGoodOffset: isGoodOffset,
+    };
+  }
+
+  // Fewer than 2 desired substats - check offset value
+  if (isGoodOffset) {
+    return {
+      isUseless: false,
+      buildDemand: totalDemand,
+      reason: `Good offset (${cv}CV${isHighER ? ` + ${totalER.toFixed(1)}%ER` : ''}${isHighEM ? ` + ${Math.round(totalEM)}EM` : ''})`,
+      desiredSubstatCount: desiredCount,
+      isGoodOffset: true,
+    };
+  }
+
+  // Not good for set AND not a good offset
+  const topDesired = Object.entries(desiredSubs)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([stat]) => formatStatKeyShort(stat));
+
+  return {
+    isUseless: true,
+    buildDemand: totalDemand,
+    reason: `Low-value substats (${missedSubs.join(', ')}). Builds want: ${topDesired.join(', ')}`,
+    desiredSubstatCount: desiredCount,
+    isGoodOffset: false,
   };
 }
 
