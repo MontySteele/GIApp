@@ -403,7 +403,10 @@ export function fromGOODWithInventory(good: GOODFormat): GOODImportResult {
   }
 
   // Extract ALL artifacts into inventory format (both equipped and unequipped)
+  // Track occurrences so that artifacts with identical visible properties
+  // get distinct IDs instead of silently colliding.
   const inventoryArtifacts: Omit<InventoryArtifact, 'createdAt' | 'updatedAt'>[] = [];
+  const artifactKeyOccurrences = new Map<string, number>();
 
   for (const a of goodArtifacts) {
     // Generate deterministic ID from artifact properties
@@ -411,10 +414,14 @@ export function fromGOODWithInventory(good: GOODFormat): GOODImportResult {
       .map((s) => `${s.key}:${s.value}`)
       .sort()
       .join('|');
-    const id = `good-${a.setKey}-${a.slotKey}-${a.mainStatKey}-${a.level}-${a.rarity}-${substatStr}`.replace(
+    const baseId = `good-${a.setKey}-${a.slotKey}-${a.mainStatKey}-${a.level}-${a.rarity}-${substatStr}`.replace(
       /[^a-zA-Z0-9-_|:]/g,
       ''
     );
+
+    const occurrence = artifactKeyOccurrences.get(baseId) || 0;
+    artifactKeyOccurrences.set(baseId, occurrence + 1);
+    const id = occurrence === 0 ? baseId : `${baseId}-${occurrence}`;
 
     // Only include location if the character exists in this export
     const location = a.location && characterKeys.has(a.location) ? a.location : '';
