@@ -16,6 +16,7 @@ import {
   VALUABLE_SETS,
   type SlotKey,
 } from './artifactConstants';
+import { checkArtifactQuality, type QualityFilterResult } from './artifactQualityFilter';
 
 export interface ArtifactScore {
   /** Overall score 0-100 */
@@ -30,6 +31,8 @@ export interface ArtifactScore {
   isStrongboxTrash: boolean;
   /** Reason for trash recommendation */
   trashReason?: string;
+  /** Build-aware quality filter result */
+  qualityFilter?: QualityFilterResult;
 }
 
 /**
@@ -153,8 +156,11 @@ export function scoreInventoryArtifact(artifact: InventoryArtifact): ArtifactSco
     cvScore + rollScore + mainStatScore + setBonus - rarityPenalty
   ));
 
-  // Determine if strongbox trash
-  const { isTrash, reason } = determineStrongboxTrash(artifact, cv, totalScore);
+  // Build-aware quality filter
+  const qualityFilter = checkArtifactQuality(artifact);
+
+  // Determine if strongbox trash (now also considering build demand)
+  const { isTrash, reason } = determineStrongboxTrash(artifact, cv, totalScore, qualityFilter);
 
   return {
     score: Math.round(totalScore),
@@ -163,6 +169,7 @@ export function scoreInventoryArtifact(artifact: InventoryArtifact): ArtifactSco
     rollEfficiency: Math.round(rollEff * 100) / 100,
     isStrongboxTrash: isTrash,
     trashReason: reason,
+    qualityFilter,
   };
 }
 
@@ -214,11 +221,17 @@ export function scoreEquippedArtifact(artifact: Artifact): ArtifactScore {
 function determineStrongboxTrash(
   artifact: InventoryArtifact,
   cv: number,
-  score: number
+  score: number,
+  qualityFilter: QualityFilterResult
 ): { isTrash: boolean; reason?: string } {
   // 3-star and 4-star artifacts at max level are fodder
   if (artifact.rarity <= 4 && artifact.level >= (artifact.rarity === 4 ? 16 : 12)) {
     return { isTrash: true, reason: `${artifact.rarity}-star at max level` };
+  }
+
+  // Build-aware filter: no build uses this set+slot+mainStat combo
+  if (qualityFilter.isUseless) {
+    return { isTrash: true, reason: qualityFilter.reason };
   }
 
   // Obsolete set

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Trash2, Filter, Package, AlertTriangle } from 'lucide-react';
+import { Trash2, Filter, Package, AlertTriangle, ShieldX } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -15,11 +15,12 @@ export default function ArtifactsPage() {
   const [sortField, setSortField] = useState<ArtifactSortField>('score');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'all' | 'trash'>('all');
+  const [viewMode, setViewMode] = useState<'all' | 'trash' | 'no-build'>('all');
 
   const activeFilters = useMemo(() => ({
     ...filters,
     trashOnly: viewMode === 'trash',
+    noBuildDemand: viewMode === 'no-build',
   }), [filters, viewMode]);
 
   const { artifacts, isLoading, error, stats } = useArtifacts({
@@ -157,6 +158,20 @@ export default function ArtifactsPage() {
             All Artifacts
           </button>
           <button
+            onClick={() => setViewMode('no-build')}
+            className={`px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1.5 ${
+              viewMode === 'no-build'
+                ? 'bg-orange-900/50 text-orange-300'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldX className="w-3.5 h-3.5" />
+            No Build Uses
+            {stats.noBuildDemand > 0 && (
+              <span className="text-xs bg-orange-800/50 px-1.5 rounded-full">{stats.noBuildDemand}</span>
+            )}
+          </button>
+          <button
             onClick={() => setViewMode('trash')}
             className={`px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1.5 ${
               viewMode === 'trash'
@@ -271,7 +286,7 @@ function ArtifactCard({ artifact }: { artifact: ArtifactWithScore }) {
   const { score } = artifact;
 
   return (
-    <Card className={score.isStrongboxTrash ? 'border-red-900/50' : ''}>
+    <Card className={score.isStrongboxTrash ? 'border-red-900/50' : score.qualityFilter?.isUseless ? 'border-orange-900/50' : ''}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1 min-w-0">
@@ -329,6 +344,14 @@ function ArtifactCard({ artifact }: { artifact: ArtifactWithScore }) {
             <div className="text-xs text-slate-500">Unequipped</div>
           )}
         </div>
+
+        {score.qualityFilter && !score.qualityFilter.isUseless && (
+          <div className="mt-2 pt-2 border-t border-slate-800">
+            <div className="text-xs text-green-400">
+              {score.qualityFilter.reason}
+            </div>
+          </div>
+        )}
 
         {score.isStrongboxTrash && (
           <div className="mt-2 pt-2 border-t border-red-900/30">

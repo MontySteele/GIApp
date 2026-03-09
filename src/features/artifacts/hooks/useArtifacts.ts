@@ -15,6 +15,8 @@ export interface ArtifactFilters {
   equipped?: boolean;
   locked?: boolean;
   trashOnly?: boolean;
+  /** Show only artifacts that no build wants (build-aware filter) */
+  noBuildDemand?: boolean;
 }
 
 export type ArtifactSortField = 'score' | 'critValue' | 'level' | 'rarity' | 'updatedAt';
@@ -73,6 +75,7 @@ export function useArtifacts(options: UseArtifactsOptions = {}) {
       }
       if (filters.locked !== undefined && artifact.lock !== filters.locked) return false;
       if (filters.trashOnly && !artifact.score.isStrongboxTrash) return false;
+      if (filters.noBuildDemand && !artifact.score.qualityFilter?.isUseless) return false;
       return true;
     });
   }, [scoredArtifacts, options.filters]);
@@ -113,6 +116,7 @@ export function useArtifacts(options: UseArtifactsOptions = {}) {
     const trash = scoredArtifacts.filter((a) => a.score.isStrongboxTrash).length;
     const equipped = scoredArtifacts.filter((a) => a.location !== '').length;
     const fiveStar = scoredArtifacts.filter((a) => a.rarity === 5).length;
+    const noBuildDemand = scoredArtifacts.filter((a) => a.score.qualityFilter?.isUseless).length;
 
     // Grade distribution
     const grades = { S: 0, A: 0, B: 0, C: 0, D: 0, F: 0 };
@@ -126,6 +130,7 @@ export function useArtifacts(options: UseArtifactsOptions = {}) {
       equipped,
       unequipped: total - equipped,
       fiveStar,
+      noBuildDemand,
       grades,
     };
   }, [scoredArtifacts]);
