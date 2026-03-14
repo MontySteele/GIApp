@@ -48,15 +48,20 @@ export default function GOODExport({ onClose }: GOODExportProps) {
     inventoryWeapons.length > 0 ||
     Object.keys(materials).length > 0;
 
-  const goodData = includeInventory && hasInventoryData
-    ? toGOODWithInventory({
-        characters,
-        inventoryArtifacts,
-        inventoryWeapons,
-        materials,
-      })
-    : toGOOD(characters);
-  const jsonText = JSON.stringify(goodData, null, 2);
+  // Only compute export data once inventory has finished loading to avoid
+  // a race condition where toGOOD(characters) is used (equipped-only) before
+  // the full inventory is available.
+  const goodData = loadingInventory
+    ? null
+    : includeInventory && hasInventoryData
+      ? toGOODWithInventory({
+          characters,
+          inventoryArtifacts,
+          inventoryWeapons,
+          materials,
+        })
+      : toGOOD(characters);
+  const jsonText = goodData ? JSON.stringify(goodData, null, 2) : '';
 
   const handleDownload = () => {
     const blob = new Blob([jsonText], { type: 'application/json' });
@@ -153,6 +158,7 @@ export default function GOODExport({ onClose }: GOODExportProps) {
               variant="secondary"
               size="sm"
               onClick={handleCopy}
+              disabled={loadingInventory || !goodData}
               className="absolute top-2 right-2"
             >
               {copied ? (
@@ -176,9 +182,9 @@ export default function GOODExport({ onClose }: GOODExportProps) {
         <Button variant="ghost" onClick={onClose}>
           Close
         </Button>
-        <Button onClick={handleDownload}>
+        <Button onClick={handleDownload} disabled={loadingInventory || !goodData}>
           <Download className="w-4 h-4" />
-          Download JSON
+          {loadingInventory ? 'Loading inventory...' : 'Download JSON'}
         </Button>
       </div>
     </div>

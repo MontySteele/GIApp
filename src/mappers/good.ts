@@ -363,6 +363,117 @@ export interface InventoryExportData {
 }
 
 /**
+ * Result of importing GOOD format with inventory data
+ */
+export interface GOODImportResult {
+  characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[];
+  inventoryArtifacts: Omit<InventoryArtifact, 'createdAt' | 'updatedAt'>[];
+  inventoryWeapons: Omit<InventoryWeapon, 'createdAt' | 'updatedAt'>[];
+  materials: Record<string, number>;
+}
+
+/**
+ * Convert GOOD format to internal format including inventory artifacts/weapons.
+ * Unlike fromGOOD(), this also extracts unequipped artifacts and weapons
+ * that were exported via toGOODWithInventory().
+ */
+export function fromGOODWithInventory(good: GOODFormat): GOODImportResult {
+  if (good.format !== 'GOOD') {
+    throw new Error('Invalid format: expected GOOD format');
+  }
+
+  const characters = fromGOOD(good);
+
+  const goodArtifacts = good.artifacts || [];
+  const goodWeapons = good.weapons || [];
+  const goodCharacters = good.characters || [];
+
+  // Build a set of character keys for location validation
+  const characterKeys = new Set(goodCharacters.map((c) => c.key));
+
+  // Track which artifacts are already embedded in characters (equipped artifacts)
+  // so we don't duplicate them in the inventory
+  const equippedArtifactKeys = new Set<string>();
+  for (const char of characters) {
+    for (const artifact of char.artifacts) {
+      equippedArtifactKeys.add(
+        `${char.key}:${artifact.setKey}:${artifact.slotKey}:${artifact.mainStatKey}:${artifact.level}`
+      );
+    }
+  }
+
+  // Extract ALL artifacts into inventory format (both equipped and unequipped)
+  // Track occurrences so that artifacts with identical visible properties
+  // get distinct IDs instead of silently colliding.
+  const inventoryArtifacts: Omit<InventoryArtifact, 'createdAt' | 'updatedAt'>[] = [];
+  const artifactKeyOccurrences = new Map<string, number>();
+
+  for (const a of goodArtifacts) {
+    // Generate deterministic ID from artifact properties
+    const substatStr = a.substats
+      .map((s) => `${s.key}:${s.value}`)
+      .sort()
+      .join('|');
+    const baseId = `good-${a.setKey}-${a.slotKey}-${a.mainStatKey}-${a.level}-${a.rarity}-${substatStr}`.replace(
+      /[^a-zA-Z0-9-_|:]/g,
+      ''
+    );
+
+    const occurrence = artifactKeyOccurrences.get(baseId) || 0;
+    artifactKeyOccurrences.set(baseId, occurrence + 1);
+    const id = occurrence === 0 ? baseId : `${baseId}-${occurrence}`;
+
+    // Only include location if the character exists in this export
+    const location = a.location && characterKeys.has(a.location) ? a.location : '';
+
+    inventoryArtifacts.push({
+      id,
+      setKey: a.setKey,
+      slotKey: toSlotKey(a.slotKey),
+      level: a.level,
+      rarity: a.rarity,
+      mainStatKey: a.mainStatKey,
+      substats: a.substats.map((s) => ({ key: s.key, value: s.value })),
+      location,
+      lock: a.lock,
+    });
+  }
+
+  // Extract unequipped weapons into inventory format
+  const equippedWeaponKeys = new Set<string>();
+  for (const char of characters) {
+    equippedWeaponKeys.add(`${char.key}:${char.weapon.key}`);
+  }
+
+  const inventoryWeapons: Omit<InventoryWeapon, 'createdAt' | 'updatedAt'>[] = [];
+
+  for (const w of goodWeapons) {
+    const location = w.location && characterKeys.has(w.location) ? w.location : '';
+    const id = `good-${w.key}-${w.level}-${w.ascension}-${w.refinement}-${location}`.replace(
+      /[^a-zA-Z0-9-_]/g,
+      ''
+    );
+
+    inventoryWeapons.push({
+      id,
+      key: w.key,
+      level: w.level,
+      ascension: w.ascension,
+      refinement: w.refinement,
+      location,
+      lock: w.lock,
+    });
+  }
+
+  return {
+    characters,
+    inventoryArtifacts,
+    inventoryWeapons,
+    materials: good.materials || {},
+  };
+}
+
+/**
  * Convert all data (characters + standalone inventory) to GOOD format for full export
  * This is used for cross-platform sync (e.g., Windows to Mac)
  */

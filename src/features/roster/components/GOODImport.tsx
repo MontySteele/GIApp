@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Upload, FileJson, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileJson, CheckCircle, AlertCircle, Package } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { fromGOOD, validateGOOD, type GOODFormat } from '@/mappers/good';
+import { fromGOODWithInventory, validateGOOD, type GOODFormat } from '@/mappers/good';
 import { characterRepo } from '../repo/characterRepo';
+import { artifactRepo } from '@/features/artifacts/repo/artifactRepo';
+import { weaponRepo } from '@/features/weapons/repo/weaponRepo';
 
 interface GOODImportProps {
   onSuccess: () => void;
@@ -15,7 +17,9 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     success: boolean;
-    count: number;
+    characterCount: number;
+    artifactCount: number;
+    weaponCount: number;
   } | null>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,19 +59,33 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
 
       const goodData = data as GOODFormat;
 
-      // Convert to internal format
-      const characters = fromGOOD(goodData);
+      // Convert to internal format (characters + inventory)
+      const result = fromGOODWithInventory(goodData);
 
-      if (characters.length === 0) {
-        throw new Error('No characters found in GOOD file');
+      if (result.characters.length === 0 && result.inventoryArtifacts.length === 0) {
+        throw new Error('No characters or artifacts found in GOOD file');
       }
 
       // Import characters
-      await characterRepo.bulkCreate(characters);
+      if (result.characters.length > 0) {
+        await characterRepo.bulkCreate(result.characters);
+      }
+
+      // Import inventory artifacts
+      if (result.inventoryArtifacts.length > 0) {
+        await artifactRepo.bulkUpsert(result.inventoryArtifacts);
+      }
+
+      // Import inventory weapons
+      if (result.inventoryWeapons.length > 0) {
+        await weaponRepo.bulkUpsert(result.inventoryWeapons);
+      }
 
       setImportResult({
         success: true,
-        count: characters.length,
+        characterCount: result.characters.length,
+        artifactCount: result.inventoryArtifacts.length,
+        weaponCount: result.inventoryWeapons.length,
       });
 
       // Auto-close after 2 seconds
@@ -78,7 +96,9 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
       setError(err instanceof Error ? err.message : 'Import failed');
       setImportResult({
         success: false,
-        count: 0,
+        characterCount: 0,
+        artifactCount: 0,
+        weaponCount: 0,
       });
     } finally {
       setImporting(false);
@@ -142,8 +162,21 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
           <div className="flex items-start gap-2 p-3 bg-green-900/20 border border-green-700 rounded-lg mb-4">
             <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-green-200">
-              Successfully imported {importResult.count}{' '}
-              {importResult.count === 1 ? 'character' : 'characters'}!
+              <div>Import successful!</div>
+              <ul className="mt-1 space-y-0.5 text-green-300">
+                {importResult.characterCount > 0 && (
+                  <li>{importResult.characterCount} character{importResult.characterCount !== 1 ? 's' : ''}</li>
+                )}
+                {importResult.artifactCount > 0 && (
+                  <li>
+                    <Package className="w-3 h-3 inline mr-1" />
+                    {importResult.artifactCount} artifact{importResult.artifactCount !== 1 ? 's' : ''}
+                  </li>
+                )}
+                {importResult.weaponCount > 0 && (
+                  <li>{importResult.weaponCount} weapon{importResult.weaponCount !== 1 ? 's' : ''}</li>
+                )}
+              </ul>
             </div>
           </div>
         )}

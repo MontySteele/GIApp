@@ -14,6 +14,9 @@ import type {
   Note,
   PlannedBanner,
   CalculatorScenario,
+  InventoryArtifact,
+  InventoryWeapon,
+  MaterialInventory,
 } from '@/types';
 
 // ----- TYPES -----
@@ -34,6 +37,9 @@ export interface BackupData {
     notes?: Note[];
     plannedBanners?: PlannedBanner[];
     calculatorScenarios?: CalculatorScenario[];
+    inventoryArtifacts?: InventoryArtifact[];
+    inventoryWeapons?: InventoryWeapon[];
+    materialInventory?: MaterialInventory[];
     // Intentionally not importing: externalCache, appMeta
   };
 }
@@ -51,6 +57,9 @@ export interface ImportResult {
     notes: { created: number; updated: number; skipped: number };
     plannedBanners: { created: number; updated: number; skipped: number };
     calculatorScenarios: { created: number; updated: number; skipped: number };
+    inventoryArtifacts: { created: number; updated: number; skipped: number };
+    inventoryWeapons: { created: number; updated: number; skipped: number };
+    materialInventory: { created: number; updated: number; skipped: number };
   };
   warnings: string[];
   errors: string[];
@@ -278,6 +287,9 @@ export async function importBackup(
       notes: { created: 0, updated: 0, skipped: 0 },
       plannedBanners: { created: 0, updated: 0, skipped: 0 },
       calculatorScenarios: { created: 0, updated: 0, skipped: 0 },
+      inventoryArtifacts: { created: 0, updated: 0, skipped: 0 },
+      inventoryWeapons: { created: 0, updated: 0, skipped: 0 },
+      materialInventory: { created: 0, updated: 0, skipped: 0 },
     },
     warnings: [],
     errors: [],
@@ -295,6 +307,9 @@ export async function importBackup(
     'notes',
     'plannedBanners',
     'calculatorScenarios',
+    'inventoryArtifacts',
+    'inventoryWeapons',
+    'materialInventory',
   ];
   let stageIndex = 0;
 
@@ -368,6 +383,34 @@ export async function importBackup(
       if (data.calculatorScenarios?.length) {
         onProgress?.('Importing calculator scenarios...', (stageIndex / stages.length) * 100);
         result.stats.calculatorScenarios = await mergeTable('calculatorScenarios', data.calculatorScenarios, strategy);
+      }
+      stageIndex++;
+
+      // Inventory Artifacts — replace wholesale since these represent a
+      // point-in-time snapshot, not individually authored records.
+      if (data.inventoryArtifacts?.length) {
+        onProgress?.('Importing inventory artifacts...', (stageIndex / stages.length) * 100);
+        await db.inventoryArtifacts.clear();
+        await db.inventoryArtifacts.bulkPut(data.inventoryArtifacts);
+        result.stats.inventoryArtifacts = { created: data.inventoryArtifacts.length, updated: 0, skipped: 0 };
+      }
+      stageIndex++;
+
+      // Inventory Weapons — same: replace wholesale.
+      if (data.inventoryWeapons?.length) {
+        onProgress?.('Importing inventory weapons...', (stageIndex / stages.length) * 100);
+        await db.inventoryWeapons.clear();
+        await db.inventoryWeapons.bulkPut(data.inventoryWeapons);
+        result.stats.inventoryWeapons = { created: data.inventoryWeapons.length, updated: 0, skipped: 0 };
+      }
+      stageIndex++;
+
+      // Material Inventory — same: replace wholesale.
+      if (data.materialInventory?.length) {
+        onProgress?.('Importing material inventory...', (stageIndex / stages.length) * 100);
+        await db.materialInventory.clear();
+        await db.materialInventory.bulkPut(data.materialInventory);
+        result.stats.materialInventory = { created: data.materialInventory.length, updated: 0, skipped: 0 };
       }
     });
 

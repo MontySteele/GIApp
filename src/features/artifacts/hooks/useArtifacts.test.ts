@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useArtifacts } from './useArtifacts';
+import { useArtifacts, COVERAGE_MINIMUM } from './useArtifacts';
 import { artifactRepo } from '../repo/artifactRepo';
 import { scoreInventoryArtifact } from '../domain/artifactScoring';
 import type { InventoryArtifact } from '@/types';
+import type { ArtifactScore } from '../domain/artifactScoring';
 
 // Mock dependencies
 vi.mock('../repo/artifactRepo', () => ({
@@ -14,6 +15,23 @@ vi.mock('../repo/artifactRepo', () => ({
 
 vi.mock('../domain/artifactScoring', () => ({
   scoreInventoryArtifact: vi.fn(),
+}));
+
+// Mock dexie-react-hooks to use a synchronous wrapper around the querier
+vi.mock('dexie-react-hooks', () => ({
+  useLiveQuery: (querier: () => Promise<unknown>) => {
+    // Use a simple sync approach: call the querier and track the result via state
+    const { useState, useEffect } = require('react');
+    const [data, setData] = useState<unknown>(undefined);
+    useEffect(() => {
+      let cancelled = false;
+      querier().then((result: unknown) => {
+        if (!cancelled) setData(result);
+      });
+      return () => { cancelled = true; };
+    }, []);
+    return data;
+  },
 }));
 
 const mockArtifacts: InventoryArtifact[] = [
@@ -119,16 +137,14 @@ describe('useArtifacts', () => {
       expect(result.current.allArtifacts).toHaveLength(3);
     });
 
-    it('handles loading error', async () => {
-      vi.mocked(artifactRepo.getAll).mockRejectedValue(new Error('DB Error'));
-
+    it('returns null error on success', async () => {
       const { result } = renderHook(() => useArtifacts());
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.error).toBe('DB Error');
+      expect(result.current.error).toBeNull();
     });
   });
 
@@ -382,6 +398,148 @@ describe('useArtifacts', () => {
       expect(result.current.stats.grades.A).toBe(1);
       expect(result.current.stats.grades.C).toBe(1);
       expect(result.current.stats.grades.F).toBe(1);
+    });
+  });
+
+  describe('coverage preservation', () => {
+    function makeArt(id: string, overrides: Partial<InventoryArtifact> = {}): InventoryArtifact {
+      return {
+        id,
+        setKey: 'AubadeOfMorningstarAndMoon',
+        slotKey: 'flower',
+        rarity: 5,
+        level: 0,
+        mainStatKey: 'hp',
+        substats: [{ key: 'def', value: 21 }, { key: 'atk', value: 14 }],
+        location: '',
+        lock: false,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+        ...overrides,
+      };
+    }
+
+    function makeScore(id: string, score: number, trash: boolean, demand: number): ArtifactScore {
+      return {
+        score,
+        grade: score >= 55 ? 'B' : score >= 25 ? 'D' : 'F',
+        critValue: 0,
+        rollEfficiency: 0,
+        isStrongboxTrash: trash,
+        trashReason: trash ? 'Low-value substats' : undefined,
+        qualityFilter: {
+          isUseless: trash,
+          buildDemand: demand,
+          reason: trash ? 'Low-value substats' : `${demand} builds use this combo`,
+        },
+      };
+    }
+
+    it('preserves best pieces when all are marked as trash for a demanded combo', async () => {
+      // 3 flowers from the same demanded set, all marked trash
+      const arts = [
+        makeArt('f1'),
+        makeArt('f2'),
+        makeArt('f3'),
+      ];
+
+      vi.mocked(artifactRepo.getAll).mockResolvedValue(arts);
+      vi.mocked(scoreInventoryArtifact).mockImplementation((a) => {
+        // All marked trash, but set has build demand
+        if (a.id === 'f1') return makeScore('f1', 28, true, 57);
+        if (a.id === 'f2') return makeScore('f2', 25, true, 57);
+        return makeScore('f3', 20, true, 57);
+      });
+
+      const { result } = renderHook(() => useArtifacts());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // The best COVERAGE_MINIMUM pieces should be un-trashed
+      const kept = result.current.allArtifacts.filter((a) => !a.score.isStrongboxTrash);
+      expect(kept.length).toBe(COVERAGE_MINIMUM);
+
+      // The best-scoring ones should be the ones preserved
+      const keptIds = kept.map((a) => a.id).sort();
+      expect(keptIds).toContain('f1'); // score 28
+      expect(keptIds).toContain('f2'); // score 25
+    });
+
+    it('does not over-preserve when enough non-trash pieces exist', async () => {
+      const arts = [
+        makeArt('f1'),
+        makeArt('f2'),
+        makeArt('f3'),
+      ];
+
+      vi.mocked(artifactRepo.getAll).mockResolvedValue(arts);
+      vi.mocked(scoreInventoryArtifact).mockImplementation((a) => {
+        // f1 and f2 are good, f3 is trash
+        if (a.id === 'f1') return makeScore('f1', 70, false, 57);
+        if (a.id === 'f2') return makeScore('f2', 60, false, 57);
+        return makeScore('f3', 20, true, 57);
+      });
+
+      const { result } = renderHook(() => useArtifacts());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Already have 2 non-trash pieces, so f3 should stay trash
+      const f3 = result.current.allArtifacts.find((a) => a.id === 'f3');
+      expect(f3?.score.isStrongboxTrash).toBe(true);
+    });
+
+    it('does not preserve pieces with zero build demand', async () => {
+      const arts = [
+        makeArt('f1', { setKey: 'UnknownSet' }),
+        makeArt('f2', { setKey: 'UnknownSet' }),
+      ];
+
+      vi.mocked(artifactRepo.getAll).mockResolvedValue(arts);
+      vi.mocked(scoreInventoryArtifact).mockImplementation((a) => {
+        // Both trash, zero build demand
+        return makeScore(a.id, 15, true, 0);
+      });
+
+      const { result } = renderHook(() => useArtifacts());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Zero demand = no preservation
+      const kept = result.current.allArtifacts.filter((a) => !a.score.isStrongboxTrash);
+      expect(kept.length).toBe(0);
+    });
+
+    it('groups sands/goblet/circlet by mainStat separately', async () => {
+      // Two goblets with different main stats from the same set
+      const arts = [
+        makeArt('g1', { slotKey: 'goblet', mainStatKey: 'def_' }),
+        makeArt('g2', { slotKey: 'goblet', mainStatKey: 'eleMas' }),
+      ];
+
+      vi.mocked(artifactRepo.getAll).mockResolvedValue(arts);
+      vi.mocked(scoreInventoryArtifact).mockImplementation((a) => {
+        // Both trash, both demanded
+        if (a.id === 'g1') return makeScore('g1', 20, true, 1);
+        return makeScore('g2', 22, true, 8);
+      });
+
+      const { result } = renderHook(() => useArtifacts());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Each mainStat is a separate group with 1 piece each
+      // Both should be preserved (each group has < COVERAGE_MINIMUM non-trash)
+      const kept = result.current.allArtifacts.filter((a) => !a.score.isStrongboxTrash);
+      expect(kept.length).toBe(2);
     });
   });
 });

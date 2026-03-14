@@ -16,6 +16,7 @@ import {
   VALUABLE_SETS,
   type SlotKey,
 } from './artifactConstants';
+import { checkArtifactQuality, type QualityFilterResult } from './artifactQualityFilter';
 
 export interface ArtifactScore {
   /** Overall score 0-100 */
@@ -30,6 +31,8 @@ export interface ArtifactScore {
   isStrongboxTrash: boolean;
   /** Reason for trash recommendation */
   trashReason?: string;
+  /** Build-aware quality filter result */
+  qualityFilter?: QualityFilterResult;
 }
 
 /**
@@ -78,6 +81,65 @@ export function calculateRollEfficiency(substats: Array<{ key: string; value: nu
 }
 
 /**
+ * Estimate the CV an unleveled artifact would reach at +20.
+ *
+ * Genshin reveals all 4 substats on 5-star artifacts at level 0, so we can
+ * project how many of the remaining upgrade rolls are likely to land on crit
+ * lines.  For artifacts that are already leveled the current CV is returned
+ * as-is.
+ *
+ * Math:
+ *  - A 5★ artifact receives 5 substat upgrades from +0 → +20 (at +4/+8/+12/+16/+20).
+ *  - If only 3 substats are present, the first upgrade unlocks the 4th line
+ *    (which may itself be a crit stat), leaving 4 remaining distributed rolls.
+ *  - Each roll hits one of the 4 substats with equal probability (1/4).
+ *  - Average roll values: CR ≈ 3.31 (3.89×0.85), CD ≈ 6.60 (7.77×0.85).
+ *  - Expected CV per roll that lands on a crit line = CR×2 ≈ 6.62 or CD ≈ 6.60.
+ *    We use ~6.6 as the average CV gain per crit-landing roll.
+ */
+export function estimateLeveledCV(
+  substats: Array<{ key: string; value: number }>,
+  level: number,
+  rarity: number,
+): number {
+  const currentCV = calculateCritValue(substats);
+
+  // Only project for unleveled/partially leveled 5-star artifacts
+  if (rarity < 5 || level >= 20) return currentCV;
+
+  // Count crit lines among the visible substats
+  let critLines = 0;
+  for (const sub of substats) {
+    const k = normalizeStatKey(sub.key);
+    if (k === 'critRate_' || k === 'critDMG_') critLines++;
+  }
+
+  if (critLines === 0) return currentCV;
+
+  // How many upgrade rolls remain?
+  // Upgrades happen at +4, +8, +12, +16, +20 → 5 total.
+  // Already-used upgrades = floor(level / 4).
+  const usedRolls = Math.floor(level / 4);
+
+  // If only 3 substats are present, the first unused roll unlocks the 4th
+  // line rather than upgrading an existing one.
+  const hasThreeStats = substats.length <= 3;
+  const rollsConsumedByUnlock = hasThreeStats && usedRolls < 5 ? 1 : 0;
+
+  const remainingRolls = Math.max(0, 5 - usedRolls - rollsConsumedByUnlock);
+  if (remainingRolls === 0) return currentCV;
+
+  // Each remaining roll has a (critLines / totalSubstats) chance of hitting
+  // a crit substat.  totalSubstats is 4 after unlock.
+  const totalSubstats = Math.max(substats.length, 4);
+  const avgCVPerCritRoll = 6.6; // ≈ average of CR×2 and CD single-roll values
+  const expectedCritRolls = remainingRolls * (critLines / totalSubstats);
+  const projectedCV = currentCV + expectedCritRolls * avgCVPerCritRoll;
+
+  return Math.round(projectedCV * 10) / 10;
+}
+
+/**
  * Check if an artifact has a "bad" main stat for DPS
  */
 function hasBadMainStat(slotKey: string, mainStatKey: string): boolean {
@@ -119,11 +181,15 @@ export function getGrade(score: number): 'S' | 'A' | 'B' | 'C' | 'D' | 'F' {
  */
 export function scoreInventoryArtifact(artifact: InventoryArtifact): ArtifactScore {
   const cv = calculateCritValue(artifact.substats);
+  const projectedCV = estimateLeveledCV(artifact.substats, artifact.level, artifact.rarity);
   const rollEff = calculateRollEfficiency(artifact.substats);
+
+  // For unleveled artifacts, use projected CV so we don't undervalue potential
+  const effectiveCV = Math.max(cv, projectedCV);
 
   // Base score from crit value (0-50 points)
   // 40+ CV is excellent, 30+ is good, 20+ is okay
-  const cvScore = Math.min(50, (cv / 50) * 50);
+  const cvScore = Math.min(50, (effectiveCV / 50) * 50);
 
   // Roll efficiency score (0-30 points)
   const rollScore = rollEff * 30;
@@ -153,8 +219,12 @@ export function scoreInventoryArtifact(artifact: InventoryArtifact): ArtifactSco
     cvScore + rollScore + mainStatScore + setBonus - rarityPenalty
   ));
 
-  // Determine if strongbox trash
-  const { isTrash, reason } = determineStrongboxTrash(artifact, cv, totalScore);
+  // Build-aware quality filter
+  const qualityFilter = checkArtifactQuality(artifact);
+
+  // Determine if strongbox trash (now also considering build demand)
+  // Use projected CV so unleveled artifacts with revealed crit potential aren't trashed
+  const { isTrash, reason } = determineStrongboxTrash(artifact, effectiveCV, totalScore, qualityFilter);
 
   return {
     score: Math.round(totalScore),
@@ -163,6 +233,7 @@ export function scoreInventoryArtifact(artifact: InventoryArtifact): ArtifactSco
     rollEfficiency: Math.round(rollEff * 100) / 100,
     isStrongboxTrash: isTrash,
     trashReason: reason,
+    qualityFilter,
   };
 }
 
@@ -214,11 +285,17 @@ export function scoreEquippedArtifact(artifact: Artifact): ArtifactScore {
 function determineStrongboxTrash(
   artifact: InventoryArtifact,
   cv: number,
-  score: number
+  score: number,
+  qualityFilter: QualityFilterResult
 ): { isTrash: boolean; reason?: string } {
   // 3-star and 4-star artifacts at max level are fodder
   if (artifact.rarity <= 4 && artifact.level >= (artifact.rarity === 4 ? 16 : 12)) {
     return { isTrash: true, reason: `${artifact.rarity}-star at max level` };
+  }
+
+  // Build-aware filter: no build uses this set+slot+mainStat combo
+  if (qualityFilter.isUseless) {
+    return { isTrash: true, reason: qualityFilter.reason };
   }
 
   // Obsolete set
