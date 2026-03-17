@@ -305,11 +305,13 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
   // identical visible properties get distinct IDs.
   const artifactKeyOccurrences = new Map<string, number>();
   for (const artifact of data.artifacts || []) {
-    const substats: ExtendedSubstat[] = artifact.substats.map((s) => ({
-      key: s.key,
-      value: s.value,
-      initialValue: s.initialValue,
-    }));
+    const substats: ExtendedSubstat[] = artifact.substats
+      .filter((s) => s.key !== '' && s.key !== undefined)
+      .map((s) => ({
+        key: s.key,
+        value: s.value,
+        initialValue: s.initialValue,
+      }));
 
     // Count occurrences of this property-based key to disambiguate duplicates
     const tempId = generateArtifactId(artifact, 0);

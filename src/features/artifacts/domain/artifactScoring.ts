@@ -288,9 +288,9 @@ function determineStrongboxTrash(
   score: number,
   qualityFilter: QualityFilterResult
 ): { isTrash: boolean; reason?: string } {
-  // 3-star and 4-star artifacts at max level are fodder
-  if (artifact.rarity <= 4 && artifact.level >= (artifact.rarity === 4 ? 16 : 12)) {
-    return { isTrash: true, reason: `${artifact.rarity}-star at max level` };
+  // Only 5-star artifacts can be used in the strongbox
+  if (artifact.rarity < 5) {
+    return { isTrash: false };
   }
 
   // Build-aware filter: no build uses this set+slot+mainStat combo
@@ -303,13 +303,13 @@ function determineStrongboxTrash(
     return { isTrash: true, reason: 'Obsolete artifact set' };
   }
 
-  // Very low score 5-star (unless it's a niche piece)
-  if (artifact.rarity === 5 && score < 30) {
+  // Very low score (unless it's a niche piece)
+  if (score < 30) {
     return { isTrash: true, reason: 'Very low quality substats' };
   }
 
   // Low CV on DPS pieces (circlet, goblet, sands with offensive main stat)
-  if (artifact.rarity === 5 && artifact.level === 20) {
+  if (artifact.level === 20) {
     const isOffensivePiece = ['sands', 'goblet', 'circlet'].includes(artifact.slotKey);
     if (isOffensivePiece && cv < 15 && !hasBadMainStat(artifact.slotKey, artifact.mainStatKey)) {
       return { isTrash: true, reason: 'Low crit value on offensive piece' };
@@ -318,7 +318,6 @@ function determineStrongboxTrash(
 
   // Bad main stat + low substats
   if (
-    artifact.rarity === 5 &&
     artifact.level === 20 &&
     hasBadMainStat(artifact.slotKey, artifact.mainStatKey) &&
     cv < 25

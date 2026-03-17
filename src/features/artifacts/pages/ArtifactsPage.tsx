@@ -363,7 +363,9 @@ function ArtifactCard({ artifact }: { artifact: ArtifactWithScore }) {
           <div className="mb-2">
             <div className="text-xs text-slate-500 mb-1">Substats</div>
             <div className="space-y-0.5">
-              {artifact.substats.map((sub, i) => {
+              {artifact.substats
+                .filter((sub) => sub.key !== '' && sub.key !== undefined)
+                .map((sub, i) => {
                 const isCrit = sub.key.toLowerCase().includes('crit');
                 return (
                   <div key={i} className={`text-xs ${isCrit ? 'text-yellow-400' : 'text-slate-400'}`}>
