@@ -433,7 +433,9 @@ export function fromGOODWithInventory(good: GOODFormat): GOODImportResult {
       level: a.level,
       rarity: a.rarity,
       mainStatKey: a.mainStatKey,
-      substats: a.substats.map((s) => ({ key: s.key, value: s.value })),
+      substats: a.substats
+        .filter((s) => s.key !== '' && s.key !== undefined)
+        .map((s) => ({ key: s.key, value: s.value })),
       location,
       lock: a.lock,
     });
