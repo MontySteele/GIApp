@@ -546,10 +546,13 @@ export function calculateDailyRateFromSnapshots(
     return !isBefore(wishDate, firstDate) && isBefore(wishDate, dayAfterLast);
   }).length;
 
-  // Count purchases between snapshots (purchases inflate snapshot values but aren't earned income)
+  // Count purchases between snapshots (purchases inflate snapshot values but aren't earned income).
+  // Filter strictly to source==='purchase': the previous "!cosmetic" filter accidentally captured
+  // other entries like wish_conversion whose negative amounts made the excluded rate exceed the
+  // included rate.
   const purchasesBetween = excludePurchases ? purchases.filter(p => {
     const purchaseDate = parseISO(p.timestamp);
-    return !SPENDING_SOURCES.includes(p.source) &&
+    return p.source === 'purchase' &&
       !isBefore(purchaseDate, firstDate) && isBefore(purchaseDate, dayAfterLast);
   }).reduce((sum, p) => sum + p.amount, 0) : 0;
 
@@ -734,8 +737,24 @@ export function calculateIncomeRateTrend(
     let hasSnapshotData: boolean;
 
     if (snapshotBeforePeriod && (snapshotsInPeriod.length > 0 || snapshotAfterPeriod)) {
-      // We have snapshot data bounding this period - calculate actual income
-      const endSnapshot = snapshotsInPeriod[snapshotsInPeriod.length - 1] || snapshotAfterPeriod;
+      // We have snapshot data bounding this period - calculate actual income.
+      // Choose the endSnapshot that best reflects income through periodEnd:
+      // pick whichever of (last snapshot in period, first snapshot after period) is closer
+      // in time to periodEnd. This avoids excluding end-of-period wishes when the last
+      // in-period snapshot is well before periodEnd but an after-period snapshot is nearby.
+      // Ties favour the after-period snapshot because it brackets the period (interpolation)
+      // rather than requiring extrapolation.
+      const lastInside = snapshotsInPeriod[snapshotsInPeriod.length - 1];
+      const firstAfter = snapshotAfterPeriod;
+      let endSnapshot: ResourceSnapshot | undefined;
+      if (lastInside && firstAfter) {
+        const periodEndMs = actualPeriodEnd.getTime();
+        const distInside = Math.abs(parseISO(lastInside.timestamp).getTime() - periodEndMs);
+        const distAfter = Math.abs(parseISO(firstAfter.timestamp).getTime() - periodEndMs);
+        endSnapshot = distAfter <= distInside ? firstAfter : lastInside;
+      } else {
+        endSnapshot = lastInside ?? firstAfter;
+      }
 
       if (endSnapshot && snapshotBeforePeriod !== endSnapshot) {
         const startTotal = snapshotTotal(snapshotBeforePeriod);
@@ -759,10 +778,13 @@ export function calculateIncomeRateTrend(
                    !isAfter(wDate, parseISO(endSnapshot.timestamp));
           }).length;
 
-          // Count purchases between these specific snapshots (exclude spending entries)
+          // Count purchases between these specific snapshots.
+          // Filter strictly to source==='purchase': previously used !SPENDING_SOURCES which
+          // accidentally captured wish_conversion (negative) entries too, causing the excluded
+          // rate to exceed the included rate.
           const purchasesBetween = excludePurchases ? sortedPurchases.filter(p => {
             const pDate = parseISO(p.timestamp);
-            return !SPENDING_SOURCES.includes(p.source) &&
+            return p.source === 'purchase' &&
                    isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
                    !isAfter(pDate, parseISO(endSnapshot.timestamp));
           }).reduce((sum, p) => sum + p.amount, 0) : 0;

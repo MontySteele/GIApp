@@ -30,13 +30,23 @@ interface UnifiedChartProps {
   purchases: PrimogemEntry[];
   currentPrimogems: number;
   currentIntertwined?: number;
+  currentGenesisCrystals?: number;
+  currentAcquaint?: number;
 }
 
 type ProjectionDays = 21 | 42 | 63 | 84;
 type LookbackDays = 30 | 60 | 90 | 180;
 type RateLookbackDays = 14 | 30 | 60 | 90;
 
-export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, currentIntertwined = 0 }: UnifiedChartProps) {
+export function UnifiedChart({
+  snapshots,
+  wishes,
+  purchases,
+  currentPrimogems,
+  currentIntertwined = 0,
+  currentGenesisCrystals = 0,
+  currentAcquaint = 0,
+}: UnifiedChartProps) {
   const [projectionDays, setProjectionDays] = useState<ProjectionDays>(42);
   const [lookbackDays, setLookbackDays] = useState<LookbackDays>(90);
   const [rateLookbackDays, setRateLookbackDays] = useState<RateLookbackDays>(14);
@@ -66,13 +76,20 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
   // Calculate summary stats
   const finalProjection = chartData[chartData.length - 1];
 
-  const pullsFromPrimos = Math.floor(currentPrimogems / PRIMOS_PER_PULL);
-  const currentPulls = pullsFromPrimos + currentIntertwined;
-  const projectedPrimogems = finalProjection?.projected ?? currentPrimogems;
-  // Note: projectedPrimogems already includes intertwined fates as primogem-equivalent
-  // (from buildHistoricalData which adds intertwined * 160 to the total)
-  // So we don't add currentIntertwined again here
+  // The chart uses snapshotTotal-equivalents (primos + genesis crystals + intertwined×160
+  // + acquaint×160) for both the historical line and the projection. For the "+X from
+  // income" delta to correctly reflect `dailyRate × days / 160`, currentPulls and
+  // projectedPulls must share that same yardstick.
+  const currentBaseline =
+    currentPrimogems
+    + currentGenesisCrystals
+    + currentIntertwined * PRIMOS_PER_PULL
+    + currentAcquaint * PRIMOS_PER_PULL;
+  const currentPulls = Math.floor(currentBaseline / PRIMOS_PER_PULL);
+  const projectedPrimogems = finalProjection?.projected ?? currentBaseline;
   const projectedPulls = Math.floor(projectedPrimogems / PRIMOS_PER_PULL);
+  const pullsFromPrimos = Math.floor((currentPrimogems + currentGenesisCrystals) / PRIMOS_PER_PULL);
+  const totalFates = currentIntertwined + currentAcquaint;
   const daysForOnePity = effectiveDailyRate > 0 ? Math.ceil((90 * PRIMOS_PER_PULL) / effectiveDailyRate) : Infinity;
 
   interface TooltipPayload {
@@ -226,7 +243,7 @@ export function UnifiedChart({ snapshots, wishes, purchases, currentPrimogems, c
           <p className="text-xs text-slate-400">Current Pulls</p>
           <p className="text-xl font-bold text-amber-400">{currentPulls}</p>
           <p className="text-xs text-slate-500">
-            {pullsFromPrimos} from primos{currentIntertwined > 0 && ` + ${currentIntertwined} fates`}
+            {pullsFromPrimos} from primos+crystals{totalFates > 0 && ` + ${totalFates} fates`}
           </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
