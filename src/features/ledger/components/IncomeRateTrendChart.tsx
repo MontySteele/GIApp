@@ -66,8 +66,10 @@ export function IncomeRateTrendChart({ snapshots, wishes, purchases }: IncomeRat
     const firstPayload = payload?.[0];
     if (active && firstPayload) {
       const data = firstPayload.payload;
+      const d = data.diagnostics;
+      const e = data.estimate;
       return (
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg max-w-xs">
           <p className="text-slate-100 font-semibold mb-2">
             Banner starting {data.label}
           </p>
@@ -79,12 +81,63 @@ export function IncomeRateTrendChart({ snapshots, wishes, purchases }: IncomeRat
               Total Income: <span className="font-semibold">{data.totalIncome.toLocaleString()}</span> primos
             </p>
             <p className="text-slate-400 text-xs">
-              {data.days} days in period
+              {Math.round(data.days)} days in period
             </p>
             {!data.hasSnapshotData && (
               <p className="text-amber-400 text-xs">
                 * Estimated from wish spending
               </p>
+            )}
+            {e && (
+              <div className="mt-2 pt-2 border-t border-slate-700 text-xs space-y-0.5">
+                <p className="text-slate-400 font-semibold">Estimate tie-back</p>
+                <p className="text-slate-300">
+                  Wishes in period: <span className="font-mono">{e.wishesInPeriod}</span> ({e.wishPrimos.toLocaleString()} primos)
+                </p>
+                {e.purchasesInPeriod > 0 && excludePurchases && (
+                  <p className="text-amber-300">
+                    Purchases subtracted: <span className="font-mono">−{e.purchasesInPeriod.toLocaleString()}</span>
+                  </p>
+                )}
+                {e.purchasesInPeriod > 0 && !excludePurchases && (
+                  <p className="text-slate-400">
+                    Purchases in period: <span className="font-mono">{e.purchasesInPeriod.toLocaleString()}</span> (not subtracted)
+                  </p>
+                )}
+                <p className="text-slate-200 pt-0.5">
+                  = <span className="font-mono">{e.estimatedIncome.toLocaleString()}</span> over {Math.round(e.effectiveDays)}d ({Math.round(e.estimatedIncome / (e.effectiveDays || 1))}/d)
+                </p>
+                <p className="text-slate-500 pt-1 italic">
+                  Assumes spending ≈ earning (no snapshot bracket for this period).
+                </p>
+              </div>
+            )}
+            {d && (
+              <div className="mt-2 pt-2 border-t border-slate-700 text-xs space-y-0.5">
+                <p className="text-slate-400 font-semibold">Period breakdown</p>
+                <p className="text-slate-400">
+                  Bracketed by snapshots {d.startSnapshotDate} → {d.endSnapshotDate}
+                </p>
+                <p className="text-slate-300">
+                  Earned Δ: <span className="font-mono">{d.snapshotDelta >= 0 ? '+' : ''}{d.snapshotDelta.toLocaleString()}</span>
+                </p>
+                <p className="text-slate-300">
+                  Wishes in period: <span className="font-mono">{d.wishesBetween}</span> ({d.wishPrimosBetween.toLocaleString()} primos)
+                </p>
+                {d.cosmeticRecovered > 0 && (
+                  <p className="text-slate-300">
+                    Cosmetic spent: <span className="font-mono">+{d.cosmeticRecovered.toLocaleString()}</span>
+                  </p>
+                )}
+                {d.purchasesExcluded > 0 && (
+                  <p className="text-amber-300">
+                    Purchases excluded: <span className="font-mono">−{d.purchasesExcluded.toLocaleString()}</span>
+                  </p>
+                )}
+                <p className="text-slate-200 pt-0.5">
+                  = <span className="font-mono">{d.spanIncome.toLocaleString()}</span> over {Math.round(d.spanDays)}d ({Math.round(d.spanRate)}/d)
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -103,7 +156,7 @@ export function IncomeRateTrendChart({ snapshots, wishes, purchases }: IncomeRat
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-4">
         <label className="flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"

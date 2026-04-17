@@ -314,6 +314,8 @@ export default function LedgerPage() {
           purchases={purchaseEntries}
           currentPrimogems={effectivePrimogems}
           currentIntertwined={effectiveIntertwined}
+          currentGenesisCrystals={effectiveGenesis}
+          currentAcquaint={effectiveAcquaint}
         />
       </section>
 

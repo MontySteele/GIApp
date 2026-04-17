@@ -21,6 +21,9 @@ export const PRIMOGEM_SOURCES: PrimogemSource[] = [
 /** Sources that represent non-wish primogem spending (negative amounts) */
 export const SPENDING_SOURCES: PrimogemSource[] = ['cosmetic'];
 
+/** Source for real-money primogem purchases */
+export const PURCHASE_SOURCE: PrimogemSource = 'purchase';
+
 export interface WishSpendingTotals {
   totalPulls: number;
   primogemEquivalent: number;

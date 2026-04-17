@@ -53,7 +53,7 @@ export {
 } from './data/standardPool';
 
 // Lib
-export { toWishRecord, toWishHistoryItem } from './lib/wishNormalization';
+export { toWishRecord, toWishHistoryItem, normalizeWishTimestamp } from './lib/wishNormalization';
 export {
   loadWishSession,
   saveWishSession,

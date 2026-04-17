@@ -2,18 +2,10 @@ import { GACHA_RULES } from '@/lib/constants';
 import type { WishRecord, BannerType } from '@/types';
 import { wishRepo } from '../repo/wishRepo';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
+import { normalizeWishTimestamp } from '../lib/wishNormalization';
 
 const getBannerVersion = (banner: BannerType) =>
   GACHA_RULES[banner]?.version ?? 'unknown';
-
-const normalizeTimestamp = (timestamp: string) => {
-  if (!timestamp) return new Date().toISOString();
-
-  const isoLike = timestamp.includes('T') ? timestamp : timestamp.replace(' ', 'T');
-  const parsedDate = new Date(isoLike);
-
-  return Number.isNaN(parsedDate.getTime()) ? timestamp : parsedDate.toISOString();
-};
 
 export const wishHistoryItemToRecord = (
   wish: WishHistoryItem
@@ -21,7 +13,7 @@ export const wishHistoryItemToRecord = (
   gachaId: wish.id,
   bannerType: wish.banner,
   bannerVersion: getBannerVersion(wish.banner),
-  timestamp: normalizeTimestamp(wish.time),
+  timestamp: normalizeWishTimestamp(wish.time),
   itemType: wish.itemType,
   itemKey: wish.name,
   rarity: wish.rarity,

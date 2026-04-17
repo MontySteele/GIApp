@@ -1,8 +1,11 @@
 import { parseISO, format, addDays, isBefore, isAfter, startOfDay, differenceInDays } from 'date-fns';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry, BannerType } from '@/types';
-import { SPENDING_SOURCES } from './resourceCalculations';
-
-const PRIMOGEMS_PER_PULL = 160;
+import { SPENDING_SOURCES, PURCHASE_SOURCE } from './resourceCalculations';
+import { PRIMOS_PER_PULL } from '@/lib/constants';
+import {
+  addBannerPeriods,
+  getBannerPeriodStart,
+} from './bannerTime';
 
 /**
  * Calculate the total primogem-equivalent value of a snapshot.
@@ -14,11 +17,11 @@ const PRIMOGEMS_PER_PULL = 160;
  * unaccounted resource drain that makes the income formula go negative
  * when purchases are excluded.
  */
-function snapshotTotal(snapshot: ResourceSnapshot): number {
+export function snapshotTotal(snapshot: ResourceSnapshot): number {
   return snapshot.primogems
     + (snapshot.genesisCrystals ?? 0)
-    + (snapshot.intertwined * PRIMOGEMS_PER_PULL)
-    + ((snapshot.acquaint ?? 0) * PRIMOGEMS_PER_PULL);
+    + (snapshot.intertwined * PRIMOS_PER_PULL)
+    + ((snapshot.acquaint ?? 0) * PRIMOS_PER_PULL);
 }
 
 /**
@@ -114,8 +117,10 @@ export function buildHistoricalData(
     (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
   );
 
-  // Split purchases from spending entries
-  const purchaseOnlyEntries = purchases.filter(p => !SPENDING_SOURCES.includes(p.source));
+  // Split purchases from spending entries.
+  // Filter strictly to source==='purchase': the negated-cosmetic check previously included
+  // wish_conversion (negative) entries, contaminating purchase totals on the same day.
+  const purchaseOnlyEntries = purchases.filter(p => p.source === PURCHASE_SOURCE);
   const spendingEntries = filterSpendingEntries(purchases);
 
   // Sort purchases by date ascending
@@ -203,8 +208,8 @@ export function buildHistoricalData(
     if (wishesToday > 0) {
       cumulativePulls += wishesToday;
       if (!snapshotOnDate) {
-        currentPrimogems -= wishesToday * PRIMOGEMS_PER_PULL;
-        currentPrimogemsWithPurchases -= wishesToday * PRIMOGEMS_PER_PULL;
+        currentPrimogems -= wishesToday * PRIMOS_PER_PULL;
+        currentPrimogemsWithPurchases -= wishesToday * PRIMOS_PER_PULL;
       }
     }
 
@@ -264,8 +269,8 @@ export function buildHistoricalData(
       if (!nextDayHasSnapshot) {
         const wishesNextDay = wishCountByDate.get(nextDayKey) ?? 0;
         if (wishesNextDay > 0) {
-          currentPrimogems += wishesNextDay * PRIMOGEMS_PER_PULL;
-          currentPrimogemsWithPurchases += wishesNextDay * PRIMOGEMS_PER_PULL;
+          currentPrimogems += wishesNextDay * PRIMOS_PER_PULL;
+          currentPrimogemsWithPurchases += wishesNextDay * PRIMOS_PER_PULL;
         }
 
         // Add back cosmetic spending from the next day (reverse the negative)
@@ -453,7 +458,7 @@ export function buildTransactionLog(
 
   for (const [dateKey, dayWishes] of wishesByDay) {
     const pullCount = dayWishes.length;
-    const primogemSpent = pullCount * PRIMOGEMS_PER_PULL;
+    const primogemSpent = pullCount * PRIMOS_PER_PULL;
     const fiveStars = dayWishes.filter(w => w.rarity === 5).length;
     const fourStars = dayWishes.filter(w => w.rarity === 4).length;
 
@@ -546,10 +551,13 @@ export function calculateDailyRateFromSnapshots(
     return !isBefore(wishDate, firstDate) && isBefore(wishDate, dayAfterLast);
   }).length;
 
-  // Count purchases between snapshots (purchases inflate snapshot values but aren't earned income)
+  // Count purchases between snapshots (purchases inflate snapshot values but aren't earned income).
+  // Filter strictly to source==='purchase': the previous "!cosmetic" filter accidentally captured
+  // other entries like wish_conversion whose negative amounts made the excluded rate exceed the
+  // included rate.
   const purchasesBetween = excludePurchases ? purchases.filter(p => {
     const purchaseDate = parseISO(p.timestamp);
-    return !SPENDING_SOURCES.includes(p.source) &&
+    return p.source === PURCHASE_SOURCE &&
       !isBefore(purchaseDate, firstDate) && isBefore(purchaseDate, dayAfterLast);
   }).reduce((sum, p) => sum + p.amount, 0) : 0;
 
@@ -564,7 +572,7 @@ export function calculateDailyRateFromSnapshots(
   // Clamp to 0: income can never be negative in practice. A negative value indicates
   // data inconsistency (e.g., wish history not re-imported after a wishing session,
   // or unconverted genesis crystals). Showing 0 is more accurate than a negative rate.
-  const totalIncome = Math.max(0, (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - nonWishSpendingBetween - purchasesBetween);
+  const totalIncome = Math.max(0, (lastTotal - firstTotal) + (pullsBetween * PRIMOS_PER_PULL) - nonWishSpendingBetween - purchasesBetween);
 
   // When excluding purchases, earned income can't be negative. A negative value means
   // there's untracked non-wish spending (e.g., outfits bought with genesis crystals but not logged).
@@ -597,7 +605,7 @@ export function calculateDailyRateFromWishes(
 
   // Use the full lookback period as denominator for consistent rate calculation
   // This gives a more accurate daily average over the specified period
-  const totalPrimogems = recentWishes.length * PRIMOGEMS_PER_PULL;
+  const totalPrimogems = recentWishes.length * PRIMOS_PER_PULL;
 
   return totalPrimogems / lookbackDays;
 }
@@ -613,6 +621,52 @@ export interface IncomeRateDataPoint {
   totalIncome: number;
   days: number;
   hasSnapshotData: boolean; // true if calculated from snapshots, false if estimated from wishes
+  /**
+   * Diagnostic breakdown of the conservation-equation inputs that produced
+   * `totalIncome`. Populated when `hasSnapshotData` is true; otherwise
+   * undefined.
+   *
+   * With period-boundary interpolation, the "span" is the banner period itself
+   * (fractional days for a still-running final period). The `startTotal` /
+   * `endTotal` values are the interpolated cumulative-earned function at the
+   * exact period boundaries (5 PM ET cutoffs), and `startSnapshotDate` /
+   * `endSnapshotDate` are the nearest actual snapshots used to bracket each
+   * boundary — surfaced so users can trace which data drove the estimate.
+   *
+   * Conservation identity (within the period):
+   *   totalIncome = (endTotal - startTotal) + purchasesInPeriod   (if included)
+   *   totalIncome = (endTotal - startTotal)                       (if excluded)
+   * Where the E() delta internally absorbs wishes (+pulls*160), cosmetic
+   * spending (+|cosmetic|), and purchases (−purchases) that occurred before
+   * each boundary.
+   */
+  diagnostics?: {
+    startSnapshotDate: string;
+    endSnapshotDate: string;
+    startTotal: number; // interpolated E(periodStart)
+    endTotal: number; // interpolated E(periodEnd)
+    snapshotDelta: number; // endTotal - startTotal (= earned in period, excl. purchases)
+    wishesBetween: number; // wish count strictly within the period
+    wishPrimosBetween: number; // wishesBetween * 160
+    cosmeticRecovered: number; // cosmetic spent within the period (positive)
+    purchasesExcluded: number; // purchase inflow within the period (0 when including)
+    spanDays: number; // exact days of the period (may be fractional for partial periods)
+    spanIncome: number; // total income attributed to the period (clamped ≥ 0 when excluding)
+    spanRate: number; // spanIncome / spanDays
+  };
+  /**
+   * Tie-back breakdown for wish-based fallback periods (hasSnapshotData=false).
+   * Shows the spending-as-income estimate: `wishPrimos - purchases` (when
+   * excluding) or `wishPrimos` (when including). Mutually exclusive with
+   * `diagnostics` — only one of the two is populated per period.
+   */
+  estimate?: {
+    wishesInPeriod: number; // intertwined-fate wishes in the effective window
+    wishPrimos: number; // wishesInPeriod * 160
+    purchasesInPeriod: number; // purchase primos in the effective window
+    estimatedIncome: number; // what was attributed as income (matches totalIncome)
+    effectiveDays: number; // days in the clipped data window
+  };
 }
 
 /**
@@ -622,26 +676,110 @@ export interface IncomeRateDataPoint {
 export const ACCOUNT_START_DATE = '2025-10-29';
 
 /**
- * Reference banner start date for aligning banner periods
- * Jan 13, 2026 is the start of a known banner (first half of 5.3)
+ * Cumulative "earned" function anchored at a snapshot. Invariant:
+ *   earned(t) = snapshotTotal(t) + pullsBefore(t)*160 + |cosmeticBefore(t)| - purchasesBefore(t)
+ * Because `snapshotTotal` already reflects the impact of wishes (fates consumed),
+ * purchases (primos gained), and cosmetic spending (primos drained), rearranging
+ * the conservation equation yields this value, which represents the total primos
+ * earned (not purchased) from account-start through time `t`. Linear interpolation
+ * between two such points gives a well-defined "earned" value at any instant.
  */
-const REFERENCE_BANNER_DATE = '2026-01-13';
-const BANNER_DURATION_DAYS = 21;
+interface EarnedAtPoint {
+  time: number; // ms since epoch
+  earned: number;
+}
+
+function buildEarnedAtPoints(
+  sortedSnapshots: ResourceSnapshot[],
+  sortedAllWishes: WishRecord[],
+  sortedPurchases: PrimogemEntry[],
+): EarnedAtPoint[] {
+  // Pre-extract timestamps once to avoid repeated parseISO calls.
+  const wishTimes = sortedAllWishes.map(w => parseISO(w.timestamp).getTime());
+  const purchaseEntries = sortedPurchases.map(p => ({
+    t: parseISO(p.timestamp).getTime(),
+    amount: p.amount,
+    source: p.source,
+  }));
+
+  return sortedSnapshots.map(s => {
+    const t = parseISO(s.timestamp).getTime();
+    // Count wishes at or before this snapshot (sorted, so we could binary-search;
+    // snapshot counts are small in practice so a linear scan is fine).
+    let wishCount = 0;
+    for (const wt of wishTimes) {
+      if (wt <= t) wishCount++;
+      else break;
+    }
+    let cosmeticSum = 0; // negative total
+    let purchaseSum = 0; // positive total
+    for (const p of purchaseEntries) {
+      if (p.t > t) break;
+      if (SPENDING_SOURCES.includes(p.source)) cosmeticSum += p.amount;
+      else if (p.source === PURCHASE_SOURCE) purchaseSum += p.amount;
+    }
+    const earned = snapshotTotal(s) + wishCount * PRIMOS_PER_PULL - cosmeticSum - purchaseSum;
+    return { time: t, earned };
+  });
+}
 
 /**
- * Get the start of the banner period containing a given date
- * Works by calculating days from reference date and finding the banner boundary
+ * Linear-interpolate the cumulative earned function at time `t`.
+ *   - Between two points: true linear interp.
+ *   - Before first / after last: extrapolate using the adjacent segment's rate.
+ * Returns null when fewer than 2 points are available (can't establish a rate).
  */
-function getBannerPeriodStart(date: Date): Date {
-  const reference = parseISO(REFERENCE_BANNER_DATE);
-  const daysDiff = differenceInDays(date, reference);
+function interpolateEarnedAt(points: EarnedAtPoint[], t: number): number | null {
+  if (points.length < 2) return null;
+  const first = points[0]!;
+  const last = points[points.length - 1]!;
+  if (t <= first.time) {
+    const p2 = points[1]!;
+    const rate = (p2.earned - first.earned) / (p2.time - first.time);
+    return first.earned + rate * (t - first.time);
+  }
+  if (t >= last.time) {
+    const p1 = points[points.length - 2]!;
+    const rate = (last.earned - p1.earned) / (last.time - p1.time);
+    return last.earned + rate * (t - last.time);
+  }
+  for (let i = 1; i < points.length; i++) {
+    const curr = points[i]!;
+    if (curr.time >= t) {
+      const prev = points[i - 1]!;
+      const frac = (t - prev.time) / (curr.time - prev.time);
+      return prev.earned + frac * (curr.earned - prev.earned);
+    }
+  }
+  return null;
+}
 
-  // Calculate which banner period this date falls into
-  // Negative means before reference, positive means after
-  const bannerOffset = Math.floor(daysDiff / BANNER_DURATION_DAYS);
+/** Find the snapshot immediately at or before time `t`. */
+function bracketSnapshotBefore(
+  snapshots: ResourceSnapshot[],
+  t: number,
+  timeMap?: Map<ResourceSnapshot, number>,
+): ResourceSnapshot | undefined {
+  let result: ResourceSnapshot | undefined;
+  for (const s of snapshots) {
+    const sTime = timeMap?.get(s) ?? parseISO(s.timestamp).getTime();
+    if (sTime <= t) result = s;
+    else break;
+  }
+  return result;
+}
 
-  // Get the start of that banner period
-  return addDays(reference, bannerOffset * BANNER_DURATION_DAYS);
+/** Find the snapshot immediately at or after time `t`. */
+function bracketSnapshotAfter(
+  snapshots: ResourceSnapshot[],
+  t: number,
+  timeMap?: Map<ResourceSnapshot, number>,
+): ResourceSnapshot | undefined {
+  for (const s of snapshots) {
+    const sTime = timeMap?.get(s) ?? parseISO(s.timestamp).getTime();
+    if (sTime >= t) return s;
+  }
+  return undefined;
 }
 
 /**
@@ -660,30 +798,35 @@ export function calculateIncomeRateTrend(
     return [];
   }
 
-  // Sort snapshots and wishes by date
-  const sortedSnapshots = [...snapshots].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
-  // Intertwined-only wishes for the fallback estimation (standard wishes don't cost primos)
-  const sortedIntertwinedWishes = [...intertwinedWishes].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
-  // ALL wishes for snapshot-based calculation (total includes acquaint fates, so we must
-  // add back acquaint wish spending too, otherwise those fates look like lost income)
-  const sortedAllWishes = [...wishes].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
-  const sortedPurchases = [...purchases].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
+  // Pre-parse timestamps once (Schwartzian transform) to avoid repeated
+  // parseISO calls in sort comparators and per-period filter loops.
+  const snapshotTimes = snapshots.map(s => ({ item: s, time: parseISO(s.timestamp).getTime() }));
+  snapshotTimes.sort((a, b) => a.time - b.time);
+  const sortedSnapshots = snapshotTimes.map(s => s.item);
+  const snapshotTimeMap = new Map(snapshotTimes.map(s => [s.item, s.time]));
+
+  const intertwinedTimes = intertwinedWishes.map(w => ({ item: w, time: parseISO(w.timestamp).getTime() }));
+  intertwinedTimes.sort((a, b) => a.time - b.time);
+  const sortedIntertwinedWishes = intertwinedTimes.map(w => w.item);
+  const intertwinedTimeMap = new Map(intertwinedTimes.map(w => [w.item, w.time]));
+
+  const allWishTimes = wishes.map(w => ({ item: w, time: parseISO(w.timestamp).getTime() }));
+  allWishTimes.sort((a, b) => a.time - b.time);
+  const sortedAllWishes = allWishTimes.map(w => w.item);
+  const allWishTimeMap = new Map(allWishTimes.map(w => [w.item, w.time]));
+
+  const purchaseTimes = purchases.map(p => ({ item: p, time: parseISO(p.timestamp).getTime() }));
+  purchaseTimes.sort((a, b) => a.time - b.time);
+  const sortedPurchases = purchaseTimes.map(p => p.item);
+  const purchaseTimeMap = new Map(purchaseTimes.map(p => [p.item, p.time]));
 
   // Determine date range
   const accountStart = parseISO(ACCOUNT_START_DATE);
-  const now = startOfDay(new Date());
+  const now = new Date();
 
-  // Find earliest date from wishes or snapshots
-  const firstWishDate = sortedAllWishes[0] ? parseISO(sortedAllWishes[0].timestamp) : null;
-  const firstSnapshotDate = sortedSnapshots[0] ? parseISO(sortedSnapshots[0].timestamp) : null;
+  // Find earliest date from wishes or snapshots (use pre-parsed times)
+  const firstWishDate = sortedAllWishes[0] ? new Date(allWishTimeMap.get(sortedAllWishes[0])!) : null;
+  const firstSnapshotDate = sortedSnapshots[0] ? new Date(snapshotTimeMap.get(sortedSnapshots[0])!) : null;
 
   let startDate = accountStart;
   if (firstWishDate && isBefore(firstWishDate, startDate)) {
@@ -693,114 +836,181 @@ export function calculateIncomeRateTrend(
     startDate = firstSnapshotDate;
   }
 
-  // Generate banner periods from start to now
+  // Precompute the cumulative earned function anchored at each snapshot.
+  // This lets us linearly interpolate "earned" at any instant (including exact
+  // banner cutoffs, which are NOT midnight but 5 PM ET).
+  const earnedPoints = buildEarnedAtPoints(sortedSnapshots, sortedAllWishes, sortedPurchases);
+  // Bounds of the snapshot data. We only use interpolation when the period is
+  // actually bracketed by snapshots — extrapolating *backward* before the first
+  // snapshot is unreliable (the rate between the earliest two snapshots does
+  // not reflect what the user was earning months earlier). Forward extrapolation
+  // past the last snapshot IS allowed so the currently-running period can still
+  // use snapshot data.
+  const firstSnapshotTime = earnedPoints[0]?.time ?? null;
+
+  // Generate banner periods from start to now. Period starts/ends are exact UTC
+  // instants corresponding to 5 PM ET on the patch day (DST-aware).
   const result: IncomeRateDataPoint[] = [];
   let periodStart = getBannerPeriodStart(startDate);
 
   while (isBefore(periodStart, now)) {
-    const periodEnd = addDays(periodStart, BANNER_DURATION_DAYS);
+    const periodEnd = addBannerPeriods(periodStart, 1);
     const actualPeriodEnd = isAfter(periodEnd, now) ? now : periodEnd;
-    const days = differenceInDays(actualPeriodEnd, periodStart);
+    const days = (actualPeriodEnd.getTime() - periodStart.getTime()) / (24 * 60 * 60 * 1000);
 
     if (days <= 0) {
       periodStart = periodEnd;
       continue;
     }
 
-    // Find snapshots within or bounding this period
-    const snapshotsInPeriod = sortedSnapshots.filter(s => {
-      const sDate = parseISO(s.timestamp);
-      return !isBefore(sDate, periodStart) && isBefore(sDate, periodEnd);
-    });
+    // First period edge case: the user's earliest data point (first wish/
+    // snapshot) may fall partway through the banner window. Without clipping,
+    // we'd divide a partial wish count by the full 21-day period and report a
+    // deceptively low rate. Use the later of the period start and startDate
+    // so the fallback rate reflects the actual data window.
+    const effectivePeriodStart = isBefore(periodStart, startDate) ? startDate : periodStart;
+    const effectiveDays =
+      (actualPeriodEnd.getTime() - effectivePeriodStart.getTime()) / (24 * 60 * 60 * 1000);
 
-    // Find snapshot just before period start
-    const snapshotBeforePeriod = sortedSnapshots
-      .filter(s => isBefore(parseISO(s.timestamp), periodStart))
-      .pop();
+    // Count intertwined wishes in this period (for fallback estimation; standard
+    // banner wishes don't cost primos so aren't valid income proxies).
+    const epStartMs = effectivePeriodStart.getTime();
+    const apEndMs = actualPeriodEnd.getTime();
 
-    // Find snapshot at or after period end
-    const snapshotAfterPeriod = sortedSnapshots
-      .find(s => !isBefore(parseISO(s.timestamp), periodStart) && !isBefore(parseISO(s.timestamp), actualPeriodEnd));
-
-    // Count intertwined wishes in this period (for fallback estimation - standard wishes don't cost primos)
     const intertwinedInPeriod = sortedIntertwinedWishes.filter(w => {
-      const wDate = parseISO(w.timestamp);
-      return !isBefore(wDate, periodStart) && isBefore(wDate, periodEnd);
+      const t = intertwinedTimeMap.get(w)!;
+      return t >= epStartMs && t < apEndMs;
     });
-    const spendingInPeriod = intertwinedInPeriod.length * PRIMOGEMS_PER_PULL;
+    const spendingInPeriod = intertwinedInPeriod.length * PRIMOS_PER_PULL;
 
+    // Purchases that occurred strictly within this period [start, end). Needed
+    // for both the interpolation branch (where E() already subtracts them) and
+    // the wish-based fallback (where we must subtract them from the spending
+    // estimate when "exclude purchases" is active — otherwise purchase-funded
+    // wishes would be counted as earned income).
+    const purchasesInPeriodAll = sortedPurchases
+      .filter(p => {
+        if (p.source !== PURCHASE_SOURCE) return false;
+        const t = purchaseTimeMap.get(p)!;
+        return t >= epStartMs && t < apEndMs;
+      })
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    // Interpolate the cumulative earned function at the exact period boundaries.
+    // This is the CORE of the income calculation: earned(period) = E(end) - E(start).
+    // Purchases/wishes/cosmetic spending that happen outside the period no longer
+    // bleed into the rate because they're absorbed into the E() values at the
+    // times they actually occurred.
+    //
+    // Only use interpolation when periodStart is AT or AFTER the first snapshot.
+    // For periods before (or straddling) the first snapshot, extrapolating the
+    // nearest segment's rate backwards across months produces wildly wrong
+    // results (especially when the first two snapshots are close together and
+    // reflect an unusually high or low earning slice). Fall back to wish-based
+    // estimation for those periods instead.
+    const canInterpolate =
+      firstSnapshotTime !== null && periodStart.getTime() >= firstSnapshotTime;
+    const earnedAtStart = canInterpolate
+      ? interpolateEarnedAt(earnedPoints, periodStart.getTime())
+      : null;
+    const earnedAtEnd = canInterpolate
+      ? interpolateEarnedAt(earnedPoints, actualPeriodEnd.getTime())
+      : null;
 
     let totalIncome: number;
     let hasSnapshotData: boolean;
+    let diagnostics: IncomeRateDataPoint['diagnostics'];
+    let estimate: IncomeRateDataPoint['estimate'];
 
-    if (snapshotBeforePeriod && (snapshotsInPeriod.length > 0 || snapshotAfterPeriod)) {
-      // We have snapshot data bounding this period - calculate actual income
-      const endSnapshot = snapshotsInPeriod[snapshotsInPeriod.length - 1] || snapshotAfterPeriod;
+    // Earned-in-period via E() delta — only trustworthy when non-negative.
+    // E() is mathematically monotonic (earned primos only accumulate), so a
+    // negative delta means the underlying data is inconsistent. A common cause:
+    // purchase records timestamped AFTER the first snapshot even though those
+    // primos were already absorbed into snapshotTotal(s1). That inflates E(s1)
+    // and makes subsequent periods look like they lost primos. We detect this
+    // and fall back to wish-based estimation rather than showing a misleading 0.
+    const earnedInPeriodRaw =
+      earnedAtStart !== null && earnedAtEnd !== null ? earnedAtEnd - earnedAtStart : null;
+    const interpolationReliable = earnedInPeriodRaw !== null && earnedInPeriodRaw >= 0;
 
-      if (endSnapshot && snapshotBeforePeriod !== endSnapshot) {
-        const startTotal = snapshotTotal(snapshotBeforePeriod);
-        const endTotal = snapshotTotal(endSnapshot);
+    if (interpolationReliable && earnedAtStart !== null && earnedAtEnd !== null) {
+      const earnedInPeriod = earnedInPeriodRaw!;
+      const purchasesInPeriod = purchasesInPeriodAll;
 
-        // Calculate actual days between the snapshots we're using
-        const snapshotStartDate = startOfDay(parseISO(snapshotBeforePeriod.timestamp));
-        const snapshotEndDate = startOfDay(parseISO(endSnapshot.timestamp));
-        const actualSnapshotDays = differenceInDays(snapshotEndDate, snapshotStartDate);
+      // Cosmetic spending (stored as negative) within the period — used for the
+      // diagnostic breakdown so users can audit the conservation equation.
+      const pStartMs = periodStart.getTime();
+      const cosmeticInPeriod = sortedPurchases
+        .filter(p => {
+          if (!SPENDING_SOURCES.includes(p.source)) return false;
+          const t = purchaseTimeMap.get(p)!;
+          return t >= pStartMs && t < apEndMs;
+        })
+        .reduce((sum, p) => sum + p.amount, 0); // negative
 
-        if (actualSnapshotDays <= 0) {
-          // Snapshots on same day - can't calculate rate, fall back to wish-based
-          totalIncome = spendingInPeriod;
-          hasSnapshotData = false;
-        } else {
-          // Count ALL wishes between these specific snapshots (all banner types,
-          // since snapshot total includes acquaint fates)
-          const wishesBetween = sortedAllWishes.filter(w => {
-            const wDate = parseISO(w.timestamp);
-            return isAfter(wDate, parseISO(snapshotBeforePeriod.timestamp)) &&
-                   !isAfter(wDate, parseISO(endSnapshot.timestamp));
-          }).length;
+      // Wishes (all banner types) within the period, for diagnostics.
+      const wishesInPeriod = sortedAllWishes.filter(w => {
+        const t = allWishTimeMap.get(w)!;
+        return t >= pStartMs && t < apEndMs;
+      }).length;
 
-          // Count purchases between these specific snapshots (exclude spending entries)
-          const purchasesBetween = excludePurchases ? sortedPurchases.filter(p => {
-            const pDate = parseISO(p.timestamp);
-            return !SPENDING_SOURCES.includes(p.source) &&
-                   isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
-                   !isAfter(pDate, parseISO(endSnapshot.timestamp));
-          }).reduce((sum, p) => sum + p.amount, 0) : 0;
+      // Income = earned + (optionally) purchases. E() already subtracts purchases,
+      // so to include them we add them back.
+      totalIncome = excludePurchases ? earnedInPeriod : earnedInPeriod + purchasesInPeriod;
+      hasSnapshotData = true;
 
-          // Count non-wish spending between these specific snapshots
-          const nonWishSpendBetween = filterSpendingEntries(sortedPurchases).filter(p => {
-            const pDate = parseISO(p.timestamp);
-            return isAfter(pDate, parseISO(snapshotBeforePeriod.timestamp)) &&
-                   !isAfter(pDate, parseISO(endSnapshot.timestamp));
-          }).reduce((sum, p) => sum + p.amount, 0); // negative total
-
-          // Income over the snapshot span
-          // nonWishSpendBetween is negative, so subtracting it adds back the spending amount
-          // Clamp to 0: income can never be negative in practice. A negative value indicates
-          // data inconsistency (e.g., wish history not re-imported after a wishing session).
-          const snapshotSpanIncome = Math.max(0, (endTotal - startTotal) + (wishesBetween * PRIMOGEMS_PER_PULL) - nonWishSpendBetween - purchasesBetween);
-
-          // Daily rate from the snapshot span, then estimate income for this period
-          const dailyRateFromSnapshots = snapshotSpanIncome / actualSnapshotDays;
-          totalIncome = dailyRateFromSnapshots * days;
-          hasSnapshotData = true;
-        }
-      } else {
-        // Fall back to wish-based estimation
-        totalIncome = spendingInPeriod;
-        hasSnapshotData = false;
-      }
+      // For diagnostics we surface the bracketing snapshots so the user can see
+      // which data points drove the interpolation.
+      const bracketBefore = bracketSnapshotBefore(sortedSnapshots, pStartMs, snapshotTimeMap);
+      const bracketAfter = bracketSnapshotAfter(sortedSnapshots, apEndMs, snapshotTimeMap);
+      const startBracket = bracketBefore ?? sortedSnapshots[0];
+      const endBracket = bracketAfter ?? sortedSnapshots[sortedSnapshots.length - 1];
+      diagnostics = {
+        startSnapshotDate: startBracket ? format(new Date(snapshotTimeMap.get(startBracket)!), 'yyyy-MM-dd') : '',
+        endSnapshotDate: endBracket ? format(new Date(snapshotTimeMap.get(endBracket)!), 'yyyy-MM-dd') : '',
+        startTotal: Math.round(earnedAtStart),
+        endTotal: Math.round(earnedAtEnd),
+        snapshotDelta: Math.round(earnedAtEnd - earnedAtStart),
+        wishesBetween: wishesInPeriod,
+        wishPrimosBetween: wishesInPeriod * PRIMOS_PER_PULL,
+        cosmeticRecovered: -cosmeticInPeriod, // flip negative → positive
+        purchasesExcluded: excludePurchases ? purchasesInPeriod : 0,
+        spanDays: days,
+        spanIncome: Math.round(Math.max(0, totalIncome)),
+        spanRate: Math.max(0, totalIncome) / days,
+      };
     } else {
-      // No snapshot data for this period - estimate from wish spending
-      // This assumes the user is spending roughly what they earn
-      totalIncome = spendingInPeriod;
+      // No reliable snapshot data for this period (either no bracketing
+      // snapshots, or a negative interpolated delta indicating data
+      // inconsistency). Estimate from wish spending: this assumes the user is
+      // spending roughly what they earn, which is the same heuristic we use
+      // for pre-snapshot periods.
+      //
+      // When excluding purchases, subtract in-period purchases: if the user
+      // bought primos during this period, some of those pulls were
+      // purchase-funded rather than earned. Clamp at 0 since purchase-funded
+      // pulls beyond what was earned don't make earned income go negative.
+      totalIncome = excludePurchases
+        ? Math.max(0, spendingInPeriod - purchasesInPeriodAll)
+        : spendingInPeriod;
       hasSnapshotData = false;
+      estimate = {
+        wishesInPeriod: intertwinedInPeriod.length,
+        wishPrimos: spendingInPeriod,
+        purchasesInPeriod: purchasesInPeriodAll,
+        estimatedIncome: Math.round(Math.max(0, totalIncome)),
+        effectiveDays,
+      };
     }
 
-    // When excluding purchases, earned income can't be negative. A negative value means
-    // there's untracked non-wish spending (e.g., outfits bought with genesis crystals but not logged).
+    // When excluding purchases, earned income can't be negative. A negative value
+    // means there's untracked non-wish spending (e.g., outfits bought with genesis
+    // crystals but not logged).
     const adjustedIncome = excludePurchases ? Math.max(0, totalIncome) : totalIncome;
-    const dailyRate = days > 0 ? adjustedIncome / days : 0;
+    // Use effectiveDays (clipped at startDate for the first period) so rates
+    // aren't diluted when the user's earliest data point falls mid-period.
+    // For all other periods effectiveDays === days.
+    const dailyRate = effectiveDays > 0 ? adjustedIncome / effectiveDays : 0;
 
     result.push({
       periodStart: format(periodStart, 'yyyy-MM-dd'),
@@ -808,8 +1018,10 @@ export function calculateIncomeRateTrend(
       label: format(periodStart, 'MMM d'),
       dailyRate: Math.round(dailyRate),
       totalIncome: Math.round(adjustedIncome),
-      days,
+      days: effectiveDays,
       hasSnapshotData,
+      diagnostics,
+      estimate,
     });
 
     periodStart = periodEnd;

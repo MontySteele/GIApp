@@ -343,15 +343,12 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         }
       }
 
-      const existingRecords = await wishRepo.getAll();
-      const existingIds = new Set(existingRecords.map((record) => record.gachaId));
-      const wishesToStore = allWishes
-        .filter((wish) => !existingIds.has(wish.id))
-        .map(wishHistoryItemToRecord);
-
-      if (wishesToStore.length > 0) {
-        await wishRepo.bulkCreate(wishesToStore);
-      }
+      // Pass ALL wishes to bulkCreate — it handles upserts internally
+      // (updates existing records with corrected timestamps, creates new ones).
+      // Previously this filtered out existing gachaIds, which prevented
+      // timestamp corrections from being applied on re-import.
+      const wishesToStore = allWishes.map(wishHistoryItemToRecord);
+      await wishRepo.bulkCreate(wishesToStore);
 
       const persistedRecords = await wishRepo.getAll();
       const persistedSummary = summarizeWishRecords(persistedRecords);
