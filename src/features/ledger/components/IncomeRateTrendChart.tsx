@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -25,46 +25,11 @@ interface IncomeRateTrendChartProps {
 
 export function IncomeRateTrendChart({ snapshots, wishes, purchases }: IncomeRateTrendChartProps) {
   const [excludePurchases, setExcludePurchases] = useState(true);
-  const [showDebug, setShowDebug] = useState(false);
 
   const trendData = useMemo(
     () => calculateIncomeRateTrend(snapshots, wishes, purchases, excludePurchases),
     [snapshots, wishes, purchases, excludePurchases]
   );
-
-  // One-time diagnostic: for each trendData period, count how many wishes
-  // actually have stored timestamps inside [periodStart, periodEnd), and
-  // list the bannerType/timestamp of wishes within ±12h of each boundary.
-  // This lets us see whether the bucketing mismatch is due to stored TZ
-  // shift, mental-model mismatch, or a code bug.
-  useEffect(() => {
-    if (!showDebug) return;
-    const INTERTWINED = new Set(['character', 'weapon', 'chronicled']);
-    const parsed = wishes
-      .filter(w => INTERTWINED.has(w.bannerType))
-      .map(w => ({ ...w, t: new Date(w.timestamp).getTime() }))
-      .sort((a, b) => a.t - b.t);
-    /* eslint-disable no-console */
-    console.group('[IncomeRate] wish bucketing diagnostic');
-    console.log(`Total intertwined wishes: ${parsed.length}`);
-    for (const d of trendData) {
-      const startMs = new Date(d.periodStart + 'T00:00:00Z').getTime(); // rough bucket label
-      console.group(`Period ${d.label} (starts ${d.periodStart}, reports ${d.estimate?.wishesInPeriod ?? d.diagnostics?.wishesBetween ?? '?'} wishes)`);
-      // Nearby = within 24h of periodStart
-      const nearby = parsed.filter(w => Math.abs(w.t - startMs) <= 24 * 3600 * 1000);
-      console.table(
-        nearby.slice(0, 30).map(w => ({
-          banner: w.bannerType,
-          stored: w.timestamp,
-          vsBoundary: `${((w.t - startMs) / 3600000).toFixed(1)}h`,
-        })),
-      );
-      console.groupEnd();
-    }
-    console.log('Inspect: does each wish timestamp align with when you actually pulled (server time UTC-5 for NA)?');
-    console.groupEnd();
-    /* eslint-enable no-console */
-  }, [showDebug, trendData, wishes]);
 
   // Calculate average and trend
   const averageRate = useMemo(() => {
@@ -192,14 +157,6 @@ export function IncomeRateTrendChart({ snapshots, wishes, purchases }: IncomeRat
   return (
     <div className="space-y-4">
       <div className="flex justify-end gap-4">
-        <button
-          type="button"
-          onClick={() => setShowDebug(d => !d)}
-          className="text-xs text-slate-400 hover:text-slate-200 underline"
-          title="Dump per-period wish bucketing to the browser console"
-        >
-          {showDebug ? 'Hide' : 'Show'} bucketing debug (console)
-        </button>
         <label className="flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"

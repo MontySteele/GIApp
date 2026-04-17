@@ -1,12 +1,11 @@
 import { parseISO, format, addDays, isBefore, isAfter, startOfDay, differenceInDays } from 'date-fns';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry, BannerType } from '@/types';
-import { SPENDING_SOURCES } from './resourceCalculations';
+import { SPENDING_SOURCES, PURCHASE_SOURCE } from './resourceCalculations';
+import { PRIMOS_PER_PULL } from '@/lib/constants';
 import {
   addBannerPeriods,
   getBannerPeriodStart,
 } from './bannerTime';
-
-const PRIMOGEMS_PER_PULL = 160;
 
 /**
  * Calculate the total primogem-equivalent value of a snapshot.
@@ -18,11 +17,11 @@ const PRIMOGEMS_PER_PULL = 160;
  * unaccounted resource drain that makes the income formula go negative
  * when purchases are excluded.
  */
-function snapshotTotal(snapshot: ResourceSnapshot): number {
+export function snapshotTotal(snapshot: ResourceSnapshot): number {
   return snapshot.primogems
     + (snapshot.genesisCrystals ?? 0)
-    + (snapshot.intertwined * PRIMOGEMS_PER_PULL)
-    + ((snapshot.acquaint ?? 0) * PRIMOGEMS_PER_PULL);
+    + (snapshot.intertwined * PRIMOS_PER_PULL)
+    + ((snapshot.acquaint ?? 0) * PRIMOS_PER_PULL);
 }
 
 /**
@@ -121,7 +120,7 @@ export function buildHistoricalData(
   // Split purchases from spending entries.
   // Filter strictly to source==='purchase': the negated-cosmetic check previously included
   // wish_conversion (negative) entries, contaminating purchase totals on the same day.
-  const purchaseOnlyEntries = purchases.filter(p => p.source === 'purchase');
+  const purchaseOnlyEntries = purchases.filter(p => p.source === PURCHASE_SOURCE);
   const spendingEntries = filterSpendingEntries(purchases);
 
   // Sort purchases by date ascending
@@ -209,8 +208,8 @@ export function buildHistoricalData(
     if (wishesToday > 0) {
       cumulativePulls += wishesToday;
       if (!snapshotOnDate) {
-        currentPrimogems -= wishesToday * PRIMOGEMS_PER_PULL;
-        currentPrimogemsWithPurchases -= wishesToday * PRIMOGEMS_PER_PULL;
+        currentPrimogems -= wishesToday * PRIMOS_PER_PULL;
+        currentPrimogemsWithPurchases -= wishesToday * PRIMOS_PER_PULL;
       }
     }
 
@@ -270,8 +269,8 @@ export function buildHistoricalData(
       if (!nextDayHasSnapshot) {
         const wishesNextDay = wishCountByDate.get(nextDayKey) ?? 0;
         if (wishesNextDay > 0) {
-          currentPrimogems += wishesNextDay * PRIMOGEMS_PER_PULL;
-          currentPrimogemsWithPurchases += wishesNextDay * PRIMOGEMS_PER_PULL;
+          currentPrimogems += wishesNextDay * PRIMOS_PER_PULL;
+          currentPrimogemsWithPurchases += wishesNextDay * PRIMOS_PER_PULL;
         }
 
         // Add back cosmetic spending from the next day (reverse the negative)
@@ -459,7 +458,7 @@ export function buildTransactionLog(
 
   for (const [dateKey, dayWishes] of wishesByDay) {
     const pullCount = dayWishes.length;
-    const primogemSpent = pullCount * PRIMOGEMS_PER_PULL;
+    const primogemSpent = pullCount * PRIMOS_PER_PULL;
     const fiveStars = dayWishes.filter(w => w.rarity === 5).length;
     const fourStars = dayWishes.filter(w => w.rarity === 4).length;
 
@@ -558,7 +557,7 @@ export function calculateDailyRateFromSnapshots(
   // included rate.
   const purchasesBetween = excludePurchases ? purchases.filter(p => {
     const purchaseDate = parseISO(p.timestamp);
-    return p.source === 'purchase' &&
+    return p.source === PURCHASE_SOURCE &&
       !isBefore(purchaseDate, firstDate) && isBefore(purchaseDate, dayAfterLast);
   }).reduce((sum, p) => sum + p.amount, 0) : 0;
 
@@ -573,7 +572,7 @@ export function calculateDailyRateFromSnapshots(
   // Clamp to 0: income can never be negative in practice. A negative value indicates
   // data inconsistency (e.g., wish history not re-imported after a wishing session,
   // or unconverted genesis crystals). Showing 0 is more accurate than a negative rate.
-  const totalIncome = Math.max(0, (lastTotal - firstTotal) + (pullsBetween * PRIMOGEMS_PER_PULL) - nonWishSpendingBetween - purchasesBetween);
+  const totalIncome = Math.max(0, (lastTotal - firstTotal) + (pullsBetween * PRIMOS_PER_PULL) - nonWishSpendingBetween - purchasesBetween);
 
   // When excluding purchases, earned income can't be negative. A negative value means
   // there's untracked non-wish spending (e.g., outfits bought with genesis crystals but not logged).
@@ -606,7 +605,7 @@ export function calculateDailyRateFromWishes(
 
   // Use the full lookback period as denominator for consistent rate calculation
   // This gives a more accurate daily average over the specified period
-  const totalPrimogems = recentWishes.length * PRIMOGEMS_PER_PULL;
+  const totalPrimogems = recentWishes.length * PRIMOS_PER_PULL;
 
   return totalPrimogems / lookbackDays;
 }
@@ -717,9 +716,9 @@ function buildEarnedAtPoints(
     for (const p of purchaseEntries) {
       if (p.t > t) break;
       if (SPENDING_SOURCES.includes(p.source)) cosmeticSum += p.amount;
-      else if (p.source === 'purchase') purchaseSum += p.amount;
+      else if (p.source === PURCHASE_SOURCE) purchaseSum += p.amount;
     }
-    const earned = snapshotTotal(s) + wishCount * PRIMOGEMS_PER_PULL - cosmeticSum - purchaseSum;
+    const earned = snapshotTotal(s) + wishCount * PRIMOS_PER_PULL - cosmeticSum - purchaseSum;
     return { time: t, earned };
   });
 }
@@ -759,10 +758,12 @@ function interpolateEarnedAt(points: EarnedAtPoint[], t: number): number | null 
 function bracketSnapshotBefore(
   snapshots: ResourceSnapshot[],
   t: number,
+  timeMap?: Map<ResourceSnapshot, number>,
 ): ResourceSnapshot | undefined {
   let result: ResourceSnapshot | undefined;
   for (const s of snapshots) {
-    if (parseISO(s.timestamp).getTime() <= t) result = s;
+    const sTime = timeMap?.get(s) ?? parseISO(s.timestamp).getTime();
+    if (sTime <= t) result = s;
     else break;
   }
   return result;
@@ -772,9 +773,11 @@ function bracketSnapshotBefore(
 function bracketSnapshotAfter(
   snapshots: ResourceSnapshot[],
   t: number,
+  timeMap?: Map<ResourceSnapshot, number>,
 ): ResourceSnapshot | undefined {
   for (const s of snapshots) {
-    if (parseISO(s.timestamp).getTime() >= t) return s;
+    const sTime = timeMap?.get(s) ?? parseISO(s.timestamp).getTime();
+    if (sTime >= t) return s;
   }
   return undefined;
 }
@@ -795,30 +798,35 @@ export function calculateIncomeRateTrend(
     return [];
   }
 
-  // Sort snapshots and wishes by date
-  const sortedSnapshots = [...snapshots].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
-  // Intertwined-only wishes for the fallback estimation (standard wishes don't cost primos)
-  const sortedIntertwinedWishes = [...intertwinedWishes].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
-  // ALL wishes for snapshot-based calculation (total includes acquaint fates, so we must
-  // add back acquaint wish spending too, otherwise those fates look like lost income)
-  const sortedAllWishes = [...wishes].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
-  const sortedPurchases = [...purchases].sort(
-    (a, b) => parseISO(a.timestamp).getTime() - parseISO(b.timestamp).getTime()
-  );
+  // Pre-parse timestamps once (Schwartzian transform) to avoid repeated
+  // parseISO calls in sort comparators and per-period filter loops.
+  const snapshotTimes = snapshots.map(s => ({ item: s, time: parseISO(s.timestamp).getTime() }));
+  snapshotTimes.sort((a, b) => a.time - b.time);
+  const sortedSnapshots = snapshotTimes.map(s => s.item);
+  const snapshotTimeMap = new Map(snapshotTimes.map(s => [s.item, s.time]));
+
+  const intertwinedTimes = intertwinedWishes.map(w => ({ item: w, time: parseISO(w.timestamp).getTime() }));
+  intertwinedTimes.sort((a, b) => a.time - b.time);
+  const sortedIntertwinedWishes = intertwinedTimes.map(w => w.item);
+  const intertwinedTimeMap = new Map(intertwinedTimes.map(w => [w.item, w.time]));
+
+  const allWishTimes = wishes.map(w => ({ item: w, time: parseISO(w.timestamp).getTime() }));
+  allWishTimes.sort((a, b) => a.time - b.time);
+  const sortedAllWishes = allWishTimes.map(w => w.item);
+  const allWishTimeMap = new Map(allWishTimes.map(w => [w.item, w.time]));
+
+  const purchaseTimes = purchases.map(p => ({ item: p, time: parseISO(p.timestamp).getTime() }));
+  purchaseTimes.sort((a, b) => a.time - b.time);
+  const sortedPurchases = purchaseTimes.map(p => p.item);
+  const purchaseTimeMap = new Map(purchaseTimes.map(p => [p.item, p.time]));
 
   // Determine date range
   const accountStart = parseISO(ACCOUNT_START_DATE);
   const now = new Date();
 
-  // Find earliest date from wishes or snapshots
-  const firstWishDate = sortedAllWishes[0] ? parseISO(sortedAllWishes[0].timestamp) : null;
-  const firstSnapshotDate = sortedSnapshots[0] ? parseISO(sortedSnapshots[0].timestamp) : null;
+  // Find earliest date from wishes or snapshots (use pre-parsed times)
+  const firstWishDate = sortedAllWishes[0] ? new Date(allWishTimeMap.get(sortedAllWishes[0])!) : null;
+  const firstSnapshotDate = sortedSnapshots[0] ? new Date(snapshotTimeMap.get(sortedSnapshots[0])!) : null;
 
   let startDate = accountStart;
   if (firstWishDate && isBefore(firstWishDate, startDate)) {
@@ -866,11 +874,14 @@ export function calculateIncomeRateTrend(
 
     // Count intertwined wishes in this period (for fallback estimation; standard
     // banner wishes don't cost primos so aren't valid income proxies).
+    const epStartMs = effectivePeriodStart.getTime();
+    const apEndMs = actualPeriodEnd.getTime();
+
     const intertwinedInPeriod = sortedIntertwinedWishes.filter(w => {
-      const wDate = parseISO(w.timestamp);
-      return !isBefore(wDate, effectivePeriodStart) && isBefore(wDate, actualPeriodEnd);
+      const t = intertwinedTimeMap.get(w)!;
+      return t >= epStartMs && t < apEndMs;
     });
-    const spendingInPeriod = intertwinedInPeriod.length * PRIMOGEMS_PER_PULL;
+    const spendingInPeriod = intertwinedInPeriod.length * PRIMOS_PER_PULL;
 
     // Purchases that occurred strictly within this period [start, end). Needed
     // for both the interpolation branch (where E() already subtracts them) and
@@ -879,9 +890,9 @@ export function calculateIncomeRateTrend(
     // wishes would be counted as earned income).
     const purchasesInPeriodAll = sortedPurchases
       .filter(p => {
-        if (p.source !== 'purchase') return false;
-        const t = parseISO(p.timestamp).getTime();
-        return t >= effectivePeriodStart.getTime() && t < actualPeriodEnd.getTime();
+        if (p.source !== PURCHASE_SOURCE) return false;
+        const t = purchaseTimeMap.get(p)!;
+        return t >= epStartMs && t < apEndMs;
       })
       .reduce((sum, p) => sum + p.amount, 0);
 
@@ -928,18 +939,19 @@ export function calculateIncomeRateTrend(
 
       // Cosmetic spending (stored as negative) within the period — used for the
       // diagnostic breakdown so users can audit the conservation equation.
+      const pStartMs = periodStart.getTime();
       const cosmeticInPeriod = sortedPurchases
         .filter(p => {
           if (!SPENDING_SOURCES.includes(p.source)) return false;
-          const t = parseISO(p.timestamp).getTime();
-          return t >= periodStart.getTime() && t < actualPeriodEnd.getTime();
+          const t = purchaseTimeMap.get(p)!;
+          return t >= pStartMs && t < apEndMs;
         })
         .reduce((sum, p) => sum + p.amount, 0); // negative
 
       // Wishes (all banner types) within the period, for diagnostics.
       const wishesInPeriod = sortedAllWishes.filter(w => {
-        const t = parseISO(w.timestamp).getTime();
-        return t >= periodStart.getTime() && t < actualPeriodEnd.getTime();
+        const t = allWishTimeMap.get(w)!;
+        return t >= pStartMs && t < apEndMs;
       }).length;
 
       // Income = earned + (optionally) purchases. E() already subtracts purchases,
@@ -949,18 +961,18 @@ export function calculateIncomeRateTrend(
 
       // For diagnostics we surface the bracketing snapshots so the user can see
       // which data points drove the interpolation.
-      const bracketBefore = bracketSnapshotBefore(sortedSnapshots, periodStart.getTime());
-      const bracketAfter = bracketSnapshotAfter(sortedSnapshots, actualPeriodEnd.getTime());
+      const bracketBefore = bracketSnapshotBefore(sortedSnapshots, pStartMs, snapshotTimeMap);
+      const bracketAfter = bracketSnapshotAfter(sortedSnapshots, apEndMs, snapshotTimeMap);
       const startBracket = bracketBefore ?? sortedSnapshots[0];
       const endBracket = bracketAfter ?? sortedSnapshots[sortedSnapshots.length - 1];
       diagnostics = {
-        startSnapshotDate: startBracket ? format(parseISO(startBracket.timestamp), 'yyyy-MM-dd') : '',
-        endSnapshotDate: endBracket ? format(parseISO(endBracket.timestamp), 'yyyy-MM-dd') : '',
+        startSnapshotDate: startBracket ? format(new Date(snapshotTimeMap.get(startBracket)!), 'yyyy-MM-dd') : '',
+        endSnapshotDate: endBracket ? format(new Date(snapshotTimeMap.get(endBracket)!), 'yyyy-MM-dd') : '',
         startTotal: Math.round(earnedAtStart),
         endTotal: Math.round(earnedAtEnd),
         snapshotDelta: Math.round(earnedAtEnd - earnedAtStart),
         wishesBetween: wishesInPeriod,
-        wishPrimosBetween: wishesInPeriod * PRIMOGEMS_PER_PULL,
+        wishPrimosBetween: wishesInPeriod * PRIMOS_PER_PULL,
         cosmeticRecovered: -cosmeticInPeriod, // flip negative → positive
         purchasesExcluded: excludePurchases ? purchasesInPeriod : 0,
         spanDays: days,
