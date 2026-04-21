@@ -76,7 +76,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Durin', name: 'Durin', rarity: 5, element: 'Pyro', weapon: 'Sword' },
   { key: 'Flins', name: 'Flins', rarity: 5, element: 'Electro', weapon: 'Polearm' },
   { key: 'Lauma', name: 'Lauma', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
-  { key: 'Linnea', name: 'Linnea', rarity: 5, element: 'Geo', weapon: 'Sword' },
+  { key: 'Linnea', name: 'Linnea', rarity: 5, element: 'Geo', weapon: 'Bow' },
   { key: 'Mizuki', name: 'Yumemizuki Mizuki', rarity: 5, element: 'Anemo', weapon: 'Catalyst' },
   { key: 'Nefer', name: 'Nefer', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
   { key: 'Skirk', name: 'Skirk', rarity: 5, element: 'Cryo', weapon: 'Sword' },

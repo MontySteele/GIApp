@@ -53,7 +53,6 @@ export const WEAPONS: WeaponData[] = [
   { key: 'UrakuMisugiri', name: 'Uraku Misugiri', type: 'Sword', rarity: 5 },
   { key: 'Absolution', name: 'Absolution', type: 'Sword', rarity: 5 },
   { key: 'PeakPatrolSong', name: 'Peak Patrol Song', type: 'Sword', rarity: 5 },
-  { key: 'GoldenFrostboundOath', name: 'Golden Frostbound Oath', type: 'Sword', rarity: 5 },
 
   // 4-Star Swords
   { key: 'TheBlackSword', name: 'The Black Sword', type: 'Sword', rarity: 4 },
@@ -154,6 +153,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'TheFirstGreatMagic', name: 'The First Great Magic', type: 'Bow', rarity: 5 },
   { key: 'SilvershowerHeartstrings', name: 'Silvershower Heartstrings', type: 'Bow', rarity: 5 },
   { key: 'AstralVulturesCrimsonPlumage', name: "Astral Vulture's Crimson Plumage", type: 'Bow', rarity: 5 },
+  { key: 'GoldenFrostboundOath', name: 'Golden Frostbound Oath', type: 'Bow', rarity: 5 },
 
   // 4-Star Bows
   { key: 'Rust', name: 'Rust', type: 'Bow', rarity: 4 },

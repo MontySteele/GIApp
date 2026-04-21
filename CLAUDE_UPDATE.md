@@ -73,10 +73,12 @@ Apply these edits. All paths are relative to repo root.
 **`src/lib/constants/characterList.ts`** — append to `ALL_CHARACTERS`. Place 5-stars in the 5-star block, 4-stars in the 4-star block. Alphabetical within each block unless existing ordering looks intentional (it's usually a rough alpha).
 
 **`src/lib/characterData.ts`** — two additions:
-- Add `avatarId: 'IconName'` to `CHARACTER_ICON_NAMES` (avatarId comes from Enka's character map — see file's header comment for source URL).
+- Add `avatarId: 'IconName'` to `CHARACTER_ICON_NAMES`. Source priority:
+  1. `https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/characters.json` — authoritative when up to date.
+  2. If the docs repo lags (common for very fresh patches — it's been days behind in practice), **verify the CDN has the side icon** by probing `https://enka.network/ui/UI_AvatarIcon_Side_{Name}.png` for HTTP 200, then extrapolate the `avatarId` from the existing sequential pattern in the file (each new 5★ is typically the next integer after the previous entry). Flag the extrapolation as "best-guess" in the PR body; the next run corrects it if wrong.
 - Add lowercase-key entries to `CHARACTER_KEY_TO_ID` under the appropriate region section. Include all common aliases the community uses (e.g. `'hu tao'` and `'hutao'`, `'raiden'` and `'raidenshogun'`).
 
-No icon asset files are bundled — character portraits load from Enka's CDN at runtime via `getCharacterPortraitUrl`. So you do **not** need to download images.
+No icon asset files are bundled — character portraits load from Enka's CDN at runtime via `getCharacterPortraitUrl`. So you do **not** need to download images; you only need the `avatarId → iconName` mapping and the icon name to match what the CDN serves.
 
 ### 3b. Weapons
 
@@ -183,7 +185,7 @@ if (seriesWithoutRegion.length) throw new Error(`DOMAIN_SCHEDULE series missing 
 - **Do not** guess material assignments for a character. If Fandom's page is missing data, skip that character's `characterMaterialMap` entry and note it in the PR body — a partial entry is worse than none because it silently misleads planners.
 - **Do not** "clean up" unrelated code while you're here. If you spot a bug, file it as a TODO in the PR body; don't mix unrelated changes into a data-update commit.
 - **Do not** rename existing keys even if HoYo's preferred romanization changes. Renames break saved user data. Add an alias in `CHARACTER_KEY_TO_ID` instead.
-- **Do not** invent avatarIds. If Enka hasn't indexed a character yet (very fresh patch), mark them as pending, note in PR body, and commit the rest.
+- **Do not** fabricate avatarIds with no basis. If Enka's docs repo lags, you may extrapolate from the existing sequential pattern in `CHARACTER_ICON_NAMES` provided (a) you verified the side-icon URL returns HTTP 200 on Enka's CDN, and (b) you flag it as "best-guess" in the PR body. Never skip the CDN probe.
 
 ---
 
