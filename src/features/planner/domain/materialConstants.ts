@@ -170,4 +170,5 @@ export const TALENT_BOOK_REGIONS: Record<string, string[]> = {
   'Sumeru': ['Admonition', 'Ingenuity', 'Praxis'],
   'Fontaine': ['Equity', 'Justice', 'Order'],
   'Natlan': ['Contention', 'Kindling', 'Conflict'],
+  'Nod-Krai': ['Moonlight', 'Elysium', 'Vagrancy'],
 };

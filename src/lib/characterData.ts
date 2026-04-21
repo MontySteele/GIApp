@@ -117,6 +117,7 @@ const CHARACTER_ICON_NAMES: Record<number, string> = {
   10000126: 'Zibai',
   10000127: 'Illuga',
   10000128: 'Varka',
+  10000129: 'Linnea',
 };
 
 // Reverse mapping: Character key (GOOD format) to avatarId
@@ -263,6 +264,7 @@ const CHARACTER_KEY_TO_ID: Record<string, number> = {
   'zibai': 10000126,
   'illuga': 10000127,
   'varka': 10000128,
+  'linnea': 10000129,
 };
 
 /**

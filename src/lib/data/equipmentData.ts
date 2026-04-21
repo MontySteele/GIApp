@@ -153,6 +153,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'TheFirstGreatMagic', name: 'The First Great Magic', type: 'Bow', rarity: 5 },
   { key: 'SilvershowerHeartstrings', name: 'Silvershower Heartstrings', type: 'Bow', rarity: 5 },
   { key: 'AstralVulturesCrimsonPlumage', name: "Astral Vulture's Crimson Plumage", type: 'Bow', rarity: 5 },
+  { key: 'GoldenFrostboundOath', name: 'Golden Frostbound Oath', type: 'Bow', rarity: 5 },
 
   // 4-Star Bows
   { key: 'Rust', name: 'Rust', type: 'Bow', rarity: 4 },
