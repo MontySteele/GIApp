@@ -53,6 +53,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'UrakuMisugiri', name: 'Uraku Misugiri', type: 'Sword', rarity: 5 },
   { key: 'Absolution', name: 'Absolution', type: 'Sword', rarity: 5 },
   { key: 'PeakPatrolSong', name: 'Peak Patrol Song', type: 'Sword', rarity: 5 },
+  { key: 'GoldenFrostboundOath', name: 'Golden Frostbound Oath', type: 'Sword', rarity: 5 },
 
   // 4-Star Swords
   { key: 'TheBlackSword', name: 'The Black Sword', type: 'Sword', rarity: 4 },

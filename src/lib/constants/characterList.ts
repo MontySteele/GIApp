@@ -11,7 +11,8 @@ export interface CharacterInfo {
   weapon: 'Sword' | 'Claymore' | 'Polearm' | 'Bow' | 'Catalyst';
 }
 
-// All playable characters as of version 6.4
+// Last updated for version 6.5
+// See src/lib/constants/patchVersion.ts for the single source of truth.
 export const ALL_CHARACTERS: CharacterInfo[] = [
   // Traveler (special - can use multiple elements)
   { key: 'TravelerAnemo', name: 'Traveler (Anemo)', rarity: 5, element: 'Anemo', weapon: 'Sword' },
@@ -75,6 +76,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Durin', name: 'Durin', rarity: 5, element: 'Pyro', weapon: 'Sword' },
   { key: 'Flins', name: 'Flins', rarity: 5, element: 'Electro', weapon: 'Polearm' },
   { key: 'Lauma', name: 'Lauma', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
+  { key: 'Linnea', name: 'Linnea', rarity: 5, element: 'Geo', weapon: 'Sword' },
   { key: 'Mizuki', name: 'Yumemizuki Mizuki', rarity: 5, element: 'Anemo', weapon: 'Catalyst' },
   { key: 'Nefer', name: 'Nefer', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
   { key: 'Skirk', name: 'Skirk', rarity: 5, element: 'Cryo', weapon: 'Sword' },

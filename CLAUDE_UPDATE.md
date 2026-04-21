@@ -13,10 +13,11 @@ This runbook updates **static game data** only: characters, weapons, artifact se
 
 ## Branch and PR conventions
 
-- Branch: `claude/patch-update-{version}` (e.g. `claude/patch-update-6.1`). One branch per patch even if you're catching up multiple.
+- Branch: `claude/patch-update-{latest_version}` (e.g. `claude/patch-update-6.5`). One branch per catch-up job, even if spanning multiple versions.
 - Commit style matches repo history: lowercase `feat:` prefix, concise.
-- PR title: `Patch update: {version} — {phase-1-5-stars}`
-- PR body: list new characters, weapons, artifact sets, banner phases added, plus the validation checklist below marked off.
+- **One commit per catch-up job** — condensed, since most versions share the same shape of work (add characters, weapons, banners). A multi-version catch-up is still one commit. Exception: if one version's edits fail validation and a later one's would pass, split so the good ones land.
+- PR title: `Patch update: {previous} → {latest} — {featured 5-stars}`
+- PR body: list new characters, weapons, artifact sets, banner phases added per version, plus the validation checklist below marked off.
 
 ---
 
@@ -95,12 +96,7 @@ No icon asset files are bundled — character portraits load from Enka's CDN at 
 
 **`src/features/planner/domain/materialConstants.ts`** — only edit if the patch introduces a new region or talent-book series.
 
-**KNOWN BUG to fix on first run:** `TALENT_BOOK_REGIONS` is missing `Nod-Krai`. `DOMAIN_SCHEDULE` already has Moonlight/Elysium/Vagrancy. When you touch this file for any reason, add:
-```ts
-'Nod-Krai': ['Moonlight', 'Elysium', 'Vagrancy'],
-```
-
-For any **new** region: update both `DOMAIN_SCHEDULE` (with day rotation) and `TALENT_BOOK_REGIONS` (with series list). These two tables must stay in sync — every series in `DOMAIN_SCHEDULE` must appear under exactly one region in `TALENT_BOOK_REGIONS`.
+For any **new** region: update both `DOMAIN_SCHEDULE` (with day rotation) and `TALENT_BOOK_REGIONS` (with series list). These two tables must stay in sync — every series in `DOMAIN_SCHEDULE` must appear under exactly one region in `TALENT_BOOK_REGIONS`. The sanity-script below enforces this.
 
 ### 3f. Character → material mapping
 
@@ -139,14 +135,27 @@ Manually verify (or add assertions for):
 - [ ] Every series in `DOMAIN_SCHEDULE` appears under exactly one region in `TALENT_BOOK_REGIONS`.
 - [ ] `CURRENT_PATCH` in `patchVersion.ts` matches the comment in `characterList.ts` and the latest version in `BANNER_HISTORY`.
 
-Quick sanity script you can run with `tsx` or copy-paste into a scratch test:
+Quick sanity script you can run with `tsx` or copy-paste into a scratch test — scope to the version(s) you just added so pre-existing orphans don't trip you up:
 ```ts
 import { ALL_CHARACTERS } from './src/lib/constants/characterList';
 import { BANNER_HISTORY } from './src/lib/bannerHistory';
+import { DOMAIN_SCHEDULE, TALENT_BOOK_REGIONS } from './src/features/planner/domain/materialConstants';
+
 const knownKeys = new Set(ALL_CHARACTERS.map(c => c.key));
-const orphans = BANNER_HISTORY.flatMap(b => b.featured5Star).filter(k => !knownKeys.has(k));
-if (orphans.length) throw new Error(`Orphan banner keys: ${orphans}`);
+const newVersions = ['6.5']; // <-- versions you just added
+const newBannerKeys = BANNER_HISTORY
+  .filter(b => newVersions.includes(b.version) && b.bannerType === 'character')
+  .flatMap(b => [...b.featured5Star, ...b.featured4Star]);
+const orphans = newBannerKeys.filter(k => !knownKeys.has(k));
+if (orphans.length) throw new Error(`Orphan banner keys in new versions: ${orphans}`);
+
+const regionSeries = new Set(Object.values(TALENT_BOOK_REGIONS).flat());
+const seriesWithoutRegion = Object.keys(DOMAIN_SCHEDULE).filter(s => !regionSeries.has(s));
+if (seriesWithoutRegion.length) throw new Error(`DOMAIN_SCHEDULE series missing region: ${seriesWithoutRegion}`);
 ```
+
+**Known pre-existing data inconsistencies** (do NOT fix as part of a data update — flag in PR body, tackle in a dedicated cleanup):
+- `ALL_CHARACTERS` uses Enka-style keys (`KaedeharaKazuha`, `RaidenShogun`, `YaeMiko`) while `BANNER_HISTORY.featured5Star` and `ALL_5_STAR_CHARACTERS` use short/spaced forms (`Kazuha`, `Raiden`, `Yae Miko`). The app's runtime has alias mappings in `CHARACTER_KEY_TO_ID` that paper over this, but sanity scripts must be scoped per above.
 
 ---
 

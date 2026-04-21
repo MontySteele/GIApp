@@ -41,6 +41,9 @@ export {
   type ErrorMessage,
 } from './errorMessages';
 
+// Patch version (single source of truth for static game data version)
+export { CURRENT_PATCH } from './patchVersion';
+
 // Re-export from the legacy constants.ts file
 export {
   PRIMOS_PER_PULL,

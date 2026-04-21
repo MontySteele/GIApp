@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-04-21 (Patch update: 6.4 → 6.5 "Luna VI")
+
+### Static game data
+- **New 5★ character**: Linnea (Geo, Sword) — added to `ALL_CHARACTERS`.
+- **New 5★ weapon**: Golden Frostbound Oath (Sword) — added to `WEAPONS`.
+- **Banner history**: added 6.5 Phase 1 (Chasca + Linnea, 4★: Noelle/Aino/Illuga) and 6.5 Phase 2 (Nefer + Lauma rerun) plus the 6.5 weapon banner.
+- **Patch pointer**: new `src/lib/constants/patchVersion.ts` (`CURRENT_PATCH = '6.5'`) as the single source of truth; removed drifted `CURRENT_VERSION` from `bannerHistory.ts`.
+
+### Bug fixes (data)
+- Added missing `Nod-Krai` region to `TALENT_BOOK_REGIONS` so Moonlight/Elysium/Vagrancy series resolve to a region.
+
+### Known follow-ups (not fixed here)
+- Linnea does not yet have an Enka `avatarId` — portraits will fall back until Enka updates, then the runbook's next run should add her to `CHARACTER_ICON_NAMES`/`CHARACTER_KEY_TO_ID`.
+- Pre-existing key-style inconsistency: `ALL_CHARACTERS` uses `KaedeharaKazuha`/`RaidenShogun`/`YaeMiko` while `BANNER_HISTORY`/`ALL_5_STAR_CHARACTERS` use `Kazuha`/`Raiden`/`Yae Miko`. Not blocking, documented in `CLAUDE_UPDATE.md`.
+- Repo-level `npm run lint` fails with "ESLint couldn't find an eslint.config.(js|mjs|cjs)" — unrelated to this update, needs a dedicated ESLint v9 migration.
+
+---
+
 ## 2026-01-14 (Sprint 18 Phase 5 - UX Improvements from External Review)
 
 ### Character → Planner Integration

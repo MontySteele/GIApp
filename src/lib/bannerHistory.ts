@@ -5,6 +5,8 @@
  * Data is organized by version for easy updates.
  */
 
+import { CURRENT_PATCH } from './constants/patchVersion';
+
 export interface BannerRecord {
   id: string;
   version: string;
@@ -31,6 +33,37 @@ export interface CharacterBannerHistory {
 // Historical banner data (recent versions)
 // Note: This is a simplified dataset - expand as needed
 export const BANNER_HISTORY: BannerRecord[] = [
+  // Version 6.5 "Luna VI" (released 2026-04-08)
+  {
+    id: '6.5-1-char',
+    version: '6.5',
+    phase: 1,
+    startDate: '2026-04-08',
+    endDate: '2026-04-28',
+    bannerType: 'character',
+    featured5Star: ['Linnea', 'Chasca'],
+    featured4Star: ['Noelle', 'Aino', 'Illuga'],
+  },
+  {
+    id: '6.5-1-weapon',
+    version: '6.5',
+    phase: 1,
+    startDate: '2026-04-08',
+    endDate: '2026-04-28',
+    bannerType: 'weapon',
+    featured5Star: ['GoldenFrostboundOath', 'AstralVulturesCrimsonPlumage'],
+    featured4Star: [],
+  },
+  {
+    id: '6.5-2-char',
+    version: '6.5',
+    phase: 2,
+    startDate: '2026-04-28',
+    endDate: '2026-05-19',
+    bannerType: 'character',
+    featured5Star: ['Nefer', 'Lauma'],
+    featured4Star: [],
+  },
   // Version 5.3 (Current as of knowledge cutoff)
   {
     id: '5.3-1-char',
@@ -249,15 +282,12 @@ export const ALL_5_STAR_CHARACTERS = [
   'Baizhu', 'Chasca', 'Chiori', 'Citlali', 'Clorinde', 'Cyno',
   'Dehya', 'Diluc', 'Emilie', 'Eula', 'Furina',
   'Ganyu', 'Hu Tao', 'Jean', 'Kazuha', 'Keqing',
-  'Kinich', 'Klee', 'Kokomi', 'Lyney', 'Mavuika', 'Mona',
+  'Kinich', 'Klee', 'Kokomi', 'Linnea', 'Lyney', 'Mavuika', 'Mona',
   'Mualani', 'Nahida', 'Navia', 'Neuvillette', 'Nilou',
   'Qiqi', 'Raiden', 'Shenhe', 'Sigewinne', 'Tartaglia',
   'Tighnari', 'Venti', 'Wanderer', 'Wriothesley', 'Xiao',
   'Xianyun', 'Xilonen', 'Yae Miko', 'Yelan', 'Yoimiya', 'Zhongli',
 ] as const;
-
-// Current version for calculations
-export const CURRENT_VERSION = '5.3';
 
 /**
  * Get banner history for a specific character
@@ -283,7 +313,7 @@ export function getCharacterBannerHistory(characterKey: string): CharacterBanner
   let versionsSince = 0;
   if (lastBanner) {
     const lastVersion = parseFloat(lastBanner.version);
-    const currentVersion = parseFloat(CURRENT_VERSION);
+    const currentVersion = parseFloat(CURRENT_PATCH);
     versionsSince = Math.round((currentVersion - lastVersion) * 10) / 10;
     // Each version is roughly 6 weeks, count full versions
     versionsSince = Math.floor(versionsSince * 2) / 2; // Round to nearest 0.5
