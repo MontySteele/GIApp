@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Users,
   Gem,
@@ -17,6 +18,8 @@ import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useResources } from '@/features/ledger/hooks/useResources';
+import { resourceSnapshotRepo } from '@/features/ledger/repo/resourceSnapshotRepo';
+import QuickLogPrimosButton from '@/features/ledger/components/QuickLogPrimosButton';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
@@ -47,6 +50,7 @@ export default function DashboardPage() {
   const { stats: artifactStats, isLoading: loadingArtifacts } = useArtifacts();
   const { stats: weaponStats, isLoading: loadingWeapons } = useWeapons();
   const { primogems, intertwined, totalPulls, isLoading: loadingResources } = useResources();
+  const latestSnapshot = useLiveQuery(() => resourceSnapshotRepo.getLatest(), []);
   const { teams } = useTeams();
   const { checklist, checklistProgress, checklistTotal, updateChecklist, isComplete: onboardingComplete } = useOnboardingContext();
 
@@ -245,6 +249,9 @@ export default function DashboardPage() {
                   {totalPulls}
                 </div>
               </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <QuickLogPrimosButton latestSnapshot={latestSnapshot} />
             </div>
           </CardContent>
         </Card>
