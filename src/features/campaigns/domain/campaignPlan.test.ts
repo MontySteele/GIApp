@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Campaign, Character } from '@/types';
 import {
+  calculateCampaignPlan,
   calculateBuildReadiness,
   calculatePullReadiness,
   getCampaignBuildTarget,
@@ -121,6 +122,52 @@ describe('campaignPlan', () => {
     expect(readiness.ownedCount).toBe(1);
     expect(readiness.percent).toBe(100);
     expect(readiness.status).toBe('ready');
+    expect(readiness.characters[0]?.characterId).toBe('furina');
     expect(readiness.characters[0]?.missing).toEqual([]);
+  });
+
+  it('adds semantic target metadata to next actions', async () => {
+    const underbuiltFurina = {
+      ...ownedFurina,
+      level: 40,
+      ascension: 2,
+      talent: { auto: 1, skill: 3, burst: 3 },
+    };
+    const plan = await calculateCampaignPlan(
+      {
+        ...baseCampaign,
+        pullTargets: [],
+        characterTargets: [
+          {
+            ...baseCampaign.characterTargets[0]!,
+            ownership: 'owned',
+          },
+        ],
+      },
+      {
+        characters: [underbuiltFurina],
+        materials: {},
+        availablePulls: {
+          availablePulls: 0,
+          resources: {
+            primogems: 0,
+            genesisCrystals: 0,
+            intertwined: 0,
+            acquaint: 0,
+            starglitter: 0,
+          },
+          lastUpdated: null,
+          hasSnapshot: false,
+        },
+      }
+    );
+
+    expect(plan.buildReadiness.characters[0]?.characterId).toBe('furina');
+    expect(plan.nextActions).toContainEqual(
+      expect.objectContaining({
+        category: 'build',
+        characterKey: 'Furina',
+      })
+    );
   });
 });

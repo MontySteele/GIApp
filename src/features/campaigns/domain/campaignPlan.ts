@@ -6,6 +6,7 @@ import {
   type MultiCharacterGoal,
 } from '@/features/planner/domain/multiCharacterCalculator';
 import type { MaterialRequirement } from '@/features/planner/domain/ascensionCalculator';
+import { getDisplayName } from '@/lib/gameData';
 import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget, Character } from '@/types';
 
 export type CampaignPlanStatus = 'ready' | 'attention' | 'blocked';
@@ -23,6 +24,7 @@ export interface CampaignBuildTarget {
 
 export interface CampaignCharacterReadiness {
   characterKey: string;
+  characterId?: string;
   owned: boolean;
   buildGoal: CampaignBuildGoal;
   percent: number;
@@ -66,6 +68,8 @@ export interface CampaignNextAction {
   label: string;
   detail: string;
   priority: 1 | 2 | 3;
+  characterKey?: string;
+  materialKey?: string;
 }
 
 export interface CampaignPlan {
@@ -194,6 +198,7 @@ export function calculateBuildReadiness(
 
     return {
       characterKey: target.characterKey,
+      characterId: character.id,
       owned: true,
       buildGoal: target.buildGoal,
       percent: calculateTargetProgress(character, buildTarget),
@@ -352,9 +357,10 @@ function buildNextActions(
     actions.push({
       id: `${campaign.id}-roster-${target.characterKey}`,
       category: 'roster',
-      label: `Acquire ${target.characterKey}`,
+      label: `Acquire ${getDisplayName(target.characterKey)}`,
       detail: 'This wishlist target is blocking build completion.',
       priority: 1,
+      characterKey: target.characterKey,
     });
   }
 
@@ -365,6 +371,7 @@ function buildNextActions(
       label: `Farm ${material.name}`,
       detail: `${material.deficit.toLocaleString()} still needed.`,
       priority: 2,
+      materialKey: material.key,
     });
   }
 
@@ -376,9 +383,10 @@ function buildNextActions(
     actions.push({
       id: `${campaign.id}-build-${target.characterKey}`,
       category: 'build',
-      label: `Improve ${target.characterKey}`,
+      label: `Improve ${getDisplayName(target.characterKey)}`,
       detail: target.missing.slice(0, 2).join(' - '),
       priority: 3,
+      characterKey: target.characterKey,
     });
   }
 
