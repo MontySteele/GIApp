@@ -107,6 +107,11 @@ function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function wholePulls(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.floor(value));
+}
+
 function average(values: number[]): number {
   if (values.length === 0) return 100;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -209,7 +214,7 @@ export function calculateBuildReadiness(
 
 function estimatePullsForTarget(target: Campaign['pullTargets'][number]): number {
   if (target.maxPullBudget !== null && target.maxPullBudget > 0) {
-    return target.maxPullBudget;
+    return Math.ceil(target.maxPullBudget);
   }
 
   const pullsPerCopy = target.bannerType === 'weapon' ? 160 : 180;
@@ -220,10 +225,12 @@ export function calculatePullReadiness(
   campaign: Campaign,
   availablePulls: AvailablePullsResult
 ): CampaignPullReadiness {
+  const availableWholePulls = wholePulls(availablePulls.availablePulls);
+
   if (campaign.pullTargets.length === 0) {
     return {
       hasTargets: false,
-      availablePulls: availablePulls.availablePulls,
+      availablePulls: availableWholePulls,
       targetPulls: 0,
       remainingPulls: 0,
       percent: 100,
@@ -235,12 +242,12 @@ export function calculatePullReadiness(
     (sum, target) => sum + estimatePullsForTarget(target),
     0
   );
-  const remainingPulls = Math.max(0, targetPulls - availablePulls.availablePulls);
-  const percent = targetPulls === 0 ? 100 : clampPercent((availablePulls.availablePulls / targetPulls) * 100);
+  const remainingPulls = Math.max(0, targetPulls - availableWholePulls);
+  const percent = targetPulls === 0 ? 100 : clampPercent((availableWholePulls / targetPulls) * 100);
 
   return {
     hasTargets: true,
-    availablePulls: availablePulls.availablePulls,
+    availablePulls: availableWholePulls,
     targetPulls,
     remainingPulls,
     percent,
@@ -295,7 +302,9 @@ export async function calculateMaterialReadiness(
     };
   }
 
-  const summary = await calculateMultiCharacterSummary(goals, materials);
+  const summary = await calculateMultiCharacterSummary(goals, materials, {
+    skipApiFetch: true,
+  });
   const materialRows = summary.aggregatedMaterials;
   const deficitRows = materialRows.filter((material) => material.deficit > 0);
   const readyRows = materialRows.filter((material) => material.deficit <= 0);

@@ -8,6 +8,7 @@
 import {
   calculateAscensionSummary,
   type AscensionGoal,
+  type AscensionCalculationOptions,
   type AscensionSummary,
   type MaterialRequirement,
   type ResinBreakdown,
@@ -52,6 +53,8 @@ export interface AggregatedMaterialSummary {
   anyStale: boolean;
   errors: string[];
 }
+
+export type MultiCharacterCalculationOptions = AscensionCalculationOptions;
 
 /**
  * Aggregate material requirements from multiple character summaries
@@ -122,7 +125,8 @@ export function groupMaterialsByCategory(materials: MaterialRequirement[]): Grou
  */
 export async function calculateMultiCharacterSummary(
   goals: MultiCharacterGoal[],
-  inventory: Record<string, number>
+  inventory: Record<string, number>,
+  options: MultiCharacterCalculationOptions = {}
 ): Promise<AggregatedMaterialSummary> {
   // Handle empty goals
   if (goals.length === 0) {
@@ -153,7 +157,7 @@ export async function calculateMultiCharacterSummary(
 
   // Calculate summary for each character in parallel
   const summaryPromises = goals.map((g) =>
-    calculateAscensionSummary(g.goal, inventory)
+    calculateAscensionSummary(g.goal, inventory, options)
   );
 
   const characterSummaries = await Promise.all(summaryPromises);

@@ -96,6 +96,10 @@ export interface AscensionSummary {
   error?: string; // If API fetch failed
 }
 
+export interface AscensionCalculationOptions {
+  skipApiFetch?: boolean;
+}
+
 /**
  * Get the ascension phase for a given level cap
  */
@@ -435,11 +439,13 @@ async function buildMaterialsWithApiData(
  */
 export async function calculateAscensionSummary(
   goal: AscensionGoal,
-  inventory: Record<string, number>
+  inventory: Record<string, number>,
+  options: AscensionCalculationOptions = {}
 ): Promise<AscensionSummary> {
   // Fetch character material data from genshin-db API
   const { data: characterData, isStale, error } = await getCharacterMaterials(goal.characterKey, {
     useStaleOnError: true,
+    skipApiFetch: options.skipApiFetch,
   });
 
   // Calculate ascension materials

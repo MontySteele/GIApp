@@ -85,6 +85,36 @@ describe('campaignPlan', () => {
     expect(readiness.status).toBe('attention');
   });
 
+  it('uses whole pull counts for campaign readiness', () => {
+    const readiness = calculatePullReadiness(
+      {
+        ...baseCampaign,
+        pullTargets: [
+          {
+            ...baseCampaign.pullTargets[0]!,
+            maxPullBudget: 150,
+          },
+        ],
+      },
+      {
+        availablePulls: 69.4125,
+        resources: {
+          primogems: 11106,
+          genesisCrystals: 0,
+          intertwined: 0,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: true,
+      }
+    );
+
+    expect(readiness.availablePulls).toBe(69);
+    expect(readiness.targetPulls).toBe(150);
+    expect(readiness.remainingPulls).toBe(81);
+  });
+
   it('treats newly owned wishlist targets as build-ready when they meet the goal', () => {
     const readiness = calculateBuildReadiness(baseCampaign, [ownedFurina]);
 

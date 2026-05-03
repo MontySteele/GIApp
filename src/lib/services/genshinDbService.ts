@@ -568,7 +568,7 @@ interface CacheEntry {
  */
 export async function getCharacterMaterials(
   characterKey: string,
-  options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
+  options: { forceRefresh?: boolean; useStaleOnError?: boolean; skipApiFetch?: boolean } = {}
 ): Promise<{ data: CharacterMaterialData | null; isStale: boolean; error?: string }> {
   const cacheKey = getCacheKey(characterKey);
   const memCacheKey = characterKey.toLowerCase();
@@ -620,6 +620,31 @@ export async function getCharacterMaterials(
       console.warn('Failed to read from cache:', dbError);
       // Continue to API fetch even if cache read fails
     }
+  }
+
+  if (options.skipApiFetch) {
+    if (cachedData) {
+      return {
+        data: cachedData,
+        isStale: true,
+        error: 'Using stale cached material data',
+      };
+    }
+
+    const staticData = getStaticCharacterMaterials(characterKey);
+    if (staticData) {
+      return {
+        data: staticData,
+        isStale: true,
+        error: 'Using offline material data',
+      };
+    }
+
+    return {
+      data: null,
+      isStale: false,
+      error: 'Material data is not cached',
+    };
   }
 
   // Fetch from API
