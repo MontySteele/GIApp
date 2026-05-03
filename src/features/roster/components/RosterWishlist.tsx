@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Heart, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Heart, X, ChevronDown, ChevronUp, Target } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import { useWishlistStore, type WishlistCharacter } from '@/stores/wishlistStore';
+import { buildCharacterCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
 
 const GOAL_CYCLE: WishlistCharacter['targetGoal'][] = ['functional', 'comfortable', 'full'];
 const GOAL_LABELS: Record<string, string> = {
@@ -116,6 +118,14 @@ export default function RosterWishlist({ ownedKeys }: RosterWishlistProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                      <Link
+                        to={buildCharacterCampaignUrl(wc.key, wc.targetGoal, true)}
+                        className="p-1 text-primary-400 hover:bg-primary-400/10 rounded transition-colors"
+                        title="Start campaign"
+                        aria-label={`Start campaign for ${wc.key}`}
+                      >
+                        <Target className="w-3.5 h-3.5" aria-hidden="true" />
+                      </Link>
                       <button
                         onClick={() => cycleGoal(wc.key, wc.targetGoal)}
                         className="px-2 py-0.5 text-xs rounded bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"

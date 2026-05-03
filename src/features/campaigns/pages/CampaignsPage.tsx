@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Archive,
@@ -41,6 +41,9 @@ const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
   { value: 'full', label: 'Full' },
 ];
 
+const BUILD_GOAL_VALUES = new Set<CampaignBuildGoal>(['functional', 'comfortable', 'full']);
+const DEFAULT_CHARACTER_KEY = ALL_CHARACTERS[0]?.key ?? '';
+
 const PRIORITY_OPTIONS = [
   { value: '1', label: '1 - Must do' },
   { value: '2', label: '2 - High' },
@@ -76,6 +79,37 @@ function toPriority(value: string): Campaign['priority'] {
     return parsed as Campaign['priority'];
   }
   return 3;
+}
+
+function getBuildGoalParam(value: string | null): CampaignBuildGoal {
+  return BUILD_GOAL_VALUES.has(value as CampaignBuildGoal)
+    ? (value as CampaignBuildGoal)
+    : 'comfortable';
+}
+
+function getCharacterParam(value: string | null): string {
+  if (!value) return DEFAULT_CHARACTER_KEY;
+  return ALL_CHARACTERS.find((character) => character.key.toLowerCase() === value.toLowerCase())?.key
+    ?? DEFAULT_CHARACTER_KEY;
+}
+
+function getPositiveIntegerParam(value: string | null, fallback: string): string {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+  return String(parsed);
+}
+
+function getBudgetParam(value: string | null): string {
+  if (!value) return '';
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return '';
+  return String(parsed);
+}
+
+function getPullPlanParam(value: string | null): boolean | null {
+  if (value === null) return null;
+  return !['0', 'false', 'no'].includes(value.toLowerCase());
 }
 
 function formatDate(value: string | undefined): string {
@@ -130,24 +164,60 @@ export default function CampaignsPage() {
   const { teams, isLoading: teamsLoading } = useTeams();
 
   const initialTeamId = searchParams.get('team') ?? '';
+  const initialCharacterKey = getCharacterParam(searchParams.get('character'));
   const [campaignType, setCampaignType] = useState<CampaignType>(
     initialTeamId ? 'team-polish' : 'character-acquisition'
   );
-  const [selectedCharacterKey, setSelectedCharacterKey] = useState(ALL_CHARACTERS[0]?.key ?? '');
+  const [selectedCharacterKey, setSelectedCharacterKey] = useState(initialCharacterKey);
   const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
-  const [buildGoal, setBuildGoal] = useState<CampaignBuildGoal>('comfortable');
-  const [priority, setPriority] = useState('2');
+  const [buildGoal, setBuildGoal] = useState<CampaignBuildGoal>(getBuildGoalParam(searchParams.get('buildGoal')));
+  const [priority, setPriority] = useState(String(toPriority(searchParams.get('priority') ?? '2')));
   const [deadline, setDeadline] = useState('');
-  const [desiredCopies, setDesiredCopies] = useState('1');
-  const [maxPullBudget, setMaxPullBudget] = useState('');
+  const [desiredCopies, setDesiredCopies] = useState(getPositiveIntegerParam(searchParams.get('copies'), '1'));
+  const [maxPullBudget, setMaxPullBudget] = useState(getBudgetParam(searchParams.get('budget')));
+  const [includePullTarget, setIncludePullTarget] = useState(getPullPlanParam(searchParams.get('pullPlan')) ?? true);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const { plans, isCalculating: plansCalculating } = useCampaignPlans(campaigns);
+  const prefillSignature = searchParams.toString();
 
   const ownedKeys = useMemo(
     () => new Set(characters.map((character) => character.key.toLowerCase())),
     [characters]
   );
+
+  useEffect(() => {
+    if (!prefillSignature) return;
+
+    const teamId = searchParams.get('team') ?? '';
+    const characterKey = getCharacterParam(searchParams.get('character'));
+    const pullPlan = getPullPlanParam(searchParams.get('pullPlan'));
+
+    if (teamId) {
+      setCampaignType('team-polish');
+      setSelectedTeamId(teamId);
+    } else if (searchParams.has('character')) {
+      setCampaignType('character-acquisition');
+      setSelectedCharacterKey(characterKey);
+      setSelectedTeamId('');
+    }
+
+    if (searchParams.has('buildGoal')) {
+      setBuildGoal(getBuildGoalParam(searchParams.get('buildGoal')));
+    }
+    if (searchParams.has('priority')) {
+      setPriority(String(toPriority(searchParams.get('priority') ?? '3')));
+    }
+    if (searchParams.has('copies')) {
+      setDesiredCopies(getPositiveIntegerParam(searchParams.get('copies'), '1'));
+    }
+    if (searchParams.has('budget')) {
+      setMaxPullBudget(getBudgetParam(searchParams.get('budget')));
+    }
+    if (pullPlan !== null) {
+      setIncludePullTarget(pullPlan);
+    }
+  }, [prefillSignature, searchParams]);
 
   const characterOptions = useMemo(
     () =>
@@ -203,7 +273,7 @@ export default function CampaignsPage() {
         : getTeamMemberTargets(selectedTeam, ownedKeys, buildGoal);
 
     const pullTargets =
-      campaignType === 'character-acquisition'
+      campaignType === 'character-acquisition' && includePullTarget
         ? [buildPullTarget(selectedCharacterKey, copies, maxPullBudget)]
         : [];
 
@@ -287,7 +357,11 @@ export default function CampaignsPage() {
                 <Select
                   label="Target character"
                   value={selectedCharacterKey}
-                  onChange={(event) => setSelectedCharacterKey(event.target.value)}
+                  onChange={(event) => {
+                    const nextKey = event.target.value;
+                    setSelectedCharacterKey(nextKey);
+                    setIncludePullTarget(!ownedKeys.has(nextKey.toLowerCase()));
+                  }}
                   options={characterOptions}
                 />
               ) : (
@@ -328,7 +402,7 @@ export default function CampaignsPage() {
                 max="7"
                 value={desiredCopies}
                 onChange={(event) => setDesiredCopies(event.target.value)}
-                disabled={campaignType !== 'character-acquisition'}
+                disabled={campaignType !== 'character-acquisition' || !includePullTarget}
               />
               <Input
                 label="Pull budget"
@@ -336,9 +410,21 @@ export default function CampaignsPage() {
                 min="0"
                 value={maxPullBudget}
                 onChange={(event) => setMaxPullBudget(event.target.value)}
-                disabled={campaignType !== 'character-acquisition'}
+                disabled={campaignType !== 'character-acquisition' || !includePullTarget}
               />
             </div>
+
+            {campaignType === 'character-acquisition' && (
+              <label className="inline-flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={includePullTarget}
+                  onChange={(event) => setIncludePullTarget(event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-primary-600 focus:ring-primary-500"
+                />
+                Include pull plan
+              </label>
+            )}
 
             <Input
               label="Notes"

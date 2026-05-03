@@ -1,7 +1,21 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import RosterWishlist from './RosterWishlist';
 import { useWishlistStore } from '@/stores/wishlistStore';
+
+interface MockLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
+  to: string;
+  children: ReactNode;
+}
+
+vi.mock('react-router-dom', () => ({
+  Link: ({ to, children, ...props }: MockLinkProps) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
+}));
 
 // Mock the wishlist store
 vi.mock('@/stores/wishlistStore', () => {
@@ -64,6 +78,19 @@ describe('RosterWishlist', () => {
     render(<RosterWishlist ownedKeys={ownedKeys} />);
     const removeButtons = screen.getAllByLabelText(/Remove .* from wishlist/);
     expect(removeButtons).toHaveLength(2);
+  });
+
+  it('links wishlisted characters into prefilled campaigns', () => {
+    render(<RosterWishlist ownedKeys={ownedKeys} />);
+
+    expect(screen.getByLabelText('Start campaign for Furina')).toHaveAttribute(
+      'href',
+      '/campaigns?character=Furina&buildGoal=comfortable&pullPlan=1'
+    );
+    expect(screen.getByLabelText('Start campaign for Alhaitham')).toHaveAttribute(
+      'href',
+      '/campaigns?character=Alhaitham&buildGoal=full&pullPlan=1'
+    );
   });
 
   it('renders search input for adding characters', () => {

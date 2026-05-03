@@ -1,7 +1,28 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import CharacterCard from './CharacterCard';
 import type { Character } from '@/types';
+
+interface MockLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
+  to: string;
+  children: ReactNode;
+}
+
+vi.mock('react-router-dom', () => ({
+  Link: ({ to, children, onClick, ...props }: MockLinkProps) => (
+    <a
+      href={to}
+      onClick={(event) => {
+        event.preventDefault();
+        onClick?.(event);
+      }}
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+}));
 
 // Mock gameData to control portrait URL resolution
 vi.mock('@/lib/gameData', () => ({
@@ -294,6 +315,20 @@ describe('CharacterCard', () => {
 
       screen.getByLabelText('Delete character').click();
       expect(onDelete).toHaveBeenCalledOnce();
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it('links to a prefilled build campaign without bubbling to card onClick', () => {
+      const onClick = vi.fn();
+      render(<CharacterCard character={makeCharacter()} onClick={onClick} />);
+
+      const campaignLink = screen.getByLabelText('Start campaign for Furina');
+      expect(campaignLink).toHaveAttribute(
+        'href',
+        '/campaigns?character=Furina&buildGoal=comfortable&pullPlan=0'
+      );
+
+      campaignLink.click();
       expect(onClick).not.toHaveBeenCalled();
     });
 

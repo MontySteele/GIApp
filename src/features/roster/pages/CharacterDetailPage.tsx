@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft, Target } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useCharacter, useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
@@ -21,6 +21,7 @@ import {
   getGradeBgColor,
 } from '@/features/artifacts/domain/artifactScoring';
 import BuildRecommendations from '@/features/artifacts/components/BuildRecommendations';
+import { buildCharacterCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
 
 export default function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -128,6 +129,13 @@ export default function CharacterDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to={buildCharacterCampaignUrl(character.key, 'comfortable', false)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+          >
+            <Target className="w-4 h-4" />
+            Start Campaign
+          </Link>
           <Button variant="secondary" onClick={() => setIsEditModalOpen(true)}>
             <Pencil className="w-4 h-4" />
             Edit
