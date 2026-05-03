@@ -8,9 +8,9 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { wishRepo } from '@/features/wishes/repo/wishRepo';
-import { resourceSnapshotRepo } from '@/features/ledger/repo/resourceSnapshotRepo';
 import { calculateDailyRateFromWishes } from '@/features/ledger/domain/historicalReconstruction';
 import { PRIMOS_PER_PULL } from '@/lib/constants';
+import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
 
 export interface BudgetLinkData {
   // Current state
@@ -36,14 +36,14 @@ export interface BudgetLinkData {
 }
 
 export function useBudgetLink(rateLookbackDays: number = 30): BudgetLinkData {
-  // Get latest resource snapshot
-  const snapshot = useLiveQuery(() => resourceSnapshotRepo.getLatest(), []);
+  // Get current resources from the shared tracker calculation.
+  const availablePullsResult = useLiveQuery(() => getAvailablePullsFromTracker(), []);
 
   // Get all wishes for rate calculation
   const wishes = useLiveQuery(() => wishRepo.getAll(), []);
 
   const budgetData = useMemo((): BudgetLinkData => {
-    const isLoading = snapshot === undefined || wishes === undefined;
+    const isLoading = availablePullsResult === undefined || wishes === undefined;
 
     if (isLoading) {
       return {
@@ -64,9 +64,9 @@ export function useBudgetLink(rateLookbackDays: number = 30): BudgetLinkData {
     }
 
     // Current resources
-    const currentPrimogems = snapshot?.primogems ?? 0;
-    const currentFates = snapshot?.intertwined ?? 0;
-    const currentPulls = currentFates + Math.floor(currentPrimogems / PRIMOS_PER_PULL);
+    const currentPrimogems = availablePullsResult.resources.primogems;
+    const currentFates = availablePullsResult.resources.intertwined;
+    const currentPulls = availablePullsResult.availablePulls;
 
     // Calculate daily rate from wish history
     const dailyRate = calculateDailyRateFromWishes(wishes ?? [], rateLookbackDays);
@@ -93,11 +93,11 @@ export function useBudgetLink(rateLookbackDays: number = 30): BudgetLinkData {
       projectedPulls60Days,
       totalPulls30Days,
       totalPulls60Days,
-      lastUpdated: snapshot?.timestamp ?? null,
-      hasData: !!snapshot,
+      lastUpdated: availablePullsResult.lastUpdated,
+      hasData: availablePullsResult.hasSnapshot || currentPulls > 0,
       isLoading: false,
     };
-  }, [snapshot, wishes, rateLookbackDays]);
+  }, [availablePullsResult, wishes, rateLookbackDays]);
 
   return budgetData;
 }

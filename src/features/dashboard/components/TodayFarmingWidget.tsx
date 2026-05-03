@@ -129,7 +129,7 @@ export default function TodayFarmingWidget() {
             ))}
           </div>
           <Link
-            to="/teams/planner"
+            to="/campaigns"
             className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
           >
             <ArrowRight className="w-3 h-3" />

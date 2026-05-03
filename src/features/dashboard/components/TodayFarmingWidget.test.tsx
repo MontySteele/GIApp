@@ -54,13 +54,13 @@ describe('TodayFarmingWidget', () => {
       expect(foundDay).toBe(true);
     });
 
-    it('shows planner link', () => {
+    it('shows campaign link', () => {
       renderWidget();
 
-      // The planner link is an icon-only link (ArrowRight svg, no text)
+      // The campaign link is an icon-only link (ArrowRight svg, no text)
       const links = screen.getAllByRole('link');
-      const plannerLink = links.find(link => link.getAttribute('href') === '/teams/planner');
-      expect(plannerLink).toBeDefined();
+      const campaignLink = links.find(link => link.getAttribute('href') === '/campaigns');
+      expect(campaignLink).toBeDefined();
     });
   });
 

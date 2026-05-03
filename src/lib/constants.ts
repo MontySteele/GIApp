@@ -61,6 +61,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
 // App Navigation
 export const TABS = [
   { id: 'dashboard', label: 'Dashboard', path: '/' },
+  { id: 'campaigns', label: 'Campaigns', path: '/campaigns' },
   { id: 'roster', label: 'Roster', path: '/roster' },
   { id: 'teams', label: 'Teams', path: '/teams' },
   { id: 'pulls', label: 'Pulls', path: '/pulls' },
@@ -69,5 +70,5 @@ export const TABS = [
 ] as const;
 
 // App Metadata
-export const APP_SCHEMA_VERSION = 1;
+export const APP_SCHEMA_VERSION = 5;
 export const BACKUP_REMINDER_DAYS = 7;

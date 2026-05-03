@@ -25,6 +25,8 @@ import type { FateType } from '@/types';
 export interface AvailablePullsResult {
   availablePulls: number;
   resources: LedgerResourceSnapshot;
+  lastUpdated: string | null;
+  hasSnapshot: boolean;
 }
 
 /**
@@ -114,5 +116,7 @@ export async function getAvailablePullsFromTracker(): Promise<AvailablePullsResu
   return {
     availablePulls: calculateAvailablePulls(safeResources),
     resources: safeResources,
+    lastUpdated: snapshot?.timestamp ?? null,
+    hasSnapshot: !!snapshot,
   };
 }

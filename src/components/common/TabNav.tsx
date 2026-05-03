@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Flag,
   Users,
   UsersRound,
   Sparkles,
@@ -11,6 +12,7 @@ import { TABS } from '@/lib/constants';
 
 const icons = {
   dashboard: LayoutDashboard,
+  campaigns: Flag,
   roster: Users,
   teams: UsersRound,
   pulls: Sparkles,

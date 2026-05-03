@@ -10,10 +10,8 @@ vi.mock('@/features/wishes/repo/wishRepo', () => ({
   },
 }));
 
-vi.mock('@/features/ledger/repo/resourceSnapshotRepo', () => ({
-  resourceSnapshotRepo: {
-    getLatest: vi.fn(),
-  },
+vi.mock('@/lib/services/resourceService', () => ({
+  getAvailablePullsFromTracker: vi.fn(),
 }));
 
 vi.mock('dexie-react-hooks', () => ({
@@ -33,6 +31,19 @@ const mockResourceSnapshot = {
   starglitter: 100,
   stardust: 500,
   genesisCrystals: 0,
+};
+
+const mockAvailablePullsResult = {
+  availablePulls: Math.floor(mockResourceSnapshot.primogems / PRIMOS_PER_PULL) + mockResourceSnapshot.intertwined,
+  resources: {
+    primogems: mockResourceSnapshot.primogems,
+    genesisCrystals: mockResourceSnapshot.genesisCrystals,
+    intertwined: mockResourceSnapshot.intertwined,
+    acquaint: mockResourceSnapshot.acquaint,
+    starglitter: mockResourceSnapshot.starglitter,
+  },
+  lastUpdated: mockResourceSnapshot.timestamp,
+  hasSnapshot: true,
 };
 
 const mockWishes = [
@@ -73,7 +84,18 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(null) // snapshot
+      .mockReturnValueOnce({
+        availablePulls: 0,
+        resources: {
+          primogems: 0,
+          genesisCrystals: 0,
+          intertwined: 0,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: false,
+      })
       .mockReturnValueOnce([]); // wishes
     calculateDailyRateFromWishes.mockReturnValue(0);
 
@@ -90,7 +112,7 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(mockResourceSnapshot) // snapshot
+      .mockReturnValueOnce(mockAvailablePullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
     calculateDailyRateFromWishes.mockReturnValue(0);
 
@@ -110,7 +132,7 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(mockResourceSnapshot) // snapshot
+      .mockReturnValueOnce(mockAvailablePullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
 
     // 160 primos per day = 1 pull per day
@@ -134,7 +156,7 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(mockResourceSnapshot) // snapshot
+      .mockReturnValueOnce(mockAvailablePullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
 
     calculateDailyRateFromWishes.mockReturnValue(160);
@@ -156,7 +178,7 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(mockResourceSnapshot) // snapshot
+      .mockReturnValueOnce(mockAvailablePullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
     calculateDailyRateFromWishes.mockReturnValue(0);
 
@@ -173,7 +195,7 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(mockResourceSnapshot) // snapshot
+      .mockReturnValueOnce(mockAvailablePullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
     calculateDailyRateFromWishes.mockReturnValue(0);
 
@@ -189,7 +211,7 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(mockResourceSnapshot) // snapshot
+      .mockReturnValueOnce(mockAvailablePullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
     calculateDailyRateFromWishes.mockReturnValue(0);
 
@@ -204,14 +226,21 @@ describe('useBudgetLink', () => {
       await import('@/features/ledger/domain/historicalReconstruction')
     );
 
-    const emptySnapshot = {
-      ...mockResourceSnapshot,
-      primogems: 0,
-      intertwined: 0,
+    const emptyPullsResult = {
+      availablePulls: 0,
+      resources: {
+        primogems: 0,
+        genesisCrystals: mockResourceSnapshot.genesisCrystals,
+        intertwined: 0,
+        acquaint: mockResourceSnapshot.acquaint,
+        starglitter: mockResourceSnapshot.starglitter,
+      },
+      lastUpdated: mockResourceSnapshot.timestamp,
+      hasSnapshot: true,
     };
 
     useLiveQuery
-      .mockReturnValueOnce(emptySnapshot) // snapshot
+      .mockReturnValueOnce(emptyPullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
     calculateDailyRateFromWishes.mockReturnValue(0);
 
@@ -229,7 +258,7 @@ describe('useBudgetLink', () => {
     );
 
     useLiveQuery
-      .mockReturnValueOnce(mockResourceSnapshot) // snapshot
+      .mockReturnValueOnce(mockAvailablePullsResult)
       .mockReturnValueOnce(mockWishes); // wishes
     calculateDailyRateFromWishes.mockReturnValue(320);
 

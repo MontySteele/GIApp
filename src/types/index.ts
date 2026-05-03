@@ -482,3 +482,56 @@ export interface BuildTemplateSummary {
   updatedAt: string;
 }
 
+// ============================================
+// Campaign Models
+// ============================================
+
+export type CampaignType = 'character-acquisition' | 'team-polish';
+export type CampaignStatus = 'active' | 'paused' | 'completed' | 'archived';
+export type CampaignBuildGoal = 'functional' | 'comfortable' | 'full';
+export type CampaignTargetOwnership = 'owned' | 'wishlist';
+
+export interface CampaignPullTarget {
+  id: string;
+  itemKey: string;
+  itemType: 'character' | 'weapon';
+  bannerType: BannerType;
+  desiredCopies: number;
+  expectedStartDate?: string;
+  expectedEndDate?: string;
+  maxPullBudget: number | null;
+  isConfirmed: boolean;
+  notes?: string;
+}
+
+export interface CampaignCharacterTarget {
+  id: string;
+  characterKey: string;
+  ownership: CampaignTargetOwnership;
+  buildGoal: CampaignBuildGoal;
+  targetTemplateId?: string;
+  targetWeaponKey?: string;
+  role?: CharacterRole;
+  notes?: string;
+}
+
+export interface CampaignTeamTarget {
+  teamId?: string;
+  name?: string;
+  memberKeys: string[];
+}
+
+export interface Campaign {
+  id: string;
+  type: CampaignType;
+  name: string;
+  status: CampaignStatus;
+  priority: 1 | 2 | 3 | 4 | 5;
+  deadline?: string;
+  pullTargets: CampaignPullTarget[];
+  characterTargets: CampaignCharacterTarget[];
+  teamTarget?: CampaignTeamTarget;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}

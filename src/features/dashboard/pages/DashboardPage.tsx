@@ -20,6 +20,7 @@ import { useResources } from '@/features/ledger/hooks/useResources';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
+import ActiveCampaignsWidget from '../components/ActiveCampaignsWidget';
 import TodayFarmingWidget from '../components/TodayFarmingWidget';
 import {
   calculateCurrentResin,
@@ -169,6 +170,9 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Active Campaigns */}
+      <ActiveCampaignsWidget />
+
       {/* Resources Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Resin Status */}
@@ -301,4 +305,3 @@ function StatCard({ icon, label, value, subtext, color, to }: StatCardProps) {
     </Link>
   );
 }
-

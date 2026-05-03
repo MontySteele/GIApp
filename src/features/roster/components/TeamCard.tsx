@@ -16,8 +16,7 @@ interface TeamCardProps {
 }
 
 export default function TeamCard({ team, members, onEdit, onDelete, onExportToWfpsim, showPlannerLink = true }: TeamCardProps) {
-  // Create query params for planner with team character IDs
-  const plannerUrl = `/planner?team=${encodeURIComponent(team.id)}`;
+  const plannerUrl = `/campaigns?team=${encodeURIComponent(team.id)}`;
 
   return (
     <Card className="relative">
