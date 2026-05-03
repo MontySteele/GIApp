@@ -122,8 +122,9 @@ export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarm
 
   // Fetch material data for filtered characters
   useEffect(() => {
-    if (charactersLoading || teamsLoading || filteredCharacters.length === 0) {
-      setCharacterBookNeeds([]);
+    if (today === 'Sunday' || charactersLoading || teamsLoading || filteredCharacters.length === 0) {
+      setCharacterBookNeeds((current) => (current.length === 0 ? current : []));
+      setIsLoadingMaterials(false);
       return;
     }
 
