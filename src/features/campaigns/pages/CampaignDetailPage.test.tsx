@@ -2,12 +2,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CampaignDetailPage from './CampaignDetailPage';
-import type { Campaign } from '@/types';
+import type { Campaign, Character } from '@/types';
 import type { CampaignPlan } from '../domain/campaignPlan';
 
 const mocks = vi.hoisted(() => ({
   updateCampaign: vi.fn(),
   campaigns: [] as unknown[],
+  characters: [] as Character[],
   plans: {} as Record<string, unknown>,
 }));
 
@@ -27,6 +28,38 @@ vi.mock('../hooks/useCampaignPlans', () => ({
     error: null,
   }),
 }));
+
+vi.mock('@/features/roster/hooks/useCharacters', () => ({
+  useCharacters: () => ({
+    characters: mocks.characters,
+    isLoading: false,
+  }),
+}));
+
+const ownedFurina: Character = {
+  id: 'furina-id',
+  key: 'Furina',
+  level: 80,
+  ascension: 6,
+  constellation: 0,
+  talent: {
+    auto: 1,
+    skill: 6,
+    burst: 8,
+  },
+  weapon: {
+    key: 'fleuveCendreFerryman',
+    level: 90,
+    ascension: 6,
+    refinement: 5,
+  },
+  artifacts: [],
+  notes: '',
+  priority: 'main',
+  teamIds: ['team-1'],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
 
 const campaign: Campaign = {
   id: 'campaign-1',
@@ -56,6 +89,18 @@ const campaign: Campaign = {
   notes: '',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
+const teamCampaign: Campaign = {
+  ...campaign,
+  type: 'team-polish',
+  name: 'Polish Salon Team',
+  pullTargets: [],
+  teamTarget: {
+    teamId: 'team-1',
+    name: 'Salon Team',
+    memberKeys: ['Furina'],
+  },
 };
 
 const plan: CampaignPlan = {
@@ -230,6 +275,7 @@ describe('CampaignDetailPage', () => {
     vi.setSystemTime(new Date('2024-01-08T12:00:00'));
     vi.clearAllMocks();
     mocks.updateCampaign.mockResolvedValue(undefined);
+    mocks.characters = [ownedFurina];
     mocks.campaigns = [campaign];
     mocks.plans = { 'campaign-1': plan };
   });
@@ -280,7 +326,7 @@ describe('CampaignDetailPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
     fireEvent.change(screen.getByLabelText('Priority'), { target: { value: '2' } });
-    fireEvent.change(screen.getByLabelText('Furina build goal'), { target: { value: 'full' } });
+    fireEvent.change(screen.getByLabelText('Build goal'), { target: { value: 'full' } });
     fireEvent.change(screen.getByLabelText('Desired copies'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Pull budget'), { target: { value: '160' } });
     fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'C2 or bust' } });
@@ -305,6 +351,38 @@ describe('CampaignDetailPage', () => {
             maxPullBudget: 160,
           }),
         ],
+      })
+    );
+  });
+
+  it('lets team campaigns add wishlist targets to the campaign lineup', async () => {
+    mocks.campaigns = [teamCampaign];
+    mocks.plans = { 'campaign-1': plan };
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Add target' }), {
+      target: { value: 'Lyney' },
+    });
+    fireEvent.mouseDown(screen.getByRole('option', { name: /Lyney/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add target/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
+    });
+
+    expect(mocks.updateCampaign).toHaveBeenCalledWith(
+      'campaign-1',
+      expect.objectContaining({
+        characterTargets: [
+          expect.objectContaining({ characterKey: 'Furina' }),
+          expect.objectContaining({
+            characterKey: 'Lyney',
+            ownership: 'wishlist',
+          }),
+        ],
+        teamTarget: expect.objectContaining({
+          memberKeys: ['Furina', 'Lyney'],
+        }),
       })
     );
   });
