@@ -32,6 +32,7 @@ export const TALENT_BOOK_REGIONS: Record<string, string[]> = {
   Sumeru: ['Admonition', 'Ingenuity', 'Praxis'],
   Fontaine: ['Equity', 'Justice', 'Order'],
   Natlan: ['Contention', 'Kindling', 'Conflict'],
+  'Nod-Krai': ['Moonlight', 'Elysium', 'Vagrancy'],
 };
 
 // Reverse lookup: book series to region
@@ -50,7 +51,8 @@ export function extractBookSeries(materialName: string): string | null {
   const lowerName = materialName.toLowerCase();
 
   // Try to match known series names
-  for (const series of Object.keys(DOMAIN_SCHEDULE)) {
+  const seriesNames = Object.keys(DOMAIN_SCHEDULE).sort((a, b) => b.length - a.length);
+  for (const series of seriesNames) {
     const lowerSeries = series.toLowerCase();
     if (
       lowerName.includes(lowerSeries) ||

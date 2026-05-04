@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CampaignDetailPage from './CampaignDetailPage';
 import type { Campaign } from '@/types';
@@ -102,6 +102,28 @@ const plan: CampaignPlan = {
         owned: 200,
         deficit: 800,
       },
+      {
+        key: 'Guide to Equity',
+        name: 'Guide to Equity',
+        category: 'talent',
+        tier: 2,
+        required: 20,
+        owned: 8,
+        deficit: 12,
+        source: 'Fontaine',
+        availability: ['Monday', 'Thursday', 'Sunday'],
+      },
+      {
+        key: 'Guide to Justice',
+        name: 'Guide to Justice',
+        category: 'talent',
+        tier: 2,
+        required: 18,
+        owned: 6,
+        deficit: 12,
+        source: 'Fontaine',
+        availability: ['Tuesday', 'Friday', 'Sunday'],
+      },
     ],
     totalEstimatedResin: 120,
     totalEstimatedDays: 1,
@@ -115,6 +137,28 @@ const plan: CampaignPlan = {
           required: 1000,
           owned: 200,
           deficit: 800,
+        },
+        {
+          key: 'Guide to Equity',
+          name: 'Guide to Equity',
+          category: 'talent',
+          tier: 2,
+          required: 20,
+          owned: 8,
+          deficit: 12,
+          source: 'Fontaine',
+          availability: ['Monday', 'Thursday', 'Sunday'],
+        },
+        {
+          key: 'Guide to Justice',
+          name: 'Guide to Justice',
+          category: 'talent',
+          tier: 2,
+          required: 18,
+          owned: 6,
+          deficit: 12,
+          source: 'Fontaine',
+          availability: ['Tuesday', 'Friday', 'Sunday'],
         },
       ],
       groupedMaterials: {
@@ -182,9 +226,15 @@ function renderPage() {
 
 describe('CampaignDetailPage', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-08T12:00:00'));
     vi.clearAllMocks();
     mocks.campaigns = [campaign];
     mocks.plans = { 'campaign-1': plan };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('elevates the top next action into a focus panel', () => {
@@ -206,5 +256,21 @@ describe('CampaignDetailPage', () => {
       'href',
       '/roster/furina-id'
     );
+  });
+
+  it('shows campaign talent deficits by farming window', () => {
+    renderPage();
+
+    expect(screen.getByRole('heading', { name: 'Farming Windows' })).toBeInTheDocument();
+    expect(screen.getByText('Farm Equity (Fontaine) today.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /domain calendar/i })).toHaveAttribute(
+      'href',
+      '/planner/domains'
+    );
+    expect(screen.getByText('Farm Today')).toBeInTheDocument();
+    expect(screen.getAllByText('Guide to Equity').length).toBeGreaterThan(0);
+    expect(screen.getByText('Wait For')).toBeInTheDocument();
+    expect(screen.getByText('Tuesday')).toBeInTheDocument();
+    expect(screen.getAllByText('Guide to Justice').length).toBeGreaterThan(0);
   });
 });

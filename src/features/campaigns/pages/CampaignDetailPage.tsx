@@ -4,10 +4,12 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Calendar,
   CheckCircle2,
   CirclePause,
   CirclePlay,
+  Clock,
   Package,
   Sparkles,
   Target,
@@ -19,6 +21,12 @@ import Button from '@/components/ui/Button';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { getDisplayName } from '@/lib/gameData';
+import {
+  analyzeFarmingSchedule,
+  getFarmingSummary,
+  type DayName,
+  type FarmingRecommendation,
+} from '@/features/planner/domain/farmingSchedule';
 import type { CampaignNextAction, CampaignPlan } from '../domain/campaignPlan';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
@@ -123,6 +131,10 @@ export default function CampaignDetailPage() {
     (a, b) => b.deficit - a.deficit || b.required - a.required || a.name.localeCompare(b.name)
   );
   const deficitMaterials = sortedMaterials.filter((material) => material.deficit > 0);
+  const talentDeficits = deficitMaterials.filter((material) => material.category === 'talent');
+  const farmingSchedule = talentDeficits.length > 0
+    ? analyzeFarmingSchedule(talentDeficits)
+    : null;
   const focusAction = plan?.nextActions[0];
 
   const updateStatus = async (status: CampaignStatus) => {
@@ -304,6 +316,51 @@ export default function CampaignDetailPage() {
             </Card>
           </div>
 
+          {farmingSchedule && (
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-primary-400" />
+                    <h2 className="text-lg font-semibold">Farming Windows</h2>
+                    <Badge variant="outline">{farmingSchedule.dayName}</Badge>
+                  </div>
+                  <Link
+                    to="/planner/domains"
+                    className="inline-flex items-center gap-1 text-xs text-primary-400 transition-colors hover:text-primary-300"
+                  >
+                    Domain Calendar
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-slate-400">{getFarmingSummary(farmingSchedule)}</p>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <div className="rounded-lg bg-slate-900/70 p-3">
+                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
+                      <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      Farm Today
+                    </div>
+                    {farmingSchedule.farmToday.length > 0 ? (
+                      <FarmingRecommendationList recommendations={farmingSchedule.farmToday} />
+                    ) : (
+                      <p className="text-sm text-slate-500">No talent book deficits are available today.</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-lg bg-slate-900/70 p-3">
+                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
+                      <Clock className="w-4 h-4 text-yellow-400" />
+                      Wait For
+                    </div>
+                    <FarmingWaitList waitFor={farmingSchedule.waitFor} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -464,5 +521,86 @@ function ActionCta({
       {destination.label}
       <ArrowRight className={prominent ? 'w-4 h-4' : 'w-3.5 h-3.5'} />
     </Link>
+  );
+}
+
+function FarmingRecommendationList({
+  recommendations,
+}: {
+  recommendations: FarmingRecommendation[];
+}) {
+  return (
+    <div className="space-y-2">
+      {recommendations.slice(0, 4).map((recommendation) => (
+        <FarmingRecommendationRow
+          key={`${recommendation.material.key}-${recommendation.material.tier ?? 'base'}`}
+          recommendation={recommendation}
+        />
+      ))}
+      {recommendations.length > 4 && (
+        <p className="text-xs text-slate-500">
+          {recommendations.length - 4} more talent deficits are included in this campaign.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FarmingRecommendationRow({
+  recommendation,
+}: {
+  recommendation: FarmingRecommendation;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md bg-slate-950/60 px-3 py-2">
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-slate-100">
+          {recommendation.material.name}
+        </div>
+        <div className="text-xs text-slate-500">
+          {recommendation.series} - {recommendation.region}
+        </div>
+      </div>
+      <div className="text-right text-xs">
+        <div className="font-medium text-yellow-300">
+          {formatCount(recommendation.material.deficit)} short
+        </div>
+        <div className="text-slate-500 capitalize">{recommendation.priority}</div>
+      </div>
+    </div>
+  );
+}
+
+function FarmingWaitList({
+  waitFor,
+}: {
+  waitFor: Record<DayName, FarmingRecommendation[]>;
+}) {
+  const waitEntries = Object.entries(waitFor)
+    .filter(([, recommendations]) => recommendations.length > 0)
+    .sort(([, first], [, second]) => {
+      const firstDays = first[0]?.daysUntilAvailable ?? 0;
+      const secondDays = second[0]?.daysUntilAvailable ?? 0;
+      return firstDays - secondDays;
+    });
+
+  if (waitEntries.length === 0) {
+    return <p className="text-sm text-slate-500">No rotating talent books are waiting on another day.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {waitEntries.slice(0, 3).map(([day, recommendations]) => (
+        <div key={day}>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-slate-300">{day}</span>
+            <span className="text-xs text-slate-500">
+              in {recommendations[0]?.daysUntilAvailable ?? 0}d
+            </span>
+          </div>
+          <FarmingRecommendationList recommendations={recommendations} />
+        </div>
+      ))}
+    </div>
   );
 }
