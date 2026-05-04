@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -10,16 +10,21 @@ import {
   CirclePause,
   CirclePlay,
   Clock,
+  Edit2,
   Package,
+  Save,
   Sparkles,
   Target,
   UsersRound,
   Wallet,
+  X,
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
 import { getDisplayName } from '@/lib/gameData';
 import {
   analyzeFarmingSchedule,
@@ -30,7 +35,21 @@ import {
 import type { CampaignNextAction, CampaignPlan } from '../domain/campaignPlan';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
-import type { Campaign, CampaignStatus } from '@/types';
+import type { Campaign, CampaignBuildGoal, CampaignStatus } from '@/types';
+
+const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
+  { value: 'functional', label: 'Functional' },
+  { value: 'comfortable', label: 'Comfortable' },
+  { value: 'full', label: 'Full' },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: '1', label: '1 - Must do' },
+  { value: '2', label: '2 - High' },
+  { value: '3', label: '3 - Medium' },
+  { value: '4', label: '4 - Low' },
+  { value: '5', label: '5 - Someday' },
+];
 
 const ACTION_BADGE: Record<CampaignNextAction['category'], 'primary' | 'secondary' | 'success' | 'warning' | 'outline'> = {
   pulls: 'primary',
@@ -53,6 +72,25 @@ function formatDate(value: string | undefined): string {
 
 function formatCount(value: number): string {
   return value.toLocaleString();
+}
+
+function toPriority(value: string): Campaign['priority'] {
+  const parsed = Number(value);
+  if (parsed >= 1 && parsed <= 5) {
+    return parsed as Campaign['priority'];
+  }
+  return 3;
+}
+
+function clampCopies(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.max(1, Math.min(7, Math.floor(parsed)));
+}
+
+function parsePullBudget(value: string): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
 }
 
 function getStatusAction(campaign: Campaign): { label: string; status: CampaignStatus; icon: typeof CirclePause } {
@@ -253,6 +291,11 @@ export default function CampaignDetailPage() {
               detail={`${plan.materialReadiness.deficitMaterials} deficits`}
             />
           </div>
+
+          <CampaignSetupCard
+            campaign={campaign}
+            onSave={(updates) => updateCampaign(campaign.id, updates)}
+          />
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <Card className="xl:col-span-2">
@@ -491,6 +534,266 @@ function PullRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between text-sm">
       <span className="text-slate-500">{label}</span>
       <span className="font-medium text-slate-100">{value}</span>
+    </div>
+  );
+}
+
+function getBuildGoalDraft(campaign: Campaign): Record<string, CampaignBuildGoal> {
+  return Object.fromEntries(
+    campaign.characterTargets.map((target) => [target.id, target.buildGoal])
+  ) as Record<string, CampaignBuildGoal>;
+}
+
+function CampaignSetupCard({
+  campaign,
+  onSave,
+}: {
+  campaign: Campaign;
+  onSave: (updates: Partial<Omit<Campaign, 'id' | 'createdAt'>>) => Promise<void>;
+}) {
+  const firstPullTarget = campaign.pullTargets[0];
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftPriority, setDraftPriority] = useState(String(campaign.priority));
+  const [draftDeadline, setDraftDeadline] = useState(campaign.deadline ?? '');
+  const [draftNotes, setDraftNotes] = useState(campaign.notes);
+  const [draftBuildGoals, setDraftBuildGoals] = useState<Record<string, CampaignBuildGoal>>(
+    () => getBuildGoalDraft(campaign)
+  );
+  const [draftIncludePullTarget, setDraftIncludePullTarget] = useState(campaign.pullTargets.length > 0);
+  const [draftCopies, setDraftCopies] = useState(String(firstPullTarget?.desiredCopies ?? 1));
+  const [draftPullBudget, setDraftPullBudget] = useState(
+    firstPullTarget?.maxPullBudget ? String(firstPullTarget.maxPullBudget) : ''
+  );
+  const [isSaving, setIsSaving] = useState(false);
+
+  const resetDraft = () => {
+    const pullTarget = campaign.pullTargets[0];
+    setDraftPriority(String(campaign.priority));
+    setDraftDeadline(campaign.deadline ?? '');
+    setDraftNotes(campaign.notes);
+    setDraftBuildGoals(getBuildGoalDraft(campaign));
+    setDraftIncludePullTarget(campaign.pullTargets.length > 0);
+    setDraftCopies(String(pullTarget?.desiredCopies ?? 1));
+    setDraftPullBudget(pullTarget?.maxPullBudget ? String(pullTarget.maxPullBudget) : '');
+  };
+
+  useEffect(() => {
+    if (!isEditing) {
+      resetDraft();
+    }
+  }, [campaign, isEditing]);
+
+  const startEditing = () => {
+    resetDraft();
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    resetDraft();
+    setIsEditing(false);
+  };
+
+  const updateBuildGoal = (targetId: string, buildGoal: CampaignBuildGoal) => {
+    setDraftBuildGoals((current) => ({
+      ...current,
+      [targetId]: buildGoal,
+    }));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const characterTargets = campaign.characterTargets.map((target) => ({
+        ...target,
+        buildGoal: draftBuildGoals[target.id] ?? target.buildGoal,
+      }));
+
+      let pullTargets = campaign.pullTargets;
+      if (campaign.type === 'character-acquisition') {
+        if (!draftIncludePullTarget) {
+          pullTargets = [];
+        } else {
+          const targetKey = characterTargets[0]?.characterKey;
+          const existingPullTarget = campaign.pullTargets[0];
+          if (existingPullTarget) {
+            pullTargets = [
+              {
+                ...existingPullTarget,
+                desiredCopies: clampCopies(draftCopies),
+                maxPullBudget: parsePullBudget(draftPullBudget),
+              },
+            ];
+          } else if (targetKey) {
+            pullTargets = [
+              {
+                id: crypto.randomUUID(),
+                itemKey: targetKey,
+                itemType: 'character',
+                bannerType: 'character',
+                desiredCopies: clampCopies(draftCopies),
+                maxPullBudget: parsePullBudget(draftPullBudget),
+                isConfirmed: false,
+              },
+            ];
+          }
+        }
+      }
+
+      await onSave({
+        priority: toPriority(draftPriority),
+        deadline: draftDeadline || undefined,
+        notes: draftNotes,
+        characterTargets,
+        pullTargets,
+      });
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const pullSummary = firstPullTarget
+    ? `${firstPullTarget.desiredCopies} ${firstPullTarget.desiredCopies === 1 ? 'copy' : 'copies'}${
+        firstPullTarget.maxPullBudget ? `, ${firstPullTarget.maxPullBudget} pull budget` : ''
+      }`
+    : 'No pull target';
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary-400" />
+            <h2 className="text-lg font-semibold">Campaign Setup</h2>
+          </div>
+          {isEditing ? (
+            <Button type="button" size="sm" variant="ghost" onClick={cancelEditing}>
+              <X className="w-4 h-4" />
+              Cancel
+            </Button>
+          ) : (
+            <Button type="button" size="sm" variant="secondary" onClick={startEditing}>
+              <Edit2 className="w-4 h-4" />
+              Edit Setup
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isEditing ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Select
+                label="Priority"
+                value={draftPriority}
+                onChange={(event) => setDraftPriority(event.target.value)}
+                options={PRIORITY_OPTIONS}
+              />
+              <Input
+                label="Deadline"
+                type="date"
+                value={draftDeadline}
+                onChange={(event) => setDraftDeadline(event.target.value)}
+              />
+              <Input
+                label="Notes"
+                value={draftNotes}
+                onChange={(event) => setDraftNotes(event.target.value)}
+                placeholder="Banner timing, artifact caveats, or farming reminders"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-slate-300">Build Goals</div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {campaign.characterTargets.map((target) => (
+                  <Select
+                    key={target.id}
+                    label={`${getDisplayName(target.characterKey)} build goal`}
+                    value={draftBuildGoals[target.id] ?? target.buildGoal}
+                    onChange={(event) => updateBuildGoal(target.id, event.target.value as CampaignBuildGoal)}
+                    options={BUILD_GOAL_OPTIONS}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {campaign.type === 'character-acquisition' && (
+              <div className="space-y-3 rounded-lg bg-slate-900/70 p-3">
+                <label className="inline-flex items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={draftIncludePullTarget}
+                    onChange={(event) => setDraftIncludePullTarget(event.target.checked)}
+                    className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-primary-600 focus:ring-primary-500"
+                  />
+                  Include pull target
+                </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Input
+                    label="Desired copies"
+                    type="number"
+                    min="1"
+                    max="7"
+                    value={draftCopies}
+                    onChange={(event) => setDraftCopies(event.target.value)}
+                    disabled={!draftIncludePullTarget}
+                  />
+                  <Input
+                    label="Pull budget"
+                    type="number"
+                    min="0"
+                    value={draftPullBudget}
+                    onChange={(event) => setDraftPullBudget(event.target.value)}
+                    disabled={!draftIncludePullTarget}
+                    description="Leave blank to use the default pull estimate."
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" loading={isSaving}>
+                <Save className="w-4 h-4" />
+                Save Setup
+              </Button>
+              <Button type="button" variant="secondary" onClick={cancelEditing} disabled={isSaving}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <SetupStat label="Type" value={campaign.type === 'team-polish' ? 'Team polish' : 'Character'} />
+              <SetupStat label="Priority" value={`P${campaign.priority}`} />
+              <SetupStat label="Deadline" value={formatDate(campaign.deadline)} />
+              <SetupStat label="Pull Target" value={pullSummary} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {campaign.characterTargets.map((target) => (
+                <Badge key={target.id} variant={target.ownership === 'owned' ? 'secondary' : 'primary'}>
+                  {getDisplayName(target.characterKey)} - {target.buildGoal}
+                </Badge>
+              ))}
+            </div>
+            <p className="rounded-lg bg-slate-900/70 p-3 text-sm text-slate-400">
+              {campaign.notes || 'No notes for this campaign yet.'}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SetupStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-slate-900 p-3">
+      <div className="text-xs text-slate-500 mb-1">{label}</div>
+      <div className="text-sm font-medium text-slate-100">{value}</div>
     </div>
   );
 }

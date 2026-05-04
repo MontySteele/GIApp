@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CampaignDetailPage from './CampaignDetailPage';
@@ -229,6 +229,7 @@ describe('CampaignDetailPage', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-08T12:00:00'));
     vi.clearAllMocks();
+    mocks.updateCampaign.mockResolvedValue(undefined);
     mocks.campaigns = [campaign];
     mocks.plans = { 'campaign-1': plan };
   });
@@ -272,5 +273,39 @@ describe('CampaignDetailPage', () => {
     expect(screen.getByText('Wait For')).toBeInTheDocument();
     expect(screen.getByText('Tuesday')).toBeInTheDocument();
     expect(screen.getAllByText('Guide to Justice').length).toBeGreaterThan(0);
+  });
+
+  it('saves campaign setup edits without recreating the campaign', async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
+    fireEvent.change(screen.getByLabelText('Priority'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Furina build goal'), { target: { value: 'full' } });
+    fireEvent.change(screen.getByLabelText('Desired copies'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Pull budget'), { target: { value: '160' } });
+    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'C2 or bust' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
+    });
+
+    expect(mocks.updateCampaign).toHaveBeenCalledWith(
+      'campaign-1',
+      expect.objectContaining({
+        priority: 2,
+        notes: 'C2 or bust',
+        characterTargets: [
+          expect.objectContaining({
+            characterKey: 'Furina',
+            buildGoal: 'full',
+          }),
+        ],
+        pullTargets: [
+          expect.objectContaining({
+            desiredCopies: 2,
+            maxPullBudget: 160,
+          }),
+        ],
+      })
+    );
   });
 });
