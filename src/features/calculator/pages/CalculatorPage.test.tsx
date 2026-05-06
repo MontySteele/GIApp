@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CalculatorPage from './CalculatorPage';
@@ -17,6 +17,10 @@ vi.mock('../components/ReverseCalculator', () => ({
 }));
 
 describe('CalculatorPage', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/pulls/calculator');
+  });
+
   describe('rendering', () => {
     it('renders the page header', () => {
       render(<CalculatorPage />);
@@ -39,6 +43,15 @@ describe('CalculatorPage', () => {
       expect(screen.getByTestId('single-target-calculator')).toBeInTheDocument();
       expect(screen.queryByTestId('multi-target-calculator')).not.toBeInTheDocument();
       expect(screen.queryByTestId('reverse-calculator')).not.toBeInTheDocument();
+    });
+
+    it('opens the multi-target calculator from URL mode params', () => {
+      window.history.replaceState(null, '', '/pulls/calculator?mode=multi');
+
+      render(<CalculatorPage />);
+
+      expect(screen.getByTestId('multi-target-calculator')).toBeInTheDocument();
+      expect(screen.queryByTestId('single-target-calculator')).not.toBeInTheDocument();
     });
 
     it('highlights the active tab', () => {

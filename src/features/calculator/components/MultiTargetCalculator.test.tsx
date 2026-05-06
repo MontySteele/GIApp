@@ -25,6 +25,7 @@ describe('MultiTargetCalculator', () => {
   beforeEach(() => {
     // Clear localStorage to prevent test pollution from persisted state
     localStorage.clear();
+    window.history.replaceState(null, '', '/pulls/calculator');
 
     runSimulationMock.mockClear();
     createMonteCarloWorkerMock.mockClear();
@@ -72,6 +73,27 @@ describe('MultiTargetCalculator', () => {
       render(<MultiTargetCalculator />);
 
       expect(screen.getByText(/add characters you want to pull/i)).toBeInTheDocument();
+    });
+
+    it('loads campaign pull targets from URL params', () => {
+      const params = new URLSearchParams({
+        mode: 'multi',
+        campaign: 'campaign-1',
+        pulls: '69',
+      });
+      params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 2 }));
+      window.history.replaceState(null, '', `/pulls/calculator?${params.toString()}`);
+
+      render(<MultiTargetCalculator />);
+
+      expect(screen.getByText('Campaign pull plan loaded')).toBeInTheDocument();
+      expect(screen.getByText(/1 target with 69 pulls available/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/character name/i)).toHaveValue('Furina');
+      expect(screen.getByLabelText('Available Pulls')).toHaveValue(69);
+      expect(screen.getByRole('link', { name: /back to campaign/i })).toHaveAttribute(
+        'href',
+        '/campaigns/campaign-1'
+      );
     });
   });
 

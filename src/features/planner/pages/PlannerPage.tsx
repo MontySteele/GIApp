@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useMaterials } from '../hooks/useMaterials';
 import { usePlannerState } from '../hooks/usePlannerState';
+import type { GoalType } from '../hooks/useMultiCharacterPlan';
 import { markChecklistItem } from '@/hooks/useOnboarding';
 
 // Sub-components
@@ -31,6 +32,12 @@ import {
   type AscensionSummary,
 } from '../domain/ascensionCalculator';
 
+const PLANNER_GOAL_TYPES = new Set<GoalType>(['next', 'functional', 'comfortable', 'full']);
+
+function getPlannerGoalType(value: string | null): GoalType | null {
+  return PLANNER_GOAL_TYPES.has(value as GoalType) ? (value as GoalType) : null;
+}
+
 export default function PlannerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { characters, isLoading: loadingChars } = useCharacters();
@@ -38,6 +45,7 @@ export default function PlannerPage() {
 
   // Check for query params to auto-select character
   const characterKeyFromUrl = searchParams.get('character');
+  const goalTypeFromUrl = getPlannerGoalType(searchParams.get('goal'));
 
   const characterFromUrl = useMemo(() => {
     if (characterKeyFromUrl) {
@@ -71,6 +79,12 @@ export default function PlannerPage() {
       setSelectedCharacterId(characterFromUrl.id);
     }
   }, [characterFromUrl, selectedCharacterId, setSelectedCharacterId]);
+
+  useEffect(() => {
+    if (goalTypeFromUrl) {
+      setGoalType(goalTypeFromUrl);
+    }
+  }, [goalTypeFromUrl, setGoalType]);
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview', 'materials']));
   const [summary, setSummary] = useState<AscensionSummary | null>(null);

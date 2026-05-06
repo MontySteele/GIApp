@@ -75,6 +75,7 @@ function renderPage(initialEntry: string) {
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/campaigns" element={<CampaignsPage />} />
+        <Route path="/campaigns/:id" element={<div>Campaign detail</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -117,6 +118,7 @@ describe('CampaignsPage', () => {
         pullTargets: [],
       })
     );
+    expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
   });
 
   it('applies team campaign prefill from the URL', () => {

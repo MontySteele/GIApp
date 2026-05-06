@@ -18,12 +18,24 @@ const CATEGORY_LABELS: Record<string, string> = {
 interface MaterialsListProps {
   materials: MaterialRequirement[];
   onUpdateMaterial?: (key: string, count: number) => void;
+  highlightedMaterialKey?: string | null;
+}
+
+function normalizeMaterialKey(value: string | null | undefined): string {
+  return (value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function isHighlightedMaterial(mat: MaterialRequirement, highlightedMaterialKey?: string | null): boolean {
+  const highlightedKey = normalizeMaterialKey(highlightedMaterialKey);
+  if (!highlightedKey) return false;
+
+  return [mat.key, mat.name].some((value) => normalizeMaterialKey(value) === highlightedKey);
 }
 
 /**
  * Flat list of materials for single character view
  */
-export function MaterialsList({ materials, onUpdateMaterial }: MaterialsListProps) {
+export function MaterialsList({ materials, onUpdateMaterial, highlightedMaterialKey }: MaterialsListProps) {
   return (
     <div className="space-y-3">
       {materials.map((mat) => (
@@ -31,6 +43,7 @@ export function MaterialsList({ materials, onUpdateMaterial }: MaterialsListProp
           key={`${mat.key}-${mat.tier || 0}`}
           mat={mat}
           onUpdateOwned={onUpdateMaterial}
+          highlighted={isHighlightedMaterial(mat, highlightedMaterialKey)}
         />
       ))}
     </div>

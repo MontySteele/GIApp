@@ -9,6 +9,12 @@ export { default as SyncPage } from './pages/SyncPage';
 
 // Hooks
 export { useAppMetaStatus } from './hooks/useAppMetaStatus';
+export {
+  getAccountDataFreshness,
+  useAccountDataFreshness,
+  type AccountDataFreshness,
+  type AccountDataFreshnessStatus,
+} from './hooks/useAccountDataFreshness';
 
 // Services
 export {

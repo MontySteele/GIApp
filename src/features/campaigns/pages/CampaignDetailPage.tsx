@@ -13,6 +13,7 @@ import {
   Edit2,
   Package,
   Plus,
+  RefreshCw,
   Save,
   Sparkles,
   Target,
@@ -28,6 +29,7 @@ import Input from '@/components/ui/Input';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import Select from '@/components/ui/Select';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
+import { useAccountDataFreshness, type AccountDataFreshness } from '@/features/sync';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import { getDisplayName } from '@/lib/gameData';
 import {
@@ -37,6 +39,7 @@ import {
   type FarmingRecommendation,
 } from '@/features/planner/domain/farmingSchedule';
 import type { CampaignNextAction, CampaignPlan } from '../domain/campaignPlan';
+import { getCampaignPullTargets } from '../domain/campaignPlan';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
 import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget, CampaignStatus } from '@/types';
@@ -111,9 +114,12 @@ function getActionDestination(
 ): { label: string; href: string } | null {
   switch (action.category) {
     case 'pulls':
-      return { label: 'Open Pulls', href: '/pulls' };
+      return { label: 'Open Calculator', href: buildPullActionHref(campaign, plan) };
     case 'materials':
-      return { label: 'Open Materials', href: '/planner/materials' };
+      return {
+        label: shouldOpenCharacterPlanner(action, campaign) ? 'Open Planner' : 'Open Materials',
+        href: buildMaterialActionHref(action, campaign),
+      };
     case 'build': {
       const target = plan.buildReadiness.characters.find(
         (character) => character.characterKey === action.characterKey
@@ -132,6 +138,90 @@ function getActionDestination(
   }
 }
 
+function buildPullActionHref(campaign: Campaign, plan: CampaignPlan): string {
+  const pullTargets = getCampaignPullTargets(campaign);
+  if (pullTargets.length === 0) return '/pulls';
+
+  const params = new URLSearchParams({
+    mode: 'multi',
+    campaign: campaign.id,
+    pulls: String(plan.pullReadiness.availablePulls),
+  });
+
+  for (const target of pullTargets) {
+    params.append(
+      'target',
+      JSON.stringify({
+        name: target.itemKey,
+        banner: target.bannerType,
+        copies: target.desiredCopies,
+      })
+    );
+  }
+
+  return `/pulls/calculator?${params.toString()}`;
+}
+
+function findActionTarget(
+  campaign: Campaign,
+  characterKey: string | undefined
+): CampaignCharacterTarget | undefined {
+  if (characterKey) {
+    return campaign.characterTargets.find(
+      (target) => target.characterKey.toLowerCase() === characterKey.toLowerCase()
+    );
+  }
+
+  return campaign.characterTargets.length === 1 ? campaign.characterTargets[0] : undefined;
+}
+
+function buildPlannerCharacterHref(
+  campaign: Campaign,
+  target: CampaignCharacterTarget,
+  materialKey?: string
+): string {
+  const params = new URLSearchParams({
+    character: target.characterKey,
+    goal: target.buildGoal,
+    campaign: campaign.id,
+  });
+
+  if (materialKey) {
+    params.set('material', materialKey);
+  }
+
+  return `/planner?${params.toString()}`;
+}
+
+function buildMaterialActionHref(action: CampaignNextAction, campaign: Campaign): string {
+  const target = findActionTarget(campaign, action.characterKey);
+  if (target?.ownership === 'owned') {
+    return buildPlannerCharacterHref(campaign, target, action.materialKey);
+  }
+
+  const params = new URLSearchParams({
+    campaign: campaign.id,
+  });
+
+  if (action.materialKey) {
+    params.set('material', action.materialKey);
+  }
+
+  return `/planner/materials?${params.toString()}`;
+}
+
+function buildCampaignMaterialHref(campaignId: string, materialKey?: string): string {
+  const params = new URLSearchParams({ campaign: campaignId });
+  if (materialKey) {
+    params.set('material', materialKey);
+  }
+  return `/planner/materials?${params.toString()}`;
+}
+
+function shouldOpenCharacterPlanner(action: CampaignNextAction, campaign: Campaign): boolean {
+  return findActionTarget(campaign, action.characterKey)?.ownership === 'owned';
+}
+
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -147,6 +237,7 @@ export default function CampaignDetailPage() {
   );
   const campaignList = useMemo(() => (campaign ? [campaign] : []), [campaign]);
   const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(campaignList);
+  const accountDataFreshness = useAccountDataFreshness();
   const plan = campaign ? plans[campaign.id] : undefined;
 
   if (isLoading) {
@@ -183,6 +274,7 @@ export default function CampaignDetailPage() {
     ? analyzeFarmingSchedule(talentDeficits)
     : null;
   const focusAction = plan?.nextActions[0];
+  const materialPlanHref = buildCampaignMaterialHref(campaign.id);
 
   const updateStatus = async (status: CampaignStatus) => {
     await updateCampaign(campaign.id, { status });
@@ -275,6 +367,8 @@ export default function CampaignDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <AccountDataFreshnessBanner freshness={accountDataFreshness} />
 
       {plan && (
         <>
@@ -461,8 +555,17 @@ export default function CampaignDetailPage() {
                   <Package className="w-5 h-5 text-primary-400" />
                   <h2 className="text-lg font-semibold">Material Deficits</h2>
                 </div>
-                <div className="text-xs text-slate-500">
-                  {formatCount(plan.materialReadiness.totalEstimatedResin)} resin / {plan.materialReadiness.totalEstimatedDays} days
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-xs text-slate-500">
+                    {formatCount(plan.materialReadiness.totalEstimatedResin)} resin / {plan.materialReadiness.totalEstimatedDays} days
+                  </div>
+                  <Link
+                    to={materialPlanHref}
+                    className="inline-flex items-center gap-1 text-xs text-primary-400 transition-colors hover:text-primary-300"
+                  >
+                    Open Materials
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </div>
             </CardHeader>
@@ -483,9 +586,10 @@ export default function CampaignDetailPage() {
               ) : (
                 <div className="space-y-2">
                   {deficitMaterials.slice(0, 12).map((material) => (
-                    <div
+                    <Link
                       key={`${material.key}-${material.tier ?? 'base'}`}
-                      className="rounded-lg border border-red-900/30 bg-red-950/20 p-3"
+                      to={buildCampaignMaterialHref(campaign.id, material.key)}
+                      className="block rounded-lg border border-red-900/30 bg-red-950/20 p-3 transition-colors hover:bg-red-950/30"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -510,7 +614,7 @@ export default function CampaignDetailPage() {
                           }}
                         />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                   {deficitMaterials.length > 12 && (
                     <p className="text-xs text-slate-500">
@@ -545,6 +649,35 @@ function PullRow({ label, value }: { label: string; value: string }) {
       <span className="text-slate-500">{label}</span>
       <span className="font-medium text-slate-100">{value}</span>
     </div>
+  );
+}
+
+function AccountDataFreshnessBanner({ freshness }: { freshness: AccountDataFreshness }) {
+  if (freshness.status === 'fresh') {
+    return null;
+  }
+
+  const badgeLabel = freshness.status === 'missing' ? 'Import needed' : 'Data stale';
+
+  return (
+    <Card className="border-amber-900/60 bg-amber-950/20">
+      <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="mb-2">
+            <Badge variant="warning">{badgeLabel}</Badge>
+          </div>
+          <h2 className="text-base font-semibold text-slate-100">{freshness.label}</h2>
+          <p className="mt-1 text-sm text-slate-400">{freshness.detail}</p>
+        </div>
+        <Link
+          to="/roster?import=irminsul"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-500"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh Import
+        </Link>
+      </CardContent>
+    </Card>
   );
 }
 

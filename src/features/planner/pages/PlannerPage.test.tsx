@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import PlannerPage from './PlannerPage';
@@ -220,6 +220,19 @@ describe('PlannerPage', () => {
       await user.selectOptions(characterSelect, '1');
 
       expect(characterSelect).toHaveValue('1');
+    });
+
+    it('applies campaign character and goal from URL params', async () => {
+      renderWithRouter(<PlannerPage />, ['/planner?character=Furina&goal=comfortable']);
+
+      const comboboxes = screen.getAllByRole('combobox');
+      const characterSelect = comboboxes[0]!;
+      const goalSelect = comboboxes[1]!;
+
+      await waitFor(() => {
+        expect(characterSelect).toHaveValue('1');
+        expect(goalSelect).toHaveValue('comfortable');
+      });
     });
   });
 

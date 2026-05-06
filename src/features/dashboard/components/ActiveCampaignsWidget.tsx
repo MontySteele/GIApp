@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar, Flag, Sparkles, UsersRound } from 'lucide-react';
+import { ArrowRight, Calendar, Flag, RefreshCw, Sparkles, UsersRound } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useCampaignPlans, useCampaigns } from '@/features/campaigns';
+import { useAccountDataFreshness } from '@/features/sync';
 import { getDisplayName } from '@/lib/gameData';
 import type { Campaign } from '@/types';
 
@@ -24,6 +25,7 @@ function getCampaignSummary(campaign: Campaign): string {
 export default function ActiveCampaignsWidget() {
   const { activeCampaigns, isLoading } = useCampaigns();
   const { plans, isLoading: plansLoading } = useCampaignPlans(activeCampaigns);
+  const dataFreshness = useAccountDataFreshness();
 
   if (isLoading || plansLoading) {
     return (
@@ -69,14 +71,31 @@ export default function ActiveCampaignsWidget() {
           </div>
         ) : (
           <div className="space-y-3">
+            {dataFreshness.status !== 'fresh' && (
+              <Link
+                to="/roster?import=irminsul"
+                className="flex items-center justify-between gap-3 rounded-lg border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-sm transition-colors hover:bg-amber-950/40"
+              >
+                <span className="min-w-0">
+                  <span className="block font-medium text-amber-200">{dataFreshness.label}</span>
+                  <span className="block truncate text-xs text-amber-200/70">
+                    {dataFreshness.status === 'missing'
+                      ? 'Campaign gaps improve after an Irminsul refresh.'
+                      : dataFreshness.detail}
+                  </span>
+                </span>
+                <RefreshCw className="h-4 w-4 flex-shrink-0 text-amber-300" />
+              </Link>
+            )}
             {activeCampaigns.slice(0, 3).map((campaign) => {
               const Icon = campaign.type === 'team-polish' ? UsersRound : Sparkles;
               const nextAction = plans[campaign.id]?.nextActions[0];
               const readiness = plans[campaign.id]?.overallPercent;
               return (
-                <div
+                <Link
                   key={campaign.id}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-slate-900 px-3 py-2"
+                  to={`/campaigns/${campaign.id}`}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-slate-900 px-3 py-2 transition-colors hover:bg-slate-800"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Icon className="w-4 h-4 text-primary-400 flex-shrink-0" />
@@ -97,7 +116,7 @@ export default function ActiveCampaignsWidget() {
                     </span>
                     <Badge variant="outline">P{campaign.priority}</Badge>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

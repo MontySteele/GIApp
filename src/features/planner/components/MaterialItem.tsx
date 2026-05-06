@@ -5,9 +5,10 @@ import type { MaterialRequirement } from '../domain/ascensionCalculator';
 interface MaterialItemProps {
   mat: MaterialRequirement;
   onUpdateOwned?: (key: string, newCount: number) => void;
+  highlighted?: boolean;
 }
 
-export default function MaterialItem({ mat, onUpdateOwned }: MaterialItemProps) {
+export default function MaterialItem({ mat, onUpdateOwned, highlighted = false }: MaterialItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +51,7 @@ export default function MaterialItem({ mat, onUpdateOwned }: MaterialItemProps) 
     <div
       className={`flex items-start justify-between p-3 rounded-lg ${
         mat.deficit > 0 ? 'bg-red-900/20 border border-red-900/30' : 'bg-slate-900'
-      }`}
+      } ${highlighted ? 'ring-2 ring-primary-400 ring-offset-2 ring-offset-slate-950' : ''}`}
     >
       <div className="flex items-start gap-3 flex-1">
         <div

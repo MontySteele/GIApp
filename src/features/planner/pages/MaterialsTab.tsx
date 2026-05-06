@@ -5,17 +5,42 @@
  */
 
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { Package, AlertCircle, Coins, Pencil } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Flag, Package, AlertCircle, Coins, Pencil } from 'lucide-react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
+import { useCampaignPlans, useCampaigns } from '@/features/campaigns';
 import { useMaterials } from '../hooks/useMaterials';
 import { useMultiCharacterPlan } from '../hooks/useMultiCharacterPlan';
 import DeficitPriorityCard from '../components/DeficitPriorityCard';
 import { MaterialsList } from '../components/MaterialsList';
 import { Card } from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import type { Campaign } from '@/types';
+import type { MaterialRequirement } from '../domain/ascensionCalculator';
+
+function normalizeMaterialKey(value: string | null | undefined): string {
+  return (value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findFocusedMaterial(
+  materials: MaterialRequirement[],
+  focusedMaterialKey: string | null
+): MaterialRequirement | undefined {
+  const normalizedFocus = normalizeMaterialKey(focusedMaterialKey);
+  if (!normalizedFocus) return undefined;
+
+  return materials.find((material) =>
+    [material.key, material.name].some((value) => normalizeMaterialKey(value) === normalizedFocus)
+  );
+}
 
 export default function MaterialsTab() {
+  const [searchParams] = useSearchParams();
+  const campaignId = searchParams.get('campaign');
+  const focusedMaterialKey = searchParams.get('material');
   const { characters, isLoading: loadingChars } = useCharacters();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
+  const { campaigns, isLoading: loadingCampaigns } = useCampaigns();
 
   // Inline Mora editing state
   const [editingMora, setEditingMora] = useState(false);
@@ -35,7 +60,29 @@ export default function MaterialsTab() {
     initialGoalType: 'full',
   });
 
-  const isLoading = loadingChars || loadingMats;
+  const campaign = useMemo(
+    () => campaigns.find((candidate) => candidate.id === campaignId),
+    [campaignId, campaigns]
+  );
+  const campaignList = useMemo(() => (campaign ? [campaign] : []), [campaign]);
+  const {
+    plans: campaignPlans,
+    isLoading: loadingCampaignPlan,
+    isCalculating: calculatingCampaignPlan,
+  } = useCampaignPlans(campaignList);
+  const campaignPlan = campaign ? campaignPlans[campaign.id] : undefined;
+
+  const isCampaignContext = Boolean(campaignId);
+  const isLoading = loadingChars || loadingMats || (isCampaignContext && loadingCampaigns);
+  const isCampaignPlanLoading = Boolean(
+    campaign && (loadingCampaignPlan || calculatingCampaignPlan || !campaignPlan)
+  );
+
+  const activeSummary = campaignPlan?.materialReadiness.summary ?? multiPlan.summary;
+  const activeGroupedMaterials = activeSummary?.groupedMaterials;
+  const activeMaterials = activeSummary?.aggregatedMaterials ?? [];
+  const focusedMaterial = findFocusedMaterial(activeMaterials, focusedMaterialKey);
+  const showPriorityFallback = !campaign;
 
   const currentMora = materials['Mora'] ?? materials['mora'] ?? 0;
 
@@ -73,9 +120,33 @@ export default function MaterialsTab() {
       <div>
         <h1 className="text-3xl font-bold mb-1">Material Inventory</h1>
         <p className="text-slate-400">
-          Track your materials and see what you need to farm for your priority characters
+          {campaign
+            ? `Campaign material plan for ${campaign.name}`
+            : 'Track your materials and see what you need to farm for your priority characters'}
         </p>
       </div>
+
+      {campaign && (
+        <CampaignMaterialContextCard
+          campaign={campaign}
+          focusedMaterial={focusedMaterial}
+          focusedMaterialKey={focusedMaterialKey}
+        />
+      )}
+
+      {campaignId && !campaign && !loadingCampaigns && (
+        <Card className="p-4 border-amber-500/30 bg-amber-500/5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-amber-400">Campaign not found</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Showing priority character materials instead.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Inventory Status */}
       <Card className="p-4">
@@ -141,27 +212,42 @@ export default function MaterialsTab() {
         </Card>
       )}
 
+      {isCampaignPlanLoading && (
+        <Card className="p-4">
+          <div className="h-5 w-48 bg-slate-700 rounded animate-pulse mb-3" />
+          <div className="h-16 bg-slate-900 rounded animate-pulse" />
+        </Card>
+      )}
+
       {/* Deficit Priority */}
-      {multiPlan.summary?.groupedMaterials && (
+      {!isCampaignPlanLoading && activeGroupedMaterials && (
         <div>
-          <h2 className="text-lg font-semibold mb-4">Priority Deficits</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            {campaign ? 'Campaign Deficits' : 'Priority Deficits'}
+          </h2>
           <DeficitPriorityCard
-            groupedMaterials={multiPlan.summary.groupedMaterials}
+            groupedMaterials={activeGroupedMaterials}
             compact={false}
           />
         </div>
       )}
 
       {/* Full Materials List */}
-      {multiPlan.summary?.aggregatedMaterials && multiPlan.summary.aggregatedMaterials.length > 0 && (
+      {!isCampaignPlanLoading && activeMaterials.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold mb-4">All Required Materials</h2>
-          <MaterialsList materials={multiPlan.summary.aggregatedMaterials} onUpdateMaterial={setMaterial} />
+          <h2 className="text-lg font-semibold mb-4">
+            {campaign ? 'Campaign Materials' : 'All Required Materials'}
+          </h2>
+          <MaterialsList
+            materials={activeMaterials}
+            onUpdateMaterial={setMaterial}
+            highlightedMaterialKey={focusedMaterialKey}
+          />
         </div>
       )}
 
       {/* No Priority Characters */}
-      {mainCharacters.length === 0 && (
+      {showPriorityFallback && mainCharacters.length === 0 && (
         <Card className="p-8 text-center">
           <Package className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-300 mb-2">No Priority Characters</h3>
@@ -172,5 +258,60 @@ export default function MaterialsTab() {
         </Card>
       )}
     </div>
+  );
+}
+
+function CampaignMaterialContextCard({
+  campaign,
+  focusedMaterial,
+  focusedMaterialKey,
+}: {
+  campaign: Campaign;
+  focusedMaterial: MaterialRequirement | undefined;
+  focusedMaterialKey: string | null;
+}) {
+  return (
+    <Card className="p-4 border-primary-900/60 bg-primary-950/20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant="primary">Campaign</Badge>
+            <span className="text-xs uppercase text-slate-500">Material plan</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Flag className="h-4 w-4 flex-shrink-0 text-primary-400" />
+            <h2 className="truncate text-base font-semibold text-slate-100">{campaign.name}</h2>
+          </div>
+          {focusedMaterial ? (
+            <p className="mt-1 text-sm text-slate-400">
+              Focused on {focusedMaterial.name}: {focusedMaterial.deficit.toLocaleString()} still needed.
+            </p>
+          ) : focusedMaterialKey ? (
+            <p className="mt-1 text-sm text-slate-400">
+              The linked material is not currently blocking this campaign.
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-slate-400">
+              Showing only materials required by this campaign.
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/campaigns/${campaign.id}`}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Campaign
+          </Link>
+          <Link
+            to="/planner/materials"
+            className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
+          >
+            Priority Materials
+          </Link>
+        </div>
+      </div>
+    </Card>
   );
 }

@@ -44,6 +44,79 @@ interface PersistedState {
   iterations: number;
 }
 
+interface UrlPrefillState {
+  campaignId: string | null;
+  state: PersistedState;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isBannerType(value: unknown): value is BannerType {
+  return (
+    value === 'character' ||
+    value === 'weapon' ||
+    value === 'standard' ||
+    value === 'chronicled'
+  );
+}
+
+function parsePositiveInteger(value: string | null, fallback: number): number {
+  if (value === null) return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
+}
+
+function parseUrlTarget(rawTarget: string, index: number): Target | null {
+  try {
+    const parsed: unknown = JSON.parse(rawTarget);
+    if (!isRecord(parsed) || typeof parsed.name !== 'string' || !isBannerType(parsed.banner)) {
+      return null;
+    }
+
+    const copies = typeof parsed.copies === 'number'
+      ? parsed.copies
+      : Number(parsed.copies);
+    const maxCopies = parsed.banner === 'weapon' ? 5 : 7;
+    const copyCount = Math.max(1, Math.min(maxCopies, Math.floor(copies) || 1));
+
+    return {
+      id: crypto.randomUUID(),
+      characterName: parsed.name,
+      bannerType: parsed.banner,
+      constellation: copyCount - 1,
+      pity: 0,
+      guaranteed: false,
+      radiantStreak: 0,
+      fatePoints: 0,
+      useInheritedPity: index > 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function loadUrlPrefillState(): UrlPrefillState | null {
+  const params = new URLSearchParams(window.location.search);
+  const urlTargets = params
+    .getAll('target')
+    .map((target, index) => parseUrlTarget(target, index))
+    .filter((target): target is Target => target !== null);
+
+  if (urlTargets.length === 0) return null;
+
+  return {
+    campaignId: params.get('campaign'),
+    state: {
+      targets: urlTargets,
+      availablePulls: parsePositiveInteger(params.get('pulls'), 0),
+      iterations: parsePositiveInteger(params.get('iterations'), 5000) || 5000,
+    },
+  };
+}
+
 function loadPersistedState(): PersistedState | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -66,7 +139,8 @@ function clearPersistedState(): void {
 }
 
 export function MultiTargetCalculator() {
-  const initialState = useRef(loadPersistedState());
+  const urlPrefill = useRef(loadUrlPrefillState());
+  const initialState = useRef(urlPrefill.current?.state ?? loadPersistedState());
   const [targets, setTargets] = useState<Target[]>(initialState.current?.targets ?? []);
   const [availablePulls, setAvailablePulls] = useState(initialState.current?.availablePulls ?? 0);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -314,6 +388,29 @@ export function MultiTargetCalculator() {
     <div className="space-y-6">
       {/* Budget Link Banner */}
       <BudgetLinkBanner onUseBudget={handleUseBudget} />
+
+      {urlPrefill.current && (
+        <Card className="border-primary-900/60 bg-primary-950/20">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-medium text-primary-200">Campaign pull plan loaded</div>
+              <div className="text-xs text-slate-400">
+                {urlPrefill.current.state.targets.length} target
+                {urlPrefill.current.state.targets.length === 1 ? '' : 's'} with{' '}
+                {urlPrefill.current.state.availablePulls} pulls available.
+              </div>
+            </div>
+            {urlPrefill.current.campaignId && (
+              <a
+                href={`/campaigns/${urlPrefill.current.campaignId}`}
+                className="inline-flex items-center justify-center rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
+              >
+                Back to Campaign
+              </a>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">

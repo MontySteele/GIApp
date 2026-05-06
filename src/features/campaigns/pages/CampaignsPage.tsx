@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   ArrowRight,
@@ -32,6 +32,7 @@ import type {
   Team,
 } from '@/types';
 import type { CampaignNextAction, CampaignPlan } from '../domain/campaignPlan';
+import { getCampaignPullTargets } from '../domain/campaignPlan';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
 
@@ -158,6 +159,7 @@ function getTeamMemberTargets(
 }
 
 export default function CampaignsPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { campaigns, createCampaign, updateCampaign, deleteCampaign, isLoading } = useCampaigns();
   const { characters, isLoading: charactersLoading } = useCharacters();
@@ -282,7 +284,7 @@ export default function CampaignsPage() {
         ? `Recruit ${getDisplayName(selectedCharacterKey)}`
         : `Polish ${selectedTeam?.name ?? 'Team'}`;
 
-    await createCampaign({
+    const campaignId = await createCampaign({
       type: campaignType,
       name: campaignName,
       status: 'active',
@@ -303,6 +305,7 @@ export default function CampaignsPage() {
     });
 
     resetForm();
+    navigate(`/campaigns/${campaignId}`);
   };
 
   const updateStatus = async (campaign: Campaign, status: CampaignStatus) => {
@@ -487,9 +490,10 @@ function CampaignCard({
   const isCharacterCampaign = campaign.type === 'character-acquisition';
   const Icon = isCharacterCampaign ? Sparkles : UsersRound;
   const targetCount = campaign.characterTargets.length;
-  const pullTarget = campaign.pullTargets[0];
-  const pullGoalLabel = pullTarget
-    ? `${pullTarget.desiredCopies} ${pullTarget.desiredCopies === 1 ? 'copy' : 'copies'}`
+  const pullTargets = getCampaignPullTargets(campaign);
+  const pullCopyGoal = pullTargets.reduce((sum, target) => sum + target.desiredCopies, 0);
+  const pullGoalLabel = pullTargets.length > 0
+    ? `${pullCopyGoal} ${pullCopyGoal === 1 ? 'copy' : 'copies'}`
     : 'None';
 
   return (

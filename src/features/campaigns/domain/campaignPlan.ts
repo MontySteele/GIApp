@@ -7,7 +7,7 @@ import {
 } from '@/features/planner/domain/multiCharacterCalculator';
 import type { MaterialRequirement } from '@/features/planner/domain/ascensionCalculator';
 import { getDisplayName } from '@/lib/gameData';
-import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget, Character } from '@/types';
+import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget, CampaignPullTarget, Character } from '@/types';
 
 export type CampaignPlanStatus = 'ready' | 'attention' | 'blocked';
 export type CampaignActionCategory = 'pulls' | 'materials' | 'build' | 'roster' | 'done';
@@ -226,13 +226,42 @@ function estimatePullsForTarget(target: Campaign['pullTargets'][number]): number
   return pullsPerCopy * target.desiredCopies;
 }
 
+export function getCampaignPullTargets(campaign: Campaign): CampaignPullTarget[] {
+  const explicitTargets = [...campaign.pullTargets];
+  const explicitCharacterKeys = new Set(
+    explicitTargets
+      .filter((target) => target.itemType === 'character')
+      .map((target) => target.itemKey.toLowerCase())
+  );
+
+  const wishlistPullTargets = campaign.characterTargets
+    .filter(
+      (target) =>
+        target.ownership === 'wishlist' &&
+        !explicitCharacterKeys.has(target.characterKey.toLowerCase())
+    )
+    .map((target): CampaignPullTarget => ({
+      id: `${target.id}-wishlist-pull`,
+      itemKey: target.characterKey,
+      itemType: 'character',
+      bannerType: 'character',
+      desiredCopies: 1,
+      maxPullBudget: null,
+      isConfirmed: false,
+      notes: 'Auto-added from campaign wishlist target.',
+    }));
+
+  return [...explicitTargets, ...wishlistPullTargets];
+}
+
 export function calculatePullReadiness(
   campaign: Campaign,
   availablePulls: AvailablePullsResult
 ): CampaignPullReadiness {
   const availableWholePulls = wholePulls(availablePulls.availablePulls);
+  const pullTargets = getCampaignPullTargets(campaign);
 
-  if (campaign.pullTargets.length === 0) {
+  if (pullTargets.length === 0) {
     return {
       hasTargets: false,
       availablePulls: availableWholePulls,
@@ -243,7 +272,7 @@ export function calculatePullReadiness(
     };
   }
 
-  const targetPulls = campaign.pullTargets.reduce(
+  const targetPulls = pullTargets.reduce(
     (sum, target) => sum + estimatePullsForTarget(target),
     0
   );

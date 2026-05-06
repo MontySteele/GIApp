@@ -10,6 +10,13 @@ const mocks = vi.hoisted(() => ({
   campaigns: [] as unknown[],
   characters: [] as Character[],
   plans: {} as Record<string, unknown>,
+  dataFreshness: {
+    status: 'fresh',
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
 }));
 
 vi.mock('../hooks/useCampaigns', () => ({
@@ -34,6 +41,10 @@ vi.mock('@/features/roster/hooks/useCharacters', () => ({
     characters: mocks.characters,
     isLoading: false,
   }),
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => mocks.dataFreshness,
 }));
 
 const ownedFurina: Character = {
@@ -278,6 +289,13 @@ describe('CampaignDetailPage', () => {
     mocks.characters = [ownedFurina];
     mocks.campaigns = [campaign];
     mocks.plans = { 'campaign-1': plan };
+    mocks.dataFreshness = {
+      status: 'fresh',
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
   });
 
   afterEach(() => {
@@ -289,19 +307,46 @@ describe('CampaignDetailPage', () => {
 
     expect(screen.getByText('Focus')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Save 20 more pulls' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /open pulls/i })[0]).toHaveAttribute('href', '/pulls');
+    const params = new URLSearchParams({
+      mode: 'multi',
+      campaign: 'campaign-1',
+      pulls: '100',
+    });
+    params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
+    expect(screen.getAllByRole('link', { name: /open calculator/i })[0]).toHaveAttribute(
+      'href',
+      `/pulls/calculator?${params.toString()}`
+    );
   });
 
   it('links next actions to the relevant workspace', () => {
     renderPage();
 
-    expect(screen.getByRole('link', { name: /open materials/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
       'href',
-      '/planner/materials'
+      '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
     );
     expect(screen.getByRole('link', { name: /open character/i })).toHaveAttribute(
       'href',
       '/roster/furina-id'
+    );
+  });
+
+  it('shows a refresh prompt when campaign data is stale', () => {
+    mocks.dataFreshness = {
+      status: 'stale',
+      latestImport: null,
+      daysSinceImport: 10,
+      label: 'Refresh account data',
+      detail: 'Last Irminsul import was 10 days ago.',
+    };
+
+    renderPage();
+
+    expect(screen.getByText('Data stale')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /refresh import/i })).toHaveAttribute(
+      'href',
+      '/roster?import=irminsul'
     );
   });
 

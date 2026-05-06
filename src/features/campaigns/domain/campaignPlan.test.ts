@@ -5,6 +5,7 @@ import {
   calculateBuildReadiness,
   calculatePullReadiness,
   getCampaignBuildTarget,
+  getCampaignPullTargets,
 } from './campaignPlan';
 
 const baseCampaign: Campaign = {
@@ -114,6 +115,48 @@ describe('campaignPlan', () => {
     expect(readiness.availablePulls).toBe(69);
     expect(readiness.targetPulls).toBe(150);
     expect(readiness.remainingPulls).toBe(81);
+  });
+
+  it('treats wishlist team targets as implicit pull targets', () => {
+    const teamCampaign: Campaign = {
+      ...baseCampaign,
+      type: 'team-polish',
+      pullTargets: [],
+      characterTargets: [
+        {
+          id: 'char-lyney',
+          characterKey: 'Lyney',
+          ownership: 'wishlist',
+          buildGoal: 'comfortable',
+        },
+      ],
+    };
+
+    const effectiveTargets = getCampaignPullTargets(teamCampaign);
+    const readiness = calculatePullReadiness(teamCampaign, {
+      availablePulls: 40,
+      resources: {
+        primogems: 0,
+        genesisCrystals: 0,
+        intertwined: 40,
+        acquaint: 0,
+        starglitter: 0,
+      },
+      lastUpdated: null,
+      hasSnapshot: false,
+    });
+
+    expect(effectiveTargets).toEqual([
+      expect.objectContaining({
+        itemKey: 'Lyney',
+        itemType: 'character',
+        desiredCopies: 1,
+        maxPullBudget: null,
+      }),
+    ]);
+    expect(readiness.hasTargets).toBe(true);
+    expect(readiness.targetPulls).toBe(180);
+    expect(readiness.remainingPulls).toBe(140);
   });
 
   it('treats newly owned wishlist targets as build-ready when they meet the goal', () => {
