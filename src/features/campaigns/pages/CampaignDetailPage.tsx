@@ -239,6 +239,7 @@ export default function CampaignDetailPage() {
   const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(campaignList);
   const accountDataFreshness = useAccountDataFreshness();
   const plan = campaign ? plans[campaign.id] : undefined;
+  const [mutationError, setMutationError] = useState('');
 
   if (isLoading) {
     return (
@@ -275,8 +276,6 @@ export default function CampaignDetailPage() {
     : null;
   const focusAction = plan?.nextActions[0];
   const materialPlanHref = buildCampaignMaterialHref(campaign.id);
-
-  const [mutationError, setMutationError] = useState('');
 
   const updateStatus = async (status: CampaignStatus) => {
     try {
