@@ -16,6 +16,7 @@ import {
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import DeleteConfirmModal from '@/features/roster/components/DeleteConfirmModal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
@@ -284,32 +285,45 @@ export default function CampaignsPage() {
         ? `Recruit ${getDisplayName(selectedCharacterKey)}`
         : `Polish ${selectedTeam?.name ?? 'Team'}`;
 
-    const campaignId = await createCampaign({
-      type: campaignType,
-      name: campaignName,
-      status: 'active',
-      priority: toPriority(priority),
-      ...(deadline ? { deadline } : {}),
-      pullTargets,
-      characterTargets,
-      ...(selectedTeam
-        ? {
-            teamTarget: {
-              teamId: selectedTeam.id,
-              name: selectedTeam.name,
-              memberKeys: selectedTeam.characterKeys,
-            },
-          }
-        : {}),
-      notes,
-    });
+    let campaignId: string;
+    try {
+      campaignId = await createCampaign({
+        type: campaignType,
+        name: campaignName,
+        status: 'active',
+        priority: toPriority(priority),
+        ...(deadline ? { deadline } : {}),
+        pullTargets,
+        characterTargets,
+        ...(selectedTeam
+          ? {
+              teamTarget: {
+                teamId: selectedTeam.id,
+                name: selectedTeam.name,
+                memberKeys: selectedTeam.characterKeys,
+              },
+            }
+          : {}),
+        notes,
+      });
+    } catch {
+      setError('Failed to create campaign. Please try again.');
+      return;
+    }
 
     resetForm();
     navigate(`/campaigns/${campaignId}`);
   };
 
+  const [mutationError, setMutationError] = useState('');
+
   const updateStatus = async (campaign: Campaign, status: CampaignStatus) => {
-    await updateCampaign(campaign.id, { status });
+    try {
+      setMutationError('');
+      await updateCampaign(campaign.id, { status });
+    } catch {
+      setMutationError(`Failed to update "${campaign.name}" status.`);
+    }
   };
 
   const pageLoading = isLoading || charactersLoading || teamsLoading;
@@ -446,6 +460,12 @@ export default function CampaignsPage() {
         </CardContent>
       </Card>
 
+      {mutationError && (
+        <div className="rounded-lg border border-red-700 bg-red-950/30 p-3 text-sm text-red-200">
+          {mutationError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {campaigns.length === 0 ? (
           <Card className="xl:col-span-2">
@@ -465,7 +485,14 @@ export default function CampaignsPage() {
               plan={plans[campaign.id]}
               isPlanLoading={plansCalculating && !plans[campaign.id]}
               onStatusChange={updateStatus}
-              onDelete={deleteCampaign}
+              onDelete={async (id) => {
+                try {
+                  setMutationError('');
+                  await deleteCampaign(id);
+                } catch {
+                  setMutationError('Failed to delete campaign.');
+                }
+              }}
             />
           ))
         )}
@@ -487,6 +514,7 @@ function CampaignCard({
   onStatusChange: (campaign: Campaign, status: CampaignStatus) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const isCharacterCampaign = campaign.type === 'character-acquisition';
   const Icon = isCharacterCampaign ? Sparkles : UsersRound;
   const targetCount = campaign.characterTargets.length;
@@ -626,11 +654,23 @@ function CampaignCard({
             <Archive className="w-4 h-4" />
             Archive
           </Button>
-          <Button size="sm" variant="danger" onClick={() => onDelete(campaign.id)}>
+          <Button size="sm" variant="danger" onClick={() => setConfirmDelete(true)}>
             <Trash2 className="w-4 h-4" />
             Delete
           </Button>
         </div>
+
+        <DeleteConfirmModal
+          isOpen={confirmDelete}
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={() => {
+            setConfirmDelete(false);
+            onDelete(campaign.id);
+          }}
+          title="Delete Campaign"
+          itemName={campaign.name}
+          description="This will permanently delete the campaign, including all targets and planning data. This action cannot be undone."
+        />
       </CardContent>
     </Card>
   );

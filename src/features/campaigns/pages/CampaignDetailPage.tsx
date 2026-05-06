@@ -276,8 +276,15 @@ export default function CampaignDetailPage() {
   const focusAction = plan?.nextActions[0];
   const materialPlanHref = buildCampaignMaterialHref(campaign.id);
 
+  const [mutationError, setMutationError] = useState('');
+
   const updateStatus = async (status: CampaignStatus) => {
-    await updateCampaign(campaign.id, { status });
+    try {
+      setMutationError('');
+      await updateCampaign(campaign.id, { status });
+    } catch {
+      setMutationError(`Failed to update campaign status to "${status}".`);
+    }
   };
 
   return (
@@ -328,6 +335,12 @@ export default function CampaignDetailPage() {
           </Link>
         </div>
       </div>
+
+      {mutationError && (
+        <div className="rounded-lg border border-red-700 bg-red-950/30 p-3 text-sm text-red-200">
+          {mutationError}
+        </div>
+      )}
 
       {(plansLoading || isCalculating || !plan) && (
         <Card>
@@ -722,6 +735,7 @@ function CampaignSetupCard({
     firstPullTarget?.maxPullBudget ? String(firstPullTarget.maxPullBudget) : ''
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const resetDraft = () => {
     const pullTarget = campaign.pullTargets[0];
@@ -775,6 +789,7 @@ function CampaignSetupCard({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
+    setSaveError('');
 
     try {
       const characterTargets = draftTargets;
@@ -828,6 +843,8 @@ function CampaignSetupCard({
 
       await onSave(updates);
       setIsEditing(false);
+    } catch {
+      setSaveError('Failed to save campaign setup. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -998,6 +1015,10 @@ function CampaignSetupCard({
                   />
                 </div>
               </div>
+            )}
+
+            {saveError && (
+              <p className="text-sm text-red-400">{saveError}</p>
             )}
 
             <div className="flex flex-wrap gap-2">

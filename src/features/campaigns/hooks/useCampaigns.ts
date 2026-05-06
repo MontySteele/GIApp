@@ -33,13 +33,14 @@ export function useCampaigns() {
 }
 
 export function useCampaign(id: string | undefined) {
-  const campaign = useLiveQuery(
-    () => (id ? campaignRepo.getById(id) : undefined),
+  const result = useLiveQuery(
+    () => (id ? campaignRepo.getById(id).then((c) => c ?? null) : undefined),
     [id]
   );
 
   return {
-    campaign,
-    isLoading: campaign === undefined && id !== undefined,
+    campaign: result ?? undefined,
+    isLoading: result === undefined && id !== undefined,
+    notFound: result === null,
   };
 }

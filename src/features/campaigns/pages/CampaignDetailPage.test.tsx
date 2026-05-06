@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CampaignDetailPage from './CampaignDetailPage';
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   campaigns: [] as unknown[],
   characters: [] as Character[],
   plans: {} as Record<string, unknown>,
+  isLoading: false,
   dataFreshness: {
     status: 'fresh',
     latestImport: null,
@@ -23,7 +24,7 @@ vi.mock('../hooks/useCampaigns', () => ({
   useCampaigns: () => ({
     campaigns: mocks.campaigns,
     updateCampaign: mocks.updateCampaign,
-    isLoading: false,
+    isLoading: mocks.isLoading,
   }),
 }));
 
@@ -270,11 +271,12 @@ const plan: CampaignPlan = {
   ],
 };
 
-function renderPage() {
+function renderPage(route = '/campaigns/campaign-1') {
   return render(
-    <MemoryRouter initialEntries={['/campaigns/campaign-1']}>
+    <MemoryRouter initialEntries={[route]}>
       <Routes>
         <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+        <Route path="/campaigns" element={<div>Campaigns list</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -289,6 +291,7 @@ describe('CampaignDetailPage', () => {
     mocks.characters = [ownedFurina];
     mocks.campaigns = [campaign];
     mocks.plans = { 'campaign-1': plan };
+    mocks.isLoading = false;
     mocks.dataFreshness = {
       status: 'fresh',
       latestImport: null,
@@ -302,133 +305,367 @@ describe('CampaignDetailPage', () => {
     vi.useRealTimers();
   });
 
-  it('elevates the top next action into a focus panel', () => {
-    renderPage();
+  describe('loading and not-found states', () => {
+    it('shows loading indicator while campaigns are loading', () => {
+      mocks.isLoading = true;
+      renderPage();
 
-    expect(screen.getByText('Focus')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Save 20 more pulls' })).toBeInTheDocument();
-    const params = new URLSearchParams({
-      mode: 'multi',
-      campaign: 'campaign-1',
-      pulls: '100',
-    });
-    params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
-    expect(screen.getAllByRole('link', { name: /open calculator/i })[0]).toHaveAttribute(
-      'href',
-      `/pulls/calculator?${params.toString()}`
-    );
-  });
-
-  it('links next actions to the relevant workspace', () => {
-    renderPage();
-
-    expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
-      'href',
-      '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
-    );
-    expect(screen.getByRole('link', { name: /open character/i })).toHaveAttribute(
-      'href',
-      '/roster/furina-id'
-    );
-  });
-
-  it('shows a refresh prompt when campaign data is stale', () => {
-    mocks.dataFreshness = {
-      status: 'stale',
-      latestImport: null,
-      daysSinceImport: 10,
-      label: 'Refresh account data',
-      detail: 'Last Irminsul import was 10 days ago.',
-    };
-
-    renderPage();
-
-    expect(screen.getByText('Data stale')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /refresh import/i })).toHaveAttribute(
-      'href',
-      '/roster?import=irminsul'
-    );
-  });
-
-  it('shows campaign talent deficits by farming window', () => {
-    renderPage();
-
-    expect(screen.getByRole('heading', { name: 'Farming Windows' })).toBeInTheDocument();
-    expect(screen.getByText('Farm Equity (Fontaine) today.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /domain calendar/i })).toHaveAttribute(
-      'href',
-      '/planner/domains'
-    );
-    expect(screen.getByText('Farm Today')).toBeInTheDocument();
-    expect(screen.getAllByText('Guide to Equity').length).toBeGreaterThan(0);
-    expect(screen.getByText('Wait For')).toBeInTheDocument();
-    expect(screen.getByText('Tuesday')).toBeInTheDocument();
-    expect(screen.getAllByText('Guide to Justice').length).toBeGreaterThan(0);
-  });
-
-  it('saves campaign setup edits without recreating the campaign', async () => {
-    renderPage();
-
-    fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
-    fireEvent.change(screen.getByLabelText('Priority'), { target: { value: '2' } });
-    fireEvent.change(screen.getByLabelText('Build goal'), { target: { value: 'full' } });
-    fireEvent.change(screen.getByLabelText('Desired copies'), { target: { value: '2' } });
-    fireEvent.change(screen.getByLabelText('Pull budget'), { target: { value: '160' } });
-    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'C2 or bust' } });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
+      expect(screen.getByText('Loading campaign...')).toBeInTheDocument();
     });
 
-    expect(mocks.updateCampaign).toHaveBeenCalledWith(
-      'campaign-1',
-      expect.objectContaining({
-        priority: 2,
-        notes: 'C2 or bust',
-        characterTargets: [
-          expect.objectContaining({
-            characterKey: 'Furina',
-            buildGoal: 'full',
+    it('shows not-found state for a nonexistent campaign', () => {
+      mocks.campaigns = [];
+      renderPage();
+
+      expect(screen.getByText('Campaign not found')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back to campaigns/i })).toBeInTheDocument();
+    });
+
+    it('shows not-found for mismatched campaign ID', () => {
+      mocks.campaigns = [campaign];
+      renderPage('/campaigns/nonexistent-id');
+
+      expect(screen.getByText('Campaign not found')).toBeInTheDocument();
+    });
+  });
+
+  describe('header and metadata', () => {
+    it('displays campaign name and status badges', () => {
+      renderPage();
+
+      expect(screen.getByRole('heading', { name: 'Recruit Furina' })).toBeInTheDocument();
+      expect(screen.getByText('active')).toBeInTheDocument();
+      expect(screen.getAllByText('P1').length).toBeGreaterThan(0);
+    });
+
+    it('shows breadcrumb navigation', () => {
+      renderPage();
+
+      expect(screen.getByText('Campaigns')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Campaigns' })).toHaveAttribute('href', '/campaigns');
+    });
+
+    it('shows overall readiness from plan', () => {
+      renderPage();
+
+      expect(screen.getByText('62% ready')).toBeInTheDocument();
+    });
+  });
+
+  describe('focus action panel', () => {
+    it('elevates the top next action into a focus panel', () => {
+      renderPage();
+
+      expect(screen.getByText('Focus')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Save 20 more pulls' })).toBeInTheDocument();
+      const params = new URLSearchParams({
+        mode: 'multi',
+        campaign: 'campaign-1',
+        pulls: '100',
+      });
+      params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
+      expect(screen.getAllByRole('link', { name: /open calculator/i })[0]).toHaveAttribute(
+        'href',
+        `/pulls/calculator?${params.toString()}`
+      );
+    });
+
+    it('links next actions to the relevant workspace', () => {
+      renderPage();
+
+      expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
+        'href',
+        '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
+      );
+      expect(screen.getByRole('link', { name: /open character/i })).toHaveAttribute(
+        'href',
+        '/roster/furina-id'
+      );
+    });
+  });
+
+  describe('readiness cards', () => {
+    it('shows all four readiness metrics', () => {
+      renderPage();
+
+      expect(screen.getByText('Overall')).toBeInTheDocument();
+      expect(screen.getAllByText('62%').length).toBeGreaterThan(0);
+      expect(screen.getByText('Pulls')).toBeInTheDocument();
+      expect(screen.getAllByText('83%').length).toBeGreaterThan(0);
+      expect(screen.getByText('Build')).toBeInTheDocument();
+      expect(screen.getAllByText('60%').length).toBeGreaterThan(0);
+      expect(screen.getByText('Materials')).toBeInTheDocument();
+      expect(screen.getAllByText('50%').length).toBeGreaterThan(0);
+    });
+
+    it('shows pull plan sidebar with target and available counts', () => {
+      renderPage();
+
+      expect(screen.getByText('Pull Plan')).toBeInTheDocument();
+      expect(screen.getByText('100')).toBeInTheDocument();
+      expect(screen.getByText('120')).toBeInTheDocument();
+      expect(screen.getByText('20')).toBeInTheDocument();
+    });
+
+    it('shows loading skeletons when plan is not ready', () => {
+      mocks.plans = {};
+      renderPage();
+
+      const pulseElements = document.querySelectorAll('.animate-pulse');
+      expect(pulseElements.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('build targets', () => {
+    it('shows build target progress per character', () => {
+      renderPage();
+
+      expect(screen.getByRole('heading', { name: 'Build Targets' })).toBeInTheDocument();
+      expect(screen.getAllByText('comfortable').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('60%').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Skill 6/8').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('material deficits', () => {
+    it('shows deficit materials sorted by severity', () => {
+      renderPage();
+
+      expect(screen.getByRole('heading', { name: 'Material Deficits' })).toBeInTheDocument();
+      expect(screen.getByText('800 short')).toBeInTheDocument();
+      expect(screen.getByText('200 / 1,000')).toBeInTheDocument();
+    });
+
+    it('links deficit rows to the planner', () => {
+      renderPage();
+
+      const moraLink = screen.getByText('800 short').closest('a');
+      expect(moraLink).toHaveAttribute(
+        'href',
+        '/planner/materials?campaign=campaign-1&material=Mora'
+      );
+    });
+
+    it('shows resin and day estimates', () => {
+      renderPage();
+
+      expect(screen.getByText(/120 resin/)).toBeInTheDocument();
+      expect(screen.getByText(/1 days/)).toBeInTheDocument();
+    });
+  });
+
+  describe('farming windows', () => {
+    it('shows campaign talent deficits by farming window', () => {
+      renderPage();
+
+      expect(screen.getByRole('heading', { name: 'Farming Windows' })).toBeInTheDocument();
+      expect(screen.getByText('Farm Equity (Fontaine) today.')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /domain calendar/i })).toHaveAttribute(
+        'href',
+        '/planner/domains'
+      );
+      expect(screen.getByText('Farm Today')).toBeInTheDocument();
+      expect(screen.getAllByText('Guide to Equity').length).toBeGreaterThan(0);
+      expect(screen.getByText('Wait For')).toBeInTheDocument();
+      expect(screen.getByText('Tuesday')).toBeInTheDocument();
+      expect(screen.getAllByText('Guide to Justice').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('data freshness banner', () => {
+    it('shows a refresh prompt when campaign data is stale', () => {
+      mocks.dataFreshness = {
+        status: 'stale',
+        latestImport: null,
+        daysSinceImport: 10,
+        label: 'Refresh account data',
+        detail: 'Last Irminsul import was 10 days ago.',
+      };
+      renderPage();
+
+      expect(screen.getByText('Data stale')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /refresh import/i })).toHaveAttribute(
+        'href',
+        '/roster?import=irminsul'
+      );
+    });
+
+    it('shows import-needed banner when data is missing', () => {
+      mocks.dataFreshness = {
+        status: 'missing',
+        latestImport: null,
+        daysSinceImport: 0,
+        label: 'Import your account data',
+        detail: 'No Irminsul import found.',
+      };
+      renderPage();
+
+      expect(screen.getByText('Import needed')).toBeInTheDocument();
+    });
+
+    it('hides the banner when data is fresh', () => {
+      renderPage();
+
+      expect(screen.queryByText('Data stale')).not.toBeInTheDocument();
+      expect(screen.queryByText('Import needed')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('status transitions', () => {
+    it('pauses an active campaign', async () => {
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /pause/i }));
+      });
+
+      expect(mocks.updateCampaign).toHaveBeenCalledWith('campaign-1', { status: 'paused' });
+    });
+
+    it('activates a paused campaign', async () => {
+      mocks.campaigns = [{ ...campaign, status: 'paused' }];
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /activate/i }));
+      });
+
+      expect(mocks.updateCampaign).toHaveBeenCalledWith('campaign-1', { status: 'active' });
+    });
+
+    it('completes a campaign', async () => {
+      renderPage();
+
+      const buttons = screen.getAllByRole('button', { name: /complete/i });
+      await act(async () => {
+        fireEvent.click(buttons[0]);
+      });
+
+      expect(mocks.updateCampaign).toHaveBeenCalledWith('campaign-1', { status: 'completed' });
+    });
+
+    it('shows error feedback when status update fails', async () => {
+      mocks.updateCampaign.mockRejectedValueOnce(new Error('DB error'));
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /pause/i }));
+      });
+
+      expect(screen.getByText(/failed to update campaign status/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('campaign setup editing', () => {
+    it('saves campaign setup edits without recreating the campaign', async () => {
+      renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
+      fireEvent.change(screen.getByLabelText('Priority'), { target: { value: '2' } });
+      fireEvent.change(screen.getByLabelText('Build goal'), { target: { value: 'full' } });
+      fireEvent.change(screen.getByLabelText('Desired copies'), { target: { value: '2' } });
+      fireEvent.change(screen.getByLabelText('Pull budget'), { target: { value: '160' } });
+      fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'C2 or bust' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
+      });
+
+      expect(mocks.updateCampaign).toHaveBeenCalledWith(
+        'campaign-1',
+        expect.objectContaining({
+          priority: 2,
+          notes: 'C2 or bust',
+          characterTargets: [
+            expect.objectContaining({
+              characterKey: 'Furina',
+              buildGoal: 'full',
+            }),
+          ],
+          pullTargets: [
+            expect.objectContaining({
+              desiredCopies: 2,
+              maxPullBudget: 160,
+            }),
+          ],
+        })
+      );
+    });
+
+    it('cancels editing and reverts draft state', () => {
+      renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
+      fireEvent.change(screen.getByLabelText('Priority'), { target: { value: '5' } });
+      const cancelButtons = screen.getAllByRole('button', { name: /cancel/i });
+      fireEvent.click(cancelButtons[cancelButtons.length - 1]);
+
+      expect(screen.getAllByText('P1').length).toBeGreaterThan(0);
+      expect(screen.queryByLabelText('Priority')).not.toBeInTheDocument();
+    });
+
+    it('shows error feedback when save fails', async () => {
+      mocks.updateCampaign.mockRejectedValueOnce(new Error('DB error'));
+      renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
+      });
+
+      expect(screen.getByText(/failed to save campaign setup/i)).toBeInTheDocument();
+    });
+
+    it('lets team campaigns add wishlist targets to the campaign lineup', async () => {
+      mocks.campaigns = [teamCampaign];
+      mocks.plans = { 'campaign-1': plan };
+      renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
+      fireEvent.change(screen.getByRole('combobox', { name: 'Add target' }), {
+        target: { value: 'Lyney' },
+      });
+      fireEvent.mouseDown(screen.getByRole('option', { name: /Lyney/i }));
+      fireEvent.click(screen.getByRole('button', { name: /add target/i }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
+      });
+
+      expect(mocks.updateCampaign).toHaveBeenCalledWith(
+        'campaign-1',
+        expect.objectContaining({
+          characterTargets: [
+            expect.objectContaining({ characterKey: 'Furina' }),
+            expect.objectContaining({
+              characterKey: 'Lyney',
+              ownership: 'wishlist',
+            }),
+          ],
+          teamTarget: expect.objectContaining({
+            memberKeys: ['Furina', 'Lyney'],
           }),
-        ],
-        pullTargets: [
-          expect.objectContaining({
-            desiredCopies: 2,
-            maxPullBudget: 160,
-          }),
-        ],
-      })
-    );
+        })
+      );
+    });
   });
 
-  it('lets team campaigns add wishlist targets to the campaign lineup', async () => {
-    mocks.campaigns = [teamCampaign];
-    mocks.plans = { 'campaign-1': plan };
-    renderPage();
+  describe('campaign without pull targets', () => {
+    it('shows message when no pull targets exist', () => {
+      mocks.campaigns = [teamCampaign];
+      const noPullPlan = {
+        ...plan,
+        pullReadiness: {
+          ...plan.pullReadiness,
+          hasTargets: false,
+          availablePulls: 0,
+          targetPulls: 0,
+          remainingPulls: 0,
+          percent: 100,
+        },
+      };
+      mocks.plans = { 'campaign-1': noPullPlan };
+      renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /edit setup/i }));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Add target' }), {
-      target: { value: 'Lyney' },
+      expect(screen.getByText(/not tied to a pull target/i)).toBeInTheDocument();
     });
-    fireEvent.mouseDown(screen.getByRole('option', { name: /Lyney/i }));
-    fireEvent.click(screen.getByRole('button', { name: /add target/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
-    });
-
-    expect(mocks.updateCampaign).toHaveBeenCalledWith(
-      'campaign-1',
-      expect.objectContaining({
-        characterTargets: [
-          expect.objectContaining({ characterKey: 'Furina' }),
-          expect.objectContaining({
-            characterKey: 'Lyney',
-            ownership: 'wishlist',
-          }),
-        ],
-        teamTarget: expect.objectContaining({
-          memberKeys: ['Furina', 'Lyney'],
-        }),
-      })
-    );
   });
 });
