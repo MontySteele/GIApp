@@ -35,8 +35,40 @@ vi.mock('../hooks/useCampaignPlans', () => ({
   }),
 }));
 
-vi.mock('@/features/roster/hooks/useCharacters', () => ({
-  useCharacters: () => ({
+vi.mock('../hooks/useCampaignPlanContext', () => ({
+  useCampaignPlanContext: () => ({
+    context: {
+      characters: [
+        {
+          id: 'furina',
+          key: 'Furina',
+          level: 80,
+          ascension: 6,
+          constellation: 0,
+          talent: { auto: 8, skill: 8, burst: 8 },
+          weapon: { key: 'FleuveCendreFerryman', level: 90, ascension: 6, refinement: 5 },
+          artifacts: [],
+          notes: '',
+          priority: 'main',
+          teamIds: [],
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
+      materials: {},
+      availablePulls: {
+        availablePulls: 0,
+        resources: {
+          primogems: 0,
+          genesisCrystals: 0,
+          intertwined: 0,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: false,
+      },
+    },
     characters: [
       {
         id: 'furina',
@@ -55,6 +87,9 @@ vi.mock('@/features/roster/hooks/useCharacters', () => ({
       },
     ],
     isLoading: false,
+    charactersLoading: false,
+    materialsLoading: false,
+    availablePullsLoading: false,
   }),
 }));
 

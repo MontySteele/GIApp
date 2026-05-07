@@ -5,10 +5,13 @@
  */
 
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Flag, Package, AlertCircle, Coins, Pencil } from 'lucide-react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
-import { useCampaignPlans, useCampaigns } from '@/features/campaigns';
+import { useCampaignPlans } from '@/features/campaigns/hooks/useCampaignPlans';
+import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
+import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
 import { useMaterials } from '../hooks/useMaterials';
 import { useMultiCharacterPlan } from '../hooks/useMultiCharacterPlan';
 import DeficitPriorityCard from '../components/DeficitPriorityCard';
@@ -16,6 +19,7 @@ import { MaterialsList } from '../components/MaterialsList';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Campaign } from '@/types';
+import type { CampaignPlanContext } from '@/features/campaigns/domain/campaignPlan';
 import type { MaterialRequirement } from '../domain/ascensionCalculator';
 
 function normalizeMaterialKey(value: string | null | undefined): string {
@@ -41,6 +45,7 @@ export default function MaterialsTab() {
   const { characters, isLoading: loadingChars } = useCharacters();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
   const { campaigns, isLoading: loadingCampaigns } = useCampaigns();
+  const availablePulls = useLiveQuery(() => getAvailablePullsFromTracker(), []);
 
   // Inline Mora editing state
   const [editingMora, setEditingMora] = useState(false);
@@ -65,11 +70,27 @@ export default function MaterialsTab() {
     [campaignId, campaigns]
   );
   const campaignList = useMemo(() => (campaign ? [campaign] : []), [campaign]);
+  const campaignPlanContext = useMemo<CampaignPlanContext | null>(
+    () => (
+      availablePulls === undefined
+        ? null
+        : {
+            characters,
+            materials,
+            availablePulls,
+          }
+    ),
+    [availablePulls, characters, materials]
+  );
   const {
     plans: campaignPlans,
     isLoading: loadingCampaignPlan,
     isCalculating: calculatingCampaignPlan,
-  } = useCampaignPlans(campaignList);
+  } = useCampaignPlans(
+    campaignList,
+    campaignPlanContext,
+    loadingChars || loadingMats || availablePulls === undefined
+  );
   const campaignPlan = campaign ? campaignPlans[campaign.id] : undefined;
 
   const isCampaignContext = Boolean(campaignId);

@@ -101,7 +101,11 @@ function parseUrlTarget(rawTarget: string, index: number): Target | null {
   }
 }
 
-function normalizeInheritedPity(targets: Target[]): Target[] {
+function normalizeInheritedPity(
+  targets: Target[],
+  options: { preserveExisting?: boolean } = {}
+): Target[] {
+  const preserveExisting = options.preserveExisting ?? true;
   const seenBanners = new Set<BannerType>();
   return targets.map((target) => {
     const hasPreviousBannerTarget = seenBanners.has(target.bannerType);
@@ -109,7 +113,7 @@ function normalizeInheritedPity(targets: Target[]): Target[] {
 
     return {
       ...target,
-      useInheritedPity: hasPreviousBannerTarget ? target.useInheritedPity : false,
+      useInheritedPity: hasPreviousBannerTarget && (preserveExisting ? target.useInheritedPity : true),
     };
   });
 }
@@ -127,7 +131,7 @@ function loadUrlPrefillState(): UrlPrefillState | null {
     campaignId: params.get('campaign'),
     campaignName: params.get('name'),
     state: {
-      targets: normalizeInheritedPity(urlTargets),
+      targets: normalizeInheritedPity(urlTargets, { preserveExisting: false }),
       availablePulls: parsePositiveInteger(params.get('pulls'), 0),
       iterations: parsePositiveInteger(params.get('iterations'), 5000) || 5000,
     },

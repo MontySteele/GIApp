@@ -6,13 +6,13 @@ import {
   groupMaterialsByCategory,
   type AggregatedMaterialSummary,
   type MultiCharacterGoal,
-} from '@/features/planner/domain/multiCharacterCalculator';
-import type { MaterialRequirement } from '@/features/planner/domain/ascensionCalculator';
+} from '@/lib/planning/multiCharacterCalculator';
+import type { MaterialRequirement } from '@/lib/planning/ascensionCalculator';
 import {
   calculateWeaponAscensionSummary,
   type WeaponMaterialRequirement,
-} from '@/features/planner/domain/weaponCalculator';
-import { RESIN_REGEN } from '@/features/planner/domain/materialConstants';
+} from '@/lib/planning/weaponCalculator';
+import { RESIN_REGEN } from '@/lib/planning/materialConstants';
 import { findWeapon } from '@/lib/data/equipmentData';
 import { getDisplayName } from '@/lib/gameData';
 import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget, CampaignPullTarget, Character } from '@/types';
@@ -578,7 +578,7 @@ export async function calculateMaterialReadiness(
     totalEstimatedResin,
     resinBreakdown: {
       ...summary.resinBreakdown,
-      talentBoss: summary.resinBreakdown.talentBoss + equipmentPlan.estimatedResin,
+      weapon: (summary.resinBreakdown.weapon ?? 0) + equipmentPlan.estimatedResin,
       total: totalEstimatedResin,
     },
     totalEstimatedDays: Math.ceil(totalEstimatedResin / RESIN_REGEN.perDay),

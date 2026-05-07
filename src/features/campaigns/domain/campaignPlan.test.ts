@@ -274,6 +274,12 @@ describe('campaignPlan', () => {
     );
     expect(readiness.totalEstimatedResin).toBeGreaterThan(0);
     expect(readiness.deficitMaterials).toBeGreaterThan(0);
+    expect(readiness.summary?.resinBreakdown.weapon).toBeGreaterThan(0);
+    expect(readiness.summary?.resinBreakdown.total).toBe(
+      (readiness.summary?.resinBreakdown.talentBoss ?? 0) +
+        (readiness.summary?.resinBreakdown.expMora ?? 0) +
+        (readiness.summary?.resinBreakdown.weapon ?? 0)
+    );
   });
 
   it('adds semantic target metadata to next actions', async () => {

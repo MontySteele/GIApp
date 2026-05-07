@@ -18,6 +18,21 @@ const mocks = vi.hoisted(() => ({
   multiSummary: null as AggregatedMaterialSummary | null,
 }));
 
+vi.mock('dexie-react-hooks', () => ({
+  useLiveQuery: () => ({
+    availablePulls: 0,
+    resources: {
+      primogems: 0,
+      genesisCrystals: 0,
+      intertwined: 0,
+      acquaint: 0,
+      starglitter: 0,
+    },
+    lastUpdated: null,
+    hasSnapshot: false,
+  }),
+}));
+
 vi.mock('@/features/roster/hooks/useCharacters', () => ({
   useCharacters: () => ({
     characters: [],
@@ -25,11 +40,14 @@ vi.mock('@/features/roster/hooks/useCharacters', () => ({
   }),
 }));
 
-vi.mock('@/features/campaigns', () => ({
+vi.mock('@/features/campaigns/hooks/useCampaigns', () => ({
   useCampaigns: () => ({
     campaigns: mocks.campaigns,
     isLoading: mocks.loadingCampaigns,
   }),
+}));
+
+vi.mock('@/features/campaigns/hooks/useCampaignPlans', () => ({
   useCampaignPlans: () => ({
     plans: mocks.campaignPlans,
     isLoading: mocks.loadingCampaignPlans,

@@ -37,10 +37,29 @@ vi.mock('../hooks/useCampaignPlans', () => ({
   }),
 }));
 
-vi.mock('@/features/roster/hooks/useCharacters', () => ({
-  useCharacters: () => ({
+vi.mock('../hooks/useCampaignPlanContext', () => ({
+  useCampaignPlanContext: () => ({
+    context: {
+      characters: mocks.characters,
+      materials: {},
+      availablePulls: {
+        availablePulls: 0,
+        resources: {
+          primogems: 0,
+          genesisCrystals: 0,
+          intertwined: 0,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: false,
+      },
+    },
     characters: mocks.characters,
     isLoading: false,
+    charactersLoading: false,
+    materialsLoading: false,
+    availablePullsLoading: false,
   }),
 }));
 

@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { useCharacters } from '@/features/roster/hooks/useCharacters';
-import { useMaterials } from '@/features/planner/hooks/useMaterials';
-import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
 import type { Campaign } from '@/types';
-import { calculateCampaignPlan, type CampaignPlan } from '../domain/campaignPlan';
+import {
+  calculateCampaignPlan,
+  type CampaignPlan,
+  type CampaignPlanContext,
+} from '../domain/campaignPlan';
 
-export function useCampaignPlans(campaigns: Campaign[]) {
-  const { characters, isLoading: charactersLoading } = useCharacters();
-  const { materials, isLoading: materialsLoading } = useMaterials();
-  const availablePulls = useLiveQuery(() => getAvailablePullsFromTracker(), []);
+export function useCampaignPlans(
+  campaigns: Campaign[],
+  context: CampaignPlanContext | null,
+  isContextLoading = false
+) {
   const [plans, setPlans] = useState<Record<string, CampaignPlan>>({});
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,25 +19,34 @@ export function useCampaignPlans(campaigns: Campaign[]) {
     () => campaigns.map((campaign) => `${campaign.id}:${campaign.updatedAt}`).join('|'),
     [campaigns]
   );
+  const campaignSnapshot = useMemo(() => campaigns, [campaignSignature]);
 
   useEffect(() => {
-    if (charactersLoading || materialsLoading || availablePulls === undefined) {
+    if (isContextLoading || !context) {
+      setIsCalculating(false);
+      return;
+    }
+
+    if (campaignSnapshot.length === 0) {
+      setPlans({});
+      setIsCalculating(false);
+      setError(null);
       return;
     }
 
     let cancelled = false;
-    const availablePullsSnapshot = availablePulls;
+    const contextSnapshot = context;
     setIsCalculating(true);
     setError(null);
 
     async function calculatePlans() {
       try {
         const results = await Promise.all(
-          campaigns.map(async (campaign) => {
+          campaignSnapshot.map(async (campaign) => {
             const plan = await calculateCampaignPlan(campaign, {
-              characters,
-              materials,
-              availablePulls: availablePullsSnapshot,
+              characters: contextSnapshot.characters,
+              materials: contextSnapshot.materials,
+              availablePulls: contextSnapshot.availablePulls,
             });
             return [campaign.id, plan] as const;
           })
@@ -61,19 +71,11 @@ export function useCampaignPlans(campaigns: Campaign[]) {
     return () => {
       cancelled = true;
     };
-  }, [
-    availablePulls,
-    campaignSignature,
-    campaigns,
-    characters,
-    charactersLoading,
-    materials,
-    materialsLoading,
-  ]);
+  }, [campaignSignature, campaignSnapshot, context, isContextLoading]);
 
   return {
     plans,
-    isLoading: charactersLoading || materialsLoading || availablePulls === undefined,
+    isLoading: isContextLoading || !context,
     isCalculating,
     error,
   };

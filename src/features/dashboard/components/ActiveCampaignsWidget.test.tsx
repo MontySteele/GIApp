@@ -18,16 +18,45 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/features/campaigns', () => ({
+vi.mock('@/features/campaigns/hooks/useCampaigns', () => ({
   useCampaigns: () => ({
     activeCampaigns: mocks.activeCampaigns,
     isLoading: mocks.campaignsLoading,
   }),
+}));
+
+vi.mock('@/features/campaigns/hooks/useCampaignPlans', () => ({
   useCampaignPlans: () => ({
     plans: mocks.plans,
     isLoading: mocks.plansLoading,
     isCalculating: mocks.plansCalculating,
     error: null,
+  }),
+}));
+
+vi.mock('@/features/campaigns/hooks/useCampaignPlanContext', () => ({
+  useCampaignPlanContext: () => ({
+    context: {
+      characters: [],
+      materials: {},
+      availablePulls: {
+        availablePulls: 0,
+        resources: {
+          primogems: 0,
+          genesisCrystals: 0,
+          intertwined: 0,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: false,
+      },
+    },
+    characters: [],
+    isLoading: false,
+    charactersLoading: false,
+    materialsLoading: false,
+    availablePullsLoading: false,
   }),
 }));
 

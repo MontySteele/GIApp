@@ -19,7 +19,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import DeleteConfirmModal from '@/features/roster/components/DeleteConfirmModal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import { getDisplayName } from '@/lib/gameData';
@@ -34,6 +33,7 @@ import type {
 } from '@/types';
 import type { CampaignNextAction, CampaignPlan } from '../domain/campaignPlan';
 import { getCampaignPullTargets } from '../domain/campaignPlan';
+import { useCampaignPlanContext } from '../hooks/useCampaignPlanContext';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
 
@@ -163,7 +163,12 @@ export default function CampaignsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { campaigns, createCampaign, updateCampaign, deleteCampaign, isLoading } = useCampaigns();
-  const { characters, isLoading: charactersLoading } = useCharacters();
+  const {
+    context: campaignPlanContext,
+    characters,
+    isLoading: campaignPlanContextLoading,
+    charactersLoading,
+  } = useCampaignPlanContext();
   const { teams, isLoading: teamsLoading } = useTeams();
 
   const initialTeamId = searchParams.get('team') ?? '';
@@ -181,7 +186,11 @@ export default function CampaignsPage() {
   const [includePullTarget, setIncludePullTarget] = useState(getPullPlanParam(searchParams.get('pullPlan')) ?? true);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
-  const { plans, isCalculating: plansCalculating } = useCampaignPlans(campaigns);
+  const { plans, isCalculating: plansCalculating } = useCampaignPlans(
+    campaigns,
+    campaignPlanContext,
+    campaignPlanContextLoading
+  );
   const prefillSignature = searchParams.toString();
 
   const ownedKeys = useMemo(

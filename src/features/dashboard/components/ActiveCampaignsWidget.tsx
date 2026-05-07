@@ -2,7 +2,9 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Calendar, Flag, RefreshCw, Sparkles, UsersRound } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { useCampaignPlans, useCampaigns } from '@/features/campaigns';
+import { useCampaignPlanContext } from '@/features/campaigns/hooks/useCampaignPlanContext';
+import { useCampaignPlans } from '@/features/campaigns/hooks/useCampaignPlans';
+import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
 import { useAccountDataFreshness } from '@/features/sync';
 import { getDisplayName } from '@/lib/gameData';
 import type { Campaign } from '@/types';
@@ -24,7 +26,12 @@ function getCampaignSummary(campaign: Campaign): string {
 
 export default function ActiveCampaignsWidget() {
   const { activeCampaigns, isLoading } = useCampaigns();
-  const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(activeCampaigns);
+  const { context: campaignPlanContext, isLoading: campaignPlanContextLoading } = useCampaignPlanContext();
+  const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(
+    activeCampaigns,
+    campaignPlanContext,
+    campaignPlanContextLoading
+  );
   const dataFreshness = useAccountDataFreshness();
   const plansPending = plansLoading || isCalculating;
 

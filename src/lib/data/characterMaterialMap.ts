@@ -8,8 +8,8 @@
  * derives counts from level/talent targets independently.
  */
 
-import type { CharacterMaterialData } from '@/features/planner/domain/characterMaterials';
-import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
+import type { CharacterMaterialData } from '@/lib/planning/characterMaterials';
+import { DOMAIN_SCHEDULE } from '@/lib/planning/materialConstants';
 
 interface StaticMaterialEntry {
   element: string;

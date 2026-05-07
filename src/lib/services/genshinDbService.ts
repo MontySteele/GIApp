@@ -10,8 +10,8 @@ import type {
   CharacterMaterialData,
   GenshinDbCharacterResponse,
   GenshinDbTalentResponse,
-} from '@/features/planner/domain/characterMaterials';
-import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
+} from '@/lib/planning/characterMaterials';
+import { DOMAIN_SCHEDULE } from '@/lib/planning/materialConstants';
 import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry';
 import { getStaticCharacterMaterials } from '@/lib/data/characterMaterialMap';
 
@@ -741,7 +741,7 @@ export async function clearCharacterCache(characterKey?: string): Promise<void> 
 import type {
   WeaponMaterialData,
   GenshinDbWeaponResponse,
-} from '@/features/planner/domain/weaponMaterials';
+} from '@/lib/planning/weaponMaterials';
 
 /**
  * In-memory cache for weapon materials

@@ -6,13 +6,15 @@ import type { AscensionSummary } from '../domain/ascensionCalculator';
 import type { AggregatedMaterialSummary } from '../domain/multiCharacterCalculator';
 
 interface ResinBreakdownDisplayProps {
-  resinBreakdown: { talentBoss: number; expMora: number };
+  resinBreakdown: { talentBoss: number; expMora: number; weapon?: number };
 }
 
 function ResinBreakdownDisplay({ resinBreakdown }: ResinBreakdownDisplayProps) {
+  const weaponResin = resinBreakdown.weapon ?? 0;
+
   return (
     <div className="mt-4 pt-4 border-t border-slate-700/50">
-      <div className="grid grid-cols-2 gap-4 text-center">
+      <div className={`grid gap-4 text-center ${weaponResin > 0 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2'}`}>
         <div className="bg-slate-900/50 rounded-lg p-3">
           <div className="text-lg font-bold text-blue-400">
             {resinBreakdown.talentBoss.toLocaleString()}
@@ -25,6 +27,14 @@ function ResinBreakdownDisplay({ resinBreakdown }: ResinBreakdownDisplayProps) {
           </div>
           <div className="text-xs text-slate-400">EXP / Mora</div>
         </div>
+        {weaponResin > 0 && (
+          <div className="bg-slate-900/50 rounded-lg p-3">
+            <div className="text-lg font-bold text-violet-400">
+              {weaponResin.toLocaleString()}
+            </div>
+            <div className="text-xs text-slate-400">Weapon</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -35,7 +45,7 @@ interface SummaryStatsProps {
   totalExp: number;
   estimatedResin: number;
   estimatedDays: number;
-  resinBreakdown?: { talentBoss: number; expMora: number };
+  resinBreakdown?: { talentBoss: number; expMora: number; weapon?: number };
 }
 
 function SummaryStats({
