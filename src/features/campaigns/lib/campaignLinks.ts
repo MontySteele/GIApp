@@ -6,6 +6,7 @@ interface CampaignPrefill {
   buildGoal?: CampaignBuildGoal;
   priority?: Campaign['priority'];
   desiredCopies?: number;
+  targetConstellation?: number;
   maxPullBudget?: number;
   includePullTarget?: boolean;
 }
@@ -28,6 +29,9 @@ export function buildCampaignPrefillUrl(prefill: CampaignPrefill): string {
   if (prefill.desiredCopies !== undefined) {
     params.set('copies', String(prefill.desiredCopies));
   }
+  if (prefill.targetConstellation !== undefined) {
+    params.set('constellation', String(prefill.targetConstellation));
+  }
   if (prefill.maxPullBudget !== undefined) {
     params.set('budget', String(prefill.maxPullBudget));
   }
@@ -48,6 +52,24 @@ export function buildCharacterCampaignUrl(
     characterKey,
     buildGoal,
     includePullTarget,
+  });
+}
+
+export function buildConstellationCampaignUrl(
+  characterKey: string,
+  currentConstellation: number,
+  targetConstellation: number,
+  buildGoal: CampaignBuildGoal = 'comfortable'
+): string {
+  const safeCurrent = Math.max(0, Math.min(6, Math.floor(currentConstellation)));
+  const safeTarget = Math.max(1, Math.min(6, Math.floor(targetConstellation)));
+
+  return buildCampaignPrefillUrl({
+    characterKey,
+    buildGoal,
+    includePullTarget: true,
+    desiredCopies: Math.max(1, safeTarget - safeCurrent),
+    targetConstellation: safeTarget,
   });
 }
 

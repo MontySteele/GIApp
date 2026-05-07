@@ -115,6 +115,23 @@ function getBudgetParam(value: string | null): string {
   return String(parsed);
 }
 
+function getConstellationParam(value: string | null): string {
+  if (!value) return '';
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 6) return '';
+  return String(parsed);
+}
+
+function getConstellationValue(value: string): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 6 ? parsed : null;
+}
+
+function getCopiesForTargetConstellation(currentConstellation: number, targetConstellation: number): string {
+  return String(Math.max(1, targetConstellation - currentConstellation));
+}
+
 function getPullPlanParam(value: string | null): boolean | null {
   if (value === null) return null;
   return !['0', 'false', 'no'].includes(value.toLowerCase());
@@ -128,20 +145,25 @@ function formatDate(value: string | undefined): string {
 function buildCharacterTarget(
   characterKey: string,
   ownedKeys: Set<string>,
-  buildGoal: CampaignBuildGoal
+  buildGoal: CampaignBuildGoal,
+  targetConstellation: number | null = null
 ): CampaignCharacterTarget {
   return {
     id: crypto.randomUUID(),
     characterKey,
     ownership: ownedKeys.has(characterKey.toLowerCase()) ? 'owned' : 'wishlist',
     buildGoal,
+    ...(targetConstellation !== null
+      ? { notes: `Target constellation C${targetConstellation}` }
+      : {}),
   };
 }
 
 function buildPullTarget(
   characterKey: string,
   desiredCopies: number,
-  maxPullBudget: string
+  maxPullBudget: string,
+  targetConstellation: number | null = null
 ): CampaignPullTarget {
   const parsedBudget = Number(maxPullBudget);
 
@@ -153,6 +175,9 @@ function buildPullTarget(
     desiredCopies,
     maxPullBudget: Number.isFinite(parsedBudget) && parsedBudget > 0 ? parsedBudget : null,
     isConfirmed: false,
+    ...(targetConstellation !== null
+      ? { notes: `Target constellation C${targetConstellation}` }
+      : {}),
   };
 }
 
@@ -173,7 +198,8 @@ function findMatchingOpenCampaign(
   campaigns: Campaign[],
   campaignType: CampaignType,
   characterKey: string,
-  teamId: string
+  teamId: string,
+  targetConstellation: number | null = null
 ): Campaign | undefined {
   return campaigns.find((campaign) => {
     if (!isOpenCampaign(campaign) || campaign.type !== campaignType) {
@@ -181,9 +207,16 @@ function findMatchingOpenCampaign(
     }
 
     if (campaignType === 'character-acquisition') {
-      return campaign.characterTargets.some(
+      const matchesCharacter = campaign.characterTargets.some(
         (target) => target.characterKey.toLowerCase() === characterKey.toLowerCase()
       );
+      if (!matchesCharacter) return false;
+      if (targetConstellation === null) return true;
+
+      const targetLabel = `c${targetConstellation}`;
+      return campaign.name.toLowerCase().includes(targetLabel) ||
+        campaign.notes.toLowerCase().includes(targetLabel) ||
+        campaign.characterTargets.some((target) => target.notes?.toLowerCase().includes(targetLabel));
     }
 
     return Boolean(teamId) && campaign.teamTarget?.teamId === teamId;
@@ -214,6 +247,7 @@ export default function CampaignsPage() {
   const [priority, setPriority] = useState(String(toPriority(searchParams.get('priority') ?? '2')));
   const [deadline, setDeadline] = useState('');
   const [desiredCopies, setDesiredCopies] = useState(getPositiveIntegerParam(searchParams.get('copies'), '1'));
+  const [targetConstellation, setTargetConstellation] = useState(getConstellationParam(searchParams.get('constellation')));
   const [maxPullBudget, setMaxPullBudget] = useState(getBudgetParam(searchParams.get('budget')));
   const [includePullTarget, setIncludePullTarget] = useState(getPullPlanParam(searchParams.get('pullPlan')) ?? true);
   const [notes, setNotes] = useState('');
@@ -230,6 +264,20 @@ export default function CampaignsPage() {
     () => new Set(characters.map((character) => character.key.toLowerCase())),
     [characters]
   );
+
+  const selectedCharacter = useMemo(
+    () => characters.find((character) => character.key.toLowerCase() === selectedCharacterKey.toLowerCase()),
+    [characters, selectedCharacterKey]
+  );
+
+  const updateConstellationTarget = (value: string, characterConstellation = selectedCharacter?.constellation ?? 0) => {
+    setTargetConstellation(value);
+    const nextTarget = getConstellationValue(value);
+    if (nextTarget === null) return;
+
+    setIncludePullTarget(true);
+    setDesiredCopies(getCopiesForTargetConstellation(characterConstellation, nextTarget));
+  };
 
   useEffect(() => {
     if (!prefillSignature) return;
@@ -255,6 +303,9 @@ export default function CampaignsPage() {
     }
     if (searchParams.has('copies')) {
       setDesiredCopies(getPositiveIntegerParam(searchParams.get('copies'), '1'));
+    }
+    if (searchParams.has('constellation')) {
+      setTargetConstellation(getConstellationParam(searchParams.get('constellation')));
     }
     if (searchParams.has('budget')) {
       setMaxPullBudget(getBudgetParam(searchParams.get('budget')));
@@ -288,14 +339,22 @@ export default function CampaignsPage() {
     [teams, selectedTeamId]
   );
   const hasCampaignPrefill = searchParams.has('character') || searchParams.has('team');
+  const targetConstellationValue = getConstellationValue(targetConstellation);
   const matchingOpenCampaign = useMemo(
-    () => findMatchingOpenCampaign(campaigns, campaignType, selectedCharacterKey, selectedTeamId),
-    [campaigns, campaignType, selectedCharacterKey, selectedTeamId]
+    () => findMatchingOpenCampaign(
+      campaigns,
+      campaignType,
+      selectedCharacterKey,
+      selectedTeamId,
+      targetConstellationValue
+    ),
+    [campaigns, campaignType, selectedCharacterKey, selectedTeamId, targetConstellationValue]
   );
 
   const resetForm = () => {
     setDeadline('');
     setDesiredCopies('1');
+    setTargetConstellation('');
     setMaxPullBudget('');
     setNotes('');
     setError('');
@@ -317,20 +376,28 @@ export default function CampaignsPage() {
 
     setIsCreating(true);
     const copies = Math.max(1, Number(desiredCopies) || 1);
+    const targetConstellationValue = getConstellationValue(targetConstellation);
     const characterTargets =
       campaignType === 'character-acquisition'
-        ? [buildCharacterTarget(selectedCharacterKey, ownedKeys, buildGoal)]
+        ? [buildCharacterTarget(selectedCharacterKey, ownedKeys, buildGoal, targetConstellationValue)]
         : getTeamMemberTargets(selectedTeam, ownedKeys, buildGoal);
 
     const pullTargets =
       campaignType === 'character-acquisition' && includePullTarget
-        ? [buildPullTarget(selectedCharacterKey, copies, maxPullBudget)]
+        ? [buildPullTarget(selectedCharacterKey, copies, maxPullBudget, targetConstellationValue)]
         : [];
 
     const campaignName =
       campaignType === 'character-acquisition'
-        ? `Recruit ${getDisplayName(selectedCharacterKey)}`
+        ? targetConstellationValue !== null
+          ? `Chase C${targetConstellationValue} ${getDisplayName(selectedCharacterKey)}`
+          : `Recruit ${getDisplayName(selectedCharacterKey)}`
         : `Polish ${selectedTeam?.name ?? 'Team'}`;
+    const campaignNotes = notes || (
+      campaignType === 'character-acquisition' && targetConstellationValue !== null
+        ? `Target constellation: C${targetConstellationValue}.`
+        : ''
+    );
 
     let campaignId: string;
     try {
@@ -351,7 +418,7 @@ export default function CampaignsPage() {
               },
             }
           : {}),
-        notes,
+        notes: campaignNotes,
       });
     } catch {
       setError('Failed to create campaign. Please try again.');
@@ -417,6 +484,7 @@ export default function CampaignsPage() {
           priority={toPriority(priority)}
           includePullTarget={includePullTarget}
           desiredCopies={desiredCopies}
+          targetConstellation={targetConstellation}
           maxPullBudget={maxPullBudget}
           matchingCampaign={matchingOpenCampaign}
           isCreating={isCreating}
@@ -456,8 +524,16 @@ export default function CampaignsPage() {
                   value={selectedCharacterKey}
                   onChange={(event) => {
                     const nextKey = event.target.value;
+                    const nextCharacter = characters.find(
+                      (character) => character.key.toLowerCase() === nextKey.toLowerCase()
+                    );
+                    const nextTarget = getConstellationValue(targetConstellation);
                     setSelectedCharacterKey(nextKey);
                     setIncludePullTarget(!ownedKeys.has(nextKey.toLowerCase()));
+                    if (nextTarget !== null) {
+                      setIncludePullTarget(true);
+                      setDesiredCopies(getCopiesForTargetConstellation(nextCharacter?.constellation ?? 0, nextTarget));
+                    }
                   }}
                   options={characterOptions}
                 />
@@ -479,7 +555,7 @@ export default function CampaignsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <Select
                 label="Priority"
                 value={priority}
@@ -499,6 +575,15 @@ export default function CampaignsPage() {
                 max="7"
                 value={desiredCopies}
                 onChange={(event) => setDesiredCopies(event.target.value)}
+                disabled={campaignType !== 'character-acquisition' || !includePullTarget}
+              />
+              <Input
+                label="Target constellation"
+                type="number"
+                min="0"
+                max="6"
+                value={targetConstellation}
+                onChange={(event) => updateConstellationTarget(event.target.value)}
                 disabled={campaignType !== 'character-acquisition' || !includePullTarget}
               />
               <Input
@@ -593,6 +678,7 @@ function CampaignDraftCard({
   priority,
   includePullTarget,
   desiredCopies,
+  targetConstellation,
   maxPullBudget,
   matchingCampaign,
   isCreating,
@@ -606,6 +692,7 @@ function CampaignDraftCard({
   priority: Campaign['priority'];
   includePullTarget: boolean;
   desiredCopies: string;
+  targetConstellation: string;
   maxPullBudget: string;
   matchingCampaign: Campaign | undefined;
   isCreating: boolean;
@@ -613,9 +700,12 @@ function CampaignDraftCard({
   onClear: () => void;
 }) {
   const isTeamCampaign = campaignType === 'team-polish';
+  const targetConstellationValue = getConstellationValue(targetConstellation);
   const title = isTeamCampaign
     ? `Polish ${selectedTeam?.name ?? 'selected team'}`
-    : `Recruit ${getDisplayName(characterKey)}`;
+    : targetConstellationValue !== null
+      ? `Chase C${targetConstellationValue} ${getDisplayName(characterKey)}`
+      : `Recruit ${getDisplayName(characterKey)}`;
   const Icon = isTeamCampaign ? UsersRound : Sparkles;
   const copyCount = Math.max(1, Number(desiredCopies) || 1);
   const pullLabel = !isTeamCampaign && includePullTarget
@@ -641,6 +731,9 @@ function CampaignDraftCard({
               <h2 className="truncate text-lg font-semibold text-slate-100">{title}</h2>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge variant="outline">{targetLabel}</Badge>
+                {targetConstellationValue !== null && (
+                  <Badge variant="outline">C{targetConstellationValue} target</Badge>
+                )}
                 <Badge variant="outline">{formatBuildGoal(buildGoal)}</Badge>
                 <Badge variant="outline">P{priority}</Badge>
                 <Badge variant="outline">{pullLabel}</Badge>

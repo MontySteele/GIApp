@@ -92,6 +92,23 @@ describe('CharacterDetailPage', () => {
     vi.clearAllMocks();
   });
 
+  it('links owned characters into constellation chase campaign drafts', () => {
+    renderPage();
+
+    expect(screen.getByRole('link', { name: /build campaign/i })).toHaveAttribute(
+      'href',
+      '/campaigns?character=Furina&buildGoal=comfortable&pullPlan=0'
+    );
+    expect(screen.getByRole('link', { name: /target c2/i })).toHaveAttribute(
+      'href',
+      '/campaigns?character=Furina&buildGoal=comfortable&copies=1&constellation=2&pullPlan=1'
+    );
+    expect(screen.getByRole('link', { name: /target c6/i })).toHaveAttribute(
+      'href',
+      '/campaigns?character=Furina&buildGoal=comfortable&copies=5&constellation=6&pullPlan=1'
+    );
+  });
+
   it('opens edit modal and submits updates to the repository', async () => {
     const user = userEvent.setup();
     renderPage();

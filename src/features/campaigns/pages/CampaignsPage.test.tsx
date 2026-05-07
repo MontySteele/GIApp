@@ -471,6 +471,39 @@ describe('CampaignsPage', () => {
       expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
     });
 
+    it('creates a constellation chase campaign from the prefilled draft card', async () => {
+      const user = userEvent.setup();
+      renderPage('/campaigns?character=Furina&buildGoal=comfortable&pullPlan=1&copies=1&constellation=2');
+
+      expect(screen.getByRole('heading', { name: 'Chase C2 Furina' })).toBeInTheDocument();
+      expect(screen.getByText('C2 target')).toBeInTheDocument();
+      expect(screen.getByLabelText('Target constellation')).toHaveValue(2);
+
+      await user.click(screen.getByRole('button', { name: /create draft/i }));
+
+      expect(mocks.createCampaign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'character-acquisition',
+          name: 'Chase C2 Furina',
+          notes: 'Target constellation: C2.',
+          characterTargets: [
+            expect.objectContaining({
+              characterKey: 'Furina',
+              ownership: 'owned',
+              notes: 'Target constellation C2',
+            }),
+          ],
+          pullTargets: [
+            expect.objectContaining({
+              itemKey: 'Furina',
+              desiredCopies: 1,
+              notes: 'Target constellation C2',
+            }),
+          ],
+        })
+      );
+    });
+
     it('points prefilled duplicate character campaigns to the existing campaign', () => {
       mocks.campaigns = [activeCampaign];
 
@@ -482,6 +515,15 @@ describe('CampaignsPage', () => {
         '/campaigns/campaign-1'
       );
       expect(screen.getByRole('button', { name: /create anyway/i })).toBeInTheDocument();
+    });
+
+    it('does not treat a generic character campaign as a duplicate constellation chase', () => {
+      mocks.campaigns = [activeCampaign];
+
+      renderPage('/campaigns?character=Furina&buildGoal=comfortable&pullPlan=1&copies=1&constellation=2');
+
+      expect(screen.queryByText('Existing campaign found')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create draft/i })).toBeInTheDocument();
     });
 
     it('clears the campaign draft without clearing the editable form values', async () => {
