@@ -20,6 +20,8 @@ import DeleteConfirmModal from '@/features/roster/components/DeleteConfirmModal'
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import { useTeams } from '@/features/roster/hooks/useTeams';
+import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
+import { useAccountDataFreshness } from '@/features/sync';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import { getDisplayName } from '@/lib/gameData';
 import type {
@@ -74,6 +76,10 @@ const PLAN_STATUS_BADGE: Record<CampaignPlan['status'], 'success' | 'warning' | 
   attention: 'warning',
   blocked: 'danger',
 };
+
+function formatBuildGoal(value: CampaignBuildGoal): string {
+  return BUILD_GOAL_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
 
 function toPriority(value: string): Campaign['priority'] {
   const parsed = Number(value);
@@ -159,6 +165,31 @@ function getTeamMemberTargets(
   return team.characterKeys.map((key) => buildCharacterTarget(key, ownedKeys, buildGoal));
 }
 
+function isOpenCampaign(campaign: Campaign): boolean {
+  return campaign.status === 'active' || campaign.status === 'paused';
+}
+
+function findMatchingOpenCampaign(
+  campaigns: Campaign[],
+  campaignType: CampaignType,
+  characterKey: string,
+  teamId: string
+): Campaign | undefined {
+  return campaigns.find((campaign) => {
+    if (!isOpenCampaign(campaign) || campaign.type !== campaignType) {
+      return false;
+    }
+
+    if (campaignType === 'character-acquisition') {
+      return campaign.characterTargets.some(
+        (target) => target.characterKey.toLowerCase() === characterKey.toLowerCase()
+      );
+    }
+
+    return Boolean(teamId) && campaign.teamTarget?.teamId === teamId;
+  });
+}
+
 export default function CampaignsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -170,6 +201,7 @@ export default function CampaignsPage() {
     charactersLoading,
   } = useCampaignPlanContext();
   const { teams, isLoading: teamsLoading } = useTeams();
+  const accountDataFreshness = useAccountDataFreshness();
 
   const initialTeamId = searchParams.get('team') ?? '';
   const initialCharacterKey = getCharacterParam(searchParams.get('character'));
@@ -186,6 +218,7 @@ export default function CampaignsPage() {
   const [includePullTarget, setIncludePullTarget] = useState(getPullPlanParam(searchParams.get('pullPlan')) ?? true);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
   const { plans, isCalculating: plansCalculating } = useCampaignPlans(
     campaigns,
     campaignPlanContext,
@@ -254,6 +287,11 @@ export default function CampaignsPage() {
     () => teams.find((team) => team.id === selectedTeamId),
     [teams, selectedTeamId]
   );
+  const hasCampaignPrefill = searchParams.has('character') || searchParams.has('team');
+  const matchingOpenCampaign = useMemo(
+    () => findMatchingOpenCampaign(campaigns, campaignType, selectedCharacterKey, selectedTeamId),
+    [campaigns, campaignType, selectedCharacterKey, selectedTeamId]
+  );
 
   const resetForm = () => {
     setDeadline('');
@@ -264,20 +302,20 @@ export default function CampaignsPage() {
     setSearchParams({}, { replace: true });
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const createCampaignFromDraft = async (): Promise<string | null> => {
     setError('');
 
     if (campaignType === 'character-acquisition' && !selectedCharacterKey) {
       setError('Choose a character target.');
-      return;
+      return null;
     }
 
     if (campaignType === 'team-polish' && !selectedTeam) {
       setError('Choose a team to polish.');
-      return;
+      return null;
     }
 
+    setIsCreating(true);
     const copies = Math.max(1, Number(desiredCopies) || 1);
     const characterTargets =
       campaignType === 'character-acquisition'
@@ -317,10 +355,19 @@ export default function CampaignsPage() {
       });
     } catch {
       setError('Failed to create campaign. Please try again.');
-      return;
+      return null;
+    } finally {
+      setIsCreating(false);
     }
 
     resetForm();
+    return campaignId;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const campaignId = await createCampaignFromDraft();
+    if (!campaignId) return;
     navigate(`/campaigns/${campaignId}`);
   };
 
@@ -358,6 +405,30 @@ export default function CampaignsPage() {
           {campaigns.filter((campaign) => campaign.status === 'active').length} active
         </Badge>
       </div>
+
+      <AccountDataFreshnessCallout freshness={accountDataFreshness} context="campaign" />
+
+      {hasCampaignPrefill && (
+        <CampaignDraftCard
+          campaignType={campaignType}
+          characterKey={selectedCharacterKey}
+          selectedTeam={selectedTeam}
+          buildGoal={buildGoal}
+          priority={toPriority(priority)}
+          includePullTarget={includePullTarget}
+          desiredCopies={desiredCopies}
+          maxPullBudget={maxPullBudget}
+          matchingCampaign={matchingOpenCampaign}
+          isCreating={isCreating}
+          onCreate={async () => {
+            const campaignId = await createCampaignFromDraft();
+            if (campaignId) {
+              navigate(`/campaigns/${campaignId}`);
+            }
+          }}
+          onClear={() => setSearchParams({}, { replace: true })}
+        />
+      )}
 
       <Card>
         <CardHeader>
@@ -461,7 +532,11 @@ export default function CampaignsPage() {
 
             {error && <p className="text-sm text-red-400">{error}</p>}
 
-            <Button type="submit" disabled={campaignType === 'team-polish' && teams.length === 0}>
+            <Button
+              type="submit"
+              loading={isCreating}
+              disabled={campaignType === 'team-polish' && teams.length === 0}
+            >
               <Plus className="w-4 h-4" />
               Create Campaign
             </Button>
@@ -507,6 +582,106 @@ export default function CampaignsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function CampaignDraftCard({
+  campaignType,
+  characterKey,
+  selectedTeam,
+  buildGoal,
+  priority,
+  includePullTarget,
+  desiredCopies,
+  maxPullBudget,
+  matchingCampaign,
+  isCreating,
+  onCreate,
+  onClear,
+}: {
+  campaignType: CampaignType;
+  characterKey: string;
+  selectedTeam: Team | undefined;
+  buildGoal: CampaignBuildGoal;
+  priority: Campaign['priority'];
+  includePullTarget: boolean;
+  desiredCopies: string;
+  maxPullBudget: string;
+  matchingCampaign: Campaign | undefined;
+  isCreating: boolean;
+  onCreate: () => Promise<void>;
+  onClear: () => void;
+}) {
+  const isTeamCampaign = campaignType === 'team-polish';
+  const title = isTeamCampaign
+    ? `Polish ${selectedTeam?.name ?? 'selected team'}`
+    : `Recruit ${getDisplayName(characterKey)}`;
+  const Icon = isTeamCampaign ? UsersRound : Sparkles;
+  const copyCount = Math.max(1, Number(desiredCopies) || 1);
+  const pullLabel = !isTeamCampaign && includePullTarget
+    ? `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}${maxPullBudget ? `, ${maxPullBudget} pull budget` : ''}`
+    : 'No pull plan';
+  const targetLabel = isTeamCampaign
+    ? `${selectedTeam?.characterKeys.length ?? 0} members`
+    : getDisplayName(characterKey);
+
+  return (
+    <Card className="border-primary-900/60 bg-primary-950/20">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="rounded-lg bg-primary-500/20 p-2">
+              <Icon className="h-5 w-5 text-primary-300" />
+            </div>
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <Badge variant="primary">Campaign draft</Badge>
+                {matchingCampaign && <Badge variant="warning">Existing campaign found</Badge>}
+              </div>
+              <h2 className="truncate text-lg font-semibold text-slate-100">{title}</h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="outline">{targetLabel}</Badge>
+                <Badge variant="outline">{formatBuildGoal(buildGoal)}</Badge>
+                <Badge variant="outline">P{priority}</Badge>
+                <Badge variant="outline">{pullLabel}</Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {matchingCampaign ? (
+              <Link
+                to={`/campaigns/${matchingCampaign.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+              >
+                <ArrowRight className="h-4 w-4" />
+                Open Existing
+              </Link>
+            ) : (
+              <Button type="button" onClick={onCreate} loading={isCreating}>
+                <Plus className="h-4 w-4" />
+                Create Draft
+              </Button>
+            )}
+            {matchingCampaign && (
+              <Button type="button" variant="secondary" onClick={onCreate} loading={isCreating}>
+                <Plus className="h-4 w-4" />
+                Create Anyway
+              </Button>
+            )}
+            <Button type="button" variant="ghost" onClick={onClear} disabled={isCreating}>
+              Clear Draft
+            </Button>
+          </div>
+        </div>
+
+        {matchingCampaign && (
+          <p className="rounded-lg bg-amber-950/30 px-3 py-2 text-sm text-amber-200">
+            {matchingCampaign.name} is already {matchingCampaign.status}. Open it to continue, or create a separate campaign if this is a different goal.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -590,7 +765,7 @@ function CampaignCard({
             <PlanStat
               label="Build"
               value={`${plan.buildReadiness.percent}%`}
-              detail={`${plan.buildReadiness.ownedCount}/${plan.buildReadiness.targetCount} owned`}
+              detail={`${plan.buildReadiness.readyCount ?? 0}/${plan.buildReadiness.targetCount} built`}
             />
             <PlanStat
               label="Materials"

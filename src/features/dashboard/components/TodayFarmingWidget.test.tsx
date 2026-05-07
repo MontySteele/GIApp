@@ -3,6 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TodayFarmingWidget from './TodayFarmingWidget';
 
+const mocks = vi.hoisted(() => ({
+  dataFreshness: {
+    status: 'fresh',
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
+}));
+
 // Mock the useTodayFarming hook
 vi.mock('../hooks/useTodayFarming', () => ({
   useTodayFarming: vi.fn(() => ({
@@ -13,6 +23,10 @@ vi.mock('../hooks/useTodayFarming', () => ({
     notAvailableToday: [],
     totalCharactersProcessed: 0,
   })),
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => mocks.dataFreshness,
 }));
 
 import { useTodayFarming } from '../hooks/useTodayFarming';
@@ -36,6 +50,13 @@ describe('TodayFarmingWidget', () => {
       notAvailableToday: [],
       totalCharactersProcessed: 0,
     });
+    mocks.dataFreshness = {
+      status: 'fresh',
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
   });
 
   describe('renders correctly', () => {
@@ -61,6 +82,21 @@ describe('TodayFarmingWidget', () => {
       const links = screen.getAllByRole('link');
       const campaignLink = links.find(link => link.getAttribute('href') === '/campaigns');
       expect(campaignLink).toBeDefined();
+    });
+
+    it('shows a compact freshness prompt when account data is stale', () => {
+      mocks.dataFreshness = {
+        status: 'stale',
+        latestImport: null,
+        daysSinceImport: 12,
+        label: 'Refresh account data',
+        detail: 'Last Irminsul import was 12 days ago.',
+      };
+
+      renderWidget();
+
+      expect(screen.getByText('Refresh account data')).toBeInTheDocument();
+      expect(screen.getByText(/today's farming recommendations/i)).toBeInTheDocument();
     });
   });
 

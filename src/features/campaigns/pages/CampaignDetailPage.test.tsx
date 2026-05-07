@@ -158,7 +158,15 @@ const plan: CampaignPlan = {
         owned: true,
         buildGoal: 'comfortable',
         percent: 60,
+        buildIntentSource: 'team',
+        buildTemplateId: 'template-furina-salon',
+        buildTemplateName: 'Salon Sub-DPS',
+        targetWeaponKey: 'SplendorOfTranquilWaters',
         missing: ['Skill 6/8'],
+        artifactScore: 72,
+        artifactGrade: 'A',
+        artifactFitPercent: 80,
+        hasBuildRecommendation: true,
       },
     ],
   },
@@ -446,6 +454,10 @@ describe('CampaignDetailPage', () => {
       expect(screen.getAllByText('comfortable').length).toBeGreaterThan(0);
       expect(screen.getAllByText('60%').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Skill 6/8').length).toBeGreaterThan(0);
+      expect(screen.getByText('Team template: Salon Sub-DPS')).toBeInTheDocument();
+      expect(screen.getByText('Weapon: Splendor of Tranquil Waters')).toBeInTheDocument();
+      expect(screen.getByText('Artifacts 72 A')).toBeInTheDocument();
+      expect(screen.getByText('Fit 80%')).toBeInTheDocument();
     });
   });
 

@@ -6,6 +6,15 @@ import { MultiTargetCalculator } from './MultiTargetCalculator';
 import * as montecarloClient from '@/workers/montecarloClient';
 
 const runSimulationMock = vi.fn();
+const freshnessMock = vi.hoisted(() => ({
+  freshness: {
+    status: 'fresh',
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
+}));
 
 vi.mock('@/workers/montecarloClient', () => ({
   createMonteCarloWorker: vi.fn(() => ({
@@ -50,6 +59,10 @@ vi.mock('@/features/wishes/hooks/useCurrentPity', () => ({
   }),
 }));
 
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => freshnessMock.freshness,
+}));
+
 const createMonteCarloWorkerMock = vi.mocked(montecarloClient.createMonteCarloWorker);
 
 function renderCalculatorWithRouter() {
@@ -69,6 +82,13 @@ describe('MultiTargetCalculator', () => {
     // Clear localStorage to prevent test pollution from persisted state
     localStorage.clear();
     window.history.replaceState(null, '', '/pulls/calculator');
+    freshnessMock.freshness = {
+      status: 'fresh',
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
 
     runSimulationMock.mockClear();
     createMonteCarloWorkerMock.mockClear();
@@ -157,6 +177,32 @@ describe('MultiTargetCalculator', () => {
       expect(inheritCheckboxes).toHaveLength(2);
       expect(inheritCheckboxes[0]).not.toBeChecked();
       expect(inheritCheckboxes[1]).toBeChecked();
+    });
+
+    it('shows import freshness context for campaign-loaded pull plans', () => {
+      freshnessMock.freshness = {
+        status: 'stale',
+        latestImport: null,
+        daysSinceImport: 12,
+        label: 'Refresh account data',
+        detail: 'Last Irminsul import was 12 days ago.',
+      };
+      const params = new URLSearchParams({
+        mode: 'multi',
+        campaign: 'campaign-1',
+        name: 'Recruit Furina',
+        pulls: '69',
+      });
+      params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
+      window.history.replaceState(null, '', `/pulls/calculator?${params.toString()}`);
+
+      renderCalculatorWithRouter();
+
+      expect(screen.getByText('Refresh account data')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /refresh import/i })).toHaveAttribute(
+        'href',
+        '/roster?import=irminsul'
+      );
     });
   });
 

@@ -13,6 +13,13 @@ const mocks = vi.hoisted(() => ({
   campaigns: [] as Campaign[],
   plans: {} as Record<string, CampaignPlan>,
   plansCalculating: false,
+  dataFreshness: {
+    status: 'fresh',
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
 }));
 
 vi.mock('../hooks/useCampaigns', () => ({
@@ -108,6 +115,10 @@ vi.mock('@/features/roster/hooks/useTeams', () => ({
     ],
     isLoading: false,
   }),
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => mocks.dataFreshness,
 }));
 
 const activeCampaign: Campaign = {
@@ -211,6 +222,13 @@ describe('CampaignsPage', () => {
     mocks.campaigns = [];
     mocks.plans = {};
     mocks.plansCalculating = false;
+    mocks.dataFreshness = {
+      status: 'fresh',
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
   });
 
   describe('empty state', () => {
@@ -226,6 +244,24 @@ describe('CampaignsPage', () => {
 
       expect(screen.getByRole('heading', { name: 'New Campaign' })).toBeInTheDocument();
       expect(screen.getByLabelText('Campaign type')).toBeInTheDocument();
+    });
+
+    it('prompts for an account import when freshness is missing', () => {
+      mocks.dataFreshness = {
+        status: 'missing',
+        latestImport: null,
+        daysSinceImport: null,
+        label: 'Import account data',
+        detail: 'No import found.',
+      };
+
+      renderPage();
+
+      expect(screen.getByText('Import needed')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /import account data/i })).toHaveAttribute(
+        'href',
+        '/roster?import=irminsul'
+      );
     });
   });
 
@@ -394,6 +430,8 @@ describe('CampaignsPage', () => {
     it('applies character campaign prefill from the URL', () => {
       renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=0&copies=2&budget=150&priority=1');
 
+      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Recruit Furina' })).toBeInTheDocument();
       expect(screen.getByLabelText('Campaign type')).toHaveValue('character-acquisition');
       expect(screen.getByLabelText('Target character')).toHaveValue('Furina');
       expect(screen.getByLabelText('Build goal')).toHaveValue('full');
@@ -401,6 +439,60 @@ describe('CampaignsPage', () => {
       expect(screen.getByLabelText('Copies')).toHaveValue(2);
       expect(screen.getByLabelText('Pull budget')).toHaveValue(150);
       expect(screen.getByLabelText('Include pull plan')).not.toBeChecked();
+    });
+
+    it('creates a prefilled character campaign from the draft card', async () => {
+      const user = userEvent.setup();
+      renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=1&copies=2&budget=150&priority=1');
+
+      await user.click(screen.getByRole('button', { name: /create draft/i }));
+
+      expect(mocks.createCampaign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'character-acquisition',
+          name: 'Recruit Furina',
+          priority: 1,
+          characterTargets: [
+            expect.objectContaining({
+              characterKey: 'Furina',
+              buildGoal: 'full',
+              ownership: 'owned',
+            }),
+          ],
+          pullTargets: [
+            expect.objectContaining({
+              itemKey: 'Furina',
+              desiredCopies: 2,
+              maxPullBudget: 150,
+            }),
+          ],
+        })
+      );
+      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+    });
+
+    it('points prefilled duplicate character campaigns to the existing campaign', () => {
+      mocks.campaigns = [activeCampaign];
+
+      renderPage('/campaigns?character=Furina&buildGoal=comfortable&pullPlan=1');
+
+      expect(screen.getByText('Existing campaign found')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /open existing/i })).toHaveAttribute(
+        'href',
+        '/campaigns/campaign-1'
+      );
+      expect(screen.getByRole('button', { name: /create anyway/i })).toBeInTheDocument();
+    });
+
+    it('clears the campaign draft without clearing the editable form values', async () => {
+      const user = userEvent.setup();
+      renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=0');
+
+      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /clear draft/i }));
+
+      expect(screen.queryByText('Campaign draft')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Target character')).toHaveValue('Furina');
     });
 
     it('omits pull targets when the prefill disables pull planning', async () => {
@@ -428,9 +520,36 @@ describe('CampaignsPage', () => {
     it('applies team campaign prefill from the URL', () => {
       renderPage('/campaigns?team=team-1&buildGoal=functional');
 
+      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Polish Salon Core' })).toBeInTheDocument();
       expect(screen.getByLabelText('Campaign type')).toHaveValue('team-polish');
       expect(screen.getByLabelText('Target team')).toHaveValue('team-1');
       expect(screen.getByLabelText('Build goal')).toHaveValue('functional');
+    });
+
+    it('points prefilled duplicate team campaigns to the existing campaign', () => {
+      mocks.campaigns = [
+        {
+          ...activeCampaign,
+          id: 'team-campaign',
+          type: 'team-polish',
+          name: 'Polish Salon Core',
+          teamTarget: {
+            teamId: 'team-1',
+            name: 'Salon Core',
+            memberKeys: ['Furina'],
+          },
+          pullTargets: [],
+        },
+      ];
+
+      renderPage('/campaigns?team=team-1&buildGoal=functional');
+
+      expect(screen.getByText('Existing campaign found')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /open existing/i })).toHaveAttribute(
+        'href',
+        '/campaigns/team-campaign'
+      );
     });
 
     it('shows validation error for missing team selection', async () => {

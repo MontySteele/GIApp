@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Artifact, Campaign, Character, SlotKey } from '@/types';
+import type { Artifact, BuildTemplate, Campaign, Character, SlotKey, Team } from '@/types';
 import {
   calculateCampaignPlan,
   calculateBuildReadiness,
@@ -17,7 +17,26 @@ function buildArtifacts(level: number): Artifact[] {
     slotKey,
     level,
     rarity: 5,
-    mainStatKey: slotKey === 'flower' ? 'hp' : slotKey === 'plume' ? 'atk' : 'critRate_',
+    mainStatKey:
+      slotKey === 'flower'
+        ? 'hp'
+        : slotKey === 'plume'
+          ? 'atk'
+          : slotKey === 'sands' || slotKey === 'goblet'
+            ? 'hp_'
+            : 'critRate_',
+    substats: [
+      { key: 'critRate_', value: 12 },
+      { key: 'critDMG_', value: 24 },
+      { key: 'hp_', value: 10 },
+      { key: 'enerRech_', value: 10 },
+    ],
+  }));
+}
+
+function buildLowQualityArtifacts(level: number): Artifact[] {
+  return buildArtifacts(level).map((artifact) => ({
+    ...artifact,
     substats: [],
   }));
 }
@@ -68,6 +87,57 @@ const ownedFurina: Character = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
+const furinaTemplate: BuildTemplate = {
+  id: 'template-furina-salon',
+  name: 'Salon Sub-DPS',
+  characterKey: 'Furina',
+  description: 'Team damage build.',
+  role: 'sub-dps',
+  notes: '',
+  weapons: {
+    primary: ['SplendorOfTranquilWaters'],
+    alternatives: ['FleuveCendreFerryman'],
+  },
+  artifacts: {
+    sets: [[{ setKey: 'GoldenTroupe', pieces: 4 }]],
+    mainStats: {
+      sands: ['hp_'],
+      goblet: ['hydro_dmg_'],
+      circlet: ['critRate_', 'critDMG_'],
+    },
+    substats: ['critRate_', 'critDMG_', 'hp_', 'enerRech_'],
+  },
+  leveling: {
+    targetLevel: 90,
+    targetAscension: 6,
+    talentPriority: ['skill', 'burst', 'auto'],
+    talentTarget: {
+      auto: 1,
+      skill: 9,
+      burst: 9,
+    },
+  },
+  tags: ['campaign'],
+  difficulty: 'intermediate',
+  budget: 'mixed',
+  isOfficial: false,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
+const furinaTeam: Team = {
+  id: 'team-salon',
+  name: 'Salon Team',
+  characterKeys: ['Furina'],
+  rotationNotes: '',
+  tags: [],
+  memberBuildTemplates: {
+    Furina: furinaTemplate.id,
+  },
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
 describe('campaignPlan', () => {
   it('uses campaign build presets for target thresholds', () => {
     expect(getCampaignBuildTarget('functional')).toMatchObject({
@@ -75,6 +145,7 @@ describe('campaignPlan', () => {
       ascension: 5,
       weaponLevel: 80,
       artifactLevel: 12,
+      artifactScore: 40,
       talents: { auto: 1, skill: 6, burst: 6 },
     });
     expect(getCampaignBuildTarget('full')).toMatchObject({
@@ -82,6 +153,7 @@ describe('campaignPlan', () => {
       ascension: 6,
       weaponLevel: 90,
       artifactLevel: 20,
+      artifactScore: 70,
       talents: { auto: 10, skill: 10, burst: 10 },
     });
   });
@@ -183,11 +255,18 @@ describe('campaignPlan', () => {
     expect(readiness.ownedCount).toBe(1);
     expect(readiness.percent).toBe(100);
     expect(readiness.status).toBe('ready');
+    expect(readiness.readyCount).toBe(1);
     expect(readiness.characters[0]?.characterId).toBe('furina');
+    expect(readiness.characters[0]?.breakdown).toEqual({
+      level: 100,
+      talents: 100,
+      weapon: 100,
+      artifacts: 100,
+    });
     expect(readiness.characters[0]?.missing).toEqual([]);
   });
 
-  it('includes weapon and artifact gaps in build readiness', () => {
+  it('includes weapon, artifact level, and artifact quality gaps in build readiness', () => {
     const readiness = calculateBuildReadiness(
       {
         ...baseCampaign,
@@ -203,17 +282,192 @@ describe('campaignPlan', () => {
         {
           ...ownedFurina,
           weapon: { ...ownedFurina.weapon, level: 70 },
-          artifacts: buildArtifacts(8).slice(0, 4),
+          artifacts: buildLowQualityArtifacts(8).slice(0, 4),
         },
       ]
     );
 
     expect(readiness.status).toBe('attention');
     expect(readiness.percent).toBeLessThan(100);
-    expect(readiness.characters[0]?.missing).toEqual([
-      'Weapon Lv. 70/90',
-      'Artifacts 4/5 equipped',
-    ]);
+    expect(readiness.characters[0]?.breakdown.weapon).toBe(78);
+    expect(readiness.characters[0]?.breakdown.artifacts).toBeLessThan(100);
+    expect(readiness.characters[0]?.artifactScore).toBeDefined();
+    expect(readiness.characters[0]?.hasBuildRecommendation).toBe(true);
+    expect(readiness.characters[0]?.gaps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: 'weapon',
+          label: 'Weapon level',
+          detail: 'Weapon Lv. 70/90',
+        }),
+        expect.objectContaining({
+          category: 'artifacts',
+          label: 'Artifacts equipped',
+          detail: 'Artifacts 4/5 equipped',
+        }),
+        expect.objectContaining({
+          category: 'artifacts',
+          label: 'Artifact quality',
+        }),
+      ])
+    );
+    expect(readiness.topGaps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          characterKey: 'Furina',
+          label: 'Weapon level',
+        }),
+      ])
+    );
+  });
+
+  it('uses a campaign build template for level, talent, weapon, and artifact intent', () => {
+    const readiness = calculateBuildReadiness(
+      {
+        ...baseCampaign,
+        pullTargets: [],
+        characterTargets: [
+          {
+            ...baseCampaign.characterTargets[0]!,
+            ownership: 'owned',
+            targetTemplateId: furinaTemplate.id,
+          },
+        ],
+      },
+      [ownedFurina],
+      { buildTemplates: [furinaTemplate] }
+    );
+
+    const target = readiness.characters[0];
+
+    expect(target).toMatchObject({
+      buildIntentSource: 'campaign',
+      buildTemplateId: furinaTemplate.id,
+      buildTemplateName: 'Salon Sub-DPS',
+      hasBuildRecommendation: true,
+    });
+    expect(target?.percent).toBeLessThan(100);
+    expect(target?.breakdown?.level).toBeLessThan(100);
+    expect(target?.breakdown?.talents).toBeLessThan(100);
+    expect(target?.breakdown?.weapon).toBeLessThan(100);
+    expect(target?.gaps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Character level',
+          detail: 'Lv. 80/90',
+        }),
+        expect.objectContaining({
+          label: 'Talents',
+          detail: 'Skill 8/9, Burst 8/9',
+        }),
+        expect.objectContaining({
+          label: 'Goblet of Eonothem main stat',
+        }),
+      ])
+    );
+  });
+
+  it('inherits a team member build template for team polish campaigns', () => {
+    const readiness = calculateBuildReadiness(
+      {
+        ...baseCampaign,
+        type: 'team-polish',
+        pullTargets: [],
+        teamTarget: {
+          teamId: furinaTeam.id,
+          name: furinaTeam.name,
+          memberKeys: ['Furina'],
+        },
+        characterTargets: [
+          {
+            ...baseCampaign.characterTargets[0]!,
+            ownership: 'owned',
+          },
+        ],
+      },
+      [ownedFurina],
+      { teams: [furinaTeam], buildTemplates: [furinaTemplate] }
+    );
+
+    expect(readiness.characters[0]).toMatchObject({
+      buildIntentSource: 'team',
+      buildTemplateId: furinaTemplate.id,
+      buildTemplateName: 'Salon Sub-DPS',
+    });
+  });
+
+  it('prefers the campaign template over a team template', () => {
+    const teamTemplate: BuildTemplate = {
+      ...furinaTemplate,
+      id: 'template-team-default',
+      name: 'Team Default',
+    };
+    const teamWithTemplate = {
+      ...furinaTeam,
+      memberBuildTemplates: {
+        Furina: teamTemplate.id,
+      },
+    };
+    const readiness = calculateBuildReadiness(
+      {
+        ...baseCampaign,
+        type: 'team-polish',
+        pullTargets: [],
+        teamTarget: {
+          teamId: teamWithTemplate.id,
+          name: teamWithTemplate.name,
+          memberKeys: ['Furina'],
+        },
+        characterTargets: [
+          {
+            ...baseCampaign.characterTargets[0]!,
+            ownership: 'owned',
+            targetTemplateId: furinaTemplate.id,
+          },
+        ],
+      },
+      [ownedFurina],
+      { teams: [teamWithTemplate], buildTemplates: [teamTemplate, furinaTemplate] }
+    );
+
+    expect(readiness.characters[0]).toMatchObject({
+      buildIntentSource: 'campaign',
+      buildTemplateId: furinaTemplate.id,
+      buildTemplateName: 'Salon Sub-DPS',
+    });
+  });
+
+  it('uses an explicit campaign target weapon ahead of template weapons', () => {
+    const readiness = calculateBuildReadiness(
+      {
+        ...baseCampaign,
+        pullTargets: [],
+        characterTargets: [
+          {
+            ...baseCampaign.characterTargets[0]!,
+            ownership: 'owned',
+            targetTemplateId: furinaTemplate.id,
+            targetWeaponKey: 'SplendorOfTranquilWaters',
+          },
+        ],
+      },
+      [ownedFurina],
+      { buildTemplates: [furinaTemplate] }
+    );
+
+    expect(readiness.characters[0]).toMatchObject({
+      buildIntentSource: 'campaign',
+      targetWeaponKey: 'SplendorOfTranquilWaters',
+    });
+    expect(readiness.characters[0]?.gaps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: 'weapon',
+          label: 'Weapon choice',
+          detail: 'Fleuve Cendre Ferryman -> Splendor of Tranquil Waters',
+        }),
+      ])
+    );
   });
 
   it('adds equipment gaps to campaign material readiness', async () => {
@@ -233,7 +487,7 @@ describe('campaignPlan', () => {
         {
           ...ownedFurina,
           weapon: { ...ownedFurina.weapon, level: 70, ascension: 4 },
-          artifacts: buildArtifacts(8).slice(0, 4),
+          artifacts: buildLowQualityArtifacts(8).slice(0, 4),
         },
       ],
       { Mora: 0 }

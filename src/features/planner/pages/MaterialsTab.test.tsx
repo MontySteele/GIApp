@@ -16,6 +16,13 @@ const mocks = vi.hoisted(() => ({
   materials: {} as Record<string, number>,
   setMaterial: vi.fn(),
   multiSummary: null as AggregatedMaterialSummary | null,
+  dataFreshness: {
+    status: 'fresh',
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
 }));
 
 vi.mock('dexie-react-hooks', () => ({
@@ -54,6 +61,10 @@ vi.mock('@/features/campaigns/hooks/useCampaignPlans', () => ({
     isCalculating: mocks.calculatingCampaignPlans,
     error: null,
   }),
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => mocks.dataFreshness,
 }));
 
 vi.mock('../hooks/useMaterials', () => ({
@@ -216,6 +227,13 @@ describe('MaterialsTab campaign context', () => {
     mocks.calculatingCampaignPlans = false;
     mocks.materials = { Mora: 200 };
     mocks.multiSummary = createMaterialSummary([]);
+    mocks.dataFreshness = {
+      status: 'fresh',
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
   });
 
   it('uses the campaign material plan when campaign and material query params are present', () => {
@@ -243,6 +261,26 @@ describe('MaterialsTab campaign context', () => {
 
     const deficitText = screen.getByText('Need 800 more');
     expect(closestHighlightedRow(deficitText)).not.toBeNull();
+  });
+
+  it('shows stale import context before campaign material recommendations', () => {
+    const campaign = createCampaign();
+    mocks.campaigns = [campaign];
+    mocks.campaignPlans = {
+      'campaign-1': createCampaignPlan(createMaterialSummary([moraRequirement])),
+    };
+    mocks.dataFreshness = {
+      status: 'stale',
+      latestImport: null,
+      daysSinceImport: 14,
+      label: 'Refresh account data',
+      detail: 'Last Irminsul import was 14 days ago.',
+    };
+
+    renderMaterialsTab('/planner/materials?campaign=campaign-1&material=Mora');
+
+    expect(screen.getByText('Data stale')).toBeInTheDocument();
+    expect(screen.getByText(/material deficits and resin estimates/i)).toBeInTheDocument();
   });
 
   it('warns and falls back to priority materials when the campaign cannot be found', () => {

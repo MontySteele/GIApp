@@ -11,6 +11,8 @@ import { ArrowLeft, Flag, Package, AlertCircle, Coins, Pencil } from 'lucide-rea
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useCampaignPlans } from '@/features/campaigns/hooks/useCampaignPlans';
 import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
+import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
+import { useAccountDataFreshness } from '@/features/sync';
 import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
 import { useMaterials } from '../hooks/useMaterials';
 import { useMultiCharacterPlan } from '../hooks/useMultiCharacterPlan';
@@ -46,6 +48,7 @@ export default function MaterialsTab() {
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
   const { campaigns, isLoading: loadingCampaigns } = useCampaigns();
   const availablePulls = useLiveQuery(() => getAvailablePullsFromTracker(), []);
+  const accountDataFreshness = useAccountDataFreshness();
 
   // Inline Mora editing state
   const [editingMora, setEditingMora] = useState(false);
@@ -154,6 +157,11 @@ export default function MaterialsTab() {
           focusedMaterialKey={focusedMaterialKey}
         />
       )}
+
+      <AccountDataFreshnessCallout
+        freshness={accountDataFreshness}
+        context="materials"
+      />
 
       {campaignId && !campaign && !loadingCampaigns && (
         <Card className="p-4 border-amber-500/30 bg-amber-500/5">

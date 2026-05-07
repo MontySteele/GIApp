@@ -13,6 +13,8 @@ import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.wor
 import { createMonteCarloWorker, type MonteCarloWorkerHandle } from '@/workers/montecarloClient';
 import { getAvailablePullsFromTracker } from '@/features/calculator/selectors/availablePulls';
 import { useAllCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
+import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
+import { useAccountDataFreshness } from '@/features/sync';
 import { scenarioRepo } from '../repo/scenarioRepo';
 import TargetCard, { type Target } from './TargetCard';
 import SimulationResults from './SimulationResults';
@@ -165,6 +167,7 @@ export function MultiTargetCalculator() {
   const initialState = useRef(urlPrefill.current?.state ?? loadPersistedState());
   const visibleUrlPrefill = showUrlPrefill ? urlPrefill.current : null;
   const currentPity = useAllCurrentPity();
+  const accountDataFreshness = useAccountDataFreshness();
   const [targets, setTargets] = useState<Target[]>(initialState.current?.targets ?? []);
   const [availablePulls, setAvailablePulls] = useState(initialState.current?.availablePulls ?? 0);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -473,6 +476,14 @@ export function MultiTargetCalculator() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {visibleUrlPrefill && (
+        <AccountDataFreshnessCallout
+          freshness={accountDataFreshness}
+          context="calculator"
+          variant="compact"
+        />
       )}
 
       {/* Header */}

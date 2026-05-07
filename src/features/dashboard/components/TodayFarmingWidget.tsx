@@ -10,6 +10,8 @@ import { Link } from 'react-router-dom';
 import { BookOpen, ArrowRight, Sparkles, Users, Clock, Star, UserCheck, Flag } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
+import { useAccountDataFreshness } from '@/features/sync';
 import {
   DOMAIN_SCHEDULE,
   TALENT_BOOK_REGIONS,
@@ -81,6 +83,7 @@ const REGION_COLORS: Record<string, 'primary' | 'default' | 'success' | 'warning
 
 export default function TodayFarmingWidget() {
   const [scope, setScope] = useState<FarmingScope>('campaign');
+  const accountDataFreshness = useAccountDataFreshness();
 
   const {
     today,
@@ -154,6 +157,13 @@ export default function TodayFarmingWidget() {
         </div>
       </CardHeader>
       <CardContent>
+        <AccountDataFreshnessCallout
+          freshness={accountDataFreshness}
+          context="farming"
+          variant="compact"
+          className="mb-4"
+        />
+
         {isSunday && !hasCharacterData ? (
           <div className="text-center py-4">
             <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-2" />

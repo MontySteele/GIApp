@@ -2,7 +2,6 @@ import type { AvailablePullsResult } from '@/lib/services/resourceService';
 import {
   aggregateMaterialRequirements,
   calculateMultiCharacterSummary,
-  createGoalsFromCharacters,
   groupMaterialsByCategory,
   type AggregatedMaterialSummary,
   type MultiCharacterGoal,
@@ -12,10 +11,32 @@ import {
   calculateWeaponAscensionSummary,
   type WeaponMaterialRequirement,
 } from '@/lib/planning/weaponCalculator';
+import { calculateCharacterArtifactScore } from '@/features/artifacts/domain/artifactScoring';
+import {
+  getCharacterBuild,
+  type CharacterBuild,
+} from '@/features/artifacts/domain/setRecommendations';
 import { RESIN_REGEN } from '@/lib/planning/materialConstants';
 import { findWeapon } from '@/lib/data/equipmentData';
-import { getDisplayName } from '@/lib/gameData';
-import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget, CampaignPullTarget, Character } from '@/types';
+import {
+  formatArtifactSetName,
+  formatSlotName,
+  formatStatName,
+  getDisplayName,
+} from '@/lib/gameData';
+import type {
+  Artifact,
+  BuildTemplate,
+  Campaign,
+  CampaignBuildGoal,
+  CampaignCharacterTarget,
+  CampaignPullTarget,
+  Character,
+  MainStatKey,
+  SetRecommendation,
+  SlotKey,
+  Team,
+} from '@/types';
 
 export type CampaignPlanStatus = 'ready' | 'attention' | 'blocked';
 export type CampaignActionCategory = 'pulls' | 'materials' | 'build' | 'roster' | 'done';
@@ -26,11 +47,29 @@ export interface CampaignBuildTarget {
   weaponLevel: number;
   artifactCount: number;
   artifactLevel: number;
+  artifactScore: number;
+  artifactFit: number;
   talents: {
     auto: number;
     skill: number;
     burst: number;
   };
+}
+
+export type CampaignBuildGapCategory = 'ownership' | 'level' | 'talents' | 'weapon' | 'artifacts';
+
+export interface CampaignBuildGap {
+  category: CampaignBuildGapCategory;
+  label: string;
+  detail: string;
+  priority: 1 | 2 | 3;
+}
+
+export interface CampaignBuildBreakdown {
+  level: number;
+  talents: number;
+  weapon: number;
+  artifacts: number;
 }
 
 export interface CampaignCharacterReadiness {
@@ -40,6 +79,16 @@ export interface CampaignCharacterReadiness {
   buildGoal: CampaignBuildGoal;
   percent: number;
   missing: string[];
+  buildIntentSource?: CampaignBuildIntentSource;
+  buildTemplateId?: string;
+  buildTemplateName?: string;
+  targetWeaponKey?: string;
+  gaps?: CampaignBuildGap[];
+  breakdown?: CampaignBuildBreakdown;
+  artifactScore?: number;
+  artifactGrade?: 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+  artifactFitPercent?: number;
+  hasBuildRecommendation?: boolean;
 }
 
 export interface CampaignPullReadiness {
@@ -54,9 +103,12 @@ export interface CampaignPullReadiness {
 export interface CampaignBuildReadiness {
   targetCount: number;
   ownedCount: number;
+  readyCount?: number;
+  gapCount?: number;
   percent: number;
   status: CampaignPlanStatus;
   characters: CampaignCharacterReadiness[];
+  topGaps?: Array<CampaignBuildGap & { characterKey: string }>;
 }
 
 export interface CampaignMaterialReadiness {
@@ -97,6 +149,27 @@ export interface CampaignPlanContext {
   characters: Character[];
   materials: Record<string, number>;
   availablePulls: AvailablePullsResult;
+  teams?: Team[];
+  buildTemplates?: BuildTemplate[];
+}
+
+export type CampaignBuildIntentSource = 'campaign' | 'team' | 'generic';
+
+interface ArtifactBuildGuide {
+  recommendedSets: Array<Array<SetRecommendation & { name?: string }>>;
+  mainStats: Record<'sands' | 'goblet' | 'circlet', MainStatKey[]>;
+  substats: string[];
+}
+
+interface ResolvedBuildIntent {
+  source: CampaignBuildIntentSource;
+  template?: BuildTemplate;
+  templateId?: string;
+  templateName?: string;
+  targetWeaponKey?: string;
+  primaryWeapons: string[];
+  alternativeWeapons: string[];
+  artifactGuide?: ArtifactBuildGuide;
 }
 
 const BUILD_TARGETS: Record<CampaignBuildGoal, CampaignBuildTarget> = {
@@ -106,6 +179,8 @@ const BUILD_TARGETS: Record<CampaignBuildGoal, CampaignBuildTarget> = {
     weaponLevel: 80,
     artifactCount: 5,
     artifactLevel: 12,
+    artifactScore: 40,
+    artifactFit: 50,
     talents: { auto: 1, skill: 6, burst: 6 },
   },
   comfortable: {
@@ -114,6 +189,8 @@ const BUILD_TARGETS: Record<CampaignBuildGoal, CampaignBuildTarget> = {
     weaponLevel: 90,
     artifactCount: 5,
     artifactLevel: 16,
+    artifactScore: 55,
+    artifactFit: 70,
     talents: { auto: 8, skill: 8, burst: 8 },
   },
   full: {
@@ -122,6 +199,8 @@ const BUILD_TARGETS: Record<CampaignBuildGoal, CampaignBuildTarget> = {
     weaponLevel: 90,
     artifactCount: 5,
     artifactLevel: 20,
+    artifactScore: 70,
+    artifactFit: 85,
     talents: { auto: 10, skill: 10, burst: 10 },
   },
 };
@@ -129,6 +208,12 @@ const BUILD_TARGETS: Record<CampaignBuildGoal, CampaignBuildTarget> = {
 const WEAPON_LEVEL_CAPS = [20, 40, 50, 60, 70, 80, 90] as const;
 const WEAPON_POLISH_KEY = 'WeaponEnhancementLevels';
 const ARTIFACT_POLISH_KEY = 'ArtifactEnhancementLevels';
+const ARTIFACT_MAIN_STAT_SLOTS: Array<'sands' | 'goblet' | 'circlet'> = ['sands', 'goblet', 'circlet'];
+
+export interface CampaignBuildPlanOptions {
+  teams?: Team[];
+  buildTemplates?: BuildTemplate[];
+}
 
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -145,6 +230,11 @@ function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function progress(current: number, target: number): number {
+  if (target <= 0) return 100;
+  return Math.min(100, (current / target) * 100);
+}
+
 function statusFromPercent(percent: number): CampaignPlanStatus {
   if (percent >= 100) return 'ready';
   if (percent >= 50) return 'attention';
@@ -159,27 +249,190 @@ export function getCampaignBuildTarget(goal: CampaignBuildGoal): CampaignBuildTa
   return BUILD_TARGETS[goal];
 }
 
-function calculateTargetProgress(character: Character, target: CampaignBuildTarget): number {
-  const levelProgress = (character.level / target.level) * 100;
-  const ascensionProgress = target.ascension === 0 ? 100 : (character.ascension / target.ascension) * 100;
-  const talentProgress = average([
-    (character.talent.auto / target.talents.auto) * 100,
-    (character.talent.skill / target.talents.skill) * 100,
-    (character.talent.burst / target.talents.burst) * 100,
-  ]);
-  const weaponProgress = target.weaponLevel === 0 ? 100 : (character.weapon.level / target.weaponLevel) * 100;
-  const artifactProgress = calculateArtifactProgress(character, target);
-
-  return clampPercent(average([
-    Math.min(levelProgress, 100),
-    Math.min(ascensionProgress, 100),
-    Math.min(talentProgress, 100),
-    Math.min(weaponProgress, 100),
-    Math.min(artifactProgress, 100),
-  ]));
+function normalizeKey(key: string): string {
+  return key.toLowerCase().replace(/\s+/g, '');
 }
 
-function calculateArtifactProgress(character: Character, target: CampaignBuildTarget): number {
+function keysMatch(left: string | undefined, right: string | undefined): boolean {
+  if (!left || !right) return false;
+  return normalizeKey(left) === normalizeKey(right);
+}
+
+function findBuildTemplate(
+  templates: BuildTemplate[] | undefined,
+  templateId: string | undefined
+): BuildTemplate | undefined {
+  if (!templates || !templateId) return undefined;
+  return templates.find((template) => template.id === templateId);
+}
+
+function findCampaignTeam(campaign: Campaign, teams: Team[] | undefined): Team | undefined {
+  if (!teams || !campaign.teamTarget?.teamId) return undefined;
+  return teams.find((team) => team.id === campaign.teamTarget?.teamId);
+}
+
+function getTeamTemplateId(team: Team | undefined, characterKey: string): string | undefined {
+  if (!team?.memberBuildTemplates) return undefined;
+
+  return (
+    team.memberBuildTemplates[characterKey] ??
+    Object.entries(team.memberBuildTemplates).find(([key]) => keysMatch(key, characterKey))?.[1]
+  );
+}
+
+function buildTemplateArtifactGuide(template: BuildTemplate): ArtifactBuildGuide {
+  return {
+    recommendedSets: template.artifacts.sets,
+    mainStats: template.artifacts.mainStats,
+    substats: template.artifacts.substats,
+  };
+}
+
+function characterBuildArtifactGuide(build: CharacterBuild): ArtifactBuildGuide {
+  return {
+    recommendedSets: build.recommendedSets,
+    mainStats: build.mainStats,
+    substats: build.substats,
+  };
+}
+
+function resolveBuildIntent(
+  campaign: Campaign,
+  target: CampaignCharacterTarget,
+  options: CampaignBuildPlanOptions = {}
+): ResolvedBuildIntent {
+  const campaignTemplate = findBuildTemplate(options.buildTemplates, target.targetTemplateId);
+  const team = findCampaignTeam(campaign, options.teams);
+  const teamTemplate = campaignTemplate
+    ? undefined
+    : findBuildTemplate(options.buildTemplates, getTeamTemplateId(team, target.characterKey));
+  const template = campaignTemplate ?? teamTemplate;
+  const genericBuild = template ? undefined : getCharacterBuild(target.characterKey);
+  const source: CampaignBuildIntentSource = campaignTemplate
+    ? 'campaign'
+    : teamTemplate
+      ? 'team'
+      : target.targetWeaponKey
+        ? 'campaign'
+        : 'generic';
+
+  return {
+    source,
+    template,
+    templateId: template?.id,
+    templateName: template?.name,
+    targetWeaponKey: target.targetWeaponKey,
+    primaryWeapons: template?.weapons.primary ?? [],
+    alternativeWeapons: template?.weapons.alternatives ?? [],
+    artifactGuide: template
+      ? buildTemplateArtifactGuide(template)
+      : genericBuild
+        ? characterBuildArtifactGuide(genericBuild)
+        : undefined,
+  };
+}
+
+function getEffectiveBuildTarget(
+  goal: CampaignBuildGoal,
+  intent: ResolvedBuildIntent
+): CampaignBuildTarget {
+  const base = getCampaignBuildTarget(goal);
+  const leveling = intent.template?.leveling;
+
+  if (!leveling) return base;
+
+  return {
+    ...base,
+    level: leveling.targetLevel || base.level,
+    ascension: leveling.targetAscension ?? base.ascension,
+    talents: leveling.talentTarget ?? base.talents,
+  };
+}
+
+function getEffectiveTargetForCampaignTarget(
+  campaign: Campaign,
+  target: CampaignCharacterTarget,
+  options: CampaignBuildPlanOptions = {}
+): CampaignBuildTarget {
+  return getEffectiveBuildTarget(target.buildGoal, resolveBuildIntent(campaign, target, options));
+}
+
+function formatWeaponName(weaponKey: string): string {
+  return findWeapon(weaponKey)?.name ?? weaponKey;
+}
+
+function calculateWeaponFitProgress(character: Character, intent: ResolvedBuildIntent): number | undefined {
+  if (intent.targetWeaponKey) {
+    return keysMatch(character.weapon.key, intent.targetWeaponKey) ? 100 : 0;
+  }
+
+  if (intent.primaryWeapons.length === 0 && intent.alternativeWeapons.length === 0) {
+    return undefined;
+  }
+
+  if (intent.primaryWeapons.some((weaponKey) => keysMatch(character.weapon.key, weaponKey))) {
+    return 100;
+  }
+
+  if (intent.alternativeWeapons.some((weaponKey) => keysMatch(character.weapon.key, weaponKey))) {
+    return 75;
+  }
+
+  return 0;
+}
+
+function calculateWeaponProgress(
+  character: Character,
+  target: CampaignBuildTarget,
+  intent: ResolvedBuildIntent
+): number {
+  const weaponLevelProgress = progress(character.weapon.level, target.weaponLevel);
+  const weaponFitProgress = calculateWeaponFitProgress(character, intent);
+
+  return weaponFitProgress === undefined
+    ? weaponLevelProgress
+    : average([weaponLevelProgress, weaponFitProgress]);
+}
+
+function calculateTargetBreakdown(
+  character: Character,
+  target: CampaignBuildTarget,
+  intent: ResolvedBuildIntent
+): CampaignBuildBreakdown {
+  const levelProgress = average([
+    progress(character.level, target.level),
+    progress(character.ascension, target.ascension),
+  ]);
+  const talentProgress = average([
+    progress(character.talent.auto, target.talents.auto),
+    progress(character.talent.skill, target.talents.skill),
+    progress(character.talent.burst, target.talents.burst),
+  ]);
+  const weaponProgress = calculateWeaponProgress(character, target, intent);
+  const artifactProgress = calculateArtifactProgress(character, target, intent);
+
+  return {
+    level: clampPercent(levelProgress),
+    talents: clampPercent(talentProgress),
+    weapon: clampPercent(weaponProgress),
+    artifacts: clampPercent(artifactProgress),
+  };
+}
+
+function calculateTargetProgress(
+  character: Character,
+  target: CampaignBuildTarget,
+  intent: ResolvedBuildIntent
+): number {
+  const breakdown = calculateTargetBreakdown(character, target, intent);
+  return clampPercent(average(Object.values(breakdown)));
+}
+
+function calculateArtifactProgress(
+  character: Character,
+  target: CampaignBuildTarget,
+  intent: ResolvedBuildIntent
+): number {
   if (target.artifactCount === 0 || target.artifactLevel === 0) return 100;
 
   const artifacts = character.artifacts ?? [];
@@ -192,17 +445,167 @@ function calculateArtifactProgress(character: Character, target: CampaignBuildTa
     return sum + Math.min(100, ((artifact?.level ?? 0) / target.artifactLevel) * 100);
   }, 0) / target.artifactCount;
 
-  return average([equippedProgress, leveledProgress]);
+  const artifactScore = calculateCharacterArtifactScore(character.artifacts ?? []);
+  const qualityProgress = progress(artifactScore.averageScore, target.artifactScore);
+  const fitProgress = intent.artifactGuide
+    ? calculateArtifactFitProgress(intent.artifactGuide, character.artifacts ?? [], target)
+    : 100;
+
+  return average([equippedProgress, leveledProgress, qualityProgress, fitProgress]);
 }
 
-function getTargetMissing(character: Character, target: CampaignBuildTarget): string[] {
-  const missing: string[] = [];
+function calculateArtifactFitProgress(
+  guide: ArtifactBuildGuide,
+  artifacts: Artifact[],
+  target: CampaignBuildTarget
+): number {
+  if (artifacts.length === 0) return 0;
+
+  const setProgress = calculateRecommendedSetProgress(guide, artifacts);
+  const mainStatProgress = calculateRecommendedMainStatProgress(guide, artifacts);
+  return progress(average([setProgress, mainStatProgress]), target.artifactFit);
+}
+
+function calculateRecommendedSetProgress(guide: ArtifactBuildGuide, artifacts: Artifact[]): number {
+  if (guide.recommendedSets.length === 0) return 100;
+
+  const setCounts = new Map<string, number>();
+  for (const artifact of artifacts) {
+    const key = artifact.setKey.toLowerCase();
+    setCounts.set(key, (setCounts.get(key) ?? 0) + 1);
+  }
+
+  return Math.max(
+    ...guide.recommendedSets.map((combo) => {
+      const requiredPieces = combo.reduce((sum, rec) => sum + rec.pieces, 0);
+      const matchedPieces = combo.reduce(
+        (sum, rec) => sum + Math.min(setCounts.get(rec.setKey.toLowerCase()) ?? 0, rec.pieces),
+        0
+      );
+      return progress(matchedPieces, requiredPieces);
+    })
+  );
+}
+
+function normalizeStatKey(statKey: string): string {
+  return statKey.toLowerCase().replace(/%/g, '_');
+}
+
+function isGuideMainStat(guide: ArtifactBuildGuide, slot: SlotKey, mainStatKey: string): boolean {
+  if (slot === 'flower' || slot === 'plume') return true;
+
+  const normalized = normalizeStatKey(mainStatKey);
+  return guide.mainStats[slot]?.some((stat) => normalizeStatKey(stat) === normalized) ?? false;
+}
+
+function calculateRecommendedMainStatProgress(guide: ArtifactBuildGuide, artifacts: Artifact[]): number {
+  const slotScores = ARTIFACT_MAIN_STAT_SLOTS.map((slot) => {
+    const artifact = artifacts.find((candidate) => candidate.slotKey === slot);
+    if (!artifact) return 0;
+    return isGuideMainStat(guide, slot, artifact.mainStatKey) ? 100 : 0;
+  });
+  return average(slotScores);
+}
+
+function formatSetCombo(combo: Array<SetRecommendation & { name?: string }>): string {
+  return combo
+    .map((recommendation) => `${recommendation.pieces}pc ${recommendation.name ?? formatArtifactSetName(recommendation.setKey)}`)
+    .join(' + ');
+}
+
+function formatMainStatTargets(stats: MainStatKey[]): string {
+  return stats.map(formatStatName).join(' / ');
+}
+
+function getArtifactFitGaps(
+  artifacts: Artifact[],
+  guide: ArtifactBuildGuide
+): CampaignBuildGap[] {
+  const gaps: CampaignBuildGap[] = [];
+
+  if (calculateRecommendedSetProgress(guide, artifacts) < 100) {
+    const preferredCombo = guide.recommendedSets[0];
+    if (preferredCombo) {
+      gaps.push({
+        category: 'artifacts',
+        label: 'Artifact sets',
+        detail: `Aim for ${formatSetCombo(preferredCombo)}`,
+        priority: 3,
+      });
+    }
+  }
+
+  for (const slot of ARTIFACT_MAIN_STAT_SLOTS) {
+    const recommendedStats = guide.mainStats[slot] ?? [];
+    if (recommendedStats.length === 0) continue;
+
+    const artifact = artifacts.find((candidate) => candidate.slotKey === slot);
+    if (!artifact) {
+      gaps.push({
+        category: 'artifacts',
+        label: `${formatSlotName(slot)} main stat`,
+        detail: `Missing ${formatMainStatTargets(recommendedStats)}`,
+        priority: 3,
+      });
+      continue;
+    }
+
+    if (!isGuideMainStat(guide, slot, artifact.mainStatKey)) {
+      gaps.push({
+        category: 'artifacts',
+        label: `${formatSlotName(slot)} main stat`,
+        detail: `${formatStatName(artifact.mainStatKey)} -> ${formatMainStatTargets(recommendedStats)}`,
+        priority: 3,
+      });
+    }
+  }
+
+  return gaps;
+}
+
+function getWeaponChoiceGap(
+  character: Character,
+  intent: ResolvedBuildIntent
+): CampaignBuildGap | null {
+  const fitProgress = calculateWeaponFitProgress(character, intent);
+  if (fitProgress === undefined || fitProgress > 0) return null;
+
+  const targetWeapons = intent.targetWeaponKey
+    ? [intent.targetWeaponKey]
+    : [...intent.primaryWeapons, ...intent.alternativeWeapons];
+  const preferredWeapon = targetWeapons[0];
+  if (!preferredWeapon) return null;
+
+  return {
+    category: 'weapon',
+    label: 'Weapon choice',
+    detail: `${formatWeaponName(character.weapon.key)} -> ${formatWeaponName(preferredWeapon)}`,
+    priority: 2,
+  };
+}
+
+function getTargetGaps(
+  character: Character,
+  target: CampaignBuildTarget,
+  intent: ResolvedBuildIntent
+): CampaignBuildGap[] {
+  const gaps: CampaignBuildGap[] = [];
 
   if (character.level < target.level) {
-    missing.push(`Lv. ${character.level}/${target.level}`);
+    gaps.push({
+      category: 'level',
+      label: 'Character level',
+      detail: `Lv. ${character.level}/${target.level}`,
+      priority: 1,
+    });
   }
   if (character.ascension < target.ascension) {
-    missing.push(`A${character.ascension}/A${target.ascension}`);
+    gaps.push({
+      category: 'level',
+      label: 'Ascension',
+      detail: `A${character.ascension}/A${target.ascension}`,
+      priority: 1,
+    });
   }
 
   const talentParts: string[] = [];
@@ -216,32 +619,92 @@ function getTargetMissing(character: Character, target: CampaignBuildTarget): st
     talentParts.push(`Burst ${character.talent.burst}/${target.talents.burst}`);
   }
   if (talentParts.length > 0) {
-    missing.push(talentParts.join(', '));
+    gaps.push({
+      category: 'talents',
+      label: 'Talents',
+      detail: talentParts.join(', '),
+      priority: 1,
+    });
   }
   if (character.weapon.level < target.weaponLevel) {
-    missing.push(`Weapon Lv. ${character.weapon.level}/${target.weaponLevel}`);
+    gaps.push({
+      category: 'weapon',
+      label: 'Weapon level',
+      detail: `Weapon Lv. ${character.weapon.level}/${target.weaponLevel}`,
+      priority: 2,
+    });
+  }
+  const weaponChoiceGap = getWeaponChoiceGap(character, intent);
+  if (weaponChoiceGap) {
+    gaps.push(weaponChoiceGap);
   }
 
   const artifacts = character.artifacts ?? [];
   if (artifacts.length < target.artifactCount) {
-    missing.push(`Artifacts ${artifacts.length}/${target.artifactCount} equipped`);
+    gaps.push({
+      category: 'artifacts',
+      label: 'Artifacts equipped',
+      detail: `Artifacts ${artifacts.length}/${target.artifactCount} equipped`,
+      priority: 2,
+    });
   } else {
     const readyArtifacts = artifacts.filter((artifact) => artifact.level >= target.artifactLevel).length;
     if (readyArtifacts < target.artifactCount) {
-      missing.push(`Artifacts ${readyArtifacts}/${target.artifactCount} at +${target.artifactLevel}`);
+      gaps.push({
+        category: 'artifacts',
+        label: 'Artifact levels',
+        detail: `Artifacts ${readyArtifacts}/${target.artifactCount} at +${target.artifactLevel}`,
+        priority: 2,
+      });
     }
   }
 
-  return missing;
+  if (artifacts.length > 0) {
+    const artifactScore = calculateCharacterArtifactScore(artifacts);
+    if (artifactScore.averageScore < target.artifactScore) {
+      gaps.push({
+        category: 'artifacts',
+        label: 'Artifact quality',
+        detail: `Artifact score ${artifactScore.averageScore}/${target.artifactScore}`,
+        priority: 3,
+      });
+    }
+
+    const fitPercent = intent.artifactGuide
+      ? calculateArtifactFitProgress(intent.artifactGuide, artifacts, target)
+      : 100;
+    const artifactFitGaps = intent.artifactGuide
+      ? getArtifactFitGaps(artifacts, intent.artifactGuide)
+      : [];
+    if (intent.artifactGuide && fitPercent < 100 && artifactFitGaps.length === 0) {
+      gaps.push({
+        category: 'artifacts',
+        label: 'Artifact build fit',
+        detail: `Artifact build fit ${fitPercent}%`,
+        priority: 3,
+      });
+    }
+    gaps.push(...artifactFitGaps);
+  }
+
+  return gaps.sort((a, b) => a.priority - b.priority);
 }
 
 export function calculateBuildReadiness(
   campaign: Campaign,
-  characters: Character[]
+  characters: Character[],
+  options: CampaignBuildPlanOptions = {}
 ): CampaignBuildReadiness {
   const readiness = campaign.characterTargets.map((target): CampaignCharacterReadiness => {
     const character = findCharacter(characters, target.characterKey);
-    const buildTarget = getCampaignBuildTarget(target.buildGoal);
+    const intent = resolveBuildIntent(campaign, target, options);
+    const buildTarget = getEffectiveBuildTarget(target.buildGoal, intent);
+    const intentMetadata = {
+      buildIntentSource: intent.source,
+      buildTemplateId: intent.templateId,
+      buildTemplateName: intent.templateName,
+      targetWeaponKey: intent.targetWeaponKey,
+    };
 
     if (!character) {
       return {
@@ -249,28 +712,67 @@ export function calculateBuildReadiness(
         owned: false,
         buildGoal: target.buildGoal,
         percent: 0,
+        ...intentMetadata,
+        gaps: [{
+          category: 'ownership',
+          label: 'Ownership',
+          detail: 'Not owned yet',
+          priority: 1,
+        }],
+        breakdown: {
+          level: 0,
+          talents: 0,
+          weapon: 0,
+          artifacts: 0,
+        },
         missing: ['Not owned yet'],
       };
     }
+
+    const artifactScore = calculateCharacterArtifactScore(character.artifacts ?? []);
+    const gaps = getTargetGaps(character, buildTarget, intent);
 
     return {
       characterKey: target.characterKey,
       characterId: character.id,
       owned: true,
       buildGoal: target.buildGoal,
-      percent: calculateTargetProgress(character, buildTarget),
-      missing: getTargetMissing(character, buildTarget),
+      ...intentMetadata,
+      percent: calculateTargetProgress(character, buildTarget, intent),
+      missing: gaps.map((gap) => gap.detail),
+      gaps,
+      breakdown: calculateTargetBreakdown(character, buildTarget, intent),
+      artifactScore: artifactScore.averageScore,
+      artifactGrade: artifactScore.averageGrade,
+      artifactFitPercent: intent.artifactGuide
+        ? calculateArtifactFitProgress(intent.artifactGuide, character.artifacts ?? [], buildTarget)
+        : undefined,
+      hasBuildRecommendation: Boolean(intent.artifactGuide),
     };
   });
 
   const percent = clampPercent(average(readiness.map((target) => target.percent)));
+  const readyCount = readiness.filter((target) => target.owned && target.percent >= 100).length;
+  const topGaps = readiness
+    .flatMap((target) =>
+      (target.gaps ?? []).map((gap) => ({
+        ...gap,
+        characterKey: target.characterKey,
+      }))
+    )
+    .sort((a, b) => a.priority - b.priority)
+    .slice(0, 5);
+  const gapCount = readiness.reduce((sum, target) => sum + (target.gaps?.length ?? 0), 0);
 
   return {
     targetCount: campaign.characterTargets.length,
     ownedCount: readiness.filter((target) => target.owned).length,
+    readyCount,
+    gapCount,
     percent,
     status: statusFromPercent(percent),
     characters: readiness,
+    topGaps,
   };
 }
 
@@ -348,7 +850,8 @@ export function calculatePullReadiness(
 
 function campaignTargetToGoal(
   target: CampaignCharacterTarget,
-  characters: Character[]
+  characters: Character[],
+  buildTarget: CampaignBuildTarget
 ): MultiCharacterGoal | null {
   const character = findCharacter(characters, target.characterKey);
   const source = character
@@ -365,7 +868,22 @@ function campaignTargetToGoal(
         talent: { auto: 1, skill: 1, burst: 1 },
       };
 
-  return createGoalsFromCharacters([source], target.buildGoal)[0] ?? null;
+  return {
+    characterKey: source.key,
+    goal: {
+      characterKey: source.key,
+      currentLevel: source.level,
+      targetLevel: buildTarget.level,
+      currentAscension: source.ascension,
+      targetAscension: buildTarget.ascension,
+      currentTalents: { ...source.talent },
+      targetTalents: {
+        auto: Math.max(source.talent.auto, buildTarget.talents.auto),
+        skill: Math.max(source.talent.skill, buildTarget.talents.skill),
+        burst: Math.max(source.talent.burst, buildTarget.talents.burst),
+      },
+    },
+  };
 }
 
 interface CampaignEquipmentMaterialPlan {
@@ -406,7 +924,8 @@ function toCampaignMaterialRequirement(material: WeaponMaterialRequirement): Mat
 
 function calculateArtifactEnhancementRequirement(
   campaign: Campaign,
-  characters: Character[]
+  characters: Character[],
+  options: CampaignBuildPlanOptions = {}
 ): MaterialRequirement | null {
   let required = 0;
   let owned = 0;
@@ -415,7 +934,7 @@ function calculateArtifactEnhancementRequirement(
     const character = findCharacter(characters, target.characterKey);
     if (!character) continue;
 
-    const buildTarget = getCampaignBuildTarget(target.buildGoal);
+    const buildTarget = getEffectiveTargetForCampaignTarget(campaign, target, options);
     if (buildTarget.artifactCount === 0 || buildTarget.artifactLevel === 0) continue;
 
     required += buildTarget.artifactCount * buildTarget.artifactLevel;
@@ -445,7 +964,8 @@ function calculateArtifactEnhancementRequirement(
 
 function calculateWeaponEnhancementRequirement(
   campaign: Campaign,
-  characters: Character[]
+  characters: Character[],
+  options: CampaignBuildPlanOptions = {}
 ): MaterialRequirement | null {
   let required = 0;
   let owned = 0;
@@ -454,7 +974,7 @@ function calculateWeaponEnhancementRequirement(
     const character = findCharacter(characters, target.characterKey);
     if (!character) continue;
 
-    const buildTarget = getCampaignBuildTarget(target.buildGoal);
+    const buildTarget = getEffectiveTargetForCampaignTarget(campaign, target, options);
     required += buildTarget.weaponLevel;
     owned += Math.min(character.weapon.level, buildTarget.weaponLevel);
   }
@@ -476,7 +996,8 @@ function calculateWeaponEnhancementRequirement(
 async function calculateCampaignEquipmentMaterials(
   campaign: Campaign,
   characters: Character[],
-  inventory: Record<string, number>
+  inventory: Record<string, number>,
+  options: CampaignBuildPlanOptions = {}
 ): Promise<CampaignEquipmentMaterialPlan> {
   const materials: MaterialRequirement[] = [];
   let estimatedResin = 0;
@@ -486,7 +1007,7 @@ async function calculateCampaignEquipmentMaterials(
     const character = findCharacter(characters, target.characterKey);
     if (!character) continue;
 
-    const buildTarget = getCampaignBuildTarget(target.buildGoal);
+    const buildTarget = getEffectiveTargetForCampaignTarget(campaign, target, options);
     const targetAscension = getTargetWeaponAscension(buildTarget.weaponLevel);
     if (
       character.weapon.ascension >= targetAscension &&
@@ -516,12 +1037,12 @@ async function calculateCampaignEquipmentMaterials(
     }
   }
 
-  const weaponEnhancementRequirement = calculateWeaponEnhancementRequirement(campaign, characters);
+  const weaponEnhancementRequirement = calculateWeaponEnhancementRequirement(campaign, characters, options);
   if (weaponEnhancementRequirement) {
     materials.push(weaponEnhancementRequirement);
   }
 
-  const artifactRequirement = calculateArtifactEnhancementRequirement(campaign, characters);
+  const artifactRequirement = calculateArtifactEnhancementRequirement(campaign, characters, options);
   if (artifactRequirement) {
     materials.push(artifactRequirement);
   }
@@ -532,13 +1053,23 @@ async function calculateCampaignEquipmentMaterials(
 export async function calculateMaterialReadiness(
   campaign: Campaign,
   characters: Character[],
-  materials: Record<string, number>
+  materials: Record<string, number>,
+  options: CampaignBuildPlanOptions = {}
 ): Promise<CampaignMaterialReadiness> {
   const goals = campaign.characterTargets
-    .map((target) => campaignTargetToGoal(target, characters))
+    .map((target) => campaignTargetToGoal(
+      target,
+      characters,
+      getEffectiveTargetForCampaignTarget(campaign, target, options)
+    ))
     .filter((goal): goal is MultiCharacterGoal => goal !== null);
 
-  const equipmentPlan = await calculateCampaignEquipmentMaterials(campaign, characters, materials);
+  const equipmentPlan = await calculateCampaignEquipmentMaterials(
+    campaign,
+    characters,
+    materials,
+    options
+  );
 
   if (goals.length === 0 && equipmentPlan.materials.length === 0) {
     return {
@@ -649,11 +1180,14 @@ function buildNextActions(
     .sort((a, b) => a.percent - b.percent);
 
   for (const target of buildTargets.slice(0, 2)) {
+    const topGap = target.gaps?.[0];
     actions.push({
       id: `${campaign.id}-build-${target.characterKey}`,
       category: 'build',
       label: `Improve ${getDisplayName(target.characterKey)}`,
-      detail: target.missing.slice(0, 2).join(' - '),
+      detail: topGap
+        ? `${topGap.label}: ${topGap.detail}`
+        : target.missing.slice(0, 2).join(' - '),
       priority: 3,
       characterKey: target.characterKey,
     });
@@ -677,11 +1211,16 @@ export async function calculateCampaignPlan(
   context: CampaignPlanContext
 ): Promise<CampaignPlan> {
   const pullReadiness = calculatePullReadiness(campaign, context.availablePulls);
-  const buildReadiness = calculateBuildReadiness(campaign, context.characters);
+  const planOptions: CampaignBuildPlanOptions = {
+    teams: context.teams,
+    buildTemplates: context.buildTemplates,
+  };
+  const buildReadiness = calculateBuildReadiness(campaign, context.characters, planOptions);
   const materialReadiness = await calculateMaterialReadiness(
     campaign,
     context.characters,
-    context.materials
+    context.materials,
+    planOptions
   );
 
   const relevantReadiness = [

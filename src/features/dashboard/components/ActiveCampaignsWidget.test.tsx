@@ -184,6 +184,22 @@ describe('ActiveCampaignsWidget', () => {
     expect(screen.getByText('62%')).toBeInTheDocument();
   });
 
+  it('renders a compact import freshness prompt for stale campaign data', () => {
+    mocks.freshness = {
+      status: 'stale',
+      label: 'Refresh account data',
+      detail: 'Last Irminsul import was 12 days ago.',
+    };
+
+    renderWidget();
+
+    expect(screen.getByText('Refresh account data')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /refresh import/i })).toHaveAttribute(
+      'href',
+      '/roster?import=irminsul'
+    );
+  });
+
   it('shows a more indicator when more than three campaigns are active', () => {
     mocks.activeCampaigns = [
       activeCampaign,

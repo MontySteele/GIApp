@@ -11,7 +11,6 @@ import {
   CirclePlay,
   Clock,
   Package,
-  RefreshCw,
   Sparkles,
   Target,
   UsersRound,
@@ -21,7 +20,9 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { useAccountDataFreshness, type AccountDataFreshness } from '@/features/sync';
+import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
+import { useAccountDataFreshness } from '@/features/sync';
+import { findWeapon } from '@/lib/data/equipmentData';
 import { getDisplayName } from '@/lib/gameData';
 import {
   analyzeFarmingSchedule,
@@ -58,6 +59,10 @@ function formatDate(value: string | undefined): string {
 
 function formatCount(value: number): string {
   return value.toLocaleString();
+}
+
+function formatWeaponName(weaponKey: string): string {
+  return findWeapon(weaponKey)?.name ?? weaponKey;
 }
 
 function getStatusAction(campaign: Campaign): { label: string; status: CampaignStatus; icon: typeof CirclePause } {
@@ -233,7 +238,7 @@ export default function CampaignDetailPage() {
         </Card>
       )}
 
-      <AccountDataFreshnessBanner freshness={accountDataFreshness} />
+      <AccountDataFreshnessCallout freshness={accountDataFreshness} context="campaign" />
 
       {plan && (
         <>
@@ -251,7 +256,7 @@ export default function CampaignDetailPage() {
             <ReadinessCard
               label="Build"
               value={`${plan.buildReadiness.percent}%`}
-              detail={`${plan.buildReadiness.ownedCount}/${plan.buildReadiness.targetCount} owned`}
+              detail={`${plan.buildReadiness.readyCount ?? 0}/${plan.buildReadiness.targetCount} built`}
             />
             <ReadinessCard
               label="Materials"
@@ -392,6 +397,17 @@ export default function CampaignDetailPage() {
                             {target.owned ? 'owned' : 'wishlist'}
                           </Badge>
                           <Badge variant="outline">{target.buildGoal}</Badge>
+                          {target.buildTemplateName && (
+                            <Badge variant="outline">
+                              {target.buildIntentSource === 'team' ? 'Team template' : 'Template'}: {target.buildTemplateName}
+                            </Badge>
+                          )}
+                          {!target.buildTemplateName && target.hasBuildRecommendation && (
+                            <Badge variant="outline">Generic build</Badge>
+                          )}
+                          {target.targetWeaponKey && (
+                            <Badge variant="outline">Weapon: {formatWeaponName(target.targetWeaponKey)}</Badge>
+                          )}
                         </div>
                       </div>
                       <Badge variant={target.percent >= 100 ? 'success' : target.percent >= 50 ? 'warning' : 'danger'}>
@@ -404,8 +420,35 @@ export default function CampaignDetailPage() {
                         style={{ width: `${target.percent}%` }}
                       />
                     </div>
+                    <BuildBreakdown
+                      breakdown={target.breakdown ?? {
+                        level: target.percent,
+                        talents: target.percent,
+                        weapon: target.percent,
+                        artifacts: target.percent,
+                      }}
+                    />
+                    {(target.artifactScore !== undefined || target.artifactFitPercent !== undefined) && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {target.artifactScore !== undefined && (
+                          <Badge variant="outline">
+                            Artifacts {target.artifactScore}
+                            {target.artifactGrade ? ` ${target.artifactGrade}` : ''}
+                          </Badge>
+                        )}
+                        {target.artifactFitPercent !== undefined && (
+                          <Badge variant={target.artifactFitPercent >= 100 ? 'success' : 'warning'}>
+                            Fit {target.artifactFitPercent}%
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs text-slate-500 mt-2">
-                      {target.missing.length > 0 ? target.missing.join(', ') : 'Build target reached.'}
+                      {(target.gaps?.length ?? 0) > 0
+                        ? (target.gaps ?? []).slice(0, 3).map((gap) => `${gap.label}: ${gap.detail}`).join(', ')
+                        : target.missing.length > 0
+                          ? target.missing.join(', ')
+                          : 'Build target reached.'}
                     </p>
                   </div>
                 ))}
@@ -517,32 +560,40 @@ function PullRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AccountDataFreshnessBanner({ freshness }: { freshness: AccountDataFreshness }) {
-  if (freshness.status === 'fresh') {
-    return null;
-  }
-
-  const badgeLabel = freshness.status === 'missing' ? 'Import needed' : 'Data stale';
+function BuildBreakdown({
+  breakdown,
+}: {
+  breakdown: {
+    level: number;
+    talents: number;
+    weapon: number;
+    artifacts: number;
+  };
+}) {
+  const rows = [
+    ['Level', breakdown.level],
+    ['Talents', breakdown.talents],
+    ['Weapon', breakdown.weapon],
+    ['Artifacts', breakdown.artifacts],
+  ] as const;
 
   return (
-    <Card className="border-amber-900/60 bg-amber-950/20">
-      <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="mb-2">
-            <Badge variant="warning">{badgeLabel}</Badge>
+    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+      {rows.map(([label, value]) => (
+        <div key={label} className="rounded bg-slate-800/70 px-2 py-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-slate-500">{label}</span>
+            <span className="font-medium text-slate-200">{value}%</span>
           </div>
-          <h2 className="text-base font-semibold text-slate-100">{freshness.label}</h2>
-          <p className="mt-1 text-sm text-slate-400">{freshness.detail}</p>
+          <div className="mt-1 h-1 rounded-full bg-slate-900">
+            <div
+              className={value >= 100 ? 'h-full rounded-full bg-green-500' : 'h-full rounded-full bg-primary-500'}
+              style={{ width: `${value}%` }}
+            />
+          </div>
         </div>
-        <Link
-          to="/roster?import=irminsul"
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-500"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh Import
-        </Link>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 }
 

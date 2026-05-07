@@ -44,5 +44,6 @@ export {
 
 // Components
 export { default as BackupReminderBanner } from './components/BackupReminderBanner';
+export { default as AccountDataFreshnessCallout } from './components/AccountDataFreshnessCallout';
 export { default as DataTransfer } from './components/DataTransfer';
 export { default as ImportBackup } from './components/ImportBackup';
