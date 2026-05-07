@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   characters: [] as Character[],
   plans: {} as Record<string, unknown>,
   isLoading: false,
+  plansLoading: false,
+  plansCalculating: false,
+  planError: null as string | null,
   dataFreshness: {
     status: 'fresh',
     latestImport: null,
@@ -31,9 +34,9 @@ vi.mock('../hooks/useCampaigns', () => ({
 vi.mock('../hooks/useCampaignPlans', () => ({
   useCampaignPlans: () => ({
     plans: mocks.plans,
-    isLoading: false,
-    isCalculating: false,
-    error: null,
+    isLoading: mocks.plansLoading,
+    isCalculating: mocks.plansCalculating,
+    error: mocks.planError,
   }),
 }));
 
@@ -321,6 +324,9 @@ describe('CampaignDetailPage', () => {
     mocks.campaigns = [campaign];
     mocks.plans = { 'campaign-1': plan };
     mocks.isLoading = false;
+    mocks.plansLoading = false;
+    mocks.plansCalculating = false;
+    mocks.planError = null;
     mocks.dataFreshness = {
       status: 'fresh',
       latestImport: null,
@@ -439,10 +445,21 @@ describe('CampaignDetailPage', () => {
 
     it('shows loading skeletons when plan is not ready', () => {
       mocks.plans = {};
+      mocks.plansCalculating = true;
       renderPage();
 
       const pulseElements = document.querySelectorAll('.animate-pulse');
       expect(pulseElements.length).toBeGreaterThan(0);
+    });
+
+    it('shows plan calculation errors instead of a perpetual skeleton', () => {
+      mocks.plans = {};
+      mocks.planError = 'Material service unavailable';
+      renderPage();
+
+      expect(screen.getByText('Unable to calculate campaign plan')).toBeInTheDocument();
+      expect(screen.getByText('Material service unavailable')).toBeInTheDocument();
+      expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
     });
   });
 

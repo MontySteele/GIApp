@@ -343,7 +343,7 @@ function getEffectiveBuildTarget(
 
   return {
     ...base,
-    level: leveling.targetLevel || base.level,
+    level: leveling.targetLevel ?? base.level,
     ascension: leveling.targetAscension ?? base.ascension,
     talents: leveling.talentTarget ?? base.talents,
   };

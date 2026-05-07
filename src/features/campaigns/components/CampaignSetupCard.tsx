@@ -200,7 +200,7 @@ export default function CampaignSetupCard({
 
       if (campaign.type === 'team-polish') {
         updates.teamTarget = {
-          ...campaign.teamTarget,
+          ...(campaign.teamTarget ?? {}),
           name: campaign.teamTarget?.name ?? campaign.name,
           memberKeys: characterTargets.map((target) => target.characterKey),
         };

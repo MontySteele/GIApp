@@ -90,7 +90,7 @@ export default function CampaignDetailPage() {
     [characters]
   );
   const campaignList = useMemo(() => (campaign ? [campaign] : []), [campaign]);
-  const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(
+  const { plans, isLoading: plansLoading, isCalculating, error: planError } = useCampaignPlans(
     campaignList,
     campaignPlanContext,
     campaignPlanContextLoading
@@ -199,7 +199,7 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      {(plansLoading || isCalculating || !plan) && (
+      {(plansLoading || isCalculating) && (
         <Card>
           <CardContent className="py-6">
             <div className="h-5 w-44 bg-slate-700 rounded animate-pulse mb-4" />
@@ -208,6 +208,24 @@ export default function CampaignDetailPage() {
               <div className="h-20 bg-slate-900 rounded-lg animate-pulse" />
               <div className="h-20 bg-slate-900 rounded-lg animate-pulse" />
               <div className="h-20 bg-slate-900 rounded-lg animate-pulse" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!plansLoading && !isCalculating && !plan && (
+        <Card className="border-red-900/60 bg-red-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
+              <div>
+                <h2 className="text-base font-semibold text-red-100">
+                  Unable to calculate campaign plan
+                </h2>
+                <p className="mt-1 text-sm text-red-200/80">
+                  {planError ?? 'Try refreshing the app or updating this campaign setup.'}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

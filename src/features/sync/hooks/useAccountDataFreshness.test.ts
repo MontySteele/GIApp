@@ -45,4 +45,12 @@ describe('getAccountDataFreshness', () => {
     expect(freshness.daysSinceImport).toBe(16);
     expect(freshness.label).toBe('Refresh account data');
   });
+
+  it('marks unparseable import timestamps stale', () => {
+    const freshness = getAccountDataFreshness(makeImport('not-a-date'), now);
+
+    expect(freshness.status).toBe('stale');
+    expect(freshness.daysSinceImport).toBeNull();
+    expect(freshness.detail).toContain('timestamp could not be read');
+  });
 });

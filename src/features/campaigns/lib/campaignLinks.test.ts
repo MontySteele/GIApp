@@ -20,6 +20,10 @@ describe('campaignLinks', () => {
   });
 
   it('builds constellation chase campaign URLs with incremental copies', () => {
+    expect(buildConstellationCampaignUrl('Furina', 0, 2)).toBe(
+      '/campaigns?character=Furina&buildGoal=comfortable&copies=2&constellation=2&pullPlan=1'
+    );
+
     expect(buildConstellationCampaignUrl('Furina', 1, 2)).toBe(
       '/campaigns?character=Furina&buildGoal=comfortable&copies=1&constellation=2&pullPlan=1'
     );

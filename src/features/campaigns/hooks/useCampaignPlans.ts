@@ -43,11 +43,7 @@ export function useCampaignPlans(
       try {
         const results = await Promise.all(
           campaignSnapshot.map(async (campaign) => {
-            const plan = await calculateCampaignPlan(campaign, {
-              characters: contextSnapshot.characters,
-              materials: contextSnapshot.materials,
-              availablePulls: contextSnapshot.availablePulls,
-            });
+            const plan = await calculateCampaignPlan(campaign, contextSnapshot);
             return [campaign.id, plan] as const;
           })
         );

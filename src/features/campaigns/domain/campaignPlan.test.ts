@@ -181,6 +181,7 @@ describe('campaignPlan', () => {
     const readiness = calculatePullReadiness(
       {
         ...baseCampaign,
+        characterTargets: [],
         pullTargets: [
           {
             ...baseCampaign.pullTargets[0]!,
@@ -205,6 +206,39 @@ describe('campaignPlan', () => {
     expect(readiness.availablePulls).toBe(69);
     expect(readiness.targetPulls).toBe(150);
     expect(readiness.remainingPulls).toBe(81);
+  });
+
+  it('estimates weapon banner pull targets with weapon pity expectations', () => {
+    const readiness = calculatePullReadiness(
+      {
+        ...baseCampaign,
+        characterTargets: [],
+        pullTargets: [
+          {
+            ...baseCampaign.pullTargets[0]!,
+            itemKey: 'SplendorOfTranquilWaters',
+            itemType: 'weapon',
+            bannerType: 'weapon',
+            maxPullBudget: null,
+          },
+        ],
+      },
+      {
+        availablePulls: 40,
+        resources: {
+          primogems: 0,
+          genesisCrystals: 0,
+          intertwined: 40,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: false,
+      }
+    );
+
+    expect(readiness.targetPulls).toBe(160);
+    expect(readiness.remainingPulls).toBe(120);
   });
 
   it('treats wishlist team targets as implicit pull targets', () => {
