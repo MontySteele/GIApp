@@ -24,10 +24,11 @@ function getCampaignSummary(campaign: Campaign): string {
 
 export default function ActiveCampaignsWidget() {
   const { activeCampaigns, isLoading } = useCampaigns();
-  const { plans, isLoading: plansLoading } = useCampaignPlans(activeCampaigns);
+  const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(activeCampaigns);
   const dataFreshness = useAccountDataFreshness();
+  const plansPending = plansLoading || isCalculating;
 
-  if (isLoading || plansLoading) {
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="py-6">
@@ -104,12 +105,25 @@ export default function ActiveCampaignsWidget() {
                         {campaign.name}
                       </div>
                       <div className="text-xs text-slate-500 truncate">
-                        {nextAction ? nextAction.label : getCampaignSummary(campaign)}
+                        {nextAction
+                          ? nextAction.label
+                          : plansPending
+                            ? 'Calculating next action...'
+                            : getCampaignSummary(campaign)}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {readiness !== undefined && <Badge variant="success">{readiness}%</Badge>}
+                    {readiness !== undefined ? (
+                      <Badge variant={readiness >= 100 ? 'success' : readiness >= 50 ? 'warning' : 'danger'}>
+                        {readiness}%
+                      </Badge>
+                    ) : plansPending ? (
+                      <span
+                        aria-label="Campaign readiness loading"
+                        className="h-5 w-12 rounded-full bg-slate-800 animate-pulse"
+                      />
+                    ) : null}
                     <span className="hidden sm:flex items-center gap-1 text-xs text-slate-500">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDeadline(campaign)}
@@ -119,6 +133,15 @@ export default function ActiveCampaignsWidget() {
                 </Link>
               );
             })}
+            {activeCampaigns.length > 3 && (
+              <Link
+                to="/campaigns"
+                className="flex items-center justify-between rounded-lg border border-slate-800 px-3 py-2 text-xs text-slate-400 transition-colors hover:border-slate-700 hover:text-slate-200"
+              >
+                <span>+{activeCampaigns.length - 3} more active campaigns</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
         )}
       </CardContent>

@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import type { Campaign, Character } from '@/types';
+import type { Artifact, Campaign, Character, SlotKey } from '@/types';
 import {
   calculateCampaignPlan,
   calculateBuildReadiness,
+  calculateMaterialReadiness,
   calculatePullReadiness,
   getCampaignBuildTarget,
   getCampaignPullTargets,
 } from './campaignPlan';
+
+const ARTIFACT_SLOTS: SlotKey[] = ['flower', 'plume', 'sands', 'goblet', 'circlet'];
+
+function buildArtifacts(level: number): Artifact[] {
+  return ARTIFACT_SLOTS.map((slotKey) => ({
+    setKey: 'GoldenTroupe',
+    slotKey,
+    level,
+    rarity: 5,
+    mainStatKey: slotKey === 'flower' ? 'hp' : slotKey === 'plume' ? 'atk' : 'critRate_',
+    substats: [],
+  }));
+}
 
 const baseCampaign: Campaign = {
   id: 'campaign-1',
@@ -46,7 +60,7 @@ const ownedFurina: Character = {
   constellation: 0,
   talent: { auto: 8, skill: 8, burst: 8 },
   weapon: { key: 'FleuveCendreFerryman', level: 90, ascension: 6, refinement: 5 },
-  artifacts: [],
+  artifacts: buildArtifacts(20),
   notes: '',
   priority: 'main',
   teamIds: [],
@@ -59,11 +73,15 @@ describe('campaignPlan', () => {
     expect(getCampaignBuildTarget('functional')).toMatchObject({
       level: 80,
       ascension: 5,
+      weaponLevel: 80,
+      artifactLevel: 12,
       talents: { auto: 1, skill: 6, burst: 6 },
     });
     expect(getCampaignBuildTarget('full')).toMatchObject({
       level: 90,
       ascension: 6,
+      weaponLevel: 90,
+      artifactLevel: 20,
       talents: { auto: 10, skill: 10, burst: 10 },
     });
   });
@@ -169,6 +187,95 @@ describe('campaignPlan', () => {
     expect(readiness.characters[0]?.missing).toEqual([]);
   });
 
+  it('includes weapon and artifact gaps in build readiness', () => {
+    const readiness = calculateBuildReadiness(
+      {
+        ...baseCampaign,
+        characterTargets: [
+          {
+            ...baseCampaign.characterTargets[0]!,
+            ownership: 'owned',
+            buildGoal: 'comfortable',
+          },
+        ],
+      },
+      [
+        {
+          ...ownedFurina,
+          weapon: { ...ownedFurina.weapon, level: 70 },
+          artifacts: buildArtifacts(8).slice(0, 4),
+        },
+      ]
+    );
+
+    expect(readiness.status).toBe('attention');
+    expect(readiness.percent).toBeLessThan(100);
+    expect(readiness.characters[0]?.missing).toEqual([
+      'Weapon Lv. 70/90',
+      'Artifacts 4/5 equipped',
+    ]);
+  });
+
+  it('adds equipment gaps to campaign material readiness', async () => {
+    const readiness = await calculateMaterialReadiness(
+      {
+        ...baseCampaign,
+        pullTargets: [],
+        characterTargets: [
+          {
+            ...baseCampaign.characterTargets[0]!,
+            ownership: 'owned',
+            buildGoal: 'comfortable',
+          },
+        ],
+      },
+      [
+        {
+          ...ownedFurina,
+          weapon: { ...ownedFurina.weapon, level: 70, ascension: 4 },
+          artifacts: buildArtifacts(8).slice(0, 4),
+        },
+      ],
+      { Mora: 0 }
+    );
+
+    const materials = readiness.summary?.aggregatedMaterials ?? [];
+
+    expect(materials).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'Mora',
+          required: 80000,
+          deficit: 80000,
+        }),
+        expect.objectContaining({
+          name: 'Weapon Domain Material (Purple)',
+          category: 'weapon',
+          required: 6,
+          deficit: 6,
+        }),
+        expect.objectContaining({
+          key: 'WeaponEnhancementLevels',
+          name: 'Weapon enhancement levels',
+          category: 'weapon',
+          required: 90,
+          owned: 70,
+          deficit: 20,
+        }),
+        expect.objectContaining({
+          key: 'ArtifactEnhancementLevels',
+          name: 'Artifact enhancement levels',
+          category: 'artifact',
+          required: 80,
+          owned: 32,
+          deficit: 48,
+        }),
+      ])
+    );
+    expect(readiness.totalEstimatedResin).toBeGreaterThan(0);
+    expect(readiness.deficitMaterials).toBeGreaterThan(0);
+  });
+
   it('adds semantic target metadata to next actions', async () => {
     const underbuiltFurina = {
       ...ownedFurina,
@@ -212,5 +319,75 @@ describe('campaignPlan', () => {
         characterKey: 'Furina',
       })
     );
+  });
+
+  it('treats zero-target campaigns as ready for review', async () => {
+    const plan = await calculateCampaignPlan(
+      {
+        ...baseCampaign,
+        pullTargets: [],
+        characterTargets: [],
+      },
+      {
+        characters: [],
+        materials: {},
+        availablePulls: {
+          availablePulls: 0,
+          resources: {
+            primogems: 0,
+            genesisCrystals: 0,
+            intertwined: 0,
+            acquaint: 0,
+            starglitter: 0,
+          },
+          lastUpdated: null,
+          hasSnapshot: false,
+        },
+      }
+    );
+
+    expect(plan.status).toBe('ready');
+    expect(plan.overallPercent).toBe(100);
+    expect(plan.nextActions[0]).toMatchObject({
+      category: 'done',
+      label: 'Campaign looks ready',
+    });
+  });
+
+  it('rolls status up by severity with blocked above attention above ready', async () => {
+    const campaignWithPullTarget = {
+      ...baseCampaign,
+      characterTargets: [],
+      pullTargets: [
+        {
+          ...baseCampaign.pullTargets[0]!,
+          maxPullBudget: 100,
+        },
+      ],
+    };
+    const context = (availablePulls: number) => ({
+      characters: [],
+      materials: {},
+      availablePulls: {
+        availablePulls,
+        resources: {
+          primogems: 0,
+          genesisCrystals: 0,
+          intertwined: availablePulls,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: false,
+      },
+    });
+
+    const blockedPlan = await calculateCampaignPlan(campaignWithPullTarget, context(0));
+    const attentionPlan = await calculateCampaignPlan(campaignWithPullTarget, context(60));
+    const readyPlan = await calculateCampaignPlan(campaignWithPullTarget, context(100));
+
+    expect(blockedPlan.status).toBe('blocked');
+    expect(attentionPlan.status).toBe('attention');
+    expect(readyPlan.status).toBe('ready');
   });
 });

@@ -226,6 +226,8 @@ const plan: CampaignPlan = {
         localSpecialty: [],
         common: [],
         talent: [],
+        weapon: [],
+        artifact: [],
         weekly: [],
         crown: [],
       },
@@ -361,6 +363,7 @@ describe('CampaignDetailPage', () => {
       const params = new URLSearchParams({
         mode: 'multi',
         campaign: 'campaign-1',
+        name: 'Recruit Furina',
         pulls: '100',
       });
       params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));

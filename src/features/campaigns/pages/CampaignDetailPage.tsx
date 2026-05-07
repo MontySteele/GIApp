@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -145,6 +145,7 @@ function buildPullActionHref(campaign: Campaign, plan: CampaignPlan): string {
   const params = new URLSearchParams({
     mode: 'multi',
     campaign: campaign.id,
+    name: campaign.name,
     pulls: String(plan.pullReadiness.availablePulls),
   });
 
@@ -736,7 +737,7 @@ function CampaignSetupCard({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  const resetDraft = () => {
+  const resetDraft = useCallback(() => {
     const pullTarget = campaign.pullTargets[0];
     setDraftPriority(String(campaign.priority));
     setDraftDeadline(campaign.deadline ?? '');
@@ -746,13 +747,13 @@ function CampaignSetupCard({
     setDraftIncludePullTarget(campaign.pullTargets.length > 0);
     setDraftCopies(String(pullTarget?.desiredCopies ?? 1));
     setDraftPullBudget(pullTarget?.maxPullBudget ? String(pullTarget.maxPullBudget) : '');
-  };
+  }, [campaign]);
 
   useEffect(() => {
     if (!isEditing) {
       resetDraft();
     }
-  }, [campaign, isEditing]);
+  }, [isEditing, resetDraft]);
 
   const startEditing = () => {
     resetDraft();

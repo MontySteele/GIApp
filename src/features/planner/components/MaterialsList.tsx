@@ -11,6 +11,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   localSpecialty: 'Local Specialties',
   common: 'Common Materials',
   talent: 'Talent Books',
+  weapon: 'Weapon Materials',
+  artifact: 'Artifact Polish',
   weekly: 'Weekly Boss Materials',
   crown: 'Crowns',
 };
@@ -67,6 +69,8 @@ export function GroupedMaterialsList({ groupedMaterials, onUpdateMaterial }: Gro
     'localSpecialty',
     'common',
     'talent',
+    'weapon',
+    'artifact',
     'weekly',
     'crown',
   ] as const;

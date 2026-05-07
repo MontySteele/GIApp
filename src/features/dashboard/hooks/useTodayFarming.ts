@@ -7,12 +7,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useTeams } from '@/features/roster/hooks/useTeams';
+import { useCampaigns } from '@/features/campaigns';
 import { getCharacterMaterials } from '@/lib/services/genshinDbService';
 import { getTodayName, type DayName } from '@/features/planner/domain/farmingSchedule';
 import { DOMAIN_SCHEDULE, TALENT_BOOK_REGIONS } from '@/features/planner/domain/materialConstants';
 
 /** Scope for which characters to show farming recommendations for */
-export type FarmingScope = 'team' | 'priority' | 'all';
+export type FarmingScope = 'campaign' | 'team' | 'priority' | 'all';
+
+interface FarmingCandidate {
+  key: string;
+  level: number;
+  campaignName?: string;
+}
 
 export interface CharacterBookNeed {
   characterKey: string;
@@ -20,6 +27,7 @@ export interface CharacterBookNeed {
   bookSeries: string;
   region: string;
   availableToday: boolean;
+  campaignName?: string;
 }
 
 export interface TodayFarmingData {
@@ -90,22 +98,44 @@ export interface UseTodayFarmingOptions {
 }
 
 export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarmingData {
-  const { scope = 'team' } = options;
+  const { scope = 'campaign' } = options;
   const { characters, isLoading: charactersLoading } = useCharacters();
   const { teams, isLoading: teamsLoading } = useTeams();
+  const { activeCampaigns, isLoading: campaignsLoading } = useCampaigns();
   const [characterBookNeeds, setCharacterBookNeeds] = useState<CharacterBookNeed[]>([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
 
   const today = useMemo(() => getTodayName(), []);
 
   // Filter characters based on scope
-  const filteredCharacters = useMemo(() => {
+  const filteredCandidates = useMemo((): FarmingCandidate[] => {
+    const characterByKey = new Map(characters.map((character) => [character.key.toLowerCase(), character]));
+
     switch (scope) {
       case 'all':
-        return characters;
+        return characters.map((character) => ({ key: character.key, level: character.level }));
       case 'priority':
         // Main and secondary priority characters
-        return characters.filter((c) => c.priority === 'main' || c.priority === 'secondary');
+        return characters
+          .filter((character) => character.priority === 'main' || character.priority === 'secondary')
+          .map((character) => ({ key: character.key, level: character.level }));
+      case 'campaign': {
+        const candidates = new Map<string, FarmingCandidate>();
+        for (const campaign of activeCampaigns) {
+          for (const target of campaign.characterTargets) {
+            const character = characterByKey.get(target.characterKey.toLowerCase());
+            const existing = candidates.get(target.characterKey.toLowerCase());
+            candidates.set(target.characterKey.toLowerCase(), {
+              key: character?.key ?? target.characterKey,
+              level: character?.level ?? existing?.level ?? 1,
+              campaignName: existing?.campaignName
+                ? `${existing.campaignName}, ${campaign.name}`
+                : campaign.name,
+            });
+          }
+        }
+        return Array.from(candidates.values());
+      }
       case 'team':
       default:
         // Characters in at least one team
@@ -116,13 +146,15 @@ export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarm
             teamCharacterKeys.add(key);
           }
         }
-        return characters.filter((c) => teamCharacterKeys.has(c.key));
+        return characters
+          .filter((character) => teamCharacterKeys.has(character.key))
+          .map((character) => ({ key: character.key, level: character.level }));
     }
-  }, [characters, teams, scope]);
+  }, [activeCampaigns, characters, teams, scope]);
 
   // Fetch material data for filtered characters
   useEffect(() => {
-    if (today === 'Sunday' || charactersLoading || teamsLoading || filteredCharacters.length === 0) {
+    if (charactersLoading || teamsLoading || campaignsLoading || filteredCandidates.length === 0) {
       setCharacterBookNeeds((current) => (current.length === 0 ? current : []));
       setIsLoadingMaterials(false);
       return;
@@ -136,22 +168,23 @@ export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarm
 
       // Fetch in parallel with a concurrency limit
       const batchSize = 5;
-      for (let i = 0; i < filteredCharacters.length; i += batchSize) {
-        const batch = filteredCharacters.slice(i, i + batchSize);
+      for (let i = 0; i < filteredCandidates.length; i += batchSize) {
+        const batch = filteredCandidates.slice(i, i + batchSize);
         const results = await Promise.allSettled(
-          batch.map(async (char) => {
-            const { data } = await getCharacterMaterials(char.key, {
+          batch.map(async (candidate) => {
+            const { data } = await getCharacterMaterials(candidate.key, {
               useStaleOnError: true,
             });
 
             if (data?.talentMaterials?.books?.series) {
               const series = data.talentMaterials.books.series;
               return {
-                characterKey: char.key,
-                characterLevel: char.level,
+                characterKey: candidate.key,
+                characterLevel: candidate.level,
                 bookSeries: series,
                 region: data.talentMaterials.books.region || getRegionForSeries(series),
                 availableToday: isAvailableToday(series, today),
+                campaignName: candidate.campaignName,
               };
             }
             return null;
@@ -178,7 +211,7 @@ export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarm
     return () => {
       cancelled = true;
     };
-  }, [filteredCharacters, charactersLoading, teamsLoading, today]);
+  }, [filteredCandidates, charactersLoading, teamsLoading, campaignsLoading, today]);
 
   // Group characters by book series
   const charactersByBook = useMemo(() => {
@@ -241,7 +274,7 @@ export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarm
 
   return {
     today,
-    isLoading: charactersLoading || teamsLoading || isLoadingMaterials,
+    isLoading: charactersLoading || teamsLoading || campaignsLoading || isLoadingMaterials,
     charactersByBook,
     availableTodayWithCharacters,
     notAvailableToday,

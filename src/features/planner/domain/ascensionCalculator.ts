@@ -64,10 +64,23 @@ export interface AscensionGoal {
   targetTalents: { auto: number; skill: number; burst: number };
 }
 
+export type MaterialCategory =
+  | 'mora'
+  | 'exp'
+  | 'boss'
+  | 'gem'
+  | 'localSpecialty'
+  | 'common'
+  | 'talent'
+  | 'weapon'
+  | 'artifact'
+  | 'weekly'
+  | 'crown';
+
 export interface MaterialRequirement {
   key: string;
   name: string;
-  category: 'mora' | 'exp' | 'boss' | 'gem' | 'localSpecialty' | 'common' | 'talent' | 'weekly' | 'crown';
+  category: MaterialCategory;
   tier?: number; // For tiered materials (1-4)
   required: number;
   owned: number;

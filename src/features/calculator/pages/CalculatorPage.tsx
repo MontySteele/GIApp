@@ -58,9 +58,15 @@ export default function CalculatorPage() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'single' && <SingleTargetCalculator />}
-      {activeTab === 'multi' && <MultiTargetCalculator />}
-      {activeTab === 'reverse' && <ReverseCalculator />}
+      <div hidden={activeTab !== 'single'}>
+        <SingleTargetCalculator />
+      </div>
+      <div hidden={activeTab !== 'multi'}>
+        <MultiTargetCalculator />
+      </div>
+      <div hidden={activeTab !== 'reverse'}>
+        <ReverseCalculator />
+      </div>
     </div>
   );
 }

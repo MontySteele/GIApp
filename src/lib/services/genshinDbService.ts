@@ -993,7 +993,7 @@ interface WeaponCacheEntry {
  */
 export async function getWeaponMaterials(
   weaponKey: string,
-  options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
+  options: { forceRefresh?: boolean; useStaleOnError?: boolean; skipApiFetch?: boolean } = {}
 ): Promise<{ data: WeaponMaterialData | null; isStale: boolean; error?: string }> {
   const cacheKey = getWeaponCacheKey(weaponKey);
   const memCacheKey = weaponKey.toLowerCase();
@@ -1041,6 +1041,22 @@ export async function getWeaponMaterials(
     } catch (dbError) {
       console.warn('Failed to read weapon cache:', dbError);
     }
+  }
+
+  if (options.skipApiFetch) {
+    if (cachedData) {
+      return {
+        data: cachedData,
+        isStale: true,
+        error: 'Using stale cached weapon material data',
+      };
+    }
+
+    return {
+      data: null,
+      isStale: false,
+      error: 'Weapon material data is not cached',
+    };
   }
 
   // Fetch from API

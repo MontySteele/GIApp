@@ -64,6 +64,8 @@ const emptyGroupedMaterials: GroupedMaterials = {
   localSpecialty: [],
   common: [],
   talent: [],
+  weapon: [],
+  artifact: [],
   weekly: [],
   crown: [],
 };
@@ -85,6 +87,8 @@ function createMaterialSummary(materials: MaterialRequirement[]): AggregatedMate
       ...emptyGroupedMaterials,
       mora: materials.filter((material) => material.category === 'mora'),
       talent: materials.filter((material) => material.category === 'talent'),
+      weapon: materials.filter((material) => material.category === 'weapon'),
+      artifact: materials.filter((material) => material.category === 'artifact'),
     },
     totalMora: materials
       .filter((material) => material.category === 'mora')

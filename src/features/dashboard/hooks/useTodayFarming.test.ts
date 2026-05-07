@@ -5,6 +5,7 @@ import { useTodayFarming } from './useTodayFarming';
 const mocks = vi.hoisted(() => ({
   useCharacters: vi.fn(),
   useTeams: vi.fn(),
+  useCampaigns: vi.fn(),
   getCharacterMaterials: vi.fn(),
   getTodayName: vi.fn(),
 }));
@@ -15,6 +16,10 @@ vi.mock('@/features/roster/hooks/useCharacters', () => ({
 
 vi.mock('@/features/roster/hooks/useTeams', () => ({
   useTeams: mocks.useTeams,
+}));
+
+vi.mock('@/features/campaigns', () => ({
+  useCampaigns: mocks.useCampaigns,
 }));
 
 vi.mock('@/lib/services/genshinDbService', () => ({
@@ -62,6 +67,30 @@ describe('useTodayFarming', () => {
       ],
       isLoading: false,
     });
+    mocks.useCampaigns.mockReturnValue({
+      activeCampaigns: [
+        {
+          id: 'campaign-1',
+          type: 'character-acquisition',
+          name: 'Recruit Furina',
+          status: 'active',
+          priority: 1,
+          pullTargets: [],
+          characterTargets: [
+            {
+              id: 'target-1',
+              characterKey: 'Furina',
+              ownership: 'owned',
+              buildGoal: 'comfortable',
+            },
+          ],
+          notes: '',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
+      isLoading: false,
+    });
     mocks.getCharacterMaterials.mockResolvedValue({
       data: {
         talentMaterials: {
@@ -74,15 +103,27 @@ describe('useTodayFarming', () => {
     });
   });
 
-  it('skips material lookups on Sunday because every domain is available', () => {
+  it('loads campaign target book needs on Sunday because every domain is available', async () => {
     mocks.getTodayName.mockReturnValue('Sunday');
 
-    const { result } = renderHook(() => useTodayFarming({ scope: 'team' }));
+    const { result } = renderHook(() => useTodayFarming({ scope: 'campaign' }));
+
+    await waitFor(() => {
+      expect(result.current.totalCharactersProcessed).toBe(1);
+    });
 
     expect(result.current.today).toBe('Sunday');
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.totalCharactersProcessed).toBe(0);
-    expect(mocks.getCharacterMaterials).not.toHaveBeenCalled();
+    expect(result.current.availableTodayWithCharacters).toEqual([
+      expect.objectContaining({
+        series: 'Justice',
+        characters: [
+          expect.objectContaining({
+            characterKey: 'Furina',
+            campaignName: 'Recruit Furina',
+          }),
+        ],
+      }),
+    ]);
   });
 
   it('loads team character book needs on rotating domain days', async () => {
@@ -109,5 +150,42 @@ describe('useTodayFarming', () => {
         ],
       }),
     ]);
+  });
+
+  it('uses active campaign targets for the campaign scope', async () => {
+    mocks.getTodayName.mockReturnValue('Monday');
+
+    const { result } = renderHook(() => useTodayFarming({ scope: 'campaign' }));
+
+    await waitFor(() => {
+      expect(result.current.totalCharactersProcessed).toBe(1);
+    });
+
+    expect(mocks.getCharacterMaterials).toHaveBeenCalledWith('Furina', {
+      useStaleOnError: true,
+    });
+    expect(result.current.notAvailableToday[0]?.characters[0]).toMatchObject({
+      characterKey: 'Furina',
+      campaignName: 'Recruit Furina',
+    });
+  });
+
+  it('returns no campaign recommendations when there are zero active campaigns', async () => {
+    mocks.getTodayName.mockReturnValue('Monday');
+    mocks.useCampaigns.mockReturnValue({
+      activeCampaigns: [],
+      isLoading: false,
+    });
+
+    const { result } = renderHook(() => useTodayFarming({ scope: 'campaign' }));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(mocks.getCharacterMaterials).not.toHaveBeenCalled();
+    expect(result.current.totalCharactersProcessed).toBe(0);
+    expect(result.current.availableTodayWithCharacters).toEqual([]);
+    expect(result.current.notAvailableToday).toEqual([]);
   });
 });

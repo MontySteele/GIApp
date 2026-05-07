@@ -9,7 +9,12 @@ vi.mock('../components/SingleTargetCalculator', () => ({
 }));
 
 vi.mock('../components/MultiTargetCalculator', () => ({
-  MultiTargetCalculator: () => <div data-testid="multi-target-calculator">Multi Target Calculator</div>,
+  MultiTargetCalculator: () => (
+    <div data-testid="multi-target-calculator">
+      Multi Target Calculator
+      <input aria-label="multi draft" />
+    </div>
+  ),
 }));
 
 vi.mock('../components/ReverseCalculator', () => ({
@@ -40,9 +45,9 @@ describe('CalculatorPage', () => {
     it('shows single target calculator by default', () => {
       render(<CalculatorPage />);
 
-      expect(screen.getByTestId('single-target-calculator')).toBeInTheDocument();
-      expect(screen.queryByTestId('multi-target-calculator')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('reverse-calculator')).not.toBeInTheDocument();
+      expect(screen.getByTestId('single-target-calculator')).toBeVisible();
+      expect(screen.getByTestId('multi-target-calculator')).not.toBeVisible();
+      expect(screen.getByTestId('reverse-calculator')).not.toBeVisible();
     });
 
     it('opens the multi-target calculator from URL mode params', () => {
@@ -50,8 +55,8 @@ describe('CalculatorPage', () => {
 
       render(<CalculatorPage />);
 
-      expect(screen.getByTestId('multi-target-calculator')).toBeInTheDocument();
-      expect(screen.queryByTestId('single-target-calculator')).not.toBeInTheDocument();
+      expect(screen.getByTestId('multi-target-calculator')).toBeVisible();
+      expect(screen.getByTestId('single-target-calculator')).not.toBeVisible();
     });
 
     it('highlights the active tab', () => {
@@ -69,8 +74,8 @@ describe('CalculatorPage', () => {
 
       await user.click(screen.getByRole('button', { name: /multi-target/i }));
 
-      expect(screen.getByTestId('multi-target-calculator')).toBeInTheDocument();
-      expect(screen.queryByTestId('single-target-calculator')).not.toBeInTheDocument();
+      expect(screen.getByTestId('multi-target-calculator')).toBeVisible();
+      expect(screen.getByTestId('single-target-calculator')).not.toBeVisible();
     });
 
     it('switches to reverse calculator when tab is clicked', async () => {
@@ -79,8 +84,8 @@ describe('CalculatorPage', () => {
 
       await user.click(screen.getByRole('button', { name: /reverse calculator/i }));
 
-      expect(screen.getByTestId('reverse-calculator')).toBeInTheDocument();
-      expect(screen.queryByTestId('single-target-calculator')).not.toBeInTheDocument();
+      expect(screen.getByTestId('reverse-calculator')).toBeVisible();
+      expect(screen.getByTestId('single-target-calculator')).not.toBeVisible();
     });
 
     it('can switch back to single target from another tab', async () => {
@@ -89,11 +94,24 @@ describe('CalculatorPage', () => {
 
       // Go to multi-target
       await user.click(screen.getByRole('button', { name: /multi-target/i }));
-      expect(screen.getByTestId('multi-target-calculator')).toBeInTheDocument();
+      expect(screen.getByTestId('multi-target-calculator')).toBeVisible();
 
       // Go back to single target
       await user.click(screen.getByRole('button', { name: /single target/i }));
-      expect(screen.getByTestId('single-target-calculator')).toBeInTheDocument();
+      expect(screen.getByTestId('single-target-calculator')).toBeVisible();
+      expect(screen.getByTestId('multi-target-calculator')).not.toBeVisible();
+    });
+
+    it('preserves multi-target edits while switching tabs', async () => {
+      const user = userEvent.setup();
+      render(<CalculatorPage />);
+
+      await user.click(screen.getByRole('button', { name: /multi-target/i }));
+      await user.type(screen.getByLabelText('multi draft'), 'Furina plan');
+      await user.click(screen.getByRole('button', { name: /single target/i }));
+      await user.click(screen.getByRole('button', { name: /multi-target/i }));
+
+      expect(screen.getByLabelText('multi draft')).toHaveValue('Furina plan');
     });
 
     it('updates tab styling when switching tabs', async () => {

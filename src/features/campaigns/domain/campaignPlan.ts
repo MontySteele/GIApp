@@ -1,11 +1,19 @@
 import type { AvailablePullsResult } from '@/lib/services/resourceService';
 import {
+  aggregateMaterialRequirements,
   calculateMultiCharacterSummary,
   createGoalsFromCharacters,
+  groupMaterialsByCategory,
   type AggregatedMaterialSummary,
   type MultiCharacterGoal,
 } from '@/features/planner/domain/multiCharacterCalculator';
 import type { MaterialRequirement } from '@/features/planner/domain/ascensionCalculator';
+import {
+  calculateWeaponAscensionSummary,
+  type WeaponMaterialRequirement,
+} from '@/features/planner/domain/weaponCalculator';
+import { RESIN_REGEN } from '@/features/planner/domain/materialConstants';
+import { findWeapon } from '@/lib/data/equipmentData';
 import { getDisplayName } from '@/lib/gameData';
 import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget, CampaignPullTarget, Character } from '@/types';
 
@@ -15,6 +23,9 @@ export type CampaignActionCategory = 'pulls' | 'materials' | 'build' | 'roster' 
 export interface CampaignBuildTarget {
   level: number;
   ascension: number;
+  weaponLevel: number;
+  artifactCount: number;
+  artifactLevel: number;
   talents: {
     auto: number;
     skill: number;
@@ -92,19 +103,32 @@ const BUILD_TARGETS: Record<CampaignBuildGoal, CampaignBuildTarget> = {
   functional: {
     level: 80,
     ascension: 5,
+    weaponLevel: 80,
+    artifactCount: 5,
+    artifactLevel: 12,
     talents: { auto: 1, skill: 6, burst: 6 },
   },
   comfortable: {
     level: 80,
     ascension: 6,
+    weaponLevel: 90,
+    artifactCount: 5,
+    artifactLevel: 16,
     talents: { auto: 8, skill: 8, burst: 8 },
   },
   full: {
     level: 90,
     ascension: 6,
+    weaponLevel: 90,
+    artifactCount: 5,
+    artifactLevel: 20,
     talents: { auto: 10, skill: 10, burst: 10 },
   },
 };
+
+const WEAPON_LEVEL_CAPS = [20, 40, 50, 60, 70, 80, 90] as const;
+const WEAPON_POLISH_KEY = 'WeaponEnhancementLevels';
+const ARTIFACT_POLISH_KEY = 'ArtifactEnhancementLevels';
 
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -143,12 +167,32 @@ function calculateTargetProgress(character: Character, target: CampaignBuildTarg
     (character.talent.skill / target.talents.skill) * 100,
     (character.talent.burst / target.talents.burst) * 100,
   ]);
+  const weaponProgress = target.weaponLevel === 0 ? 100 : (character.weapon.level / target.weaponLevel) * 100;
+  const artifactProgress = calculateArtifactProgress(character, target);
 
   return clampPercent(average([
     Math.min(levelProgress, 100),
     Math.min(ascensionProgress, 100),
     Math.min(talentProgress, 100),
+    Math.min(weaponProgress, 100),
+    Math.min(artifactProgress, 100),
   ]));
+}
+
+function calculateArtifactProgress(character: Character, target: CampaignBuildTarget): number {
+  if (target.artifactCount === 0 || target.artifactLevel === 0) return 100;
+
+  const artifacts = character.artifacts ?? [];
+  const equippedProgress = Math.min(100, (artifacts.length / target.artifactCount) * 100);
+  const topArtifacts = [...artifacts]
+    .sort((a, b) => b.level - a.level)
+    .slice(0, target.artifactCount);
+  const leveledProgress = Array.from({ length: target.artifactCount }).reduce<number>((sum, _, index) => {
+    const artifact = topArtifacts[index];
+    return sum + Math.min(100, ((artifact?.level ?? 0) / target.artifactLevel) * 100);
+  }, 0) / target.artifactCount;
+
+  return average([equippedProgress, leveledProgress]);
 }
 
 function getTargetMissing(character: Character, target: CampaignBuildTarget): string[] {
@@ -173,6 +217,19 @@ function getTargetMissing(character: Character, target: CampaignBuildTarget): st
   }
   if (talentParts.length > 0) {
     missing.push(talentParts.join(', '));
+  }
+  if (character.weapon.level < target.weaponLevel) {
+    missing.push(`Weapon Lv. ${character.weapon.level}/${target.weaponLevel}`);
+  }
+
+  const artifacts = character.artifacts ?? [];
+  if (artifacts.length < target.artifactCount) {
+    missing.push(`Artifacts ${artifacts.length}/${target.artifactCount} equipped`);
+  } else {
+    const readyArtifacts = artifacts.filter((artifact) => artifact.level >= target.artifactLevel).length;
+    if (readyArtifacts < target.artifactCount) {
+      missing.push(`Artifacts ${readyArtifacts}/${target.artifactCount} at +${target.artifactLevel}`);
+    }
   }
 
   return missing;
@@ -311,6 +368,167 @@ function campaignTargetToGoal(
   return createGoalsFromCharacters([source], target.buildGoal)[0] ?? null;
 }
 
+interface CampaignEquipmentMaterialPlan {
+  materials: MaterialRequirement[];
+  estimatedResin: number;
+  errors: string[];
+}
+
+function getTargetWeaponAscension(targetLevel: number): number {
+  const phase = WEAPON_LEVEL_CAPS.findIndex((cap) => cap >= targetLevel);
+  return phase >= 0 ? phase : 6;
+}
+
+function getWeaponRarity(weaponKey: string): 4 | 5 {
+  const rarity = findWeapon(weaponKey)?.rarity;
+  return rarity === 5 ? 5 : 4;
+}
+
+function toCampaignMaterialRequirement(material: WeaponMaterialRequirement): MaterialRequirement {
+  const category = material.category === 'domain'
+    ? 'weapon'
+    : material.category === 'elite'
+      ? 'common'
+      : material.category;
+
+  return {
+    key: material.key,
+    name: material.name,
+    category,
+    tier: material.tier,
+    required: material.required,
+    owned: material.owned,
+    deficit: material.deficit,
+    source: material.source,
+    availability: material.availability,
+  };
+}
+
+function calculateArtifactEnhancementRequirement(
+  campaign: Campaign,
+  characters: Character[]
+): MaterialRequirement | null {
+  let required = 0;
+  let owned = 0;
+
+  for (const target of campaign.characterTargets) {
+    const character = findCharacter(characters, target.characterKey);
+    if (!character) continue;
+
+    const buildTarget = getCampaignBuildTarget(target.buildGoal);
+    if (buildTarget.artifactCount === 0 || buildTarget.artifactLevel === 0) continue;
+
+    required += buildTarget.artifactCount * buildTarget.artifactLevel;
+    const topArtifacts = [...(character.artifacts ?? [])]
+      .sort((a, b) => b.level - a.level)
+      .slice(0, buildTarget.artifactCount);
+
+    owned += topArtifacts.reduce(
+      (sum, artifact) => sum + Math.min(artifact.level, buildTarget.artifactLevel),
+      0
+    );
+  }
+
+  const deficit = Math.max(0, required - owned);
+  if (required === 0 || deficit === 0) return null;
+
+  return {
+    key: ARTIFACT_POLISH_KEY,
+    name: 'Artifact enhancement levels',
+    category: 'artifact',
+    required,
+    owned,
+    deficit,
+    source: 'Equip and level artifacts for campaign targets',
+  };
+}
+
+function calculateWeaponEnhancementRequirement(
+  campaign: Campaign,
+  characters: Character[]
+): MaterialRequirement | null {
+  let required = 0;
+  let owned = 0;
+
+  for (const target of campaign.characterTargets) {
+    const character = findCharacter(characters, target.characterKey);
+    if (!character) continue;
+
+    const buildTarget = getCampaignBuildTarget(target.buildGoal);
+    required += buildTarget.weaponLevel;
+    owned += Math.min(character.weapon.level, buildTarget.weaponLevel);
+  }
+
+  const deficit = Math.max(0, required - owned);
+  if (required === 0 || deficit === 0) return null;
+
+  return {
+    key: WEAPON_POLISH_KEY,
+    name: 'Weapon enhancement levels',
+    category: 'weapon',
+    required,
+    owned,
+    deficit,
+    source: 'Level equipped weapons for campaign targets',
+  };
+}
+
+async function calculateCampaignEquipmentMaterials(
+  campaign: Campaign,
+  characters: Character[],
+  inventory: Record<string, number>
+): Promise<CampaignEquipmentMaterialPlan> {
+  const materials: MaterialRequirement[] = [];
+  let estimatedResin = 0;
+  const errors: string[] = [];
+
+  for (const target of campaign.characterTargets) {
+    const character = findCharacter(characters, target.characterKey);
+    if (!character) continue;
+
+    const buildTarget = getCampaignBuildTarget(target.buildGoal);
+    const targetAscension = getTargetWeaponAscension(buildTarget.weaponLevel);
+    if (
+      character.weapon.ascension >= targetAscension &&
+      character.weapon.level >= buildTarget.weaponLevel
+    ) {
+      continue;
+    }
+
+    const summary = await calculateWeaponAscensionSummary(
+      {
+        weaponKey: character.weapon.key,
+        currentLevel: character.weapon.level,
+        targetLevel: buildTarget.weaponLevel,
+        currentAscension: character.weapon.ascension,
+        targetAscension,
+        rarity: getWeaponRarity(character.weapon.key),
+      },
+      inventory,
+      { skipApiFetch: true }
+    );
+
+    materials.push(...summary.materials.map(toCampaignMaterialRequirement));
+    estimatedResin += summary.estimatedResin;
+
+    if (summary.error && summary.isStale) {
+      errors.push(`${character.key} weapon: ${summary.error}`);
+    }
+  }
+
+  const weaponEnhancementRequirement = calculateWeaponEnhancementRequirement(campaign, characters);
+  if (weaponEnhancementRequirement) {
+    materials.push(weaponEnhancementRequirement);
+  }
+
+  const artifactRequirement = calculateArtifactEnhancementRequirement(campaign, characters);
+  if (artifactRequirement) {
+    materials.push(artifactRequirement);
+  }
+
+  return { materials, estimatedResin, errors };
+}
+
 export async function calculateMaterialReadiness(
   campaign: Campaign,
   characters: Character[],
@@ -320,7 +538,9 @@ export async function calculateMaterialReadiness(
     .map((target) => campaignTargetToGoal(target, characters))
     .filter((goal): goal is MultiCharacterGoal => goal !== null);
 
-  if (goals.length === 0) {
+  const equipmentPlan = await calculateCampaignEquipmentMaterials(campaign, characters, materials);
+
+  if (goals.length === 0 && equipmentPlan.materials.length === 0) {
     return {
       hasTargets: false,
       percent: 100,
@@ -339,12 +559,32 @@ export async function calculateMaterialReadiness(
   const summary = await calculateMultiCharacterSummary(goals, materials, {
     skipApiFetch: true,
   });
-  const materialRows = summary.aggregatedMaterials;
+  const materialRows = equipmentPlan.materials.length > 0
+    ? aggregateMaterialRequirements([summary.aggregatedMaterials, equipmentPlan.materials])
+    : summary.aggregatedMaterials;
+  const groupedMaterials = groupMaterialsByCategory(materialRows);
   const deficitRows = materialRows.filter((material) => material.deficit > 0);
   const readyRows = materialRows.filter((material) => material.deficit <= 0);
   const percent = materialRows.length === 0
     ? 100
     : clampPercent((readyRows.length / materialRows.length) * 100);
+  const totalEstimatedResin = summary.totalEstimatedResin + equipmentPlan.estimatedResin;
+  const moraRequirement = materialRows.find((material) => material.key.toLowerCase() === 'mora');
+  const mergedSummary: AggregatedMaterialSummary = {
+    ...summary,
+    aggregatedMaterials: materialRows,
+    groupedMaterials,
+    totalMora: moraRequirement?.required ?? summary.totalMora,
+    totalEstimatedResin,
+    resinBreakdown: {
+      ...summary.resinBreakdown,
+      talentBoss: summary.resinBreakdown.talentBoss + equipmentPlan.estimatedResin,
+      total: totalEstimatedResin,
+    },
+    totalEstimatedDays: Math.ceil(totalEstimatedResin / RESIN_REGEN.perDay),
+    allCanAscend: materialRows.every((material) => material.deficit === 0),
+    errors: [...summary.errors, ...equipmentPlan.errors],
+  };
 
   return {
     hasTargets: true,
@@ -356,10 +596,10 @@ export async function calculateMaterialReadiness(
     topDeficits: [...deficitRows]
       .sort((a, b) => b.deficit - a.deficit)
       .slice(0, 5),
-    totalEstimatedResin: summary.totalEstimatedResin,
-    totalEstimatedDays: summary.totalEstimatedDays,
-    summary,
-    errors: summary.errors,
+    totalEstimatedResin: mergedSummary.totalEstimatedResin,
+    totalEstimatedDays: mergedSummary.totalEstimatedDays,
+    summary: mergedSummary,
+    errors: mergedSummary.errors,
   };
 }
 

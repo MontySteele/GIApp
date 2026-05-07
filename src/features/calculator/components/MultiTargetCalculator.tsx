@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { proxy } from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Button from '@/components/ui/Button';
@@ -11,6 +12,7 @@ import type { BannerType, CalculatorScenario, CalculatorScenarioTarget } from '@
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
 import { createMonteCarloWorker, type MonteCarloWorkerHandle } from '@/workers/montecarloClient';
 import { getAvailablePullsFromTracker } from '@/features/calculator/selectors/availablePulls';
+import { useAllCurrentPity } from '@/features/wishes/hooks/useCurrentPity';
 import { scenarioRepo } from '../repo/scenarioRepo';
 import TargetCard, { type Target } from './TargetCard';
 import SimulationResults from './SimulationResults';
@@ -46,6 +48,7 @@ interface PersistedState {
 
 interface UrlPrefillState {
   campaignId: string | null;
+  campaignName: string | null;
   state: PersistedState;
 }
 
@@ -98,6 +101,19 @@ function parseUrlTarget(rawTarget: string, index: number): Target | null {
   }
 }
 
+function normalizeInheritedPity(targets: Target[]): Target[] {
+  const seenBanners = new Set<BannerType>();
+  return targets.map((target) => {
+    const hasPreviousBannerTarget = seenBanners.has(target.bannerType);
+    seenBanners.add(target.bannerType);
+
+    return {
+      ...target,
+      useInheritedPity: hasPreviousBannerTarget ? target.useInheritedPity : false,
+    };
+  });
+}
+
 function loadUrlPrefillState(): UrlPrefillState | null {
   const params = new URLSearchParams(window.location.search);
   const urlTargets = params
@@ -109,8 +125,9 @@ function loadUrlPrefillState(): UrlPrefillState | null {
 
   return {
     campaignId: params.get('campaign'),
+    campaignName: params.get('name'),
     state: {
-      targets: urlTargets,
+      targets: normalizeInheritedPity(urlTargets),
       availablePulls: parsePositiveInteger(params.get('pulls'), 0),
       iterations: parsePositiveInteger(params.get('iterations'), 5000) || 5000,
     },
@@ -140,7 +157,10 @@ function clearPersistedState(): void {
 
 export function MultiTargetCalculator() {
   const urlPrefill = useRef(loadUrlPrefillState());
+  const [showUrlPrefill, setShowUrlPrefill] = useState(urlPrefill.current !== null);
   const initialState = useRef(urlPrefill.current?.state ?? loadPersistedState());
+  const visibleUrlPrefill = showUrlPrefill ? urlPrefill.current : null;
+  const currentPity = useAllCurrentPity();
   const [targets, setTargets] = useState<Target[]>(initialState.current?.targets ?? []);
   const [availablePulls, setAvailablePulls] = useState(initialState.current?.availablePulls ?? 0);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -208,6 +228,7 @@ export function MultiTargetCalculator() {
   }, []);
 
   const handleReset = useCallback(() => {
+    setShowUrlPrefill(false);
     setTargets([]);
     setAvailablePulls(0);
     setIterations(5000);
@@ -228,9 +249,40 @@ export function MultiTargetCalculator() {
     }
   }, []);
 
+  const applyCurrentPity = useCallback(() => {
+    if (!currentPity) return;
+
+    setTargets((current) => {
+      const seenBanners = new Set<BannerType>();
+      const updated = current.map((target) => {
+        const snapshot = currentPity[target.bannerType];
+        if (!seenBanners.has(target.bannerType)) {
+          seenBanners.add(target.bannerType);
+          return {
+            ...target,
+            pity: snapshot.pity,
+            guaranteed: snapshot.guaranteed,
+            radiantStreak: snapshot.radiantStreak,
+            fatePoints: snapshot.fatePoints ?? 0,
+            useInheritedPity: false,
+          };
+        }
+
+        return {
+          ...target,
+          useInheritedPity: true,
+        };
+      });
+      setErrors(validateTargets(updated));
+      return updated;
+    });
+    setResults(null);
+  }, [currentPity, validateTargets]);
+
   const addTarget = useCallback((bannerType: BannerType = 'character') => {
     setTargets((current) => {
       const isFirst = current.length === 0;
+      const hasPreviousBannerTarget = current.some((target) => target.bannerType === bannerType);
       const newTarget: Target = {
         id: crypto.randomUUID(),
         characterName: '',
@@ -240,7 +292,7 @@ export function MultiTargetCalculator() {
         guaranteed: false,
         radiantStreak: 0,
         fatePoints: 0,
-        useInheritedPity: !isFirst,
+        useInheritedPity: !isFirst && hasPreviousBannerTarget,
       };
       const updated = [...current, newTarget];
       setErrors(validateTargets(updated));
@@ -251,7 +303,7 @@ export function MultiTargetCalculator() {
 
   const removeTarget = useCallback((id: string) => {
     setTargets((current) => {
-      const updated = current.filter((t) => t.id !== id);
+      const updated = normalizeInheritedPity(current.filter((t) => t.id !== id));
       setErrors(validateTargets(updated));
       return updated;
     });
@@ -273,7 +325,7 @@ export function MultiTargetCalculator() {
       if (newIndex < 0 || newIndex >= current.length) return current;
       const newTargets = [...current];
       [newTargets[index], newTargets[newIndex]] = [newTargets[newIndex]!, newTargets[index]!];
-      return newTargets.map((t, i) => ({ ...t, useInheritedPity: i === 0 ? false : t.useInheritedPity }));
+      return normalizeInheritedPity(newTargets);
     });
     setResults(null);
   }, []);
@@ -310,10 +362,10 @@ export function MultiTargetCalculator() {
           bannerType: target.bannerType,
           copiesNeeded: target.constellation + 1,
         })),
-        startingPity: targets[0]?.pity ?? 0,
-        startingGuaranteed: targets[0]?.guaranteed ?? false,
-        startingRadiantStreak: targets[0]?.radiantStreak ?? 0,
-        startingFatePoints: targets[0]?.fatePoints ?? 0,
+        startingPity: 0,
+        startingGuaranteed: false,
+        startingRadiantStreak: 0,
+        startingFatePoints: 0,
         startingPulls: availablePulls,
         incomePerDay: 0,
         config: { iterations, seed: Date.now(), chunkSize: 500 },
@@ -357,7 +409,7 @@ export function MultiTargetCalculator() {
   }, [scenarioName, targets, availablePulls, iterations, results]);
 
   const handleLoadScenario = useCallback((scenario: CalculatorScenario) => {
-    setTargets(scenario.targets.map(scenarioTargetToTarget));
+    setTargets(normalizeInheritedPity(scenario.targets.map(scenarioTargetToTarget)));
     setAvailablePulls(scenario.availablePulls);
     setIterations(scenario.iterations);
     setResults(null);
@@ -389,25 +441,32 @@ export function MultiTargetCalculator() {
       {/* Budget Link Banner */}
       <BudgetLinkBanner onUseBudget={handleUseBudget} />
 
-      {urlPrefill.current && (
+      {visibleUrlPrefill && (
         <Card className="border-primary-900/60 bg-primary-950/20">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-medium text-primary-200">Campaign pull plan loaded</div>
+              <div className="text-sm font-medium text-primary-200">
+                {visibleUrlPrefill.campaignName ?? 'Campaign'} pull plan loaded
+              </div>
               <div className="text-xs text-slate-400">
-                {urlPrefill.current.state.targets.length} target
-                {urlPrefill.current.state.targets.length === 1 ? '' : 's'} with{' '}
-                {urlPrefill.current.state.availablePulls} pulls available.
+                {visibleUrlPrefill.state.targets.length} target
+                {visibleUrlPrefill.state.targets.length === 1 ? '' : 's'} with{' '}
+                {visibleUrlPrefill.state.availablePulls} pulls available. Apply current pity before calculating.
               </div>
             </div>
-            {urlPrefill.current.campaignId && (
-              <a
-                href={`/campaigns/${urlPrefill.current.campaignId}`}
-                className="inline-flex items-center justify-center rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
-              >
-                Back to Campaign
-              </a>
-            )}
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" onClick={applyCurrentPity} disabled={!currentPity || targets.length === 0}>
+                Use Current Pity
+              </Button>
+              {visibleUrlPrefill.campaignId && (
+                <Link
+                  to={`/campaigns/${visibleUrlPrefill.campaignId}`}
+                  className="inline-flex items-center justify-center rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
+                >
+                  Back to Campaign
+                </Link>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -502,8 +561,12 @@ export function MultiTargetCalculator() {
             <Download className="w-4 h-4 mr-2" />
             {isLoadingPulls ? 'Loading...' : 'Import from Tracker'}
           </Button>
+          <Button size="sm" variant="secondary" onClick={applyCurrentPity}
+            disabled={!currentPity || targets.length === 0} className="w-full">
+            Use Current Pity
+          </Button>
           <p className="text-xs text-slate-400">
-            Imports your current primogems and fates from the resource tracker.
+            Import pulls from resources, then apply current pity/guarantees from wish history.
           </p>
         </CardContent>
       </Card>

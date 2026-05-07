@@ -46,6 +46,10 @@ export interface WeaponAscensionSummary {
   error?: string;
 }
 
+export interface WeaponAscensionCalculationOptions {
+  skipApiFetch?: boolean;
+}
+
 /**
  * Get ascension costs based on weapon rarity
  */
@@ -190,11 +194,13 @@ async function buildWeaponMaterialsWithApiData(
  */
 export async function calculateWeaponAscensionSummary(
   goal: WeaponAscensionGoal,
-  inventory: Record<string, number>
+  inventory: Record<string, number>,
+  options: WeaponAscensionCalculationOptions = {}
 ): Promise<WeaponAscensionSummary> {
   // Fetch weapon material data from genshin-db API
   const { data: weaponData, isStale, error } = await getWeaponMaterials(goal.weaponKey, {
     useStaleOnError: true,
+    skipApiFetch: options.skipApiFetch,
   });
 
   // Calculate ascension materials

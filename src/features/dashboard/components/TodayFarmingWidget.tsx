@@ -7,17 +7,18 @@
 
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, ArrowRight, Sparkles, Users, Clock, Star, UserCheck } from 'lucide-react';
+import { BookOpen, ArrowRight, Sparkles, Users, Clock, Star, UserCheck, Flag } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
   DOMAIN_SCHEDULE,
   TALENT_BOOK_REGIONS,
 } from '@/features/planner/domain/materialConstants';
-import { getTodayName, type DayName } from '@/features/planner/domain/farmingSchedule';
+import type { DayName } from '@/features/planner/domain/farmingSchedule';
 import { useTodayFarming, type FarmingScope } from '../hooks/useTodayFarming';
 
 const SCOPE_OPTIONS: { value: FarmingScope; label: string; icon: React.ReactNode }[] = [
+  { value: 'campaign', label: 'Campaigns', icon: <Flag className="w-3 h-3" /> },
   { value: 'team', label: 'Teams', icon: <UserCheck className="w-3 h-3" /> },
   { value: 'priority', label: 'Priority', icon: <Star className="w-3 h-3" /> },
   { value: 'all', label: 'All', icon: <Users className="w-3 h-3" /> },
@@ -79,25 +80,41 @@ const REGION_COLORS: Record<string, 'primary' | 'default' | 'success' | 'warning
 };
 
 export default function TodayFarmingWidget() {
-  const [scope, setScope] = useState<FarmingScope>('team');
-  const today = useMemo(() => getTodayName(), []);
-  const availableDomains = useMemo(() => getAvailableDomains(today), [today]);
-  const groupedDomains = useMemo(() => groupByRegion(availableDomains), [availableDomains]);
+  const [scope, setScope] = useState<FarmingScope>('campaign');
 
   const {
+    today,
     isLoading,
     availableTodayWithCharacters,
     notAvailableToday,
     totalCharactersProcessed,
   } = useTodayFarming({ scope });
 
+  const availableDomains = useMemo(() => getAvailableDomains(today), [today]);
+  const groupedDomains = useMemo(() => groupByRegion(availableDomains), [availableDomains]);
   const isSunday = today === 'Sunday';
 
   // Check if user has characters and material data
   const hasCharacterData = totalCharactersProcessed > 0;
   const hasRecommendations = availableTodayWithCharacters.length > 0;
 
-  const scopeLabel = scope === 'team' ? 'team members' : scope === 'priority' ? 'priority characters' : 'characters';
+  const scopeLabel =
+    scope === 'campaign'
+      ? 'campaign targets'
+      : scope === 'team'
+        ? 'team members'
+        : scope === 'priority'
+          ? 'priority characters'
+          : 'characters';
+  const recommendationLabel = scope === 'campaign' ? 'Campaign targets need' : 'Your characters need';
+  const emptyPersonalizedLabel = scope === 'campaign'
+    ? 'Create or activate a campaign to see focused recommendations'
+    : 'Add characters to see personalized recommendations';
+
+  const formatNeedLabel = (character: { characterKey: string; campaignName?: string }) =>
+    scope === 'campaign' && character.campaignName
+      ? `${character.characterKey} (${character.campaignName})`
+      : character.characterKey;
 
   return (
     <Card>
@@ -137,7 +154,7 @@ export default function TodayFarmingWidget() {
         </div>
       </CardHeader>
       <CardContent>
-        {isSunday ? (
+        {isSunday && !hasCharacterData ? (
           <div className="text-center py-4">
             <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
             <p className="text-sm text-slate-300">
@@ -149,6 +166,11 @@ export default function TodayFarmingWidget() {
           </div>
         ) : (
           <div className="space-y-4">
+            {isSunday && (
+              <div className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
+                All domains are available today. Pick the highest campaign or roster need.
+              </div>
+            )}
             {/* Character-specific recommendations */}
             {isLoading ? (
               <div className="space-y-2">
@@ -159,13 +181,13 @@ export default function TodayFarmingWidget() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-xs text-green-400 font-medium">
                   <Users className="w-3.5 h-3.5" />
-                  <span>Your characters need</span>
+                  <span>{recommendationLabel}</span>
                 </div>
                 <div className="space-y-2">
                   {availableTodayWithCharacters.slice(0, 3).map(({ series, region, characters }) => (
                     <div
                       key={series}
-                      className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg"
+                      className="flex items-center justify-between gap-3 p-2 bg-slate-800/50 rounded-lg"
                     >
                       <div className="flex items-center gap-2">
                         <Badge
@@ -176,9 +198,9 @@ export default function TodayFarmingWidget() {
                         </Badge>
                         <span className="text-xs text-slate-500">({region})</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-slate-400">
-                          {characters.slice(0, 2).map((c) => c.characterKey).join(', ')}
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate text-xs text-slate-400">
+                          {characters.slice(0, 2).map(formatNeedLabel).join(', ')}
                           {characters.length > 2 && ` +${characters.length - 2}`}
                         </span>
                         <Badge variant="success" className="text-xs py-0">
@@ -254,7 +276,7 @@ export default function TodayFarmingWidget() {
             <p className="text-xs text-slate-500">
               {hasCharacterData
                 ? `${totalCharactersProcessed} ${scopeLabel} analyzed • Talent book domains rotate daily`
-                : `Add characters to see personalized recommendations`}
+                : emptyPersonalizedLabel}
             </p>
           </div>
         )}

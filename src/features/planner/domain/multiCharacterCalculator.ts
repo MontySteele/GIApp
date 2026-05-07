@@ -33,6 +33,8 @@ export interface GroupedMaterials {
   localSpecialty: MaterialRequirement[];
   common: MaterialRequirement[];
   talent: MaterialRequirement[];
+  weapon: MaterialRequirement[];
+  artifact: MaterialRequirement[];
   weekly: MaterialRequirement[];
   crown: MaterialRequirement[];
 }
@@ -106,6 +108,8 @@ export function groupMaterialsByCategory(materials: MaterialRequirement[]): Grou
     localSpecialty: [],
     common: [],
     talent: [],
+    weapon: [],
+    artifact: [],
     weekly: [],
     crown: [],
   };
@@ -141,6 +145,8 @@ export async function calculateMultiCharacterSummary(
         localSpecialty: [],
         common: [],
         talent: [],
+        weapon: [],
+        artifact: [],
         weekly: [],
         crown: [],
       },
