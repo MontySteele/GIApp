@@ -32,8 +32,8 @@ function makeBanner(overrides: Partial<PlannedBanner> = {}): PlannedBanner {
   return {
     id: 'banner-1',
     characterKey: 'Furina',
-    expectedStartDate: '2026-06-01T00:00:00.000Z',
-    expectedEndDate: '2026-06-21T23:59:59.999Z',
+    expectedStartDate: '2026-06-01',
+    expectedEndDate: '2026-06-21',
     priority: 1,
     maxPullBudget: 180,
     isConfirmed: true,
@@ -65,6 +65,7 @@ describe('BannersTab', () => {
 
     expect(screen.getByRole('heading', { name: /banner planning/i })).toBeInTheDocument();
     expect(screen.getByText('No planned banners yet')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /banner character/i })).toHaveValue('');
     expect(screen.getByRole('button', { name: /add banner/i })).toBeInTheDocument();
   });
 
@@ -92,6 +93,7 @@ describe('BannersTab', () => {
     const user = userEvent.setup();
     renderPage();
 
+    await user.type(screen.getByRole('combobox', { name: /banner character/i }), 'Furina');
     await user.clear(screen.getByLabelText('Expected start'));
     await user.type(screen.getByLabelText('Expected start'), '2026-06-01');
     await user.clear(screen.getByLabelText('Expected end'));
@@ -105,14 +107,29 @@ describe('BannersTab', () => {
     expect(mocks.createBanner).toHaveBeenCalledWith(
       expect.objectContaining({
         characterKey: 'Furina',
-        expectedStartDate: '2026-06-01T00:00:00.000Z',
-        expectedEndDate: '2026-06-21T23:59:59.999Z',
+        expectedStartDate: '2026-06-01',
+        expectedEndDate: '2026-06-21',
         priority: 1,
         maxPullBudget: 160,
         isConfirmed: true,
         notes: 'Saving for C0',
       })
     );
+  });
+
+  it('validates that the expected end date is after the start date', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByRole('combobox', { name: /banner character/i }), 'Furina');
+    await user.clear(screen.getByLabelText('Expected start'));
+    await user.type(screen.getByLabelText('Expected start'), '2026-06-21');
+    await user.clear(screen.getByLabelText('Expected end'));
+    await user.type(screen.getByLabelText('Expected end'), '2026-06-01');
+    await user.click(screen.getByRole('button', { name: /add banner/i }));
+
+    expect(screen.getByText('Expected end date must be after the start date.')).toBeInTheDocument();
+    expect(mocks.createBanner).not.toHaveBeenCalled();
   });
 
   it('accepts unreleased character names that are not in the local character list', async () => {

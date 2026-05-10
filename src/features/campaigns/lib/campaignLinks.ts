@@ -104,6 +104,9 @@ export function buildTeamCampaignUrl(
 }
 
 function toDateParam(value: string): string | undefined {
+  const dateOnly = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (dateOnly) return dateOnly;
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;
   return date.toISOString().slice(0, 10);

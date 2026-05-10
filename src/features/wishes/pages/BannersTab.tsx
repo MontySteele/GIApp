@@ -36,10 +36,7 @@ const STATUS_OPTIONS = [
   { value: 'confirmed', label: 'Confirmed' },
 ];
 
-const DEFAULT_CHARACTER_KEY =
-  ALL_CHARACTERS.find((character) => character.key === 'Furina')?.key ??
-  ALL_CHARACTERS[0]?.key ??
-  '';
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})/;
 
 function openExternal(url: string) {
   open(url).catch((err) => {
@@ -48,37 +45,57 @@ function openExternal(url: string) {
   });
 }
 
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDateOnly(value: string): string | null {
+  return value.match(DATE_ONLY_PATTERN)?.[0] ?? null;
+}
+
+function parseDateOnly(value: string, endOfDay = false): Date | null {
+  const match = value.match(DATE_ONLY_PATTERN);
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (Number.isNaN(date.getTime())) return null;
+  if (endOfDay) {
+    date.setHours(23, 59, 59, 999);
+  }
+  return date;
+}
+
 function addDaysToDateInput(value: string, days: number): string {
-  const date = new Date(`${value}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
+  const date = parseDateOnly(value) ?? new Date();
+  date.setDate(date.getDate() + days);
+  return formatDateInput(date);
 }
 
 function getInitialDateRange(): { start: string; end: string } {
-  const start = new Date().toISOString().slice(0, 10);
+  const start = formatDateInput(new Date());
   return { start, end: addDaysToDateInput(start, 20) };
 }
 
-function toIsoDate(value: string, endOfDay = false): string {
-  return `${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`;
-}
-
 function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown';
+  const date = parseDateOnly(value);
+  if (!date) return 'Unknown';
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function getBannerTimingLabel(banner: PlannedBanner): string {
-  const start = new Date(banner.expectedStartDate).getTime();
-  const end = new Date(banner.expectedEndDate).getTime();
+  const start = parseDateOnly(banner.expectedStartDate);
+  const end = parseDateOnly(banner.expectedEndDate, true);
   const now = Date.now();
 
-  if (Number.isNaN(start) || Number.isNaN(end)) return 'Needs dates';
-  if (end < now) return 'Ended';
-  if (start <= now && end >= now) return 'Live now';
+  if (!start || !end) return 'Needs dates';
+  if (end.getTime() < now) return 'Ended';
+  if (start.getTime() <= now && end.getTime() >= now) return 'Live now';
 
-  const days = Math.ceil((start - now) / 86_400_000);
+  const days = Math.ceil((start.getTime() - now) / 86_400_000);
   if (days <= 0) return 'Starts today';
   return days === 1 ? 'Starts tomorrow' : `Starts in ${days} days`;
 }
@@ -120,7 +137,7 @@ export default function BannersTab() {
         .sort((a, b) => a.label.localeCompare(b.label)),
     []
   );
-  const [characterKey, setCharacterKey] = useState(DEFAULT_CHARACTER_KEY);
+  const [characterKey, setCharacterKey] = useState('');
   const [expectedStartDate, setExpectedStartDate] = useState(dateRange.start);
   const [expectedEndDate, setExpectedEndDate] = useState(dateRange.end);
   const [priority, setPriority] = useState<Campaign['priority']>(2);
@@ -133,6 +150,7 @@ export default function BannersTab() {
 
   const resetDraft = () => {
     const nextRange = getInitialDateRange();
+    setCharacterKey('');
     setExpectedStartDate(nextRange.start);
     setExpectedEndDate(nextRange.end);
     setMaxPullBudget('');
@@ -164,8 +182,8 @@ export default function BannersTab() {
     try {
       await upcomingWishRepo.create({
         characterKey: normalizedCharacterKey,
-        expectedStartDate: toIsoDate(expectedStartDate),
-        expectedEndDate: toIsoDate(expectedEndDate, true),
+        expectedStartDate,
+        expectedEndDate,
         priority,
         maxPullBudget: Number.isFinite(parsedBudget) && parsedBudget > 0 ? Math.floor(parsedBudget) : null,
         isConfirmed: status === 'confirmed',
@@ -376,6 +394,11 @@ function PlannedBannerCard({
 }) {
   const displayName = getDisplayName(banner.characterKey);
   const campaignHref = buildPlannedBannerCampaignUrl(banner);
+  const startDate = getDateOnly(banner.expectedStartDate);
+  const endDate = getDateOnly(banner.expectedEndDate);
+  const windowLabel = `${startDate ? formatDate(startDate) : 'Unknown'} - ${
+    endDate ? formatDate(endDate) : 'Unknown'
+  }`;
 
   return (
     <Card>
@@ -407,13 +430,13 @@ function PlannedBannerCard({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <BannerStat
             label="Window"
-            value={`${formatDate(banner.expectedStartDate)} - ${formatDate(banner.expectedEndDate)}`}
+            value={windowLabel}
           />
           <BannerStat
             label="Budget"
             value={banner.maxPullBudget ? `${banner.maxPullBudget} pulls` : 'No cap'}
           />
-          <BannerStat label="Target" value="1 copy" />
+          <BannerStat label="Priority" value={`P${banner.priority}`} />
         </div>
 
         {banner.notes && (

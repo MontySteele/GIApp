@@ -112,6 +112,33 @@ describe('CampaignNextActionsWidget', () => {
     expect(screen.getByLabelText('Campaign action loading')).toBeInTheDocument();
   });
 
+  it('shows an error state when campaign plans cannot be calculated', () => {
+    renderWidget({
+      plans: {},
+      plansPending: false,
+      error: 'Failed to calculate campaigns',
+    });
+
+    expect(screen.getByText("Unable to calculate today's plan.")).toBeInTheDocument();
+    expect(screen.getByText('Failed to calculate campaigns')).toBeInTheDocument();
+  });
+
+  it('shows a terminal review state when campaigns have no remaining actions', () => {
+    renderWidget({
+      plans: {
+        [campaign.id]: {
+          ...plan,
+          overallPercent: 100,
+          status: 'ready',
+          nextActions: [],
+        },
+      },
+    });
+
+    expect(screen.getByText('Campaigns are ready for review.')).toBeInTheDocument();
+    expect(screen.getByText(/mark completed goals/i)).toBeInTheDocument();
+  });
+
   it('elevates the highest-value campaign action with the correct destination', () => {
     renderWidget();
 
