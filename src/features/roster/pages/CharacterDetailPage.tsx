@@ -22,7 +22,7 @@ import {
 } from '@/features/artifacts/domain/artifactScoring';
 import BuildRecommendations from '@/features/artifacts/components/BuildRecommendations';
 import {
-  buildCharacterCampaignUrl,
+  buildCharacterPolishCampaignUrl,
   buildConstellationCampaignUrl,
 } from '@/features/campaigns/lib/campaignLinks';
 
@@ -137,7 +137,7 @@ export default function CharacterDetailPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <Link
-            to={buildCharacterCampaignUrl(character.key, 'comfortable', false)}
+            to={buildCharacterPolishCampaignUrl(character.key, 'comfortable')}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
           >
             <Target className="w-4 h-4" />

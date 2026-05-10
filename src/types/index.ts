@@ -486,7 +486,7 @@ export interface BuildTemplateSummary {
 // Campaign Models
 // ============================================
 
-export type CampaignType = 'character-acquisition' | 'team-polish';
+export type CampaignType = 'character-acquisition' | 'character-polish' | 'team-polish';
 export type CampaignStatus = 'active' | 'paused' | 'completed' | 'archived';
 export type CampaignBuildGoal = 'functional' | 'comfortable' | 'full';
 export type CampaignTargetOwnership = 'owned' | 'wishlist';

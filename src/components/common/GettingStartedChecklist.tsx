@@ -20,10 +20,10 @@ const CHECKLIST_ITEMS: Array<{
 }> = [
   {
     key: 'hasImportedCharacters',
-    title: 'Import your characters',
-    description: 'Add your Genshin characters via Enka, Irminsul, or GOOD format.',
-    link: '/roster',
-    linkLabel: 'Go to Roster',
+    title: 'Import full account data',
+    description: 'Use Irminsul or GOOD so campaigns can read roster, weapons, artifacts, and materials.',
+    link: '/roster?import=irminsul',
+    linkLabel: 'Import Data',
   },
   {
     key: 'hasCreatedTeam',
@@ -41,10 +41,10 @@ const CHECKLIST_ITEMS: Array<{
   },
   {
     key: 'hasCheckedPulls',
-    title: 'Check your pulls',
-    description: 'Track your pity and budget your primogems for upcoming banners.',
-    link: '/pulls',
-    linkLabel: 'Go to Pulls',
+    title: 'Import wish history',
+    description: 'Refresh pity, guarantees, and pull odds before planning banners.',
+    link: '/pulls/history',
+    linkLabel: 'Import Wishes',
   },
 ];
 

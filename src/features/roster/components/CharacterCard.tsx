@@ -11,7 +11,7 @@ import {
   getGradeColor,
   getGradeBgColor,
 } from '@/features/artifacts/domain/artifactScoring';
-import { buildCharacterCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
+import { buildCharacterPolishCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
 
 interface CharacterCardProps {
   character: Character;
@@ -53,11 +53,11 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
       {/* Action Buttons */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <Link
-          to={buildCharacterCampaignUrl(character.key, 'comfortable', false)}
+          to={buildCharacterPolishCampaignUrl(character.key, 'comfortable')}
           onClick={(e) => e.stopPropagation()}
           className="p-1.5 bg-primary-700 hover:bg-primary-600 rounded-md transition-colors"
-          title="Start campaign"
-          aria-label={`Start campaign for ${character.key}`}
+          title="Start polish campaign"
+          aria-label={`Start polish campaign for ${character.key}`}
         >
           <Target className="w-3.5 h-3.5 text-white" aria-hidden="true" />
         </Link>

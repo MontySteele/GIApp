@@ -8,6 +8,7 @@ import {
   summarizeWishRecords,
   wishHistoryItemToRecord,
 } from '../utils/wishHistory';
+import { markWishHistoryImportComplete } from '../services/wishDataFreshness';
 import { resolveIsFeatured } from '../data/standardPool';
 
 // Check if running in Tauri
@@ -353,6 +354,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       const persistedRecords = await wishRepo.getAll();
       const persistedSummary = summarizeWishRecords(persistedRecords);
       const persistedHistory = await loadWishHistoryFromRepo();
+      await markWishHistoryImportComplete();
 
       dispatch({ type: 'SET_IMPORT_SUMMARY', payload: persistedSummary });
       dispatch({ type: 'SET_CURRENT_BANNER', payload: '' });

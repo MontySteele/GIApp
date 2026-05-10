@@ -233,7 +233,7 @@ export default function MaterialsTab() {
             <div>
               <h3 className="font-medium text-amber-400">No Materials Imported</h3>
               <p className="text-sm text-slate-400 mt-1">
-                Import your materials using GOOD format or Irminsul export in Settings to track
+                Import your materials using Irminsul or GOOD from the roster import flow to track
                 inventory and calculate deficits.
               </p>
             </div>

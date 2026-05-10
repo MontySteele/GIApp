@@ -8,7 +8,7 @@ export function SingleModeEmptyState() {
         <Target className="w-12 h-12 text-slate-600 mx-auto mb-4" />
         <p className="text-slate-400 mb-2">Select a character to calculate materials</p>
         <p className="text-sm text-slate-500">
-          Characters are pulled from your roster. Import via Enka or Irminsul first.
+          Characters are pulled from your roster. Import via Irminsul or GOOD for full planning data.
         </p>
       </CardContent>
     </Card>

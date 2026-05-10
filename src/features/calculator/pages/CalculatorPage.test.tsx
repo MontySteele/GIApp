@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import CalculatorPage from './CalculatorPage';
 
 // Mock the calculator components
@@ -21,21 +22,65 @@ vi.mock('../components/ReverseCalculator', () => ({
   ReverseCalculator: () => <div data-testid="reverse-calculator">Reverse Calculator</div>,
 }));
 
+const mockWishDataFreshness = vi.hoisted(() => ({
+  freshness: {
+    status: 'fresh',
+    lastUpdatedAt: '2026-05-10T00:00:00.000Z',
+    daysSinceUpdate: 0,
+    label: 'Wish history current',
+    detail: 'Last wish history import was today.',
+  },
+}));
+
+vi.mock('@/features/wishes/hooks/useWishDataFreshness', () => ({
+  useWishDataFreshness: () => mockWishDataFreshness.freshness,
+}));
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <CalculatorPage />
+    </MemoryRouter>
+  );
+}
+
 describe('CalculatorPage', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/pulls/calculator');
+    mockWishDataFreshness.freshness = {
+      status: 'fresh',
+      lastUpdatedAt: '2026-05-10T00:00:00.000Z',
+      daysSinceUpdate: 0,
+      label: 'Wish history current',
+      detail: 'Last wish history import was today.',
+    };
   });
 
   describe('rendering', () => {
     it('renders the page header', () => {
-      render(<CalculatorPage />);
+      renderPage();
 
       expect(screen.getByRole('heading', { name: /pull calculator/i })).toBeInTheDocument();
       expect(screen.getByText(/calculate probabilities/i)).toBeInTheDocument();
     });
 
+    it('warns when wish history is stale', () => {
+      mockWishDataFreshness.freshness = {
+        status: 'stale',
+        lastUpdatedAt: '2026-04-20T00:00:00.000Z',
+        daysSinceUpdate: 20,
+        label: 'Refresh wish history',
+        detail: 'Last wish history import was 20 days ago.',
+      };
+
+      renderPage();
+
+      expect(screen.getByText('Refresh wish history')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /refresh wishes/i })).toHaveAttribute('href', '/pulls/history');
+    });
+
     it('renders all tab buttons', () => {
-      render(<CalculatorPage />);
+      renderPage();
 
       expect(screen.getByRole('button', { name: /single target/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /multi-target/i })).toBeInTheDocument();
@@ -43,7 +88,7 @@ describe('CalculatorPage', () => {
     });
 
     it('shows single target calculator by default', () => {
-      render(<CalculatorPage />);
+      renderPage();
 
       expect(screen.getByTestId('single-target-calculator')).toBeVisible();
       expect(screen.getByTestId('multi-target-calculator')).not.toBeVisible();
@@ -53,14 +98,14 @@ describe('CalculatorPage', () => {
     it('opens the multi-target calculator from URL mode params', () => {
       window.history.replaceState(null, '', '/pulls/calculator?mode=multi');
 
-      render(<CalculatorPage />);
+      renderPage();
 
       expect(screen.getByTestId('multi-target-calculator')).toBeVisible();
       expect(screen.getByTestId('single-target-calculator')).not.toBeVisible();
     });
 
     it('highlights the active tab', () => {
-      render(<CalculatorPage />);
+      renderPage();
 
       const singleTargetTab = screen.getByRole('button', { name: /single target/i });
       expect(singleTargetTab).toHaveClass('bg-primary-600');
@@ -70,7 +115,7 @@ describe('CalculatorPage', () => {
   describe('tab navigation', () => {
     it('switches to multi-target calculator when tab is clicked', async () => {
       const user = userEvent.setup();
-      render(<CalculatorPage />);
+      renderPage();
 
       await user.click(screen.getByRole('button', { name: /multi-target/i }));
 
@@ -80,7 +125,7 @@ describe('CalculatorPage', () => {
 
     it('switches to reverse calculator when tab is clicked', async () => {
       const user = userEvent.setup();
-      render(<CalculatorPage />);
+      renderPage();
 
       await user.click(screen.getByRole('button', { name: /reverse calculator/i }));
 
@@ -90,7 +135,7 @@ describe('CalculatorPage', () => {
 
     it('can switch back to single target from another tab', async () => {
       const user = userEvent.setup();
-      render(<CalculatorPage />);
+      renderPage();
 
       // Go to multi-target
       await user.click(screen.getByRole('button', { name: /multi-target/i }));
@@ -104,7 +149,7 @@ describe('CalculatorPage', () => {
 
     it('preserves multi-target edits while switching tabs', async () => {
       const user = userEvent.setup();
-      render(<CalculatorPage />);
+      renderPage();
 
       await user.click(screen.getByRole('button', { name: /multi-target/i }));
       await user.type(screen.getByLabelText('multi draft'), 'Furina plan');
@@ -116,7 +161,7 @@ describe('CalculatorPage', () => {
 
     it('updates tab styling when switching tabs', async () => {
       const user = userEvent.setup();
-      render(<CalculatorPage />);
+      renderPage();
 
       const singleTargetTab = screen.getByRole('button', { name: /single target/i });
       const multiTargetTab = screen.getByRole('button', { name: /multi-target/i });
@@ -136,7 +181,7 @@ describe('CalculatorPage', () => {
 
   describe('tab icons', () => {
     it('each tab has an icon', () => {
-      render(<CalculatorPage />);
+      renderPage();
 
       const tabs = screen.getAllByRole('button');
       // Each tab button should contain an SVG icon

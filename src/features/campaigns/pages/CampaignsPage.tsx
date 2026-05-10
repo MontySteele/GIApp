@@ -18,6 +18,7 @@ import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import DeleteConfirmModal from '@/features/roster/components/DeleteConfirmModal';
 import Input from '@/components/ui/Input';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import Select from '@/components/ui/Select';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
@@ -46,6 +47,11 @@ const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
 ];
 
 const BUILD_GOAL_VALUES = new Set<CampaignBuildGoal>(['functional', 'comfortable', 'full']);
+const CAMPAIGN_TYPE_VALUES = new Set<CampaignType>([
+  'character-acquisition',
+  'character-polish',
+  'team-polish',
+]);
 const DEFAULT_CHARACTER_KEY = ALL_CHARACTERS[0]?.key ?? '';
 
 const PRIORITY_OPTIONS = [
@@ -97,8 +103,20 @@ function getBuildGoalParam(value: string | null): CampaignBuildGoal {
 
 function getCharacterParam(value: string | null): string {
   if (!value) return DEFAULT_CHARACTER_KEY;
-  return ALL_CHARACTERS.find((character) => character.key.toLowerCase() === value.toLowerCase())?.key
-    ?? DEFAULT_CHARACTER_KEY;
+  const normalized = value.trim();
+  if (!normalized) return DEFAULT_CHARACTER_KEY;
+  return ALL_CHARACTERS.find(
+    (character) =>
+      character.key.toLowerCase() === normalized.toLowerCase() ||
+      character.name.toLowerCase() === normalized.toLowerCase()
+  )?.key ?? normalized;
+}
+
+function getCampaignTypeParam(value: string | null, hasTeamTarget = false): CampaignType {
+  if (hasTeamTarget) return 'team-polish';
+  return CAMPAIGN_TYPE_VALUES.has(value as CampaignType)
+    ? (value as CampaignType)
+    : 'character-acquisition';
 }
 
 function getPositiveIntegerParam(value: string | null, fallback: string): string {
@@ -113,6 +131,12 @@ function getBudgetParam(value: string | null): string {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return '';
   return String(parsed);
+}
+
+function getDeadlineParam(value: string | null): string {
+  if (!value) return '';
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? '' : value;
 }
 
 function getConstellationParam(value: string | null): string {
@@ -206,11 +230,12 @@ function findMatchingOpenCampaign(
       return false;
     }
 
-    if (campaignType === 'character-acquisition') {
+    if (campaignType === 'character-acquisition' || campaignType === 'character-polish') {
       const matchesCharacter = campaign.characterTargets.some(
         (target) => target.characterKey.toLowerCase() === characterKey.toLowerCase()
       );
       if (!matchesCharacter) return false;
+      if (campaignType === 'character-polish') return true;
       if (targetConstellation === null) return true;
 
       const targetLabel = `c${targetConstellation}`;
@@ -239,13 +264,13 @@ export default function CampaignsPage() {
   const initialTeamId = searchParams.get('team') ?? '';
   const initialCharacterKey = getCharacterParam(searchParams.get('character'));
   const [campaignType, setCampaignType] = useState<CampaignType>(
-    initialTeamId ? 'team-polish' : 'character-acquisition'
+    getCampaignTypeParam(searchParams.get('type'), Boolean(initialTeamId))
   );
   const [selectedCharacterKey, setSelectedCharacterKey] = useState(initialCharacterKey);
   const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
   const [buildGoal, setBuildGoal] = useState<CampaignBuildGoal>(getBuildGoalParam(searchParams.get('buildGoal')));
   const [priority, setPriority] = useState(String(toPriority(searchParams.get('priority') ?? '2')));
-  const [deadline, setDeadline] = useState('');
+  const [deadline, setDeadline] = useState(getDeadlineParam(searchParams.get('deadline')));
   const [desiredCopies, setDesiredCopies] = useState(getPositiveIntegerParam(searchParams.get('copies'), '1'));
   const [targetConstellation, setTargetConstellation] = useState(getConstellationParam(searchParams.get('constellation')));
   const [maxPullBudget, setMaxPullBudget] = useState(getBudgetParam(searchParams.get('budget')));
@@ -284,15 +309,18 @@ export default function CampaignsPage() {
 
     const teamId = searchParams.get('team') ?? '';
     const characterKey = getCharacterParam(searchParams.get('character'));
+    const nextCampaignType = getCampaignTypeParam(searchParams.get('type'), Boolean(teamId));
     const pullPlan = getPullPlanParam(searchParams.get('pullPlan'));
 
     if (teamId) {
       setCampaignType('team-polish');
       setSelectedTeamId(teamId);
     } else if (searchParams.has('character')) {
-      setCampaignType('character-acquisition');
+      setCampaignType(nextCampaignType);
       setSelectedCharacterKey(characterKey);
       setSelectedTeamId('');
+    } else if (searchParams.has('type')) {
+      setCampaignType(nextCampaignType);
     }
 
     if (searchParams.has('buildGoal')) {
@@ -310,8 +338,13 @@ export default function CampaignsPage() {
     if (searchParams.has('budget')) {
       setMaxPullBudget(getBudgetParam(searchParams.get('budget')));
     }
+    if (searchParams.has('deadline')) {
+      setDeadline(getDeadlineParam(searchParams.get('deadline')));
+    }
     if (pullPlan !== null) {
       setIncludePullTarget(pullPlan);
+    } else if (nextCampaignType === 'character-polish') {
+      setIncludePullTarget(false);
     }
   }, [prefillSignature, searchParams]);
 
@@ -320,10 +353,32 @@ export default function CampaignsPage() {
       ALL_CHARACTERS
         .map((character) => ({
           value: character.key,
-          label: `${character.name}${ownedKeys.has(character.key.toLowerCase()) ? ' (owned)' : ''}`,
+          label: character.name,
+          ...(ownedKeys.has(character.key.toLowerCase()) ? { sublabel: 'Owned' } : {}),
         }))
         .sort((a, b) => a.label.localeCompare(b.label)),
     [ownedKeys]
+  );
+
+  const ownedCharacterOptions = useMemo(
+    () =>
+      characters
+        .map((character) => ({
+          value: character.key,
+          label: getDisplayName(character.key),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [characters]
+  );
+
+  const activeCharacterOptions = useMemo(
+    () => {
+      if (campaignType !== 'character-polish') return characterOptions;
+      return ownedCharacterOptions.length > 0
+        ? ownedCharacterOptions
+        : [{ value: '', label: 'No owned characters yet' }];
+    },
+    [campaignType, characterOptions, ownedCharacterOptions]
   );
 
   const teamOptions = useMemo(
@@ -338,6 +393,7 @@ export default function CampaignsPage() {
     () => teams.find((team) => team.id === selectedTeamId),
     [teams, selectedTeamId]
   );
+  const hasOwnedCharacters = ownedCharacterOptions.length > 0;
   const hasCampaignPrefill = searchParams.has('character') || searchParams.has('team');
   const targetConstellationValue = getConstellationValue(targetConstellation);
   const matchingOpenCampaign = useMemo(
@@ -361,11 +417,39 @@ export default function CampaignsPage() {
     setSearchParams({}, { replace: true });
   };
 
-  const createCampaignFromDraft = async (): Promise<string | null> => {
+  const handleCampaignTypeChange = (nextType: CampaignType) => {
+    setCampaignType(nextType);
     setError('');
 
-    if (campaignType === 'character-acquisition' && !selectedCharacterKey) {
+    if (nextType === 'team-polish') {
+      setIncludePullTarget(false);
+      return;
+    }
+
+    setSelectedTeamId('');
+
+    if (nextType === 'character-polish') {
+      const selectedIsOwned = ownedKeys.has(selectedCharacterKey.toLowerCase());
+      setSelectedCharacterKey(selectedIsOwned ? selectedCharacterKey : (ownedCharacterOptions[0]?.value ?? ''));
+      setIncludePullTarget(false);
+      setTargetConstellation('');
+      return;
+    }
+
+    setIncludePullTarget(!ownedKeys.has(selectedCharacterKey.toLowerCase()));
+  };
+
+  const createCampaignFromDraft = async (): Promise<string | null> => {
+    setError('');
+    const isSingleCharacterCampaign = campaignType !== 'team-polish';
+
+    if (isSingleCharacterCampaign && !selectedCharacterKey) {
       setError('Choose a character target.');
+      return null;
+    }
+
+    if (campaignType === 'character-polish' && !ownedKeys.has(selectedCharacterKey.toLowerCase())) {
+      setError('Choose an owned character to polish.');
       return null;
     }
 
@@ -376,9 +460,11 @@ export default function CampaignsPage() {
 
     setIsCreating(true);
     const copies = Math.max(1, Number(desiredCopies) || 1);
-    const targetConstellationValue = getConstellationValue(targetConstellation);
+    const targetConstellationValue = campaignType === 'character-acquisition'
+      ? getConstellationValue(targetConstellation)
+      : null;
     const characterTargets =
-      campaignType === 'character-acquisition'
+      isSingleCharacterCampaign
         ? [buildCharacterTarget(selectedCharacterKey, ownedKeys, buildGoal, targetConstellationValue)]
         : getTeamMemberTargets(selectedTeam, ownedKeys, buildGoal);
 
@@ -392,6 +478,8 @@ export default function CampaignsPage() {
         ? targetConstellationValue !== null
           ? `Chase C${targetConstellationValue} ${getDisplayName(selectedCharacterKey)}`
           : `Recruit ${getDisplayName(selectedCharacterKey)}`
+        : campaignType === 'character-polish'
+          ? `Polish ${getDisplayName(selectedCharacterKey)}`
         : `Polish ${selectedTeam?.name ?? 'Team'}`;
     const campaignNotes = notes || (
       campaignType === 'character-acquisition' && targetConstellationValue !== null
@@ -511,19 +599,20 @@ export default function CampaignsPage() {
               <Select
                 label="Campaign type"
                 value={campaignType}
-                onChange={(event) => setCampaignType(event.target.value as CampaignType)}
+                onChange={(event) => handleCampaignTypeChange(event.target.value as CampaignType)}
                 options={[
                   { value: 'character-acquisition', label: 'Get a character' },
+                  { value: 'character-polish', label: 'Polish a character' },
                   { value: 'team-polish', label: 'Polish a team' },
                 ]}
               />
 
               {campaignType === 'character-acquisition' ? (
-                <Select
+                <SearchableSelect
                   label="Target character"
+                  placeholder="Search or type a future character..."
                   value={selectedCharacterKey}
-                  onChange={(event) => {
-                    const nextKey = event.target.value;
+                  onChange={(nextKey) => {
                     const nextCharacter = characters.find(
                       (character) => character.key.toLowerCase() === nextKey.toLowerCase()
                     );
@@ -536,6 +625,19 @@ export default function CampaignsPage() {
                     }
                   }}
                   options={characterOptions}
+                  allowFreeText
+                />
+              ) : campaignType === 'character-polish' ? (
+                <Select
+                  label="Owned character"
+                  value={selectedCharacterKey}
+                  onChange={(event) => {
+                    const nextKey = event.target.value;
+                    setSelectedCharacterKey(nextKey);
+                    setIncludePullTarget(false);
+                  }}
+                  options={activeCharacterOptions}
+                  disabled={!hasOwnedCharacters}
                 />
               ) : (
                 <Select
@@ -620,7 +722,10 @@ export default function CampaignsPage() {
             <Button
               type="submit"
               loading={isCreating}
-              disabled={campaignType === 'team-polish' && teams.length === 0}
+              disabled={
+                (campaignType === 'team-polish' && teams.length === 0) ||
+                (campaignType === 'character-polish' && !hasOwnedCharacters)
+              }
             >
               <Plus className="w-4 h-4" />
               Create Campaign
@@ -642,7 +747,7 @@ export default function CampaignsPage() {
               <Target className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <h2 className="text-lg font-semibold text-slate-300 mb-1">No campaigns yet</h2>
               <p className="text-slate-400">
-                Create a character acquisition or team polish campaign to turn your account data into next actions.
+                Create a character, build, or team campaign to turn your account data into next actions.
               </p>
             </CardContent>
           </Card>
@@ -700,15 +805,18 @@ function CampaignDraftCard({
   onClear: () => void;
 }) {
   const isTeamCampaign = campaignType === 'team-polish';
+  const isCharacterPolishCampaign = campaignType === 'character-polish';
   const targetConstellationValue = getConstellationValue(targetConstellation);
   const title = isTeamCampaign
     ? `Polish ${selectedTeam?.name ?? 'selected team'}`
+    : isCharacterPolishCampaign
+      ? `Polish ${getDisplayName(characterKey)}`
     : targetConstellationValue !== null
       ? `Chase C${targetConstellationValue} ${getDisplayName(characterKey)}`
       : `Recruit ${getDisplayName(characterKey)}`;
-  const Icon = isTeamCampaign ? UsersRound : Sparkles;
+  const Icon = isTeamCampaign ? UsersRound : isCharacterPolishCampaign ? Target : Sparkles;
   const copyCount = Math.max(1, Number(desiredCopies) || 1);
-  const pullLabel = !isTeamCampaign && includePullTarget
+  const pullLabel = campaignType === 'character-acquisition' && includePullTarget
     ? `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}${maxPullBudget ? `, ${maxPullBudget} pull budget` : ''}`
     : 'No pull plan';
   const targetLabel = isTeamCampaign
@@ -792,8 +900,11 @@ function CampaignCard({
   onDelete: (id: string) => Promise<void>;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const isCharacterCampaign = campaign.type === 'character-acquisition';
-  const Icon = isCharacterCampaign ? Sparkles : UsersRound;
+  const Icon = campaign.type === 'team-polish'
+    ? UsersRound
+    : campaign.type === 'character-polish'
+      ? Target
+      : Sparkles;
   const targetCount = campaign.characterTargets.length;
   const pullTargets = getCampaignPullTargets(campaign);
   const pullCopyGoal = pullTargets.reduce((sum, target) => sum + target.desiredCopies, 0);

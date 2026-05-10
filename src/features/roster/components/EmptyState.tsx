@@ -15,7 +15,7 @@ export default function EmptyState({ onAddCharacter }: EmptyStateProps) {
         No Characters Yet
       </h3>
       <p className="text-slate-400 mb-6 text-center max-w-md">
-        Start building your roster by adding characters manually, importing from Enka.network, or uploading a GOOD format file.
+        Start with Irminsul or GOOD for full planning data, or add characters manually when you only need a quick entry.
       </p>
       <Button onClick={onAddCharacter}>
         <Plus className="w-4 h-4" />

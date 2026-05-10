@@ -20,7 +20,7 @@ import { useResources } from '@/features/ledger/hooks/useResources';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
-import ActiveCampaignsWidget from '../components/ActiveCampaignsWidget';
+import DashboardCampaignFocus from '../components/DashboardCampaignFocus';
 import TodayFarmingWidget from '../components/TodayFarmingWidget';
 import {
   calculateCurrentResin,
@@ -121,7 +121,7 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <div>
         <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
-        <p className="text-slate-400">Your Genshin Impact account at a glance</p>
+        <p className="text-slate-400">Your next campaign, farming, and wish priorities.</p>
       </div>
 
       {/* Getting Started Checklist - shown for new users */}
@@ -133,6 +133,9 @@ export default function DashboardPage() {
           onDismiss={handleDismissChecklist}
         />
       )}
+
+      {/* Campaign Focus */}
+      <DashboardCampaignFocus />
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -169,9 +172,6 @@ export default function DashboardPage() {
           to="/pulls"
         />
       </div>
-
-      {/* Active Campaigns */}
-      <ActiveCampaignsWidget />
 
       {/* Resources Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCampaignPrefillUrl,
   buildCharacterCampaignUrl,
+  buildCharacterPolishCampaignUrl,
   buildConstellationCampaignUrl,
+  buildPlannedBannerCampaignUrl,
   buildTeamCampaignUrl,
 } from './campaignLinks';
 
@@ -16,6 +18,12 @@ describe('campaignLinks', () => {
   it('builds owned character campaign URLs without pull planning', () => {
     expect(buildCharacterCampaignUrl('Furina', 'comfortable', false)).toBe(
       '/campaigns?character=Furina&buildGoal=comfortable&pullPlan=0'
+    );
+  });
+
+  it('builds character polish campaign URLs for owned build goals', () => {
+    expect(buildCharacterPolishCampaignUrl('Furina', 'comfortable')).toBe(
+      '/campaigns?type=character-polish&character=Furina&buildGoal=comfortable&pullPlan=0'
     );
   });
 
@@ -48,7 +56,21 @@ describe('campaignLinks', () => {
         desiredCopies: 2,
         targetConstellation: 2,
         maxPullBudget: 160,
+        deadline: '2026-06-01',
       })
-    ).toBe('/campaigns?character=Skirk&buildGoal=comfortable&priority=1&copies=2&constellation=2&budget=160');
+    ).toBe('/campaigns?character=Skirk&buildGoal=comfortable&priority=1&copies=2&constellation=2&budget=160&deadline=2026-06-01');
+  });
+
+  it('builds planned banner campaign URLs with priority, budget, and deadline', () => {
+    expect(
+      buildPlannedBannerCampaignUrl({
+        characterKey: 'Furina',
+        expectedStartDate: '2026-06-01T00:00:00.000Z',
+        priority: 1,
+        maxPullBudget: 180,
+      })
+    ).toBe(
+      '/campaigns?character=Furina&buildGoal=comfortable&priority=1&budget=180&deadline=2026-06-01&pullPlan=1'
+    );
   });
 });

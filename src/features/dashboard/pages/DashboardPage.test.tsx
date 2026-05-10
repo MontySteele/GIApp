@@ -8,6 +8,10 @@ vi.mock('../components/TodayFarmingWidget', () => ({
   default: () => <div data-testid="today-farming-widget">TodayFarmingWidget</div>,
 }));
 
+vi.mock('../components/DashboardCampaignFocus', () => ({
+  default: () => <div data-testid="dashboard-campaign-focus">DashboardCampaignFocus</div>,
+}));
+
 vi.mock('@/features/notes/components/QuickNotesWidget', () => ({
   default: () => <div data-testid="quick-notes-widget">QuickNotesWidget</div>,
 }));
@@ -129,7 +133,7 @@ describe('DashboardPage', () => {
       renderPage();
 
       expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
-      expect(screen.getByText(/your genshin impact account at a glance/i)).toBeInTheDocument();
+      expect(screen.getByText(/your next campaign, farming, and wish priorities/i)).toBeInTheDocument();
     });
 
     it('renders all stat cards', () => {
@@ -157,6 +161,7 @@ describe('DashboardPage', () => {
     it('renders child widgets', () => {
       renderPage();
 
+      expect(screen.getByTestId('dashboard-campaign-focus')).toBeInTheDocument();
       expect(screen.getByTestId('today-farming-widget')).toBeInTheDocument();
       expect(screen.getByTestId('quick-notes-widget')).toBeInTheDocument();
     });

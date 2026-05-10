@@ -97,7 +97,7 @@ describe('CharacterDetailPage', () => {
 
     expect(screen.getByRole('link', { name: /build campaign/i })).toHaveAttribute(
       'href',
-      '/campaigns?character=Furina&buildGoal=comfortable&pullPlan=0'
+      '/campaigns?type=character-polish&character=Furina&buildGoal=comfortable&pullPlan=0'
     );
     expect(screen.getByRole('link', { name: /target c2/i })).toHaveAttribute(
       'href',
