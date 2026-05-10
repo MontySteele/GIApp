@@ -5,17 +5,17 @@ import type { BannerType, GachaRules } from '../types';
 const GACHA_RULES: Record<string, GachaRules> = {
   character: {
     version: '5.0+',
-    softPityStart: 74,
+    softPityStart: 73,
     hardPity: 90,
     baseRate: 0.006,
     softPityRateIncrease: 0.06,
     hasCapturingRadiance: true,
-    radianceThreshold: 2,
+    radianceThreshold: 3,
   },
   weapon: {
     version: '5.0+',
-    softPityStart: 63,
-    hardPity: 80,
+    softPityStart: 62,
+    hardPity: 77,
     baseRate: 0.007,
     softPityRateIncrease: 0.07,
     hasCapturingRadiance: false,
@@ -23,16 +23,16 @@ const GACHA_RULES: Record<string, GachaRules> = {
     maxFatePoints: 2,
   },
   standard: {
-    version: '5.0+',
-    softPityStart: 74,
+    version: '1.0+',
+    softPityStart: 73,
     hardPity: 90,
     baseRate: 0.006,
     softPityRateIncrease: 0.06,
     hasCapturingRadiance: false,
   },
   chronicled: {
-    version: '5.0+',
-    softPityStart: 74,
+    version: '4.5+',
+    softPityStart: 73,
     hardPity: 90,
     baseRate: 0.006,
     softPityRateIncrease: 0.06,
@@ -121,6 +121,44 @@ interface BannerPityState {
   fatePoints: number;
 }
 
+interface TargetWithPityState {
+  target: SimulationTarget;
+  pityState?: TargetPityState;
+}
+
+function createInitialBannerStates(input: {
+  useLegacyStartingState: boolean;
+  startingPity: number;
+  startingGuaranteed: boolean;
+  startingRadiantStreak: number;
+  startingFatePoints: number;
+}): Record<BannerType, BannerPityState> {
+  const {
+    useLegacyStartingState,
+    startingPity,
+    startingGuaranteed,
+    startingRadiantStreak,
+    startingFatePoints,
+  } = input;
+
+  return {
+    character: {
+      pity: useLegacyStartingState ? startingPity : 0,
+      guaranteed: useLegacyStartingState ? startingGuaranteed : false,
+      radiantStreak: useLegacyStartingState ? startingRadiantStreak : 0,
+      fatePoints: 0,
+    },
+    weapon: {
+      pity: 0,
+      guaranteed: false,
+      radiantStreak: 0,
+      fatePoints: useLegacyStartingState ? startingFatePoints : 0,
+    },
+    standard: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: 0 },
+    chronicled: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: 0 },
+  };
+}
+
 /**
  * Run Monte Carlo simulation for multi-target planning
  */
@@ -140,10 +178,16 @@ export async function runSimulation(
     perTargetStates,
   } = input;
 
-  // Sort targets by expected start date
-  const sortedTargets = [...targets].sort(
-    (a, b) => new Date(a.expectedStartDate).getTime() - new Date(b.expectedStartDate).getTime()
+  // Sort targets by expected start date while keeping per-target pity overrides
+  // attached to the same target they were built from.
+  const sortedTargetEntries: TargetWithPityState[] = targets
+    .map((target, index) => ({ target, pityState: perTargetStates?.[index] }))
+    .sort(
+      (a, b) =>
+        new Date(a.target.expectedStartDate).getTime() -
+        new Date(b.target.expectedStartDate).getTime()
   );
+  const sortedTargets = sortedTargetEntries.map((entry) => entry.target);
 
   // Track copies obtained and pulls used per simulation run for each target
   const characterStats = new Map<
@@ -174,12 +218,16 @@ export async function runSimulation(
   for (let sim = 0; sim < config.iterations; sim++) {
     const rng = config.seed !== undefined ? seededRandom(config.seed + sim) : Math.random;
 
-    // Track pity state separately for each banner type
-    const bannerStates: Record<string, BannerPityState> = {
-      character: { pity: startingPity, guaranteed: startingGuaranteed, radiantStreak: startingRadiantStreak, fatePoints: 0 },
-      weapon: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: startingFatePoints },
-      standard: { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: 0 },
-    };
+    // Track pity state separately for each banner type. When per-target states
+    // are present, those states are authoritative and the legacy starting*
+    // fields stay neutral to avoid cross-banner contamination.
+    const bannerStates = createInitialBannerStates({
+      useLegacyStartingState: !perTargetStates,
+      startingPity,
+      startingGuaranteed,
+      startingRadiantStreak,
+      startingFatePoints,
+    });
 
     let availablePulls = startingPulls;
     const now = new Date();
@@ -187,7 +235,7 @@ export async function runSimulation(
     let gotAnythingThisRun = false;
 
     for (let targetIndex = 0; targetIndex < sortedTargets.length; targetIndex++) {
-      const target = sortedTargets[targetIndex]!;
+      const { target, pityState: targetState } = sortedTargetEntries[targetIndex]!;
       const bannerType = target.bannerType || 'character';
       const rules = GACHA_RULES[bannerType];
       if (!rules) continue;
@@ -201,7 +249,6 @@ export async function runSimulation(
       let state = bannerStates[bannerType]!;
 
       // Apply per-target pity overrides if provided (null means inherit from previous)
-      const targetState = perTargetStates?.[targetIndex];
       if (targetState) {
         if (targetState.pity !== null) state.pity = targetState.pity;
         if (targetState.guaranteed !== null) state.guaranteed = targetState.guaranteed;

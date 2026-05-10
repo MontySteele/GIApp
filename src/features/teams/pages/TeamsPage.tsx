@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Users, Zap, Edit2, Trash2, ChevronRight } from 'lucide-react';
+import { Plus, Users, Zap, Edit2, Trash2, ChevronRight, Target } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -10,6 +10,7 @@ import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import TeamForm from '@/features/roster/components/TeamForm';
 import { WfpsimExportModal } from '@/features/teams';
+import { buildTeamCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
 import type { Team, Character } from '@/types';
 
 export default function TeamsPage() {
@@ -205,6 +206,16 @@ function TeamCard({ team, members, onEdit, onDelete, onExport }: TeamCardProps) 
             </p>
           </div>
           <div className="flex items-center gap-1">
+            {team.characterKeys.length > 0 && (
+              <Link
+                to={buildTeamCampaignUrl(team.id)}
+                className="p-1.5 text-primary-400 hover:bg-primary-400/10 rounded transition-colors"
+                title="Start team campaign"
+                aria-label="Start team campaign"
+              >
+                <Target className="w-4 h-4" aria-hidden="true" />
+              </Link>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); onExport(); }}
               className="p-1.5 text-yellow-400 hover:bg-yellow-400/10 rounded transition-colors"

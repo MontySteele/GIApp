@@ -5,9 +5,9 @@ import { db as defaultDb, type GenshinTrackerDB } from './schema';
 // - Dexie fails closed on migration errors. We rethrow initialization errors so the app never runs on a partially migrated DB.
 // - Avoid silent divergence: even no-op migrations should bump appMeta.schemaVersion through the upgrade hook.
 
-// NOTE: Schema versions are now defined in schema.ts constructor (versions 1-4).
+// NOTE: Schema versions are now defined in schema.ts constructor (versions 1-5).
 // This file only handles runtime app metadata initialization, not schema migrations.
-const LATEST_SCHEMA_VERSION = 4;
+const LATEST_SCHEMA_VERSION = 5;
 const METADATA_INITIALIZED = Symbol('metadataInitialized');
 
 async function ensureMetadata(database: GenshinTrackerDB) {

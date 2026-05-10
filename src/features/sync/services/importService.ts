@@ -17,6 +17,7 @@ import type {
   InventoryArtifact,
   InventoryWeapon,
   MaterialInventory,
+  Campaign,
 } from '@/types';
 
 // ----- TYPES -----
@@ -40,6 +41,7 @@ export interface BackupData {
     inventoryArtifacts?: InventoryArtifact[];
     inventoryWeapons?: InventoryWeapon[];
     materialInventory?: MaterialInventory[];
+    campaigns?: Campaign[];
     // Intentionally not importing: externalCache, appMeta
   };
 }
@@ -60,6 +62,7 @@ export interface ImportResult {
     inventoryArtifacts: { created: number; updated: number; skipped: number };
     inventoryWeapons: { created: number; updated: number; skipped: number };
     materialInventory: { created: number; updated: number; skipped: number };
+    campaigns: { created: number; updated: number; skipped: number };
   };
   warnings: string[];
   errors: string[];
@@ -290,6 +293,7 @@ export async function importBackup(
       inventoryArtifacts: { created: 0, updated: 0, skipped: 0 },
       inventoryWeapons: { created: 0, updated: 0, skipped: 0 },
       materialInventory: { created: 0, updated: 0, skipped: 0 },
+      campaigns: { created: 0, updated: 0, skipped: 0 },
     },
     warnings: [],
     errors: [],
@@ -310,6 +314,7 @@ export async function importBackup(
     'inventoryArtifacts',
     'inventoryWeapons',
     'materialInventory',
+    'campaigns',
   ];
   let stageIndex = 0;
 
@@ -411,6 +416,13 @@ export async function importBackup(
         await db.materialInventory.clear();
         await db.materialInventory.bulkPut(data.materialInventory);
         result.stats.materialInventory = { created: data.materialInventory.length, updated: 0, skipped: 0 };
+      }
+      stageIndex++;
+
+      // Campaigns
+      if (data.campaigns?.length) {
+        onProgress?.('Importing campaigns...', (stageIndex / stages.length) * 100);
+        result.stats.campaigns = await mergeTable('campaigns', data.campaigns, strategy);
       }
     });
 

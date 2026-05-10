@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, Team } from '@/types';
 import { MAX_LEVEL_BY_ASCENSION } from '@/lib/constants';
+import { buildTeamCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
 
 interface TeamCardProps {
   team: Team;
@@ -16,8 +17,7 @@ interface TeamCardProps {
 }
 
 export default function TeamCard({ team, members, onEdit, onDelete, onExportToWfpsim, showPlannerLink = true }: TeamCardProps) {
-  // Create query params for planner with team character IDs
-  const plannerUrl = `/planner?team=${encodeURIComponent(team.id)}`;
+  const plannerUrl = buildTeamCampaignUrl(team.id);
 
   return (
     <Card className="relative">
@@ -26,8 +26,8 @@ export default function TeamCard({ team, members, onEdit, onDelete, onExportToWf
           <Link
             to={plannerUrl}
             className="p-1.5 bg-green-700 hover:bg-green-600 rounded-md transition-colors"
-            title="Plan materials"
-            aria-label="Plan materials"
+            title="Start team campaign"
+            aria-label="Start team campaign"
           >
             <Calendar className="w-4 h-4 text-white" aria-hidden="true" />
           </Link>

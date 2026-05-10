@@ -24,6 +24,7 @@ describe('MobileBottomNav', () => {
       renderNav();
 
       expect(screen.getByText('Home')).toBeInTheDocument();
+      expect(screen.getByText('Camp')).toBeInTheDocument();
       expect(screen.getByText('Roster')).toBeInTheDocument();
       expect(screen.getByText('Teams')).toBeInTheDocument();
       expect(screen.getByText('Pulls')).toBeInTheDocument();
@@ -35,6 +36,7 @@ describe('MobileBottomNav', () => {
       renderNav();
 
       expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('href', '/');
+      expect(screen.getByRole('link', { name: /camp/i })).toHaveAttribute('href', '/campaigns');
       expect(screen.getByRole('link', { name: /roster/i })).toHaveAttribute('href', '/roster');
       expect(screen.getByRole('link', { name: /teams/i })).toHaveAttribute('href', '/teams');
       expect(screen.getByRole('link', { name: /pulls/i })).toHaveAttribute('href', '/pulls');
@@ -70,6 +72,13 @@ describe('MobileBottomNav', () => {
 
       const pullsLink = screen.getByRole('link', { name: /pulls/i });
       expect(pullsLink).toHaveClass('text-primary-400');
+    });
+
+    it('highlights campaigns when on campaigns route', () => {
+      renderNav('/campaigns');
+
+      const campaignsLink = screen.getByRole('link', { name: /camp/i });
+      expect(campaignsLink).toHaveClass('text-primary-400');
     });
 
     it('highlights planner when on planner route', () => {
@@ -110,7 +119,7 @@ describe('MobileBottomNav', () => {
 
       // Each nav item should have an SVG icon
       const icons = container.querySelectorAll('svg');
-      expect(icons.length).toBe(6);
+      expect(icons.length).toBe(7);
     });
   });
 

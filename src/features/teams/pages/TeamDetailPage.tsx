@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Edit2, Users, Package, Skull, Layers, ArrowLeft } from 'lucide-react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Zap, Edit2, Users, Package, Skull, Layers, ArrowLeft, Target } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -16,7 +16,8 @@ import {
   calculateFromRoster,
   type AggregatedMaterialSummary,
 } from '@/features/planner/domain/multiCharacterCalculator';
-import type { Team, Character, BuildTemplate } from '@/types';
+import { buildTeamCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
+import type { Team, Character, BuildTemplate, CampaignBuildGoal } from '@/types';
 
 type GoalType = 'full' | 'comfortable' | 'functional' | 'next';
 
@@ -117,6 +118,8 @@ export default function TeamDetailPage() {
     }
   };
 
+  const campaignBuildGoal: CampaignBuildGoal = goalType === 'next' ? 'comfortable' : goalType;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -167,6 +170,13 @@ export default function TeamDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to={buildTeamCampaignUrl(team.id, campaignBuildGoal)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+          >
+            <Target className="w-4 h-4" />
+            Start Campaign
+          </Link>
           <Button variant="secondary" onClick={() => setShowEditModal(true)}>
             <Edit2 className="w-4 h-4" />
             Edit

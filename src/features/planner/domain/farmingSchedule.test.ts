@@ -68,6 +68,11 @@ describe('farmingSchedule', () => {
       expect(extractBookSeries('Guide to Contention')).toBe('Contention');
       expect(extractBookSeries('Guide to Kindling')).toBe('Kindling');
       expect(extractBookSeries('Guide to Conflict')).toBe('Conflict');
+
+      // Nod-Krai
+      expect(extractBookSeries('Guide to Moonlight')).toBe('Moonlight');
+      expect(extractBookSeries('Guide to Elysium')).toBe('Elysium');
+      expect(extractBookSeries('Guide to Vagrancy')).toBe('Vagrancy');
     });
   });
 
@@ -290,6 +295,27 @@ describe('farmingSchedule', () => {
 
       // Freedom available Thu (1 day away from Wed)
       expect(result.waitFor.Thursday[0]?.daysUntilAvailable).toBe(1);
+    });
+
+    it('maps Nod-Krai talent books to the correct region', () => {
+      mockDate(1); // Monday
+
+      const materials: MaterialRequirement[] = [
+        {
+          key: 'moonlight',
+          name: 'Guide to Moonlight',
+          category: 'talent',
+          tier: 2,
+          required: 10,
+          owned: 2,
+          deficit: 8,
+        },
+      ];
+
+      const result = analyzeFarmingSchedule(materials);
+
+      expect(result.farmToday[0]?.series).toBe('Moonlight');
+      expect(result.farmToday[0]?.region).toBe('Nod-Krai');
     });
   });
 

@@ -7,8 +7,17 @@ import InfoTooltip, { GACHA_TOOLTIPS } from '@/components/ui/InfoTooltip';
 
 type TabType = 'single' | 'multi' | 'reverse';
 
+function getInitialTab(): TabType {
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode') ?? params.get('tab');
+
+  if (mode === 'multi') return 'multi';
+  if (mode === 'reverse') return 'reverse';
+  return 'single';
+}
+
 export default function CalculatorPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('single');
+  const [activeTab, setActiveTab] = useState<TabType>(() => getInitialTab());
 
   const tabs = [
     { id: 'single' as const, label: 'Single Target', icon: Target },
@@ -49,9 +58,15 @@ export default function CalculatorPage() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'single' && <SingleTargetCalculator />}
-      {activeTab === 'multi' && <MultiTargetCalculator />}
-      {activeTab === 'reverse' && <ReverseCalculator />}
+      <div hidden={activeTab !== 'single'}>
+        <SingleTargetCalculator />
+      </div>
+      <div hidden={activeTab !== 'multi'}>
+        <MultiTargetCalculator />
+      </div>
+      <div hidden={activeTab !== 'reverse'}>
+        <ReverseCalculator />
+      </div>
     </div>
   );
 }

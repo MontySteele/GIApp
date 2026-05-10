@@ -18,6 +18,7 @@ import type {
   MaterialInventory,
   ImportRecord,
   BuildTemplate,
+  Campaign,
 } from '@/types';
 
 export const SCHEMA_STORES = {
@@ -63,6 +64,13 @@ export const SCHEMA_STORES_V4 = {
   buildTemplates: 'id, characterKey, role, difficulty, budget, isOfficial, updatedAt, *tags',
 };
 
+// V5: Add campaigns
+export const SCHEMA_STORES_V5 = {
+  ...SCHEMA_STORES_V4,
+  // Campaigns orchestrate pull targets, character goals, and team polishing plans
+  campaigns: 'id, type, status, priority, deadline, updatedAt',
+};
+
 export class GenshinTrackerDB extends Dexie {
   characters!: EntityTable<Character, 'id'>;
   teams!: EntityTable<Team, 'id'>;
@@ -84,6 +92,8 @@ export class GenshinTrackerDB extends Dexie {
   importRecords!: EntityTable<ImportRecord, 'id'>;
   // V4 tables
   buildTemplates!: EntityTable<BuildTemplate, 'id'>;
+  // V5 tables
+  campaigns!: EntityTable<Campaign, 'id'>;
 
   constructor(databaseName = 'GenshinTracker') {
     super(databaseName);
@@ -92,6 +102,7 @@ export class GenshinTrackerDB extends Dexie {
     this.version(2).stores(SCHEMA_STORES_V2);
     this.version(3).stores(SCHEMA_STORES_V3);
     this.version(4).stores(SCHEMA_STORES_V4);
+    this.version(5).stores(SCHEMA_STORES_V5);
   }
 }
 

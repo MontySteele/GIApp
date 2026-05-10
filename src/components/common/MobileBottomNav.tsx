@@ -9,6 +9,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Flag,
   Users,
   UsersRound,
   Sparkles,
@@ -20,6 +21,7 @@ import {
 // Includes Settings for easy access to data import (critical for new users)
 const MOBILE_NAV_ITEMS = [
   { id: 'dashboard', label: 'Home', path: '/', icon: LayoutDashboard },
+  { id: 'campaigns', label: 'Camp', path: '/campaigns', icon: Flag },
   { id: 'roster', label: 'Roster', path: '/roster', icon: Users },
   { id: 'teams', label: 'Teams', path: '/teams', icon: UsersRound },
   { id: 'pulls', label: 'Pulls', path: '/pulls', icon: Sparkles },

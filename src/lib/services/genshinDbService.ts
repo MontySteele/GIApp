@@ -10,8 +10,8 @@ import type {
   CharacterMaterialData,
   GenshinDbCharacterResponse,
   GenshinDbTalentResponse,
-} from '@/features/planner/domain/characterMaterials';
-import { DOMAIN_SCHEDULE } from '@/features/planner/domain/materialConstants';
+} from '@/lib/planning/characterMaterials';
+import { DOMAIN_SCHEDULE } from '@/lib/planning/materialConstants';
 import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry';
 import { getStaticCharacterMaterials } from '@/lib/data/characterMaterialMap';
 
@@ -568,7 +568,7 @@ interface CacheEntry {
  */
 export async function getCharacterMaterials(
   characterKey: string,
-  options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
+  options: { forceRefresh?: boolean; useStaleOnError?: boolean; skipApiFetch?: boolean } = {}
 ): Promise<{ data: CharacterMaterialData | null; isStale: boolean; error?: string }> {
   const cacheKey = getCacheKey(characterKey);
   const memCacheKey = characterKey.toLowerCase();
@@ -620,6 +620,31 @@ export async function getCharacterMaterials(
       console.warn('Failed to read from cache:', dbError);
       // Continue to API fetch even if cache read fails
     }
+  }
+
+  if (options.skipApiFetch) {
+    if (cachedData) {
+      return {
+        data: cachedData,
+        isStale: true,
+        error: 'Using stale cached material data',
+      };
+    }
+
+    const staticData = getStaticCharacterMaterials(characterKey);
+    if (staticData) {
+      return {
+        data: staticData,
+        isStale: true,
+        error: 'Using offline material data',
+      };
+    }
+
+    return {
+      data: null,
+      isStale: false,
+      error: 'Material data is not cached',
+    };
   }
 
   // Fetch from API
@@ -716,7 +741,7 @@ export async function clearCharacterCache(characterKey?: string): Promise<void> 
 import type {
   WeaponMaterialData,
   GenshinDbWeaponResponse,
-} from '@/features/planner/domain/weaponMaterials';
+} from '@/lib/planning/weaponMaterials';
 
 /**
  * In-memory cache for weapon materials
@@ -968,7 +993,7 @@ interface WeaponCacheEntry {
  */
 export async function getWeaponMaterials(
   weaponKey: string,
-  options: { forceRefresh?: boolean; useStaleOnError?: boolean } = {}
+  options: { forceRefresh?: boolean; useStaleOnError?: boolean; skipApiFetch?: boolean } = {}
 ): Promise<{ data: WeaponMaterialData | null; isStale: boolean; error?: string }> {
   const cacheKey = getWeaponCacheKey(weaponKey);
   const memCacheKey = weaponKey.toLowerCase();
@@ -1016,6 +1041,22 @@ export async function getWeaponMaterials(
     } catch (dbError) {
       console.warn('Failed to read weapon cache:', dbError);
     }
+  }
+
+  if (options.skipApiFetch) {
+    if (cachedData) {
+      return {
+        data: cachedData,
+        isStale: true,
+        error: 'Using stale cached weapon material data',
+      };
+    }
+
+    return {
+      data: null,
+      isStale: false,
+      error: 'Weapon material data is not cached',
+    };
   }
 
   // Fetch from API

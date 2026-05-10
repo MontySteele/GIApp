@@ -63,6 +63,8 @@ const EMPTY_SUMMARY: AggregatedMaterialSummary = {
     localSpecialty: [],
     common: [],
     talent: [],
+    weapon: [],
+    artifact: [],
     weekly: [],
     crown: [],
   },

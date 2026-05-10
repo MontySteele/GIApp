@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { MultiTargetCalculator } from './MultiTargetCalculator';
 import * as montecarloClient from '@/workers/montecarloClient';
 
 const runSimulationMock = vi.fn();
+const freshnessMock = vi.hoisted(() => ({
+  freshness: {
+    status: 'fresh',
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
+}));
 
 vi.mock('@/workers/montecarloClient', () => ({
   createMonteCarloWorker: vi.fn(() => ({
@@ -15,7 +25,53 @@ vi.mock('@/workers/montecarloClient', () => ({
   })),
 }));
 
+vi.mock('@/features/wishes/hooks/useCurrentPity', () => ({
+  useAllCurrentPity: () => ({
+    character: {
+      banner: 'character',
+      pity: 72,
+      guaranteed: true,
+      radiantStreak: 2,
+      radianceActive: false,
+    },
+    weapon: {
+      banner: 'weapon',
+      pity: 41,
+      guaranteed: false,
+      radiantStreak: 0,
+      radianceActive: false,
+      fatePoints: 1,
+    },
+    standard: {
+      banner: 'standard',
+      pity: 10,
+      guaranteed: false,
+      radiantStreak: 0,
+      radianceActive: false,
+    },
+    chronicled: {
+      banner: 'chronicled',
+      pity: 20,
+      guaranteed: false,
+      radiantStreak: 0,
+      radianceActive: false,
+    },
+  }),
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => freshnessMock.freshness,
+}));
+
 const createMonteCarloWorkerMock = vi.mocked(montecarloClient.createMonteCarloWorker);
+
+function renderCalculatorWithRouter() {
+  return render(
+    <MemoryRouter>
+      <MultiTargetCalculator />
+    </MemoryRouter>
+  );
+}
 
 // NOTE: Many tests in this file need updating to match the current component structure.
 // The component UI has evolved (e.g., "Add Target" -> "Add Character", different field layouts).
@@ -25,6 +81,14 @@ describe('MultiTargetCalculator', () => {
   beforeEach(() => {
     // Clear localStorage to prevent test pollution from persisted state
     localStorage.clear();
+    window.history.replaceState(null, '', '/pulls/calculator');
+    freshnessMock.freshness = {
+      status: 'fresh',
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
 
     runSimulationMock.mockClear();
     createMonteCarloWorkerMock.mockClear();
@@ -73,6 +137,73 @@ describe('MultiTargetCalculator', () => {
 
       expect(screen.getByText(/add characters you want to pull/i)).toBeInTheDocument();
     });
+
+    it('loads campaign pull targets from URL params', () => {
+      const params = new URLSearchParams({
+        mode: 'multi',
+        campaign: 'campaign-1',
+        name: 'Recruit Furina',
+        pulls: '69',
+      });
+      params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 2 }));
+      window.history.replaceState(null, '', `/pulls/calculator?${params.toString()}`);
+
+      renderCalculatorWithRouter();
+
+      expect(screen.getByText('Recruit Furina pull plan loaded')).toBeInTheDocument();
+      expect(screen.getByText(/1 target with 69 pulls available/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/character name/i)).toHaveValue('Furina');
+      expect(screen.getByLabelText('Available Pulls')).toHaveValue(69);
+      expect(screen.getByRole('link', { name: /back to campaign/i })).toHaveAttribute(
+        'href',
+        '/campaigns/campaign-1'
+      );
+    });
+
+    it('only inherits URL target pity after a previous target of the same banner type', () => {
+      const params = new URLSearchParams({
+        mode: 'multi',
+        campaign: 'campaign-1',
+        pulls: '100',
+      });
+      params.append('target', JSON.stringify({ name: 'Signature Weapon', banner: 'weapon', copies: 1 }));
+      params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
+      params.append('target', JSON.stringify({ name: 'Neuvillette', banner: 'character', copies: 1 }));
+      window.history.replaceState(null, '', `/pulls/calculator?${params.toString()}`);
+
+      renderCalculatorWithRouter();
+
+      const inheritCheckboxes = screen.getAllByLabelText(/inherit pity/i);
+      expect(inheritCheckboxes).toHaveLength(2);
+      expect(inheritCheckboxes[0]).not.toBeChecked();
+      expect(inheritCheckboxes[1]).toBeChecked();
+    });
+
+    it('shows import freshness context for campaign-loaded pull plans', () => {
+      freshnessMock.freshness = {
+        status: 'stale',
+        latestImport: null,
+        daysSinceImport: 12,
+        label: 'Refresh account data',
+        detail: 'Last Irminsul import was 12 days ago.',
+      };
+      const params = new URLSearchParams({
+        mode: 'multi',
+        campaign: 'campaign-1',
+        name: 'Recruit Furina',
+        pulls: '69',
+      });
+      params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
+      window.history.replaceState(null, '', `/pulls/calculator?${params.toString()}`);
+
+      renderCalculatorWithRouter();
+
+      expect(screen.getByText('Refresh account data')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /refresh import/i })).toHaveAttribute(
+        'href',
+        '/roster?import=irminsul'
+      );
+    });
   });
 
   describe('Adding targets', () => {
@@ -111,6 +242,36 @@ describe('MultiTargetCalculator', () => {
 
       const guaranteeCheckbox = screen.getByLabelText(/guaranteed/i);
       expect(guaranteeCheckbox).not.toBeChecked();
+    });
+
+    it('applies current pity from wish history to the first target for each banner', async () => {
+      const user = userEvent.setup();
+      render(<MultiTargetCalculator />);
+
+      await user.click(screen.getByRole('button', { name: /add character/i }));
+      await user.click(screen.getByRole('button', { name: /add weapon/i }));
+      await user.click(screen.getAllByRole('button', { name: /use current pity/i })[0]!);
+
+      expect(screen.getByLabelText(/current pity/i)).toHaveValue(72);
+      expect(screen.getAllByLabelText(/guaranteed/i)[0]).toBeChecked();
+      expect(screen.getByLabelText(/radiant streak/i)).toHaveValue(2);
+      expect(screen.getByLabelText(/starting pity/i)).toHaveValue(41);
+      expect(screen.getByLabelText(/fate points/i)).toHaveValue(1);
+    });
+
+    it('applies current pity correctly when a weapon target comes before a character target', async () => {
+      const user = userEvent.setup();
+      render(<MultiTargetCalculator />);
+
+      await user.click(screen.getByRole('button', { name: /add weapon/i }));
+      await user.click(screen.getByRole('button', { name: /add character/i }));
+      await user.click(screen.getAllByRole('button', { name: /use current pity/i })[0]!);
+
+      expect(screen.getByLabelText(/current pity/i)).toHaveValue(41);
+      expect(screen.getByLabelText(/fate points/i)).toHaveValue(1);
+      expect(screen.getByLabelText(/starting pity/i)).toHaveValue(72);
+      expect(screen.getByLabelText(/radiant streak/i)).toHaveValue(2);
+      expect(screen.getAllByLabelText(/guaranteed/i)[1]).toBeChecked();
     });
   });
 
@@ -256,6 +417,28 @@ describe('MultiTargetCalculator', () => {
       await user.type(pullsInput, '200');
 
       expect(pullsInput).toHaveValue(200);
+    });
+  });
+
+  describe('Reset', () => {
+    it('clears campaign URL prefill banner state', async () => {
+      const user = userEvent.setup();
+      const params = new URLSearchParams({
+        mode: 'multi',
+        campaign: 'campaign-1',
+        name: 'Recruit Furina',
+        pulls: '69',
+      });
+      params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
+      window.history.replaceState(null, '', `/pulls/calculator?${params.toString()}`);
+
+      renderCalculatorWithRouter();
+
+      expect(screen.getByText('Recruit Furina pull plan loaded')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /reset/i }));
+
+      expect(screen.queryByText('Recruit Furina pull plan loaded')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Available Pulls')).toHaveValue(0);
     });
   });
 
@@ -464,6 +647,40 @@ describe('MultiTargetCalculator', () => {
       expect(input.targets[0].characterKey).toBe('Furina');
       expect(input.config).toBeDefined();
       expect(input.config.iterations).toBe(5000);
+    });
+
+    it('sends per-target pity states without cross-banner legacy starting pity', async () => {
+      const user = userEvent.setup();
+      render(<MultiTargetCalculator />);
+
+      await user.click(screen.getByRole('button', { name: /add weapon/i }));
+      await user.click(screen.getByRole('button', { name: /add character/i }));
+      await user.click(screen.getAllByRole('button', { name: /use current pity/i })[0]!);
+      await user.click(screen.getByRole('button', { name: /calculate/i }));
+
+      await waitFor(() => {
+        expect(runSimulationMock).toHaveBeenCalledTimes(1);
+      });
+
+      const input = runSimulationMock.mock.calls[0][0];
+      expect(input.startingPity).toBe(0);
+      expect(input.startingGuaranteed).toBe(false);
+      expect(input.startingRadiantStreak).toBe(0);
+      expect(input.startingFatePoints).toBe(0);
+      expect(input.perTargetStates).toEqual([
+        {
+          pity: 41,
+          guaranteed: false,
+          radiantStreak: 0,
+          fatePoints: 1,
+        },
+        {
+          pity: 72,
+          guaranteed: true,
+          radiantStreak: 2,
+          fatePoints: 0,
+        },
+      ]);
     });
 
     it('should display results returned from the worker', async () => {

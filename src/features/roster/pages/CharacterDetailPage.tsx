@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Star, Pencil, Trash2, AlertTriangle, ArrowLeft, Target } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useCharacter, useCharacters } from '../hooks/useCharacters';
 import { useTeams } from '../hooks/useTeams';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
@@ -21,6 +21,10 @@ import {
   getGradeBgColor,
 } from '@/features/artifacts/domain/artifactScoring';
 import BuildRecommendations from '@/features/artifacts/components/BuildRecommendations';
+import {
+  buildCharacterCampaignUrl,
+  buildConstellationCampaignUrl,
+} from '@/features/campaigns/lib/campaignLinks';
 
 export default function CharacterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +40,10 @@ export default function CharacterDetailPage() {
     () => (character ? teams.filter((team) => character.teamIds.includes(team.id)) : []),
     [teams, character?.teamIds]
   );
+  const constellationShortcuts = useMemo(() => {
+    if (!character) return [];
+    return [2, 6].filter((targetConstellation) => character.constellation < targetConstellation);
+  }, [character?.constellation]);
 
   // Calculate artifact scores
   const artifactScoreData = useMemo(() => {
@@ -120,14 +128,35 @@ export default function CharacterDetailPage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">{character.key}</h1>
           <p className="text-slate-400">
             Level {character.level}/{MAX_LEVEL_BY_ASCENSION[character.ascension] ?? 90} • C{character.constellation}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <Link
+            to={buildCharacterCampaignUrl(character.key, 'comfortable', false)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+          >
+            <Target className="w-4 h-4" />
+            Build Campaign
+          </Link>
+          {constellationShortcuts.map((targetConstellation) => (
+            <Link
+              key={targetConstellation}
+              to={buildConstellationCampaignUrl(
+                character.key,
+                character.constellation,
+                targetConstellation
+              )}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-700"
+            >
+              <Star className="w-4 h-4" />
+              Target C{targetConstellation}
+            </Link>
+          ))}
           <Button variant="secondary" onClick={() => setIsEditModalOpen(true)}>
             <Pencil className="w-4 h-4" />
             Edit

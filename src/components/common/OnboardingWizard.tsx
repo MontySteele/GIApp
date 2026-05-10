@@ -27,16 +27,16 @@ const IMPORT_OPTIONS = [
   {
     id: 'enka',
     title: 'Enka.Network',
-    description: 'Import directly from your UID. Requires in-game showcase enabled.',
+    description: 'Quick UID import for showcased characters only.',
     icon: Download,
-    recommended: true,
+    recommended: false,
   },
   {
     id: 'irminsul',
     title: 'Irminsul Scanner',
-    description: 'Use the desktop scanner app for detailed artifact data.',
+    description: 'Full account import for characters, weapons, artifacts, and materials.',
     icon: Download,
-    recommended: false,
+    recommended: true,
   },
   {
     id: 'good',

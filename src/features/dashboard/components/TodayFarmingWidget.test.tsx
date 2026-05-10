@@ -3,6 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TodayFarmingWidget from './TodayFarmingWidget';
 
+const mocks = vi.hoisted(() => ({
+  dataFreshness: {
+    status: 'fresh',
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
+}));
+
 // Mock the useTodayFarming hook
 vi.mock('../hooks/useTodayFarming', () => ({
   useTodayFarming: vi.fn(() => ({
@@ -13,6 +23,10 @@ vi.mock('../hooks/useTodayFarming', () => ({
     notAvailableToday: [],
     totalCharactersProcessed: 0,
   })),
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => mocks.dataFreshness,
 }));
 
 import { useTodayFarming } from '../hooks/useTodayFarming';
@@ -36,6 +50,13 @@ describe('TodayFarmingWidget', () => {
       notAvailableToday: [],
       totalCharactersProcessed: 0,
     });
+    mocks.dataFreshness = {
+      status: 'fresh',
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
   });
 
   describe('renders correctly', () => {
@@ -54,13 +75,28 @@ describe('TodayFarmingWidget', () => {
       expect(foundDay).toBe(true);
     });
 
-    it('shows planner link', () => {
+    it('shows campaign link', () => {
       renderWidget();
 
-      // The planner link is an icon-only link (ArrowRight svg, no text)
+      // The campaign link is an icon-only link (ArrowRight svg, no text)
       const links = screen.getAllByRole('link');
-      const plannerLink = links.find(link => link.getAttribute('href') === '/teams/planner');
-      expect(plannerLink).toBeDefined();
+      const campaignLink = links.find(link => link.getAttribute('href') === '/campaigns');
+      expect(campaignLink).toBeDefined();
+    });
+
+    it('shows a compact freshness prompt when account data is stale', () => {
+      mocks.dataFreshness = {
+        status: 'stale',
+        latestImport: null,
+        daysSinceImport: 12,
+        label: 'Refresh account data',
+        detail: 'Last Irminsul import was 12 days ago.',
+      };
+
+      renderWidget();
+
+      expect(screen.getByText('Refresh account data')).toBeInTheDocument();
+      expect(screen.getByText(/today's farming recommendations/i)).toBeInTheDocument();
     });
   });
 
@@ -76,9 +112,14 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows all domains message on Sunday', () => {
-      // Mock Sunday
-      const mockDate = new Date('2024-01-07T12:00:00'); // A Sunday
-      vi.setSystemTime(mockDate);
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Sunday',
+        isLoading: false,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [],
+        totalCharactersProcessed: 0,
+      });
 
       renderWidget();
 
@@ -86,9 +127,14 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows Monday/Thursday domains on Monday', () => {
-      // Mock Monday
-      const mockDate = new Date('2024-01-08T12:00:00'); // A Monday
-      vi.setSystemTime(mockDate);
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Monday',
+        isLoading: false,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [],
+        totalCharactersProcessed: 0,
+      });
 
       renderWidget();
 
@@ -98,9 +144,14 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows Tuesday/Friday domains on Tuesday', () => {
-      // Mock Tuesday
-      const mockDate = new Date('2024-01-09T12:00:00'); // A Tuesday
-      vi.setSystemTime(mockDate);
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Tuesday',
+        isLoading: false,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [],
+        totalCharactersProcessed: 0,
+      });
 
       renderWidget();
 
@@ -110,9 +161,14 @@ describe('TodayFarmingWidget', () => {
     });
 
     it('shows Wednesday/Saturday domains on Wednesday', () => {
-      // Mock Wednesday
-      const mockDate = new Date('2024-01-10T12:00:00'); // A Wednesday
-      vi.setSystemTime(mockDate);
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Wednesday',
+        isLoading: false,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [],
+        totalCharactersProcessed: 0,
+      });
 
       renderWidget();
 
@@ -160,7 +216,7 @@ describe('TodayFarmingWidget', () => {
     it('shows info message on non-Sunday days when no characters', () => {
       renderWidget();
 
-      expect(screen.getByText(/add characters to see personalized recommendations/i)).toBeInTheDocument();
+      expect(screen.getByText(/create or activate a campaign to see focused recommendations/i)).toBeInTheDocument();
     });
 
     it('shows rotation info when characters are processed', () => {
@@ -175,12 +231,19 @@ describe('TodayFarmingWidget', () => {
 
       renderWidget();
 
-      expect(screen.getByText(/5 team members analyzed/i)).toBeInTheDocument();
+      expect(screen.getByText(/5 campaign targets analyzed/i)).toBeInTheDocument();
       expect(screen.getByText(/talent book domains rotate daily/i)).toBeInTheDocument();
     });
 
     it('does not show info text on Sunday', () => {
-      vi.setSystemTime(new Date('2024-01-07T12:00:00')); // Sunday
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Sunday',
+        isLoading: false,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [],
+        notAvailableToday: [],
+        totalCharactersProcessed: 0,
+      });
 
       renderWidget();
 
@@ -241,11 +304,41 @@ describe('TodayFarmingWidget', () => {
       renderWidget();
 
       // Should show personalized header
-      expect(screen.getByText(/your characters need/i)).toBeInTheDocument();
+      expect(screen.getByText(/campaign targets need/i)).toBeInTheDocument();
       // Should show the book series
       expect(screen.getByText('Freedom')).toBeInTheDocument();
       // Should show character names
       expect(screen.getByText(/Venti, Amber/i)).toBeInTheDocument();
+    });
+
+    it('truncates long campaign target labels for narrow layouts', () => {
+      vi.mocked(useTodayFarming).mockReturnValue({
+        today: 'Monday',
+        isLoading: false,
+        charactersByBook: new Map(),
+        availableTodayWithCharacters: [
+          {
+            series: 'Freedom',
+            region: 'Mondstadt',
+            characters: [
+              {
+                characterKey: 'Venti',
+                characterLevel: 90,
+                bookSeries: 'Freedom',
+                region: 'Mondstadt',
+                availableToday: true,
+                campaignName: 'A Very Long Campaign Name For Mobile',
+              },
+            ],
+          },
+        ],
+        notAvailableToday: [],
+        totalCharactersProcessed: 1,
+      });
+
+      renderWidget();
+
+      expect(screen.getByText(/Venti \(A Very Long Campaign Name For Mobile\)/i)).toHaveClass('truncate');
     });
 
     it('shows message when no characters need today\'s books', () => {
@@ -270,7 +363,7 @@ describe('TodayFarmingWidget', () => {
       renderWidget();
 
       // Should show message about no books needed today
-      expect(screen.getByText(/none of your team members need today's books/i)).toBeInTheDocument();
+      expect(screen.getByText(/none of your campaign targets need today's books/i)).toBeInTheDocument();
       // Should show next farming day
       expect(screen.getByText(/wednesday/i)).toBeInTheDocument();
     });

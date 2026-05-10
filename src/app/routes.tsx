@@ -11,6 +11,7 @@ import HistoryTab from '@/features/wishes/pages/HistoryTab';
 import CalculatorTab from '@/features/wishes/pages/CalculatorTab';
 import BudgetTab from '@/features/wishes/pages/BudgetTab';
 import BannersTab from '@/features/wishes/pages/BannersTab';
+import { CampaignDetailPage, CampaignsPage } from '@/features/campaigns';
 import {
   TeamsLayout,
   TeamsPage,
@@ -33,6 +34,14 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: 'campaigns',
+        element: <CampaignsPage />,
+      },
+      {
+        path: 'campaigns/:id',
+        element: <CampaignDetailPage />,
       },
       // Roster with nested routes for Characters, Weapons, Artifacts, Builds
       {

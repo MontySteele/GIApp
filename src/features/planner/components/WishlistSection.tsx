@@ -5,12 +5,14 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Plus, X, Search, Star, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, X, Search, Star, Trash2, Target } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import { useWishlistStore, type WishlistCharacter } from '@/stores/wishlistStore';
 import { ALL_CHARACTERS, searchCharacters, type CharacterInfo } from '@/lib/constants/characterList';
+import { buildCharacterCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
 
 const ELEMENT_COLORS: Record<string, string> = {
   Pyro: 'text-red-400 bg-red-900/30',
@@ -243,6 +245,14 @@ export default function WishlistSection({ ownedCharacterKeys }: WishlistSectionP
                   </span>
                   <span className="text-slate-200">{charInfo.name}</span>
                   <div className="ml-auto flex items-center gap-2">
+                    <Link
+                      to={buildCharacterCampaignUrl(wc.key, wc.targetGoal, true)}
+                      className="p-1.5 text-primary-400 hover:bg-primary-400/10 rounded transition-colors"
+                      title="Start campaign"
+                      aria-label={`Start campaign for ${wc.key}`}
+                    >
+                      <Target className="w-4 h-4" aria-hidden="true" />
+                    </Link>
                     <Select
                       value={wc.targetGoal}
                       onChange={(e) => handleUpdateGoal(wc.key, e.target.value as WishlistCharacter['targetGoal'])}

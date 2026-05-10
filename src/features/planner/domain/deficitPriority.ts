@@ -34,6 +34,8 @@ const CATEGORY_FARMING_TYPE: Record<string, MaterialPriority['farmingType']> = {
   gem: 'boss', // Gems primarily from bosses
   localSpecialty: 'overworld',
   common: 'overworld',
+  weapon: 'domain',
+  artifact: 'domain',
   weekly: 'weekly',
   exp: 'leyline',
   mora: 'leyline',
@@ -59,6 +61,8 @@ function calculatePriorityScore(
   const categoryWeights: Record<string, number> = {
     talent: 1.5, // Time-gated by domain schedule
     weekly: 2.0, // Time-gated by weekly reset
+    weapon: 1.4, // Time-gated by weapon domain schedule
+    artifact: 1.1, // Resin-heavy polish work
     boss: 1.3, // Resin-heavy
     gem: 1.2,
     crown: 0.5, // Very limited, can't really farm
@@ -110,6 +114,8 @@ export function analyzeDeficitPriority(
     'weekly',
     'localSpecialty',
     'common',
+    'weapon',
+    'artifact',
     'exp',
     'mora',
     'crown',
@@ -191,6 +197,8 @@ export function analyzeSimpleDeficitPriority(
     'weekly',
     'localSpecialty',
     'common',
+    'weapon',
+    'artifact',
     'exp',
     'mora',
     'crown',

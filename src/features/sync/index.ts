@@ -9,6 +9,12 @@ export { default as SyncPage } from './pages/SyncPage';
 
 // Hooks
 export { useAppMetaStatus } from './hooks/useAppMetaStatus';
+export {
+  getAccountDataFreshness,
+  useAccountDataFreshness,
+  type AccountDataFreshness,
+  type AccountDataFreshnessStatus,
+} from './hooks/useAccountDataFreshness';
 
 // Services
 export {
@@ -38,5 +44,6 @@ export {
 
 // Components
 export { default as BackupReminderBanner } from './components/BackupReminderBanner';
+export { default as AccountDataFreshnessCallout } from './components/AccountDataFreshnessCallout';
 export { default as DataTransfer } from './components/DataTransfer';
 export { default as ImportBackup } from './components/ImportBackup';

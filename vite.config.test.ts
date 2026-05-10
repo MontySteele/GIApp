@@ -8,6 +8,7 @@ describe('VitePWA configuration', () => {
         "globPatterns": [
           "**/*.{js,css,html,ico,png,svg,woff,woff2}",
         ],
+        "maximumFileSizeToCacheInBytes": 3145728,
         "runtimeCaching": [
           {
             "handler": "CacheFirst",
