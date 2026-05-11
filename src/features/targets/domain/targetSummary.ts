@@ -1,10 +1,14 @@
-import { buildCharacterCampaignUrl, buildPlannedBannerCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
+import {
+  buildCharacterCampaignUrl,
+  buildCharacterPolishCampaignUrl,
+  buildPlannedBannerCampaignUrl,
+} from '@/features/campaigns/lib/campaignLinks';
 import type { CampaignNextAction, CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
 import { getDisplayName } from '@/lib/gameData';
 import type { WishlistCharacter } from '@/stores/wishlistStore';
-import type { Campaign, PlannedBanner } from '@/types';
+import type { Campaign, Character, PlannedBanner } from '@/types';
 
-export type TargetSummarySource = 'campaign' | 'planned-banner' | 'wishlist';
+export type TargetSummarySource = 'campaign' | 'planned-banner' | 'wishlist' | 'owned-character';
 export type TargetSummaryKind = 'pull' | 'build' | 'team';
 export type TargetSummaryStatus = 'active' | 'paused' | 'planned' | 'wishlist' | 'completed' | 'archived';
 
@@ -35,6 +39,7 @@ interface TargetSummaryInput {
   campaigns: Campaign[];
   plannedBanners?: PlannedBanner[];
   wishlist?: WishlistCharacter[];
+  characters?: Character[];
   plans?: Record<string, CampaignPlan>;
 }
 
@@ -69,6 +74,43 @@ function includesOpenCampaignForCharacter(campaigns: Campaign[], characterKey: s
       (target) => target.characterKey.toLowerCase() === normalized
     );
   });
+}
+
+function getOwnedCharacterPolishDetail(character: Character): string | null {
+  const gaps: string[] = [];
+
+  if (character.level < 80) {
+    gaps.push(`Lv. ${character.level}`);
+  }
+
+  if (!character.weapon) {
+    gaps.push('weapon missing');
+  } else if (character.weapon.level < 80) {
+    gaps.push(`weapon Lv. ${character.weapon.level}`);
+  }
+
+  const highestTalent = Math.max(
+    character.talent?.auto ?? 1,
+    character.talent?.skill ?? 1,
+    character.talent?.burst ?? 1
+  );
+  if (highestTalent < 8) {
+    gaps.push(`talent ${highestTalent}`);
+  }
+
+  const artifactCount = character.artifacts?.length ?? 0;
+  if (artifactCount < 5) {
+    gaps.push(`${artifactCount}/5 artifacts`);
+  }
+
+  if (gaps.length === 0) return null;
+  return gaps.slice(0, 2).join(' + ');
+}
+
+function getOwnedCharacterPriority(character: Character): Campaign['priority'] {
+  if (character.priority === 'main' || character.priority === 'unbuilt') return 2;
+  if (character.priority === 'secondary') return 3;
+  return 4;
 }
 
 export function campaignToTargetSummary(
@@ -150,16 +192,46 @@ export function wishlistToTargetSummary(
   };
 }
 
+export function ownedCharacterToTargetSummary(
+  character: Character,
+  campaigns: Campaign[] = []
+): TargetSummary | null {
+  if (includesOpenCampaignForCharacter(campaigns, character.key)) return null;
+
+  const polishDetail = getOwnedCharacterPolishDetail(character);
+  if (!polishDetail) return null;
+
+  return {
+    id: `owned-character:${character.key}`,
+    source: 'owned-character',
+    kind: 'build',
+    status: 'planned',
+    title: `Polish ${getDisplayName(character.key)}`,
+    subtitle: `${polishDetail} needs attention`,
+    priority: getOwnedCharacterPriority(character),
+    href: `/roster/${character.id}`,
+    actionHref: buildCharacterPolishCampaignUrl(character.key, 'comfortable'),
+    actionLabel: 'Start Target',
+    characterKeys: [character.key],
+    createdAt: character.createdAt,
+    updatedAt: character.updatedAt,
+  };
+}
+
 export function buildTargetSummaries({
   campaigns,
   plannedBanners = [],
   wishlist = [],
+  characters = [],
   plans = {},
 }: TargetSummaryInput): TargetSummary[] {
   return [
     ...campaigns.map((campaign) => campaignToTargetSummary(campaign, plans[campaign.id])),
     ...plannedBanners.map(plannedBannerToTargetSummary),
     ...wishlist.map((item) => wishlistToTargetSummary(item, campaigns)),
+    ...characters
+      .map((character) => ownedCharacterToTargetSummary(character, campaigns))
+      .filter((target): target is TargetSummary => Boolean(target)),
   ].sort(compareTargetSummaries);
 }
 

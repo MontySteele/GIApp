@@ -3,6 +3,7 @@ import {
   buildTargetSummaries,
   campaignToTargetSummary,
   compareTargetSummaries,
+  ownedCharacterToTargetSummary,
   plannedBannerToTargetSummary,
   wishlistToTargetSummary,
   type TargetSummary,
@@ -11,7 +12,7 @@ import type {
   CampaignNextAction,
   CampaignPlan,
 } from '@/features/campaigns/domain/campaignPlan';
-import type { Campaign, PlannedBanner } from '@/types';
+import type { Campaign, Character, PlannedBanner } from '@/types';
 
 function createCampaign(overrides: Partial<Campaign> = {}): Campaign {
   return {
@@ -92,6 +93,34 @@ function createPlan(overrides: Partial<CampaignPlan> = {}): CampaignPlan {
       errors: [],
     },
     nextActions: [nextAction],
+    ...overrides,
+  };
+}
+
+function createCharacter(overrides: Partial<Character> = {}): Character {
+  return {
+    id: 'character-1',
+    key: 'Furina',
+    level: 70,
+    ascension: 4,
+    constellation: 0,
+    talent: {
+      auto: 1,
+      skill: 6,
+      burst: 6,
+    },
+    weapon: {
+      key: 'FavoniusSword',
+      level: 70,
+      ascension: 4,
+      refinement: 1,
+    },
+    artifacts: [],
+    notes: '',
+    priority: 'main',
+    teamIds: [],
+    createdAt: '2026-05-01T00:00:00.000Z',
+    updatedAt: '2026-05-01T00:00:00.000Z',
     ...overrides,
   };
 }
@@ -206,6 +235,49 @@ describe('target summary domain', () => {
     });
   });
 
+  it('turns underbuilt owned characters into polish shortcuts', () => {
+    expect(ownedCharacterToTargetSummary(createCharacter())).toMatchObject({
+      id: 'owned-character:Furina',
+      source: 'owned-character',
+      kind: 'build',
+      status: 'planned',
+      title: 'Polish Furina',
+      subtitle: 'Lv. 70 + weapon Lv. 70 needs attention',
+      priority: 2,
+      actionHref: '/campaigns?type=character-polish&character=Furina&buildGoal=comfortable&pullPlan=0',
+      actionLabel: 'Start Target',
+    });
+  });
+
+  it('does not suggest owned polish shortcuts already covered by open targets or complete builds', () => {
+    expect(ownedCharacterToTargetSummary(createCharacter(), [createCampaign({
+      type: 'character-polish',
+      pullTargets: [],
+    })])).toBeNull();
+
+    expect(ownedCharacterToTargetSummary(createCharacter({
+      level: 90,
+      weapon: {
+        key: 'FavoniusSword',
+        level: 90,
+        ascension: 6,
+        refinement: 1,
+      },
+      talent: {
+        auto: 8,
+        skill: 8,
+        burst: 8,
+      },
+      artifacts: [
+        { setKey: 'GoldenTroupe', slotKey: 'flower', level: 20, rarity: 5, mainStatKey: 'hp', substats: [] },
+        { setKey: 'GoldenTroupe', slotKey: 'plume', level: 20, rarity: 5, mainStatKey: 'atk', substats: [] },
+        { setKey: 'GoldenTroupe', slotKey: 'sands', level: 20, rarity: 5, mainStatKey: 'hpPercent', substats: [] },
+        { setKey: 'GoldenTroupe', slotKey: 'goblet', level: 20, rarity: 5, mainStatKey: 'hydroDmgBonus', substats: [] },
+        { setKey: 'GoldenTroupe', slotKey: 'circlet', level: 20, rarity: 5, mainStatKey: 'critRate', substats: [] },
+      ],
+    }))).toBeNull();
+  });
+
   it('orders targets by status, priority, deadline, then title', () => {
     const targets = [
       summary({ id: 'wishlist', source: 'wishlist', status: 'wishlist', title: 'Wishlist' }),
@@ -239,6 +311,7 @@ describe('target summary domain', () => {
           addedAt: '2026-05-01T00:00:00.000Z',
         },
       ],
+      characters: [createCharacter({ key: 'RaidenShogun', priority: 'secondary' })],
       plans: {
         'campaign-1': createPlan(),
       },
@@ -247,6 +320,7 @@ describe('target summary domain', () => {
     expect(summaries.map((item) => item.source)).toEqual([
       'campaign',
       'planned-banner',
+      'owned-character',
       'wishlist',
     ]);
     expect(summaries[0]?.nextAction?.label).toBe('Farm Mora');

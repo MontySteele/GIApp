@@ -137,8 +137,9 @@ export default function DashboardPage() {
       campaigns,
       plannedBanners,
       wishlist: wishlistCharacters,
+      characters,
     });
-  }, [campaigns, plannedBannersResult, wishlistCharacters]);
+  }, [campaigns, characters, plannedBannersResult, wishlistCharacters]);
 
   if (isLoading) {
     return (
