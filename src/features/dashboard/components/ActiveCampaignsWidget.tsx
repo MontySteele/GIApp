@@ -9,11 +9,11 @@ import type { CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
 import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
 import { useAccountDataFreshness } from '@/features/sync';
 import { getDisplayName } from '@/lib/gameData';
+import { formatCampaignDate } from '@/features/campaigns/lib/campaignOrdering';
 import type { Campaign } from '@/types';
 
 function formatDeadline(campaign: Campaign): string {
-  if (!campaign.deadline) return 'No deadline';
-  return new Date(`${campaign.deadline}T00:00:00`).toLocaleDateString();
+  return formatCampaignDate(campaign.deadline);
 }
 
 function getCampaignSummary(campaign: Campaign): string {
@@ -31,6 +31,7 @@ interface ActiveCampaignsWidgetViewProps {
   isLoading: boolean;
   plans: Record<string, CampaignPlan>;
   plansPending: boolean;
+  showFreshnessCallout?: boolean;
 }
 
 export function ActiveCampaignsWidgetView({
@@ -38,6 +39,7 @@ export function ActiveCampaignsWidgetView({
   isLoading,
   plans,
   plansPending,
+  showFreshnessCallout = true,
 }: ActiveCampaignsWidgetViewProps) {
   const dataFreshness = useAccountDataFreshness();
 
@@ -85,11 +87,13 @@ export function ActiveCampaignsWidgetView({
           </div>
         ) : (
           <div className="space-y-3">
-            <AccountDataFreshnessCallout
-              freshness={dataFreshness}
-              context="campaign"
-              variant="compact"
-            />
+            {showFreshnessCallout && (
+              <AccountDataFreshnessCallout
+                freshness={dataFreshness}
+                context="campaign"
+                variant="compact"
+              />
+            )}
             {activeCampaigns.slice(0, 3).map((campaign) => {
               const Icon = campaign.type === 'team-polish'
                 ? UsersRound

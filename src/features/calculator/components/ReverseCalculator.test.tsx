@@ -482,8 +482,8 @@ describe('ReverseCalculator', () => {
     });
   });
 
-  describe('Available pulls autofill', () => {
-    it('prefills pulls from snapshot plus ledger deltas', async () => {
+  describe('Event pulls autofill', () => {
+    it('prefills event pulls from snapshot plus ledger deltas', async () => {
       await resourceSnapshotRepo.create({
         primogems: 1600,
         genesisCrystals: 0,
@@ -498,11 +498,11 @@ describe('ReverseCalculator', () => {
       render(<ReverseCalculator />);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/current pulls/i)).toHaveValue(17);
+        expect(screen.getByLabelText(/current pulls/i)).toHaveValue(16);
       });
     });
 
-    it('prefills pulls from ledger data when no snapshot exists', async () => {
+    it('prefills event pulls from ledger data when no snapshot exists', async () => {
       // Ensure clean state - clear any data from previous tests
       // Use Promise.all for parallel clearing and wait for completion
       await Promise.all([
@@ -532,7 +532,7 @@ describe('ReverseCalculator', () => {
 
       await waitFor(
         () => {
-          expect(screen.getByLabelText(/current pulls/i)).toHaveValue(4);
+          expect(screen.getByLabelText(/current pulls/i)).toHaveValue(2);
         },
         { timeout: 3000 }
       );

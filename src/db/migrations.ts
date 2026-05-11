@@ -9,9 +9,12 @@ import { db as defaultDb, type GenshinTrackerDB } from './schema';
 // This file only handles runtime app metadata initialization, not schema migrations.
 const LATEST_SCHEMA_VERSION = 5;
 const METADATA_INITIALIZED = Symbol('metadataInitialized');
+type MetadataInitializedDB = GenshinTrackerDB & { [METADATA_INITIALIZED]?: boolean };
 
 async function ensureMetadata(database: GenshinTrackerDB) {
-  if ((database as any)[METADATA_INITIALIZED]) {
+  const metadataDb = database as MetadataInitializedDB;
+
+  if (metadataDb[METADATA_INITIALIZED]) {
     return;
   }
 
@@ -26,7 +29,7 @@ async function ensureMetadata(database: GenshinTrackerDB) {
     await database.appMeta.put({ key: 'createdAt', value: new Date().toISOString() });
   }
 
-  (database as any)[METADATA_INITIALIZED] = true;
+  metadataDb[METADATA_INITIALIZED] = true;
 }
 
 export async function initializeDatabase(database: GenshinTrackerDB = defaultDb) {

@@ -278,12 +278,51 @@ describe('CampaignsPage', () => {
       expect(screen.getByText('1 active')).toBeInTheDocument();
     });
 
+    it('keeps campaign creation behind a button for returning users', async () => {
+      const user = userEvent.setup();
+      mocks.campaigns = [activeCampaign];
+
+      renderPage();
+
+      expect(screen.queryByRole('heading', { name: 'New Campaign' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /new campaign/i }));
+
+      expect(screen.getByRole('heading', { name: 'New Campaign' })).toBeInTheDocument();
+    });
+
     it('renders multiple campaigns', () => {
       mocks.campaigns = [activeCampaign, pausedCampaign];
       renderPage();
 
       expect(screen.getByText('Recruit Furina')).toBeInTheDocument();
       expect(screen.getByText('Bench Warmer')).toBeInTheDocument();
+    });
+
+    it('sorts open campaigns by blocked plan state before lower-risk campaigns', () => {
+      const blockedCampaign = {
+        ...activeCampaign,
+        id: 'campaign-blocked',
+        name: 'Blocked Materials',
+        priority: 2,
+      };
+      mocks.campaigns = [activeCampaign, blockedCampaign];
+      mocks.plans = {
+        'campaign-1': campaignPlan,
+        'campaign-blocked': {
+          ...campaignPlan,
+          campaignId: 'campaign-blocked',
+          overallPercent: 20,
+          status: 'blocked',
+        },
+      };
+
+      renderPage();
+
+      const blocked = screen.getByText('Blocked Materials');
+      const attention = screen.getByText('Recruit Furina');
+      expect(
+        blocked.compareDocumentPosition(attention) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
     });
 
     it('shows plan readiness stats', () => {

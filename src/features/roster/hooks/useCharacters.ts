@@ -6,20 +6,13 @@ import type { Character } from '@/types';
 
 export function useCharacters(query?: CharacterQuery) {
   const characters = useLiveQuery(() => characterRepo.getAll(), []);
+  const filters = query?.filters;
+  const sort = query?.sort;
 
-  const filteredCharacters = useMemo(
-    () => filterAndSortCharacters(characters ?? [], query),
-    [
-      characters,
-      query?.filters?.element,
-      query?.filters?.weaponType,
-      query?.filters?.rarity,
-      query?.filters?.priority,
-      query?.filters?.search,
-      query?.sort?.field,
-      query?.sort?.direction,
-    ]
-  );
+  const filteredCharacters = useMemo(() => {
+    const stableQuery = filters || sort ? { filters, sort } : undefined;
+    return filterAndSortCharacters(characters ?? [], stableQuery);
+  }, [characters, filters, sort]);
 
   const createCharacter = async (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>) => {
     return characterRepo.create(character);

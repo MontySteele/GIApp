@@ -426,7 +426,7 @@ describe('genshinDbService', () => {
           cacheKey: 'genshin-character:hutao',
           data: {
             data: cachedMaterials,
-            schemaVersion: 6, // Current schema version
+            schemaVersion: 7, // Current schema version
           },
           fetchedAt: new Date().toISOString(),
           expiresAt: futureDate,
@@ -647,7 +647,7 @@ describe('genshinDbService', () => {
               rarity: 5,
               ascensionMaterials: {},
             },
-            schemaVersion: 6,
+            schemaVersion: 7,
           },
           fetchedAt: new Date().toISOString(),
           expiresAt: futureDate,

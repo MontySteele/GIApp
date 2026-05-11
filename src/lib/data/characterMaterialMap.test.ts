@@ -83,6 +83,15 @@ describe('characterMaterialMap', () => {
     });
   });
 
+  describe('coverage gap helper', () => {
+    it('flags missing entries and keeps newer shared data covered', () => {
+      expect(findStaticMaterialCoverageGaps(['Linnea', 'Escoffier', 'Sethos'])).toEqual([]);
+      expect(findStaticMaterialCoverageGaps(['TotallyFakeCharacter'])).toEqual([
+        { characterKey: 'TotallyFakeCharacter', reasons: ['missing-entry'] },
+      ]);
+    });
+  });
+
   describe('coverage', () => {
     const knownCharacters = [
       'Furina', 'Neuvillette', 'KaedeharaKazuha', 'Nahida', 'RaidenShogun',

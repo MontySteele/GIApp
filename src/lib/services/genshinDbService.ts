@@ -18,7 +18,7 @@ import { getStaticCharacterMaterials } from '@/lib/data/characterMaterialMap';
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
-const CACHE_SCHEMA_VERSION = 6; // Increment when parser taxonomy changes - v6: newer specialties/common families
+const CACHE_SCHEMA_VERSION = 7; // Increment when parser taxonomy changes - v7: campaign branch cache invalidation
 
 /**
  * In-memory cache for character materials

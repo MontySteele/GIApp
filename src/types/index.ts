@@ -228,7 +228,7 @@ export interface PlannedBanner {
 export interface ExternalCache {
   id: string;
   cacheKey: string; // e.g., "enka:123456789"
-  data: any; // Raw API response
+  data: unknown; // Raw API response
   fetchedAt: string;
   expiresAt: string;
 }
@@ -236,7 +236,7 @@ export interface ExternalCache {
 // App Metadata
 export interface AppMeta {
   key: string;
-  value: any;
+  value: unknown;
 }
 
 // Gacha Rules

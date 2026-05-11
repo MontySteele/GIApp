@@ -1,10 +1,26 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import CampaignNextActionsWidget from './CampaignNextActionsWidget';
 import type { CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
 import type { Campaign } from '@/types';
+
+const mocks = vi.hoisted(() => ({
+  dataFreshness: {
+    status: 'fresh',
+    isLoading: false,
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => mocks.dataFreshness,
+}));
 
 const campaign: Campaign = {
   id: 'campaign-1',
@@ -96,6 +112,18 @@ function renderWidget(
 }
 
 describe('CampaignNextActionsWidget', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.dataFreshness = {
+      status: 'fresh',
+      isLoading: false,
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
+  });
+
   it('points users to campaign creation when there is no active focus', () => {
     renderWidget({ activeCampaigns: [], plans: {} });
 
@@ -143,11 +171,13 @@ describe('CampaignNextActionsWidget', () => {
     renderWidget();
 
     expect(screen.getByText("Today's Plan")).toBeInTheDocument();
+    expect(screen.getByText('Current focus')).toBeInTheDocument();
     expect(screen.getByText('Farm Mora')).toBeInTheDocument();
     expect(screen.getByText('120,000 still needed.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
+    expect(screen.getByText(/why this/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open materials/i })).toHaveAttribute(
       'href',
-      '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
+      '/planner/materials?campaign=campaign-1&material=Mora'
     );
     expect(screen.getByRole('link', { name: /improve furina/i })).toHaveAttribute(
       'href',
@@ -211,5 +241,89 @@ describe('CampaignNextActionsWidget', () => {
       expect.stringContaining('/pulls/calculator?')
     );
     expect(screen.getByText('Save 20 more pulls')).toBeInTheDocument();
+  });
+
+  it('uses campaign deadlines as a real tie-breaker instead of timestamp magnitude', () => {
+    const earlyCampaign = {
+      ...campaign,
+      id: 'campaign-early',
+      name: 'Early Deadline',
+      deadline: '2026-02-01',
+    };
+    const lateCampaign = {
+      ...campaign,
+      id: 'campaign-late',
+      name: 'Late Deadline',
+      deadline: '2026-12-01',
+    };
+
+    renderWidget({
+      activeCampaigns: [lateCampaign, earlyCampaign],
+      plans: {
+        'campaign-early': {
+          ...plan,
+          campaignId: 'campaign-early',
+          nextActions: [{ ...plan.nextActions[0]!, id: 'early-action', label: 'Farm early Mora' }],
+        },
+        'campaign-late': {
+          ...plan,
+          campaignId: 'campaign-late',
+          nextActions: [{ ...plan.nextActions[0]!, id: 'late-action', label: 'Farm late Mora' }],
+        },
+      },
+    });
+
+    expect(screen.getAllByText('Early Deadline').length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Farm early Mora' })).toBeInTheDocument();
+  });
+
+  it('adds account refresh to the ranked action queue when campaign data is stale', () => {
+    mocks.dataFreshness = {
+      status: 'stale',
+      isLoading: false,
+      latestImport: null,
+      daysSinceImport: 14,
+      label: 'Refresh account data',
+      detail: 'Last GOOD import was 14 days ago.',
+    };
+
+    renderWidget();
+
+    expect(screen.getByText('Refresh account data')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /refresh account data/i })).toHaveAttribute(
+      'href',
+      '/roster?import=irminsul'
+    );
+  });
+
+  it('lets the top action disappear for today when it is marked done', async () => {
+    const user = userEvent.setup();
+    renderWidget();
+
+    await user.click(screen.getByRole('button', { name: /done today/i }));
+
+    expect(screen.queryByRole('heading', { name: 'Farm Mora' })).not.toBeInTheDocument();
+    expect(screen.getByText('Improve Furina')).toBeInTheDocument();
+    expect(screen.getByText("Today's activity")).toBeInTheDocument();
+    expect(screen.getByText('Done today')).toBeInTheDocument();
+    expect(screen.getByText(/1 action left today, 1 handled/i)).toBeInTheDocument();
+  });
+
+  it('shows an all-handled state when every campaign action is handled today', async () => {
+    const user = userEvent.setup();
+    renderWidget({
+      plans: {
+        [campaign.id]: {
+          ...plan,
+          nextActions: [plan.nextActions[0]!],
+        },
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /not now/i }));
+
+    expect(screen.getByText('All campaign actions handled today.')).toBeInTheDocument();
+    expect(screen.getByText(/return tomorrow/i)).toBeInTheDocument();
+    expect(screen.getByText('Snoozed')).toBeInTheDocument();
   });
 });

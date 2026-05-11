@@ -57,7 +57,13 @@ vi.mock('../components/PurchaseLedger', () => ({
 
 // Mock domain functions
 vi.mock('../domain/resourceCalculations', () => ({
-  calculateAvailablePulls: vi.fn().mockReturnValue(50),
+  calculatePullAvailability: vi.fn().mockReturnValue({
+    eventPulls: 50,
+    standardPulls: 0,
+    allWishes: 50,
+    currencyPulls: 50,
+    starglitterPulls: 0,
+  }),
   calculateWishSpending: vi.fn().mockReturnValue({
     totalPulls: 10,
     primogemEquivalent: 1600,
@@ -83,7 +89,7 @@ describe('LedgerPage', () => {
 
       expect(screen.getByText(/current primogems/i)).toBeInTheDocument();
       expect(screen.getByText(/purchased primogems/i)).toBeInTheDocument();
-      expect(screen.getByText(/wishes available/i)).toBeInTheDocument();
+      expect(screen.getByText(/event pulls available/i)).toBeInTheDocument();
       expect(screen.getByText(/pulls since snapshot/i)).toBeInTheDocument();
     });
 

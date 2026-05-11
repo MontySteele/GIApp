@@ -1,9 +1,26 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { GACHA_TYPE_MAP, WishImport } from './WishImport';
 import { db } from '@/db/schema';
 import { wishRepo } from '../repo/wishRepo';
+import type { Campaign } from '@/types';
+
+const campaignMocks = vi.hoisted(() => ({
+  activeCampaigns: [] as Campaign[],
+}));
+
+vi.mock('@/features/campaigns/hooks/useCampaigns', () => ({
+  useCampaigns: () => ({
+    campaigns: campaignMocks.activeCampaigns,
+    activeCampaigns: campaignMocks.activeCampaigns,
+    createCampaign: vi.fn(),
+    updateCampaign: vi.fn(),
+    deleteCampaign: vi.fn(),
+    isLoading: false,
+  }),
+}));
 
 vi.mock('@/db/schema', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/db/schema')>();
@@ -14,6 +31,7 @@ vi.mock('@/db/schema', async (importOriginal) => {
 
 beforeEach(async () => {
   await db.wishRecords.clear();
+  campaignMocks.activeCampaigns = [];
   global.fetch = vi.fn(() =>
     Promise.resolve({
       ok: true,
@@ -598,7 +616,11 @@ describe('WishImport', () => {
         });
       }) as any;
 
-      render(<WishImport onImportComplete={vi.fn()} />);
+      render(
+        <MemoryRouter>
+          <WishImport onImportComplete={vi.fn()} />
+        </MemoryRouter>
+      );
 
       const urlInput = screen.getByLabelText(/wish history url/i);
       await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
@@ -611,6 +633,70 @@ describe('WishImport', () => {
         const stored = await wishRepo.getAll();
         expect(stored).toHaveLength(1);
       });
+      expect(screen.queryByRole('link', { name: /review campaign odds/i })).not.toBeInTheDocument();
+    });
+
+    it('shows pity and campaign odds impact after import', async () => {
+      const user = userEvent.setup();
+      campaignMocks.activeCampaigns = [
+        {
+          id: 'campaign-1',
+          type: 'character-acquisition',
+          name: 'Recruit Furina',
+          status: 'active',
+          priority: 1,
+          pullTargets: [
+            {
+              id: 'pull-1',
+              itemKey: 'Furina',
+              itemType: 'character',
+              bannerType: 'character',
+              desiredCopies: 1,
+              maxPullBudget: null,
+              isConfirmed: true,
+            },
+          ],
+          characterTargets: [],
+          notes: '',
+          createdAt: '',
+          updatedAt: '',
+        },
+      ];
+
+      global.fetch = vi.fn((url: string) => {
+        const gachaType = new URL(url).searchParams.get('gacha_type');
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            retcode: 0,
+            data: {
+              list: gachaType === '301'
+                ? [{ id: '1', gacha_type: '301', rank_type: '3', name: 'Cool Steel', item_type: 'Weapon', time: '2024-01-01 12:00:00' }]
+                : [],
+            },
+          }),
+        });
+      }) as any;
+
+      render(
+        <MemoryRouter>
+          <WishImport onImportComplete={vi.fn()} />
+        </MemoryRouter>
+      );
+
+      const urlInput = screen.getByLabelText(/wish history url/i);
+      await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
+
+      await user.click(screen.getByRole('button', { name: /^import$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Impact')).toBeInTheDocument();
+        expect(screen.getByText('0 → 1')).toBeInTheDocument();
+      });
+      expect(screen.getByRole('link', { name: /review campaign odds/i })).toHaveAttribute(
+        'href',
+        '/campaigns'
+      );
     });
   });
 

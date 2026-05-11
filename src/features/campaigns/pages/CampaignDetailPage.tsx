@@ -36,6 +36,7 @@ import { useCampaignPlanContext } from '../hooks/useCampaignPlanContext';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
 import { buildCampaignMaterialHref, getActionDestination } from '../lib/campaignActionLinks';
+import { formatCampaignDate } from '../lib/campaignOrdering';
 import type { Campaign, CampaignStatus } from '@/types';
 
 const ACTION_BADGE: Record<CampaignNextAction['category'], 'primary' | 'secondary' | 'success' | 'warning' | 'outline'> = {
@@ -51,11 +52,6 @@ const PLAN_STATUS_BADGE: Record<CampaignPlan['status'], 'success' | 'warning' | 
   attention: 'warning',
   blocked: 'danger',
 };
-
-function formatDate(value: string | undefined): string {
-  if (!value) return 'No deadline';
-  return new Date(`${value}T00:00:00`).toLocaleDateString();
-}
 
 function formatCount(value: number): string {
   return value.toLocaleString();
@@ -172,7 +168,7 @@ export default function CampaignDetailPage() {
               <Badge variant="outline">P{campaign.priority}</Badge>
               <span className="text-xs text-slate-500 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
-                {formatDate(campaign.deadline)}
+                {formatCampaignDate(campaign.deadline)}
               </span>
             </div>
           </div>
@@ -338,7 +334,7 @@ export default function CampaignDetailPage() {
               <CardContent>
                 {plan.pullReadiness.hasTargets ? (
                   <div className="space-y-3">
-                    <PullRow label="Available" value={formatCount(plan.pullReadiness.availablePulls)} />
+                    <PullRow label="Event available" value={formatCount(plan.pullReadiness.availablePulls)} />
                     <PullRow label="Target" value={formatCount(plan.pullReadiness.targetPulls)} />
                     <PullRow label="Remaining" value={formatCount(plan.pullReadiness.remainingPulls)} />
                     <div className="h-2 bg-slate-900 rounded-full overflow-hidden">

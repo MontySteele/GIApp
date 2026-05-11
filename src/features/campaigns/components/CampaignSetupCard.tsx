@@ -8,6 +8,7 @@ import SearchableSelect from '@/components/ui/SearchableSelect';
 import Select from '@/components/ui/Select';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import { getDisplayName } from '@/lib/gameData';
+import { formatCampaignDate } from '../lib/campaignOrdering';
 import type { Campaign, CampaignBuildGoal, CampaignCharacterTarget } from '@/types';
 
 const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
@@ -28,11 +29,6 @@ interface CampaignSetupCardProps {
   campaign: Campaign;
   ownedKeys: Set<string>;
   onSave: (updates: Partial<Omit<Campaign, 'id' | 'createdAt'>>) => Promise<void>;
-}
-
-function formatDate(value: string | undefined): string {
-  if (!value) return 'No deadline';
-  return new Date(`${value}T00:00:00`).toLocaleDateString();
 }
 
 function toPriority(value: string): Campaign['priority'] {
@@ -407,7 +403,7 @@ export default function CampaignSetupCard({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <SetupStat label="Type" value={formatCampaignType(campaign.type)} />
               <SetupStat label="Priority" value={`P${campaign.priority}`} />
-              <SetupStat label="Deadline" value={formatDate(campaign.deadline)} />
+              <SetupStat label="Deadline" value={formatCampaignDate(campaign.deadline)} />
               <SetupStat label="Pull Target" value={pullSummary} />
             </div>
             <div className="flex flex-wrap gap-2">

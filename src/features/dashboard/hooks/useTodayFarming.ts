@@ -137,7 +137,7 @@ export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarm
         return Array.from(candidates.values());
       }
       case 'team':
-      default:
+      default: {
         // Characters in at least one team
         if (teams.length === 0) return [];
         const teamCharacterKeys = new Set<string>();
@@ -149,6 +149,7 @@ export function useTodayFarming(options: UseTodayFarmingOptions = {}): TodayFarm
         return characters
           .filter((character) => teamCharacterKeys.has(character.key))
           .map((character) => ({ key: character.key, level: character.level }));
+      }
     }
   }, [activeCampaigns, characters, teams, scope]);
 

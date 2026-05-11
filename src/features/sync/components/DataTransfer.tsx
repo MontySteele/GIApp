@@ -134,30 +134,26 @@ export default function DataTransfer({ onTransferComplete }: DataTransferProps) 
   };
 
   const processImport = async (payload: SyncPayload, passphrase?: string) => {
-    try {
-      const data = await parseSyncPayload<BackupData>(payload, { passphrase });
-      const validation = validateBackup(data);
+    const data = await parseSyncPayload<BackupData>(payload, { passphrase });
+    const validation = validateBackup(data);
 
-      if (!validation.valid) {
-        throw new Error(validation.errors.join('. '));
-      }
+    if (!validation.valid) {
+      throw new Error(validation.errors.join('. '));
+    }
 
-      // Use newer_wins as default strategy for quick transfer
-      const result = await importBackup(data, 'newer_wins' as MergeStrategy);
+    // Use newer_wins as default strategy for quick transfer
+    const result = await importBackup(data, 'newer_wins' as MergeStrategy);
 
-      if (result.success) {
-        const total = Object.values(result.stats).reduce(
-          (acc, s) => acc + s.created + ('updated' in s ? s.updated : 0),
-          0
-        );
-        setSuccess(`Import successful! ${total} records processed.`);
-        setImportText('');
-        onTransferComplete?.();
-      } else {
-        throw new Error(result.errors.join('. '));
-      }
-    } catch (err) {
-      throw err;
+    if (result.success) {
+      const total = Object.values(result.stats).reduce(
+        (acc, s) => acc + s.created + ('updated' in s ? s.updated : 0),
+        0
+      );
+      setSuccess(`Import successful! ${total} records processed.`);
+      setImportText('');
+      onTransferComplete?.();
+    } else {
+      throw new Error(result.errors.join('. '));
     }
   };
 

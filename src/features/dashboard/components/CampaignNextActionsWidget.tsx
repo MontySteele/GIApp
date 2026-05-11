@@ -5,13 +5,22 @@ import {
   ClipboardList,
   Hammer,
   Package,
+  RefreshCw,
   Sparkles,
   Target,
   UserPlus,
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { useAccountDataFreshness } from '@/features/sync';
+import { useCampaignActionStates, type CampaignActionState } from '@/features/campaigns/hooks/useCampaignActionStates';
 import { getActionDestination } from '@/features/campaigns/lib/campaignActionLinks';
+import {
+  compareCampaignPriority,
+  formatCampaignDate,
+  getCampaignDeadlineTime,
+} from '@/features/campaigns/lib/campaignOrdering';
 import type {
   CampaignActionCategory,
   CampaignNextAction,
@@ -28,12 +37,26 @@ interface CampaignNextActionsWidgetProps {
   error?: string | null;
 }
 
-interface DashboardAction {
+interface CampaignDashboardAction {
+  kind: 'campaign';
   campaign: Campaign;
   plan: CampaignPlan;
   action: CampaignNextAction;
   destination: { label: string; href: string };
+  why: string;
 }
+
+interface FreshnessDashboardAction {
+  kind: 'freshness';
+  id: string;
+  label: string;
+  detail: string;
+  priority: 1 | 2 | 3;
+  destination: { label: string; href: string };
+  why: string;
+}
+
+type DashboardAction = CampaignDashboardAction | FreshnessDashboardAction;
 
 const CATEGORY_BADGE: Record<CampaignActionCategory, 'primary' | 'warning' | 'success' | 'danger' | 'outline'> = {
   pulls: 'primary',
@@ -43,13 +66,15 @@ const CATEGORY_BADGE: Record<CampaignActionCategory, 'primary' | 'warning' | 'su
   done: 'outline',
 };
 
+const FRESHNESS_BADGE = 'warning' as const;
+
 const STATUS_WEIGHT: Record<CampaignPlanStatus, number> = {
   blocked: 0,
   attention: 1,
   ready: 2,
 };
 
-function getCategoryIcon(category: CampaignActionCategory) {
+function getCategoryIcon(category: CampaignActionCategory | 'freshness') {
   switch (category) {
     case 'pulls':
       return Sparkles;
@@ -61,13 +86,30 @@ function getCategoryIcon(category: CampaignActionCategory) {
       return UserPlus;
     case 'done':
       return CheckCircle2;
+    case 'freshness':
+      return RefreshCw;
+  }
+}
+
+function getActionWhy(action: CampaignNextAction, campaign: Campaign, plan: CampaignPlan): string {
+  switch (action.category) {
+    case 'pulls':
+      return `This is the top pull blocker for ${campaign.name}: ${plan.pullReadiness.remainingPulls} pulls short.`;
+    case 'materials':
+      return `This material gap is keeping ${campaign.name} at ${plan.materialReadiness.percent}% materials.`;
+    case 'build':
+      return `This build step is one of the fastest ways to raise ${campaign.name}'s readiness.`;
+    case 'roster':
+      return `This target needs roster or wish data before the campaign plan can get more specific.`;
+    case 'done':
+      return `${campaign.name} has no current blockers, so the useful action is reviewing or completing it.`;
   }
 }
 
 function buildDashboardActions(
   activeCampaigns: Campaign[],
   plans: Record<string, CampaignPlan>
-): DashboardAction[] {
+): CampaignDashboardAction[] {
   return activeCampaigns
     .flatMap((campaign) => {
       const plan = plans[campaign.id];
@@ -80,10 +122,12 @@ function buildDashboardActions(
         };
 
         return {
+          kind: 'campaign' as const,
           campaign,
           plan,
           action,
           destination,
+          why: getActionWhy(action, campaign, plan),
         };
       });
     })
@@ -94,11 +138,32 @@ function buildDashboardActions(
       const campaignDelta = a.campaign.priority - b.campaign.priority;
       if (campaignDelta !== 0) return campaignDelta;
 
+      const deadlineDelta =
+        getCampaignDeadlineTime(a.campaign.deadline) -
+        getCampaignDeadlineTime(b.campaign.deadline);
+      if (deadlineDelta !== 0) return deadlineDelta;
+
       const statusDelta = STATUS_WEIGHT[a.plan.status] - STATUS_WEIGHT[b.plan.status];
       if (statusDelta !== 0) return statusDelta;
 
       return a.plan.overallPercent - b.plan.overallPercent;
     });
+}
+
+function getFocusedCampaign(
+  activeCampaigns: Campaign[],
+  plans: Record<string, CampaignPlan>,
+  focusAction: DashboardAction | undefined
+): Campaign | undefined {
+  if (focusAction?.kind === 'campaign') return focusAction.campaign;
+
+  return [...activeCampaigns].sort((a, b) => {
+    const statusDelta =
+      (plans[a.id] ? STATUS_WEIGHT[plans[a.id]!.status] : 3) -
+      (plans[b.id] ? STATUS_WEIGHT[plans[b.id]!.status] : 3);
+    if (statusDelta !== 0) return statusDelta;
+    return compareCampaignPriority(a, b);
+  })[0];
 }
 
 export default function CampaignNextActionsWidget({
@@ -108,8 +173,34 @@ export default function CampaignNextActionsWidget({
   plansPending,
   error,
 }: CampaignNextActionsWidgetProps) {
-  const actions = buildDashboardActions(activeCampaigns, plans);
+  const dataFreshness = useAccountDataFreshness();
+  const { todayActivities, getActionState, setActionState } = useCampaignActionStates();
+  const campaignActions = buildDashboardActions(activeCampaigns, plans);
+  const freshnessAction: FreshnessDashboardAction | null =
+    activeCampaigns.length > 0 && !dataFreshness.isLoading && dataFreshness.status !== 'fresh'
+      ? {
+          kind: 'freshness',
+          id: 'account-data-refresh',
+          label: dataFreshness.label,
+          detail: dataFreshness.detail,
+          priority: dataFreshness.status === 'missing' ? 1 : 2,
+          destination: {
+            label: dataFreshness.status === 'missing' ? 'Import Data' : 'Refresh Import',
+            href: '/roster?import=irminsul',
+          },
+          why: 'Campaign plans depend on current roster, artifact, weapon, material, and wish data.',
+        }
+      : null;
+  const allActions = freshnessAction
+    ? [...campaignActions, freshnessAction].sort(
+        (a, b) => getDashboardActionPriority(a) - getDashboardActionPriority(b)
+      )
+    : campaignActions;
+  const actions = allActions.filter((action) => !getActionState(getActionKey(action)));
+  const handledActionCount = allActions.length - actions.length;
   const [focusAction, ...secondaryActions] = actions;
+  const focusedCampaign = getFocusedCampaign(activeCampaigns, plans, focusAction);
+  const focusedPlan = focusedCampaign ? plans[focusedCampaign.id] : undefined;
 
   if (isLoading) {
     return (
@@ -168,13 +259,46 @@ export default function CampaignNextActionsWidget({
           </div>
         ) : focusAction ? (
           <div className="space-y-3">
-            <ActionCard item={focusAction} prominent />
+            {focusedCampaign && (
+              <Link
+                to={`/campaigns/${focusedCampaign.id}`}
+                className="flex flex-col gap-3 rounded-lg border border-primary-900/50 bg-slate-950/50 p-3 transition-colors hover:border-primary-700/70 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span className="min-w-0">
+                  <span className="mb-1 flex flex-wrap items-center gap-2">
+                    <Badge variant="primary">Current focus</Badge>
+                    {focusedPlan && (
+                      <Badge variant={focusedPlan.status === 'ready' ? 'success' : focusedPlan.status === 'attention' ? 'warning' : 'danger'}>
+                        {focusedPlan.overallPercent}% ready
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="block truncate text-sm font-semibold text-slate-100">
+                    {focusedCampaign.name}
+                  </span>
+                  <span className="block truncate text-xs text-slate-500">
+                    P{focusedCampaign.priority}
+                    {focusedCampaign.deadline ? `, deadline ${formatCampaignDate(focusedCampaign.deadline)}` : ', no deadline'}
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary-300">
+                  Open campaign
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </Link>
+            )}
+            <ActionCard
+              item={focusAction}
+              prominent
+              onSetState={(state) => setActionState(state, getActionActivityInput(focusAction))}
+            />
             {secondaryActions.slice(0, 2).map((item) => (
-              <ActionCard key={`${item.campaign.id}-${item.action.id}`} item={item} />
+              <ActionCard key={getActionKey(item)} item={item} />
             ))}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3 text-xs text-slate-500">
               <span>
-                Based on {activeCampaigns.length} active campaign{activeCampaigns.length === 1 ? '' : 's'}.
+                {actions.length} action{actions.length === 1 ? '' : 's'} left today
+                {handledActionCount > 0 && `, ${handledActionCount} handled`}.
               </span>
               {actions.length > 3 && (
                 <Link to="/campaigns" className="text-primary-400 hover:text-primary-300">
@@ -182,13 +306,23 @@ export default function CampaignNextActionsWidget({
                 </Link>
               )}
             </div>
+            {todayActivities.length > 0 && (
+              <ActivityLog activities={todayActivities.slice(0, 3)} />
+            )}
           </div>
         ) : (
           <div className="rounded-lg bg-slate-900 p-3">
-            <p className="text-sm font-medium text-slate-200">Campaigns are ready for review.</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Open your active campaigns and mark completed goals when you are happy with them.
+            <p className="text-sm font-medium text-slate-200">
+              {allActions.length > 0 ? 'All campaign actions handled today.' : 'Campaigns are ready for review.'}
             </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {allActions.length > 0
+                ? 'Completed and snoozed actions return tomorrow.'
+                : 'Open your active campaigns and mark completed goals when you are happy with them.'}
+            </p>
+            {todayActivities.length > 0 && (
+              <ActivityLog activities={todayActivities.slice(0, 3)} />
+            )}
           </div>
         )}
       </CardContent>
@@ -196,23 +330,86 @@ export default function CampaignNextActionsWidget({
   );
 }
 
-function ActionCard({ item, prominent = false }: { item: DashboardAction; prominent?: boolean }) {
-  const Icon = getCategoryIcon(item.action.category);
+function getActionKey(item: DashboardAction): string {
+  if (item.kind === 'freshness') return item.id;
+  return `${item.campaign.id}-${item.action.id}`;
+}
+
+function getDashboardActionPriority(item: DashboardAction): number {
+  return item.kind === 'freshness' ? item.priority : item.action.priority;
+}
+
+function getActionCategory(item: DashboardAction): CampaignActionCategory | 'freshness' {
+  return item.kind === 'freshness' ? 'freshness' : item.action.category;
+}
+
+function getActionBadge(item: DashboardAction): 'primary' | 'warning' | 'success' | 'danger' | 'outline' {
+  if (item.kind === 'freshness') return FRESHNESS_BADGE;
+  return CATEGORY_BADGE[item.action.category];
+}
+
+function getActionLabel(item: DashboardAction): string {
+  return item.kind === 'freshness' ? item.label : item.action.label;
+}
+
+function getActionDetail(item: DashboardAction): string {
+  return item.kind === 'freshness' ? item.detail : item.action.detail;
+}
+
+function getActionCampaignName(item: DashboardAction): string {
+  return item.kind === 'freshness' ? 'Account data' : item.campaign.name;
+}
+
+function getActionActivityInput(item: DashboardAction) {
+  return {
+    actionKey: getActionKey(item),
+    campaignId: item.kind === 'freshness' ? null : item.campaign.id,
+    actionId: item.kind === 'freshness' ? item.id : item.action.id,
+    actionLabel: getActionLabel(item),
+  };
+}
+
+function getStateLabel(state: CampaignActionState): string {
+  if (state === 'done') return 'Done today';
+  if (state === 'skipped') return 'Skipped';
+  return 'Snoozed';
+}
+
+function ActionCard({
+  item,
+  prominent = false,
+  onSetState,
+}: {
+  item: DashboardAction;
+  prominent?: boolean;
+  onSetState?: (state: CampaignActionState) => void;
+}) {
+  const category = getActionCategory(item);
+  const Icon = getCategoryIcon(category);
+  const label = getActionLabel(item);
+  const detail = getActionDetail(item);
+  const badge = getActionBadge(item);
+  const campaignName = getActionCampaignName(item);
 
   if (prominent) {
     return (
       <div className="flex flex-col gap-4 rounded-lg bg-slate-900 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant={CATEGORY_BADGE[item.action.category]}>{item.action.category}</Badge>
-            <span className="text-xs text-slate-500">{item.campaign.name}</span>
-            <span className="text-xs text-slate-600">{item.plan.overallPercent}% ready</span>
+            <Badge variant={badge}>{category === 'freshness' ? 'refresh' : category}</Badge>
+            <span className="text-xs text-slate-500">{campaignName}</span>
+            {item.kind === 'campaign' && (
+              <span className="text-xs text-slate-600">{item.plan.overallPercent}% ready</span>
+            )}
           </div>
           <div className="flex items-start gap-3">
             <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-400" />
             <div className="min-w-0">
-              <h4 className="text-base font-semibold text-slate-100">{item.action.label}</h4>
-              <p className="mt-1 text-sm text-slate-400">{item.action.detail}</p>
+              <h4 className="text-base font-semibold text-slate-100">{label}</h4>
+              <p className="mt-1 text-sm text-slate-400">{detail}</p>
+              <p className="mt-2 text-xs text-slate-500">
+                <span className="font-medium text-slate-400">Why this?</span> {item.why}
+              </p>
             </div>
           </div>
         </div>
@@ -223,6 +420,16 @@ function ActionCard({ item, prominent = false }: { item: DashboardAction; promin
           {item.destination.label}
           <ArrowRight className="h-4 w-4" />
         </Link>
+        {onSetState && (
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <Button size="sm" variant="secondary" onClick={() => onSetState('done')}>
+              Done Today
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onSetState('snoozed')}>
+              Not Now
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -235,14 +442,34 @@ function ActionCard({ item, prominent = false }: { item: DashboardAction; promin
       <div className="flex min-w-0 items-center gap-3">
         <Icon className="h-4 w-4 flex-shrink-0 text-slate-400" />
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-slate-200">{item.action.label}</div>
-          <div className="truncate text-xs text-slate-500">{item.campaign.name}</div>
+          <div className="truncate text-sm font-medium text-slate-200">{label}</div>
+          <div className="truncate text-xs text-slate-500">{campaignName} - {item.why}</div>
         </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-2">
-        <Badge variant={CATEGORY_BADGE[item.action.category]}>{item.action.category}</Badge>
+        <Badge variant={badge}>{category === 'freshness' ? 'refresh' : category}</Badge>
         <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
       </div>
     </Link>
+  );
+}
+
+function ActivityLog({ activities }: { activities: Array<{ state: CampaignActionState; actionLabel: string }> }) {
+  return (
+    <div className="rounded-lg bg-slate-950/50 p-3">
+      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+        Today&apos;s activity
+      </div>
+      <div className="space-y-1">
+        {activities.map((activity, index) => (
+          <div key={`${activity.actionLabel}-${index}`} className="flex items-center justify-between gap-2 text-xs">
+            <span className="truncate text-slate-400">{activity.actionLabel}</span>
+            <Badge variant={activity.state === 'done' ? 'success' : activity.state === 'skipped' ? 'secondary' : 'warning'}>
+              {getStateLabel(activity.state)}
+            </Badge>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

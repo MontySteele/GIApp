@@ -16,9 +16,18 @@ export async function clearAllCharacters() {
   console.log('Clear all characters - not implemented yet');
 }
 
+declare global {
+  interface Window {
+    devTools?: {
+      seedSampleCharacters: typeof seedSampleCharacters;
+      clearAllCharacters: typeof clearAllCharacters;
+    };
+  }
+}
+
 // Expose to window for easy console access
 if (typeof window !== 'undefined') {
-  (window as any).devTools = {
+  window.devTools = {
     seedSampleCharacters,
     clearAllCharacters,
   };

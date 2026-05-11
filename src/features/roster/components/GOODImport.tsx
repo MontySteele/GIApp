@@ -45,10 +45,10 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
 
     try {
       // Parse JSON
-      let data: any;
+      let data: unknown;
       try {
         data = JSON.parse(jsonText);
-      } catch (err) {
+      } catch {
         throw new Error('Invalid JSON format');
       }
 

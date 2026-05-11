@@ -108,6 +108,16 @@ const moraRequirement: MaterialRequirement = {
   deficit: 800,
 };
 
+const talentRequirement: MaterialRequirement = {
+  key: 'GuideToOrder',
+  name: 'Guide to Order',
+  category: 'talent',
+  required: 9,
+  owned: 2,
+  deficit: 7,
+  tier: 2,
+};
+
 function createMaterialSummary(materials: MaterialRequirement[]): AggregatedMaterialSummary {
   return {
     characterSummaries: [],
@@ -256,11 +266,42 @@ describe('MaterialsTab campaign context', () => {
     );
     expect(screen.getByRole('link', { name: 'Priority Materials' })).toHaveAttribute(
       'href',
-      '/planner/materials'
+      '/planner/materials?scope=priority'
     );
 
     const deficitText = screen.getByText('Need 800 more');
     expect(closestHighlightedRow(deficitText)).not.toBeNull();
+  });
+
+  it('defaults materials to the active campaign when no campaign is selected', () => {
+    const campaign = createCampaign();
+    const summary = createMaterialSummary([talentRequirement]);
+    mocks.campaigns = [campaign];
+    mocks.campaignPlans = {
+      'campaign-1': createCampaignPlan(summary),
+    };
+
+    renderMaterialsTab('/planner/materials');
+
+    expect(screen.getByText('Campaign material plan for Recruit Furina')).toBeInTheDocument();
+    expect(screen.getByText('Active campaign')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Farm Today For Campaign' })).toBeInTheDocument();
+    expect(screen.getByText('Talent deficit')).toBeInTheDocument();
+  });
+
+  it('allows priority roster materials as an explicit fallback when an active campaign exists', () => {
+    const campaign = createCampaign();
+    mocks.campaigns = [campaign];
+    mocks.multiSummary = createMaterialSummary([moraRequirement]);
+
+    renderMaterialsTab('/planner/materials?scope=priority');
+
+    expect(screen.getByText('Priority roster')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Priority Deficits' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /active campaign/i })).toHaveAttribute(
+      'href',
+      '/planner/materials?campaign=campaign-1'
+    );
   });
 
   it('shows stale import context before campaign material recommendations', () => {

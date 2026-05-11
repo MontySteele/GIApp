@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
 import DashboardPage from './DashboardPage';
 
 // Mock child widgets that have their own async hooks
@@ -76,13 +77,23 @@ vi.mock('@/features/weapons/hooks/useWeapons', () => ({
   }),
 }));
 
-vi.mock('@/features/ledger/hooks/useResources', () => ({
-  useResources: () => ({
-    primogems: 15000,
-    intertwined: 25,
-    totalPulls: 118,
+vi.mock('@/features/campaigns/hooks/useCampaigns', () => ({
+  useCampaigns: () => ({
+    campaigns: [],
+    activeCampaigns: [],
+    createCampaign: vi.fn(),
+    updateCampaign: vi.fn(),
+    deleteCampaign: vi.fn(),
     isLoading: false,
   }),
+}));
+
+vi.mock('dexie-react-hooks', () => ({
+  useLiveQuery: vi.fn(),
+}));
+
+vi.mock('@/lib/services/resourceService', () => ({
+  getAvailablePullsFromTracker: vi.fn(),
 }));
 
 vi.mock('@/features/notes/hooks/useGoals', () => ({
@@ -115,6 +126,26 @@ const mockLocalStorage = {
 };
 Object.defineProperty(window, 'localStorage', { value: mockLocalStorage });
 
+const mockAvailablePulls = {
+  availablePulls: 118,
+  pullAvailability: {
+    eventPulls: 118,
+    standardPulls: 0,
+    allWishes: 118,
+    currencyPulls: 93,
+    starglitterPulls: 0,
+  },
+  resources: {
+    primogems: 15000,
+    genesisCrystals: 0,
+    intertwined: 25,
+    acquaint: 0,
+    starglitter: 0,
+  },
+  lastUpdated: '2026-05-03T12:56:42.000Z',
+  hasSnapshot: true,
+};
+
 const renderPage = () =>
   render(
     <MemoryRouter>
@@ -125,6 +156,7 @@ const renderPage = () =>
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useLiveQuery).mockReturnValue(mockAvailablePulls);
     mockLocalStorage.getItem.mockReturnValue(null);
   });
 
@@ -142,8 +174,8 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Characters')).toBeInTheDocument();
       expect(screen.getByText('Artifacts')).toBeInTheDocument();
       expect(screen.getByText('Weapons')).toBeInTheDocument();
-      // Available Pulls appears in both stat card and primogem card
-      expect(screen.getAllByText('Available Pulls').length).toBeGreaterThanOrEqual(1);
+      // Event Pulls appears in both stat card and primogem card
+      expect(screen.getAllByText('Event Pulls').length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders the resin status card', () => {
@@ -208,10 +240,10 @@ describe('DashboardPage', () => {
       expect(screen.getByText('15.0K')).toBeInTheDocument();
     });
 
-    it('displays fate count', () => {
+    it('displays intertwined fate count', () => {
       renderPage();
 
-      expect(screen.getByText(/\+ 25 fates/i)).toBeInTheDocument();
+      expect(screen.getByText(/\+ 25 intertwined/i)).toBeInTheDocument();
     });
 
     it('displays available pulls', () => {
@@ -235,8 +267,8 @@ describe('DashboardPage', () => {
       const weaponLink = screen.getByText('Weapons').closest('a');
       expect(weaponLink).toHaveAttribute('href', '/roster/weapons');
 
-      // Available Pulls appears multiple times - get the one in the stat cards section
-      const pullsLinks = screen.getAllByText('Available Pulls');
+      // Event Pulls appears multiple times - get the one in the stat cards section
+      const pullsLinks = screen.getAllByText('Event Pulls');
       const statCardPullsLink = pullsLinks[0].closest('a');
       expect(statCardPullsLink).toHaveAttribute('href', '/pulls');
     });
@@ -367,13 +399,29 @@ describe('DashboardPage empty state', () => {
       }),
     }));
 
-    vi.doMock('@/features/ledger/hooks/useResources', () => ({
-      useResources: () => ({
-        primogems: 0,
-        intertwined: 0,
-        totalPulls: 0,
-        isLoading: false,
+    vi.doMock('dexie-react-hooks', () => ({
+      useLiveQuery: vi.fn().mockReturnValue({
+        availablePulls: 0,
+        pullAvailability: {
+          eventPulls: 0,
+          standardPulls: 0,
+          allWishes: 0,
+          currencyPulls: 0,
+          starglitterPulls: 0,
+        },
+        resources: {
+          primogems: 0,
+          genesisCrystals: 0,
+          intertwined: 0,
+          acquaint: 0,
+          starglitter: 0,
+        },
+        lastUpdated: null,
+        hasSnapshot: false,
       }),
+    }));
+    vi.doMock('@/lib/services/resourceService', () => ({
+      getAvailablePullsFromTracker: vi.fn(),
     }));
     vi.doMock('@/features/notes/hooks/useGoals', () => ({
       useGoals: () => ({ goals: [], allGoals: [], createGoal: vi.fn(), updateGoal: vi.fn(), deleteGoal: vi.fn(), isLoading: false }),

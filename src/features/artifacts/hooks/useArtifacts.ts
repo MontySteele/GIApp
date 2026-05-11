@@ -38,6 +38,7 @@ export interface UseArtifactsOptions {
 }
 
 export function useArtifacts(options: UseArtifactsOptions = {}) {
+  const { filters, sort } = options;
   // Use Dexie live query for reactive updates when the database changes
   const artifacts = useLiveQuery(() => artifactRepo.getAll(), []);
   const isLoading = artifacts === undefined;
@@ -61,7 +62,6 @@ export function useArtifacts(options: UseArtifactsOptions = {}) {
 
   // Apply filters
   const filteredArtifacts = useMemo(() => {
-    const { filters } = options;
     if (!filters) return scoredArtifacts;
 
     return scoredArtifacts.filter((artifact) => {
@@ -78,11 +78,10 @@ export function useArtifacts(options: UseArtifactsOptions = {}) {
       if (filters.noBuildDemand && !artifact.score.qualityFilter?.isUseless) return false;
       return true;
     });
-  }, [scoredArtifacts, options.filters]);
+  }, [scoredArtifacts, filters]);
 
   // Apply sorting
   const sortedArtifacts = useMemo(() => {
-    const { sort } = options;
     if (!sort) return filteredArtifacts;
 
     const sorted = [...filteredArtifacts].sort((a, b) => {
@@ -108,7 +107,7 @@ export function useArtifacts(options: UseArtifactsOptions = {}) {
     });
 
     return sorted;
-  }, [filteredArtifacts, options.sort]);
+  }, [filteredArtifacts, sort]);
 
   // Stats
   const stats = useMemo(() => {

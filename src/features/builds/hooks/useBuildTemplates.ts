@@ -85,22 +85,13 @@ function filterAndSortTemplates(
 
 export function useBuildTemplates(query?: BuildTemplateQuery) {
   const templates = useLiveQuery(() => buildTemplateRepo.getAll(), []);
+  const filters = query?.filters;
+  const sort = query?.sort;
 
-  const filteredTemplates = useMemo(
-    () => filterAndSortTemplates(templates ?? [], query),
-    [
-      templates,
-      query?.filters?.characterKey,
-      query?.filters?.role,
-      query?.filters?.difficulty,
-      query?.filters?.budget,
-      query?.filters?.isOfficial,
-      query?.filters?.tags,
-      query?.filters?.search,
-      query?.sort?.field,
-      query?.sort?.direction,
-    ]
-  );
+  const filteredTemplates = useMemo(() => {
+    const stableQuery = filters || sort ? { filters, sort } : undefined;
+    return filterAndSortTemplates(templates ?? [], stableQuery);
+  }, [filters, sort, templates]);
 
   const createTemplate = useCallback(
     async (template: Omit<BuildTemplate, 'id' | 'createdAt' | 'updatedAt'>) => {
