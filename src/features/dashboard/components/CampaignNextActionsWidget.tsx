@@ -15,17 +15,23 @@ import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useAccountDataFreshness } from '@/features/sync';
 import { useCampaignActionStates, type CampaignActionState } from '@/features/campaigns/hooks/useCampaignActionStates';
-import { getActionDestination } from '@/features/campaigns/lib/campaignActionLinks';
+import { formatCampaignDate } from '@/features/campaigns/lib/campaignOrdering';
 import {
-  compareCampaignPriority,
-  formatCampaignDate,
-  getCampaignDeadlineTime,
-} from '@/features/campaigns/lib/campaignOrdering';
+  buildCampaignDashboardActions,
+  buildFreshnessDashboardAction,
+  getActionActivityInput,
+  getActionCampaignName,
+  getActionCategory,
+  getActionDetail,
+  getActionKey,
+  getActionLabel,
+  getFocusedCampaign,
+  getRankedDashboardActions,
+  type DashboardAction,
+} from '@/features/campaigns/domain/campaignDashboardActions';
 import type {
   CampaignActionCategory,
-  CampaignNextAction,
   CampaignPlan,
-  CampaignPlanStatus,
 } from '@/features/campaigns/domain/campaignPlan';
 import type { Campaign } from '@/types';
 
@@ -37,27 +43,6 @@ interface CampaignNextActionsWidgetProps {
   error?: string | null;
 }
 
-interface CampaignDashboardAction {
-  kind: 'campaign';
-  campaign: Campaign;
-  plan: CampaignPlan;
-  action: CampaignNextAction;
-  destination: { label: string; href: string };
-  why: string;
-}
-
-interface FreshnessDashboardAction {
-  kind: 'freshness';
-  id: string;
-  label: string;
-  detail: string;
-  priority: 1 | 2 | 3;
-  destination: { label: string; href: string };
-  why: string;
-}
-
-type DashboardAction = CampaignDashboardAction | FreshnessDashboardAction;
-
 const CATEGORY_BADGE: Record<CampaignActionCategory, 'primary' | 'warning' | 'success' | 'danger' | 'outline'> = {
   pulls: 'primary',
   materials: 'warning',
@@ -67,12 +52,6 @@ const CATEGORY_BADGE: Record<CampaignActionCategory, 'primary' | 'warning' | 'su
 };
 
 const FRESHNESS_BADGE = 'warning' as const;
-
-const STATUS_WEIGHT: Record<CampaignPlanStatus, number> = {
-  blocked: 0,
-  attention: 1,
-  ready: 2,
-};
 
 function getCategoryIcon(category: CampaignActionCategory | 'freshness') {
   switch (category) {
@@ -91,81 +70,6 @@ function getCategoryIcon(category: CampaignActionCategory | 'freshness') {
   }
 }
 
-function getActionWhy(action: CampaignNextAction, campaign: Campaign, plan: CampaignPlan): string {
-  switch (action.category) {
-    case 'pulls':
-      return `This is the top pull blocker for ${campaign.name}: ${plan.pullReadiness.remainingPulls} pulls short.`;
-    case 'materials':
-      return `This material gap is keeping ${campaign.name} at ${plan.materialReadiness.percent}% materials.`;
-    case 'build':
-      return `This build step is one of the fastest ways to raise ${campaign.name}'s readiness.`;
-    case 'roster':
-      return `This target needs roster or wish data before the campaign plan can get more specific.`;
-    case 'done':
-      return `${campaign.name} has no current blockers, so the useful action is reviewing or completing it.`;
-  }
-}
-
-function buildDashboardActions(
-  activeCampaigns: Campaign[],
-  plans: Record<string, CampaignPlan>
-): CampaignDashboardAction[] {
-  return activeCampaigns
-    .flatMap((campaign) => {
-      const plan = plans[campaign.id];
-      if (!plan) return [];
-
-      return plan.nextActions.slice(0, 2).map((action) => {
-        const destination = getActionDestination(action, campaign, plan) ?? {
-          label: 'Review',
-          href: `/campaigns/${campaign.id}`,
-        };
-
-        return {
-          kind: 'campaign' as const,
-          campaign,
-          plan,
-          action,
-          destination,
-          why: getActionWhy(action, campaign, plan),
-        };
-      });
-    })
-    .sort((a, b) => {
-      const actionDelta = a.action.priority - b.action.priority;
-      if (actionDelta !== 0) return actionDelta;
-
-      const campaignDelta = a.campaign.priority - b.campaign.priority;
-      if (campaignDelta !== 0) return campaignDelta;
-
-      const deadlineDelta =
-        getCampaignDeadlineTime(a.campaign.deadline) -
-        getCampaignDeadlineTime(b.campaign.deadline);
-      if (deadlineDelta !== 0) return deadlineDelta;
-
-      const statusDelta = STATUS_WEIGHT[a.plan.status] - STATUS_WEIGHT[b.plan.status];
-      if (statusDelta !== 0) return statusDelta;
-
-      return a.plan.overallPercent - b.plan.overallPercent;
-    });
-}
-
-function getFocusedCampaign(
-  activeCampaigns: Campaign[],
-  plans: Record<string, CampaignPlan>,
-  focusAction: DashboardAction | undefined
-): Campaign | undefined {
-  if (focusAction?.kind === 'campaign') return focusAction.campaign;
-
-  return [...activeCampaigns].sort((a, b) => {
-    const statusDelta =
-      (plans[a.id] ? STATUS_WEIGHT[plans[a.id]!.status] : 3) -
-      (plans[b.id] ? STATUS_WEIGHT[plans[b.id]!.status] : 3);
-    if (statusDelta !== 0) return statusDelta;
-    return compareCampaignPriority(a, b);
-  })[0];
-}
-
 export default function CampaignNextActionsWidget({
   activeCampaigns,
   isLoading,
@@ -175,27 +79,9 @@ export default function CampaignNextActionsWidget({
 }: CampaignNextActionsWidgetProps) {
   const dataFreshness = useAccountDataFreshness();
   const { todayActivities, getActionState, setActionState } = useCampaignActionStates();
-  const campaignActions = buildDashboardActions(activeCampaigns, plans);
-  const freshnessAction: FreshnessDashboardAction | null =
-    activeCampaigns.length > 0 && !dataFreshness.isLoading && dataFreshness.status !== 'fresh'
-      ? {
-          kind: 'freshness',
-          id: 'account-data-refresh',
-          label: dataFreshness.label,
-          detail: dataFreshness.detail,
-          priority: dataFreshness.status === 'missing' ? 1 : 2,
-          destination: {
-            label: dataFreshness.status === 'missing' ? 'Import Data' : 'Refresh Import',
-            href: '/roster?import=irminsul',
-          },
-          why: 'Campaign plans depend on current roster, artifact, weapon, material, and wish data.',
-        }
-      : null;
-  const allActions = freshnessAction
-    ? [...campaignActions, freshnessAction].sort(
-        (a, b) => getDashboardActionPriority(a) - getDashboardActionPriority(b)
-      )
-    : campaignActions;
+  const campaignActions = buildCampaignDashboardActions(activeCampaigns, plans);
+  const freshnessAction = buildFreshnessDashboardAction(activeCampaigns.length, dataFreshness);
+  const allActions = getRankedDashboardActions(campaignActions, freshnessAction);
   const actions = allActions.filter((action) => !getActionState(getActionKey(action)));
   const handledActionCount = allActions.length - actions.length;
   const [focusAction, ...secondaryActions] = actions;
@@ -330,49 +216,23 @@ export default function CampaignNextActionsWidget({
   );
 }
 
-function getActionKey(item: DashboardAction): string {
-  if (item.kind === 'freshness') return item.id;
-  return `${item.campaign.id}-${item.action.id}`;
-}
-
-function getDashboardActionPriority(item: DashboardAction): number {
-  return item.kind === 'freshness' ? item.priority : item.action.priority;
-}
-
-function getActionCategory(item: DashboardAction): CampaignActionCategory | 'freshness' {
-  return item.kind === 'freshness' ? 'freshness' : item.action.category;
-}
-
 function getActionBadge(item: DashboardAction): 'primary' | 'warning' | 'success' | 'danger' | 'outline' {
   if (item.kind === 'freshness') return FRESHNESS_BADGE;
   return CATEGORY_BADGE[item.action.category];
 }
 
-function getActionLabel(item: DashboardAction): string {
-  return item.kind === 'freshness' ? item.label : item.action.label;
-}
-
-function getActionDetail(item: DashboardAction): string {
-  return item.kind === 'freshness' ? item.detail : item.action.detail;
-}
-
-function getActionCampaignName(item: DashboardAction): string {
-  return item.kind === 'freshness' ? 'Account data' : item.campaign.name;
-}
-
-function getActionActivityInput(item: DashboardAction) {
-  return {
-    actionKey: getActionKey(item),
-    campaignId: item.kind === 'freshness' ? null : item.campaign.id,
-    actionId: item.kind === 'freshness' ? item.id : item.action.id,
-    actionLabel: getActionLabel(item),
-  };
-}
-
 function getStateLabel(state: CampaignActionState): string {
   if (state === 'done') return 'Done today';
+  if (state === 'started') return 'Started';
   if (state === 'skipped') return 'Skipped';
   return 'Snoozed';
+}
+
+function getStateBadge(state: CampaignActionState): 'primary' | 'secondary' | 'success' | 'warning' {
+  if (state === 'done') return 'success';
+  if (state === 'started') return 'primary';
+  if (state === 'skipped') return 'secondary';
+  return 'warning';
 }
 
 function ActionCard({
@@ -464,7 +324,7 @@ function ActivityLog({ activities }: { activities: Array<{ state: CampaignAction
         {activities.map((activity, index) => (
           <div key={`${activity.actionLabel}-${index}`} className="flex items-center justify-between gap-2 text-xs">
             <span className="truncate text-slate-400">{activity.actionLabel}</span>
-            <Badge variant={activity.state === 'done' ? 'success' : activity.state === 'skipped' ? 'secondary' : 'warning'}>
+            <Badge variant={getStateBadge(activity.state)}>
               {getStateLabel(activity.state)}
             </Badge>
           </div>

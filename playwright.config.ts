@@ -61,9 +61,6 @@ export default defineConfig({
             '--disable-dev-shm-usage',
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            // Process isolation flags for containers
-            '--single-process',
-            '--no-zygote',
             // Disable unnecessary features
             '--disable-extensions',
             '--disable-background-networking',
