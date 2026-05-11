@@ -191,7 +191,9 @@ export default function CampaignNextActionsWidget({
         }
       : null;
   const allActions = freshnessAction
-    ? [...campaignActions, freshnessAction].sort((a, b) => a.priority - b.priority)
+    ? [...campaignActions, freshnessAction].sort(
+        (a, b) => getDashboardActionPriority(a) - getDashboardActionPriority(b)
+      )
     : campaignActions;
   const actions = allActions.filter((action) => !getActionState(getActionKey(action)));
   const handledActionCount = allActions.length - actions.length;
@@ -330,6 +332,10 @@ export default function CampaignNextActionsWidget({
 function getActionKey(item: DashboardAction): string {
   if (item.kind === 'freshness') return item.id;
   return `${item.campaign.id}-${item.action.id}`;
+}
+
+function getDashboardActionPriority(item: DashboardAction): number {
+  return item.kind === 'freshness' ? item.priority : item.action.priority;
 }
 
 function getActionCategory(item: DashboardAction): CampaignActionCategory | 'freshness' {

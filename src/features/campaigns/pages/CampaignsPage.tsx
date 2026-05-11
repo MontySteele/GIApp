@@ -200,9 +200,11 @@ function sortCampaignsForControlCenter(
     const statusDelta = STATUS_SORT_WEIGHT[a.status] - STATUS_SORT_WEIGHT[b.status];
     if (statusDelta !== 0) return statusDelta;
 
+    const aPlan = plans[a.id];
+    const bPlan = plans[b.id];
     const planDelta =
-      (plans[a.id] ? PLAN_SORT_WEIGHT[plans[a.id].status] : 3) -
-      (plans[b.id] ? PLAN_SORT_WEIGHT[plans[b.id].status] : 3);
+      (aPlan ? PLAN_SORT_WEIGHT[aPlan.status] : 3) -
+      (bPlan ? PLAN_SORT_WEIGHT[bPlan.status] : 3);
     if (planDelta !== 0) return planDelta;
 
     const priorityDelta = a.priority - b.priority;

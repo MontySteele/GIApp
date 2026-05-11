@@ -398,6 +398,8 @@ describe('CampaignDetailPage', () => {
         campaign: 'campaign-1',
         name: 'Recruit Furina',
         pulls: '100',
+        targetPulls: '120',
+        shortfall: '20',
       });
       params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 1 }));
       expect(screen.getAllByRole('link', { name: /open calculator/i })[0]).toHaveAttribute(
