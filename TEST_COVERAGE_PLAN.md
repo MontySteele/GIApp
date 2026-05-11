@@ -12,13 +12,16 @@
 
 ### Current Metrics
 
-Last verified after the goal-first UX branch:
+Last verified after the goal-first UX hygiene pass:
 
-- **Test files:** 147 passing
-- **Tests:** 2055 passing
+- **Test files:** 148 passing
+- **Tests:** 2060 passing
+- **Coverage baseline:** 72.37% statements, 65.44% branches, 68.63% functions, 73.73% lines
+- **Enforced coverage floor:** 70% statements, 60% branches, 65% functions, 70% lines
 - **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`, `team-management.spec.ts`
 
 Use `npm run test:run` as the authoritative local unit/integration check.
+Use `npm run test:coverage` as a regression guard against the current baseline; the longer-term target remains 80%+ on high-value user flows.
 
 ## Coverage by Area
 
@@ -81,6 +84,12 @@ Run the full E2E suite when changing shared routing, persistence setup, page obj
 ```bash
 npm run test:e2e -- --project=chromium
 ```
+
+### Test Output Hygiene
+
+- React Router v7 future-flag warnings are filtered in `src/test/setup.ts`; the app has many intentional `MemoryRouter` tests and the warning did not point to a single failing behavior.
+- React `act(...)` warnings are intentionally left visible. They identify async hook/page tests that should be tightened with awaited UI states or hook updates.
+- Some offline fallback paths still print external API lookup errors during broad coverage runs. Those should be isolated with narrower service mocks as follow-up cleanup.
 
 ## Coverage Priorities
 

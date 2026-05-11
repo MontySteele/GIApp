@@ -182,12 +182,9 @@ test.describe('Navigation', () => {
     test('should handle invalid routes gracefully', async ({ page }) => {
       await page.goto('/invalid-route');
 
-      // Should redirect to dashboard or show 404
-      const url = page.url();
-      const is404 = await page.locator('text=/not found|404/i').isVisible().catch(() => false);
-      const isRedirected = url.includes('/') && !url.includes('/invalid-route');
-
-      expect(is404 || isRedirected).toBeTruthy();
+      await expect(page).toHaveURL(/\/invalid-route$/);
+      await expect(page.getByRole('heading', { name: /page not found/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /go to dashboard/i })).toHaveAttribute('href', '/');
     });
   });
 

@@ -6,6 +6,21 @@ import 'fake-indexeddb/auto';
 // Extend Vitest's expect method with jest-dom matchers
 expect.extend(matchers);
 
+const originalConsoleWarn = console.warn.bind(console);
+
+console.warn = (...args) => {
+  const [message] = args;
+
+  if (
+    typeof message === 'string' &&
+    message.includes('React Router Future Flag Warning')
+  ) {
+    return;
+  }
+
+  originalConsoleWarn(...args);
+};
+
 // Cleanup after each test case (e.g. clearing jsdom)
 afterEach(() => {
   cleanup();

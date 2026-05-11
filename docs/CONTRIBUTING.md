@@ -32,14 +32,16 @@ npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
 npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 ```
 
-### Coverage Targets
+### Coverage Baseline
 
-| Metric | Target |
+`npm run test:coverage` enforces a regression floor around the current baseline. The long-term target remains 80%+ coverage for high-value user flows.
+
+| Metric | Floor |
 |--------|--------|
-| Statements | 80% |
-| Branches | 75% |
-| Functions | 80% |
-| Lines | 80% |
+| Statements | 70% |
+| Branches | 60% |
+| Functions | 65% |
+| Lines | 70% |
 
 See `TEST_COVERAGE_PLAN.md` for detailed test strategy.
 

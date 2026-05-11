@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, useLocation, useParams } from 'react-router-dom';
 import Layout from './Layout';
+import RouteErrorPage, { NotFoundPage } from './RouteErrorPage';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
 import RosterLayout from '@/features/roster/pages/RosterLayout';
 import RosterPage from '@/features/roster/pages/RosterPage';
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         index: true,
@@ -233,6 +235,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SyncPage />,
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
       },
     ],
   },
