@@ -7,6 +7,13 @@ import { test, expect } from '@playwright/test';
 import { DashboardPage, RosterPage, TeamsPage, PullsPage } from '../pages';
 
 test.describe('Navigation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('onboarding_completed', 'true');
+      window.localStorage.setItem('checklist_dismissed', 'true');
+    });
+  });
+
   test.describe('Main Tab Navigation', () => {
     test('should navigate between all main tabs', async ({ page }) => {
       const dashboard = new DashboardPage(page);
@@ -203,15 +210,14 @@ test.describe('Navigation', () => {
       await page.keyboard.press('Tab');
 
       // Skip link should be visible when focused
-      const skipLink = page.locator('a:has-text("Skip to main content")');
-      const isVisible = await skipLink.isVisible().catch(() => false);
+      const skipLink = page.getByRole('link', { name: /skip to main content/i });
+      await expect(skipLink).toBeFocused();
 
-      if (isVisible) {
-        await skipLink.click();
-        // Focus should move to main content
-        const mainContent = page.locator('#main-content, main');
-        await expect(mainContent).toBeFocused();
-      }
+      await page.keyboard.press('Enter');
+
+      // Focus should move to main content
+      const mainContent = page.locator('#main-content');
+      await expect(mainContent).toBeFocused();
     });
   });
 });

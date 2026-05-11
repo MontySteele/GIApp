@@ -182,6 +182,14 @@ export class TeamsPage extends BasePage {
   }
 
   /**
+   * Navigate to Weekly Bosses under Teams
+   */
+  async goToBosses(): Promise<void> {
+    await this.page.getByRole('link', { name: /weekly bosses/i }).click();
+    await this.page.waitForURL(/\/teams\/bosses/);
+  }
+
+  /**
    * Navigate to Build Templates (under Roster)
    */
   async goToTemplates(): Promise<void> {
