@@ -12,7 +12,7 @@ import {
   ReferenceLine,
   ReferenceDot,
 } from 'recharts';
-import { format } from 'date-fns';
+import { format } from 'date-fns/format';
 import Select from '@/components/ui/Select';
 import Input from '@/components/ui/Input';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry } from '@/types';

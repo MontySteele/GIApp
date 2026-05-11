@@ -1,4 +1,9 @@
-import { startOfMonth, startOfWeek, format, parseISO, isAfter, isBefore } from 'date-fns';
+import { format } from 'date-fns/format';
+import { isAfter } from 'date-fns/isAfter';
+import { isBefore } from 'date-fns/isBefore';
+import { parseISO } from 'date-fns/parseISO';
+import { startOfMonth } from 'date-fns/startOfMonth';
+import { startOfWeek } from 'date-fns/startOfWeek';
 import type { BannerType, FateType, PrimogemEntry, PrimogemSource, WishRecord } from '@/types';
 
 export const PRIMOGEM_SOURCES: PrimogemSource[] = [

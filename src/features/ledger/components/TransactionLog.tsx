@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns/format';
+import { parseISO } from 'date-fns/parseISO';
 import { Camera, CreditCard, Sparkles, Filter, MinusCircle } from 'lucide-react';
 import Select from '@/components/ui/Select';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry } from '@/types';

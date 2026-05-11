@@ -34,15 +34,20 @@ export default function Modal({
   'aria-label': ariaLabel,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Handle ESC key to close modal
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
 
       // Focus trap: Tab and Shift+Tab
@@ -68,7 +73,7 @@ export default function Modal({
         }
       }
     },
-    [onClose]
+    []
   );
 
   useEffect(() => {

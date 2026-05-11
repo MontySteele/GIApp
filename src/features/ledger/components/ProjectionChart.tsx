@@ -10,7 +10,12 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
-import { format, addDays, parseISO, differenceInDays, isAfter, isBefore } from 'date-fns';
+import { addDays } from 'date-fns/addDays';
+import { differenceInDays } from 'date-fns/differenceInDays';
+import { format } from 'date-fns/format';
+import { isAfter } from 'date-fns/isAfter';
+import { isBefore } from 'date-fns/isBefore';
+import { parseISO } from 'date-fns/parseISO';
 import Select from '@/components/ui/Select';
 import Input from '@/components/ui/Input';
 import type { PrimogemEntry } from '@/types';

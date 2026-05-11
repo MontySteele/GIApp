@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { lazy, Suspense, useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Download, Search } from 'lucide-react';
 import { useCharacters } from '../hooks/useCharacters';
@@ -9,13 +9,11 @@ import Button from '@/components/ui/Button';
 import { CharacterCardSkeleton } from '@/components/ui/Skeleton';
 import Modal from '@/components/ui/Modal';
 import CharacterCard from '../components/CharacterCard';
-import CharacterForm from '../components/CharacterForm';
 import CharacterToolbar, { type FilterState } from '../components/CharacterToolbar';
-import AddCharacterModal, { type AddModalView } from '../components/AddCharacterModal';
+import type { AddModalView } from '../components/AddCharacterModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import EmptyState from '../components/EmptyState';
 import RosterWishlist from '../components/RosterWishlist';
-import GOODExport from '../components/GOODExport';
 import type { CharacterSortField } from '../selectors/characterSelectors';
 
 interface RosterPageProps {
@@ -23,7 +21,23 @@ interface RosterPageProps {
   enableSorting?: boolean;
 }
 
+const AddCharacterModal = lazy(() => import('../components/AddCharacterModal'));
+const CharacterForm = lazy(() => import('../components/CharacterForm'));
+const GOODExport = lazy(() => import('../components/GOODExport'));
+
 const VALID_IMPORT_VIEWS: AddModalView[] = ['enka', 'good', 'irminsul', 'manual'];
+
+function ModalLoadingFallback({ label }: { label: string }) {
+  return (
+    <div
+      className="flex min-h-40 items-center justify-center text-sm text-slate-400"
+      role="status"
+      aria-live="polite"
+    >
+      {label}
+    </div>
+  );
+}
 
 export default function RosterPage({ enableFilters = true, enableSorting = true }: RosterPageProps) {
   const navigate = useNavigate();
@@ -203,12 +217,22 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
       )}
 
       {/* Modals */}
-      <AddCharacterModal
-        isOpen={modals.showAddModal}
-        onClose={modals.closeAddModal}
-        onCreateCharacter={handleCreateCharacter}
-        initialView={modals.addModalInitialView}
-      />
+      {modals.showAddModal && (
+        <Suspense
+          fallback={
+            <Modal isOpen onClose={modals.closeAddModal} title="Add Character" size="lg">
+              <ModalLoadingFallback label="Loading character import tools..." />
+            </Modal>
+          }
+        >
+          <AddCharacterModal
+            isOpen={modals.showAddModal}
+            onClose={modals.closeAddModal}
+            onCreateCharacter={handleCreateCharacter}
+            initialView={modals.addModalInitialView}
+          />
+        </Suspense>
+      )}
 
       <Modal
         isOpen={modals.editingCharacter !== null}
@@ -217,11 +241,13 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         size="lg"
       >
         {modals.editingCharacter && (
-          <CharacterForm
-            initialData={modals.editingCharacter}
-            onSubmit={(data) => handleUpdateCharacter(modals.editingCharacter!.id, data)}
-            onCancel={modals.closeEditModal}
-          />
+          <Suspense fallback={<ModalLoadingFallback label="Loading character form..." />}>
+            <CharacterForm
+              initialData={modals.editingCharacter}
+              onSubmit={(data) => handleUpdateCharacter(modals.editingCharacter!.id, data)}
+              onCancel={modals.closeEditModal}
+            />
+          </Suspense>
         )}
       </Modal>
 
@@ -241,7 +267,11 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         title="Export Roster"
         size="lg"
       >
-        {modals.exportModalView === 'good' && <GOODExport onClose={modals.closeExportModal} />}
+        {modals.exportModalView === 'good' && (
+          <Suspense fallback={<ModalLoadingFallback label="Loading export tools..." />}>
+            <GOODExport onClose={modals.closeExportModal} />
+          </Suspense>
+        )}
       </Modal>
     </div>
   );
