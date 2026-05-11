@@ -173,9 +173,9 @@ describe('CampaignNextActionsWidget', () => {
     expect(screen.getByText('Farm Mora')).toBeInTheDocument();
     expect(screen.getByText('120,000 still needed.')).toBeInTheDocument();
     expect(screen.getByText(/why this/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /open materials/i })).toHaveAttribute(
       'href',
-      '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
+      '/planner/materials?campaign=campaign-1&material=Mora'
     );
     expect(screen.getByRole('link', { name: /improve furina/i })).toHaveAttribute(
       'href',

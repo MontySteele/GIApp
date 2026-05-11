@@ -7,7 +7,18 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Flag, Package, AlertCircle, Coins, Pencil } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Flag,
+  Package,
+  AlertCircle,
+  Coins,
+  Pencil,
+} from 'lucide-react';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useCampaignPlans } from '@/features/campaigns/hooks/useCampaignPlans';
 import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
@@ -20,6 +31,11 @@ import DeficitPriorityCard from '../components/DeficitPriorityCard';
 import { MaterialsList } from '../components/MaterialsList';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import {
+  analyzeFarmingSchedule,
+  getFarmingSummary,
+  type FarmingRecommendation,
+} from '../domain/farmingSchedule';
 import type { Campaign } from '@/types';
 import type { CampaignPlanContext } from '@/features/campaigns/domain/campaignPlan';
 import type { MaterialRequirement } from '../domain/ascensionCalculator';
@@ -43,6 +59,8 @@ function findFocusedMaterial(
 export default function MaterialsTab() {
   const [searchParams] = useSearchParams();
   const campaignId = searchParams.get('campaign');
+  const scope = searchParams.get('scope');
+  const usePriorityFallback = scope === 'priority';
   const focusedMaterialKey = searchParams.get('material');
   const { characters, isLoading: loadingChars } = useCharacters();
   const { materials, isLoading: loadingMats, hasMaterials, totalMaterialTypes, setMaterial } = useMaterials();
@@ -68,10 +86,32 @@ export default function MaterialsTab() {
     initialGoalType: 'full',
   });
 
-  const campaign = useMemo(
-    () => campaigns.find((candidate) => candidate.id === campaignId),
-    [campaignId, campaigns]
+  const activeCampaign = useMemo(
+    () =>
+      campaigns
+        .filter((candidate) => candidate.status === 'active')
+        .sort((a, b) => {
+          const priorityDelta = a.priority - b.priority;
+          if (priorityDelta !== 0) return priorityDelta;
+
+          const aDeadline = a.deadline ? new Date(`${a.deadline}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+          const bDeadline = b.deadline ? new Date(`${b.deadline}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+          if (aDeadline !== bDeadline) return aDeadline - bDeadline;
+
+          return b.updatedAt.localeCompare(a.updatedAt);
+        })[0],
+    [campaigns]
   );
+  const campaign = useMemo(
+    () => {
+      if (usePriorityFallback) return undefined;
+      return campaignId
+        ? campaigns.find((candidate) => candidate.id === campaignId)
+        : activeCampaign;
+    },
+    [activeCampaign, campaignId, campaigns, usePriorityFallback]
+  );
+  const isDefaultCampaignContext = Boolean(campaign && !campaignId);
   const campaignList = useMemo(() => (campaign ? [campaign] : []), [campaign]);
   const campaignPlanContext = useMemo<CampaignPlanContext | null>(
     () => (
@@ -104,9 +144,22 @@ export default function MaterialsTab() {
 
   const activeSummary = campaignPlan?.materialReadiness.summary ?? multiPlan.summary;
   const activeGroupedMaterials = activeSummary?.groupedMaterials;
-  const activeMaterials = activeSummary?.aggregatedMaterials ?? [];
+  const activeMaterials = useMemo(
+    () => activeSummary?.aggregatedMaterials ?? [],
+    [activeSummary]
+  );
   const focusedMaterial = findFocusedMaterial(activeMaterials, focusedMaterialKey);
   const showPriorityFallback = !campaign;
+  const farmingSchedule = useMemo(
+    () => {
+      if (!campaign || !campaignPlan) return null;
+      const talentDeficits = activeMaterials.filter(
+        (material) => material.category === 'talent' && material.deficit > 0
+      );
+      return talentDeficits.length > 0 ? analyzeFarmingSchedule(talentDeficits) : null;
+    },
+    [activeMaterials, campaign, campaignPlan]
+  );
 
   const currentMora = materials['Mora'] ?? materials['mora'] ?? 0;
 
@@ -153,9 +206,14 @@ export default function MaterialsTab() {
       {campaign && (
         <CampaignMaterialContextCard
           campaign={campaign}
+          isDefaultCampaignContext={isDefaultCampaignContext}
           focusedMaterial={focusedMaterial}
           focusedMaterialKey={focusedMaterialKey}
         />
+      )}
+
+      {!campaign && usePriorityFallback && activeCampaign && (
+        <PriorityFallbackContextCard activeCampaign={activeCampaign} />
       )}
 
       <AccountDataFreshnessCallout
@@ -248,6 +306,16 @@ export default function MaterialsTab() {
         </Card>
       )}
 
+      {!isCampaignPlanLoading && campaign && campaignPlan && farmingSchedule && (
+        <CampaignFarmTodayCard
+          campaign={campaign}
+          campaignPlanPercent={campaignPlan.materialReadiness.percent}
+          totalEstimatedResin={campaignPlan.materialReadiness.totalEstimatedResin}
+          totalEstimatedDays={campaignPlan.materialReadiness.totalEstimatedDays}
+          schedule={farmingSchedule}
+        />
+      )}
+
       {/* Deficit Priority */}
       {!isCampaignPlanLoading && activeGroupedMaterials && (
         <div>
@@ -292,10 +360,12 @@ export default function MaterialsTab() {
 
 function CampaignMaterialContextCard({
   campaign,
+  isDefaultCampaignContext,
   focusedMaterial,
   focusedMaterialKey,
 }: {
   campaign: Campaign;
+  isDefaultCampaignContext: boolean;
   focusedMaterial: MaterialRequirement | undefined;
   focusedMaterialKey: string | null;
 }) {
@@ -304,7 +374,9 @@ function CampaignMaterialContextCard({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant="primary">Campaign</Badge>
+            <Badge variant="primary">
+              {isDefaultCampaignContext ? 'Active campaign' : 'Selected campaign'}
+            </Badge>
             <span className="text-xs uppercase text-slate-500">Material plan</span>
           </div>
           <div className="flex items-center gap-2">
@@ -334,7 +406,7 @@ function CampaignMaterialContextCard({
             Campaign
           </Link>
           <Link
-            to="/planner/materials"
+            to="/planner/materials?scope=priority"
             className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
           >
             Priority Materials
@@ -342,5 +414,175 @@ function CampaignMaterialContextCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+function PriorityFallbackContextCard({ activeCampaign }: { activeCampaign: Campaign }) {
+  return (
+    <Card className="p-4 border-slate-800 bg-slate-900/40">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant="outline">Priority roster</Badge>
+            <span className="text-xs uppercase text-slate-500">Fallback material plan</span>
+          </div>
+          <h2 className="text-base font-semibold text-slate-100">Showing roster priority materials</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Active campaign context is available for {activeCampaign.name}.
+          </p>
+        </div>
+        <Link
+          to={`/planner/materials?campaign=${encodeURIComponent(activeCampaign.id)}`}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+        >
+          <Flag className="h-4 w-4" />
+          Active Campaign
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+function CampaignFarmTodayCard({
+  campaign,
+  campaignPlanPercent,
+  totalEstimatedResin,
+  totalEstimatedDays,
+  schedule,
+}: {
+  campaign: Campaign;
+  campaignPlanPercent: number;
+  totalEstimatedResin: number;
+  totalEstimatedDays: number;
+  schedule: ReturnType<typeof analyzeFarmingSchedule>;
+}) {
+  const waitEntries = Object.entries(schedule.waitFor)
+    .filter(([, recommendations]) => recommendations.length > 0)
+    .sort(([, first], [, second]) => {
+      const firstDays = first[0]?.daysUntilAvailable ?? 0;
+      const secondDays = second[0]?.daysUntilAvailable ?? 0;
+      return firstDays - secondDays;
+    });
+
+  return (
+    <Card className="p-4 border-primary-900/60 bg-primary-950/20">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant="warning">Farm today</Badge>
+            <Badge variant="outline">{schedule.dayName}</Badge>
+          </div>
+          <h2 className="text-lg font-semibold text-slate-100">Farm Today For Campaign</h2>
+          <p className="mt-1 text-sm text-slate-400">{getFarmingSummary(schedule)}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-sm sm:min-w-72">
+          <CampaignFarmStat label="Resin estimate" value={`${totalEstimatedResin.toLocaleString()}`} />
+          <CampaignFarmStat label="Days estimate" value={`${totalEstimatedDays}`} />
+          <CampaignFarmStat label="Material readiness" value={`${campaignPlanPercent}%`} />
+          <CampaignFarmStat label="Talent deficit" value={`${schedule.totalDeficit.toLocaleString()}`} />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-lg bg-slate-900/70 p-3">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
+            <CheckCircle2 className="h-4 w-4 text-green-400" />
+            Available today
+          </div>
+          {schedule.farmToday.length > 0 ? (
+            <FarmingRecommendationLinks
+              campaignId={campaign.id}
+              recommendations={schedule.farmToday}
+            />
+          ) : (
+            <p className="text-sm text-slate-500">No campaign talent books are available today.</p>
+          )}
+        </div>
+        <div className="rounded-lg bg-slate-900/70 p-3">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
+            <Clock className="h-4 w-4 text-yellow-400" />
+            Next farming windows
+          </div>
+          {waitEntries.length > 0 ? (
+            <div className="space-y-3">
+              {waitEntries.slice(0, 3).map(([day, recommendations]) => (
+                <div key={day}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1 text-xs font-medium text-slate-300">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {day}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      in {recommendations[0]?.daysUntilAvailable ?? 0}d
+                    </span>
+                  </div>
+                  <FarmingRecommendationLinks
+                    campaignId={campaign.id}
+                    recommendations={recommendations}
+                    compact
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">No rotating talent books are waiting on another day.</p>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CampaignFarmStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-slate-900/80 p-3">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="mt-1 text-base font-semibold text-slate-100">{value}</div>
+    </div>
+  );
+}
+
+function FarmingRecommendationLinks({
+  campaignId,
+  recommendations,
+  compact = false,
+}: {
+  campaignId: string;
+  recommendations: FarmingRecommendation[];
+  compact?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      {recommendations.slice(0, compact ? 2 : 4).map((recommendation) => (
+        <Link
+          key={`${recommendation.material.key}-${recommendation.material.tier ?? 'base'}`}
+          to={`/planner/materials?campaign=${encodeURIComponent(campaignId)}&material=${encodeURIComponent(recommendation.material.key)}`}
+          className="flex items-center justify-between gap-3 rounded-md bg-slate-950/60 px-3 py-2 transition-colors hover:bg-slate-800"
+        >
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-slate-100">
+              {recommendation.material.name}
+            </span>
+            <span className="block text-xs text-slate-500">
+              {recommendation.series} - {recommendation.region}
+            </span>
+          </span>
+          <span className="flex flex-shrink-0 items-center gap-2 text-right text-xs">
+            <span>
+              <span className="block font-medium text-yellow-300">
+                {recommendation.material.deficit.toLocaleString()} short
+              </span>
+              <span className="block capitalize text-slate-500">{recommendation.priority}</span>
+            </span>
+            <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
+          </span>
+        </Link>
+      ))}
+      {recommendations.length > (compact ? 2 : 4) && (
+        <p className="text-xs text-slate-500">
+          {recommendations.length - (compact ? 2 : 4)} more campaign deficits share this window.
+        </p>
+      )}
+    </div>
   );
 }

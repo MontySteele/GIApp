@@ -1,5 +1,4 @@
 import type { Campaign } from '@/types';
-import type { CampaignCharacterTarget } from '@/types';
 import type { CampaignNextAction, CampaignPlan } from '../domain/campaignPlan';
 import { getCampaignPullTargets } from '../domain/campaignPlan';
 
@@ -13,8 +12,8 @@ export function getActionDestination(
       return { label: 'Open Calculator', href: buildCampaignCalculatorHref(campaign, plan) };
     case 'materials':
       return {
-        label: shouldOpenCharacterPlanner(action, campaign) ? 'Open Planner' : 'Open Materials',
-        href: buildMaterialActionHref(action, campaign),
+        label: 'Open Materials',
+        href: buildCampaignMaterialHref(campaign.id, action.materialKey),
       };
     case 'build': {
       const target = plan.buildReadiness.characters.find(
@@ -65,48 +64,4 @@ export function buildCampaignCalculatorHref(campaign: Campaign, plan: CampaignPl
   }
 
   return `/pulls/calculator?${params.toString()}`;
-}
-
-function findActionTarget(
-  campaign: Campaign,
-  characterKey: string | undefined
-): CampaignCharacterTarget | undefined {
-  if (characterKey) {
-    return campaign.characterTargets.find(
-      (target) => target.characterKey.toLowerCase() === characterKey.toLowerCase()
-    );
-  }
-
-  return campaign.characterTargets.length === 1 ? campaign.characterTargets[0] : undefined;
-}
-
-function buildPlannerCharacterHref(
-  campaign: Campaign,
-  target: CampaignCharacterTarget,
-  materialKey?: string
-): string {
-  const params = new URLSearchParams({
-    character: target.characterKey,
-    goal: target.buildGoal,
-    campaign: campaign.id,
-  });
-
-  if (materialKey) {
-    params.set('material', materialKey);
-  }
-
-  return `/planner?${params.toString()}`;
-}
-
-function buildMaterialActionHref(action: CampaignNextAction, campaign: Campaign): string {
-  const target = findActionTarget(campaign, action.characterKey);
-  if (target?.ownership === 'owned') {
-    return buildPlannerCharacterHref(campaign, target, action.materialKey);
-  }
-
-  return buildCampaignMaterialHref(campaign.id, action.materialKey);
-}
-
-function shouldOpenCharacterPlanner(action: CampaignNextAction, campaign: Campaign): boolean {
-  return findActionTarget(campaign, action.characterKey)?.ownership === 'owned';
 }

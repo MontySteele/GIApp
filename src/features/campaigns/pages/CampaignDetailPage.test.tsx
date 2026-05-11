@@ -409,9 +409,9 @@ describe('CampaignDetailPage', () => {
     it('links next actions to the relevant workspace', () => {
       renderPage();
 
-      expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
+      expect(screen.getAllByRole('link', { name: /open materials/i })[0]).toHaveAttribute(
         'href',
-        '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
+        '/planner/materials?campaign=campaign-1&material=Mora'
       );
       expect(screen.getByRole('link', { name: /open character/i })).toHaveAttribute(
         'href',
