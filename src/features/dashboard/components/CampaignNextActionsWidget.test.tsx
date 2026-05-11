@@ -243,6 +243,40 @@ describe('CampaignNextActionsWidget', () => {
     expect(screen.getByText('Save 20 more pulls')).toBeInTheDocument();
   });
 
+  it('uses campaign deadlines as a real tie-breaker instead of timestamp magnitude', () => {
+    const earlyCampaign = {
+      ...campaign,
+      id: 'campaign-early',
+      name: 'Early Deadline',
+      deadline: '2026-02-01',
+    };
+    const lateCampaign = {
+      ...campaign,
+      id: 'campaign-late',
+      name: 'Late Deadline',
+      deadline: '2026-12-01',
+    };
+
+    renderWidget({
+      activeCampaigns: [lateCampaign, earlyCampaign],
+      plans: {
+        'campaign-early': {
+          ...plan,
+          campaignId: 'campaign-early',
+          nextActions: [{ ...plan.nextActions[0]!, id: 'early-action', label: 'Farm early Mora' }],
+        },
+        'campaign-late': {
+          ...plan,
+          campaignId: 'campaign-late',
+          nextActions: [{ ...plan.nextActions[0]!, id: 'late-action', label: 'Farm late Mora' }],
+        },
+      },
+    });
+
+    expect(screen.getAllByText('Early Deadline').length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Farm early Mora' })).toBeInTheDocument();
+  });
+
   it('adds account refresh to the ranked action queue when campaign data is stale', () => {
     mocks.dataFreshness = {
       status: 'stale',
@@ -286,7 +320,7 @@ describe('CampaignNextActionsWidget', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: /snooze/i }));
+    await user.click(screen.getByRole('button', { name: /not now/i }));
 
     expect(screen.getByText('All campaign actions handled today.')).toBeInTheDocument();
     expect(screen.getByText(/return tomorrow/i)).toBeInTheDocument();

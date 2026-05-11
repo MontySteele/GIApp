@@ -37,6 +37,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Dehya', name: 'Dehya', rarity: 5, element: 'Pyro', weapon: 'Claymore' },
   { key: 'Diluc', name: 'Diluc', rarity: 5, element: 'Pyro', weapon: 'Claymore' },
   { key: 'Emilie', name: 'Emilie', rarity: 5, element: 'Dendro', weapon: 'Polearm' },
+  { key: 'Escoffier', name: 'Escoffier', rarity: 5, element: 'Cryo', weapon: 'Polearm' },
   { key: 'Eula', name: 'Eula', rarity: 5, element: 'Cryo', weapon: 'Claymore' },
   { key: 'Furina', name: 'Furina', rarity: 5, element: 'Hydro', weapon: 'Sword' },
   { key: 'Ganyu', name: 'Ganyu', rarity: 5, element: 'Cryo', weapon: 'Bow' },

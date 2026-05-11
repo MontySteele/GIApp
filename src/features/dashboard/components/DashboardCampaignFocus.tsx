@@ -25,12 +25,15 @@ export default function DashboardCampaignFocus() {
         plansPending={plansPending}
         error={error}
       />
-      <ActiveCampaignsWidgetView
-        activeCampaigns={activeCampaigns}
-        isLoading={campaignsLoading}
-        plans={plans}
-        plansPending={plansPending}
-      />
+      {(campaignsLoading || activeCampaigns.length > 1) && (
+        <ActiveCampaignsWidgetView
+          activeCampaigns={activeCampaigns}
+          isLoading={campaignsLoading}
+          plans={plans}
+          plansPending={plansPending}
+          showFreshnessCallout={false}
+        />
+      )}
     </div>
   );
 }

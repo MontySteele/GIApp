@@ -16,6 +16,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useAccountDataFreshness } from '@/features/sync';
 import { useCampaignActionStates, type CampaignActionState } from '@/features/campaigns/hooks/useCampaignActionStates';
 import { getActionDestination } from '@/features/campaigns/lib/campaignActionLinks';
+import {
+  compareCampaignPriority,
+  formatCampaignDate,
+  getCampaignDeadlineTime,
+} from '@/features/campaigns/lib/campaignOrdering';
 import type {
   CampaignActionCategory,
   CampaignNextAction,
@@ -86,17 +91,6 @@ function getCategoryIcon(category: CampaignActionCategory | 'freshness') {
   }
 }
 
-function getDeadlineTime(campaign: Campaign): number {
-  if (!campaign.deadline) return Number.POSITIVE_INFINITY;
-  const timestamp = new Date(`${campaign.deadline}T00:00:00`).getTime();
-  return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
-}
-
-function getCampaignRank(campaign: Campaign, plan: CampaignPlan | undefined): number {
-  const statusWeight = plan ? STATUS_WEIGHT[plan.status] * 100 : 300;
-  return campaign.priority * 1000 + statusWeight + Math.min(getDeadlineTime(campaign) / 1000000000, 999);
-}
-
 function getActionWhy(action: CampaignNextAction, campaign: Campaign, plan: CampaignPlan): string {
   switch (action.category) {
     case 'pulls':
@@ -144,6 +138,11 @@ function buildDashboardActions(
       const campaignDelta = a.campaign.priority - b.campaign.priority;
       if (campaignDelta !== 0) return campaignDelta;
 
+      const deadlineDelta =
+        getCampaignDeadlineTime(a.campaign.deadline) -
+        getCampaignDeadlineTime(b.campaign.deadline);
+      if (deadlineDelta !== 0) return deadlineDelta;
+
       const statusDelta = STATUS_WEIGHT[a.plan.status] - STATUS_WEIGHT[b.plan.status];
       if (statusDelta !== 0) return statusDelta;
 
@@ -159,9 +158,11 @@ function getFocusedCampaign(
   if (focusAction?.kind === 'campaign') return focusAction.campaign;
 
   return [...activeCampaigns].sort((a, b) => {
-    const rankDelta = getCampaignRank(a, plans[a.id]) - getCampaignRank(b, plans[b.id]);
-    if (rankDelta !== 0) return rankDelta;
-    return b.updatedAt.localeCompare(a.updatedAt);
+    const statusDelta =
+      (plans[a.id] ? STATUS_WEIGHT[plans[a.id]!.status] : 3) -
+      (plans[b.id] ? STATUS_WEIGHT[plans[b.id]!.status] : 3);
+    if (statusDelta !== 0) return statusDelta;
+    return compareCampaignPriority(a, b);
   })[0];
 }
 
@@ -277,7 +278,7 @@ export default function CampaignNextActionsWidget({
                   </span>
                   <span className="block truncate text-xs text-slate-500">
                     P{focusedCampaign.priority}
-                    {focusedCampaign.deadline ? `, deadline ${new Date(`${focusedCampaign.deadline}T00:00:00`).toLocaleDateString()}` : ', no deadline'}
+                    {focusedCampaign.deadline ? `, deadline ${formatCampaignDate(focusedCampaign.deadline)}` : ', no deadline'}
                   </span>
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-primary-300">
@@ -316,7 +317,7 @@ export default function CampaignNextActionsWidget({
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {allActions.length > 0
-                ? 'Completed, skipped, and snoozed actions return tomorrow.'
+                ? 'Completed and snoozed actions return tomorrow.'
                 : 'Open your active campaigns and mark completed goals when you are happy with them.'}
             </p>
             {todayActivities.length > 0 && (
@@ -424,11 +425,8 @@ function ActionCard({
             <Button size="sm" variant="secondary" onClick={() => onSetState('done')}>
               Done Today
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => onSetState('skipped')}>
-              Skip
-            </Button>
             <Button size="sm" variant="ghost" onClick={() => onSetState('snoozed')}>
-              Snooze
+              Not Now
             </Button>
           </div>
         )}

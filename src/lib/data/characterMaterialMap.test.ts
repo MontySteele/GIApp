@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getStaticCharacterMaterials, hasStaticMaterialData } from './characterMaterialMap';
+import {
+  findStaticMaterialCoverageGaps,
+  getStaticCharacterMaterials,
+  hasStaticMaterialData,
+} from './characterMaterialMap';
 
 describe('characterMaterialMap', () => {
   describe('getStaticCharacterMaterials', () => {
@@ -25,6 +29,19 @@ describe('characterMaterialMap', () => {
       const data = getStaticCharacterMaterials('KaedeharaKazuha');
       expect(data).not.toBeNull();
       expect(data!.element).toBe('Anemo');
+    });
+
+    it('resolves display-name aliases used by roster and import data', () => {
+      expect(getStaticCharacterMaterials('Sangonomiya Kokomi')?.characterKey).toBe('Kokomi');
+      expect(getStaticCharacterMaterials('Raiden Shogun')?.characterKey).toBe('RaidenShogun');
+      expect(getStaticCharacterMaterials('Lumine')?.characterKey).toBe('TravelerAnemo');
+    });
+
+    it('keeps Sethos mapped to the correct ascension materials', () => {
+      const data = getStaticCharacterMaterials('Sethos');
+      expect(data).not.toBeNull();
+      expect(data!.ascensionMaterials.boss.name).toBe('Cloudseam Scale');
+      expect(data!.ascensionMaterials.localSpecialty.name).toBe('Trishiraite');
     });
 
     it('is case-insensitive', () => {
@@ -65,6 +82,15 @@ describe('characterMaterialMap', () => {
 
     it('returns false for unknown characters', () => {
       expect(hasStaticMaterialData('UnknownChar')).toBe(false);
+    });
+  });
+
+  describe('coverage gap helper', () => {
+    it('flags missing entries and keeps newer shared data covered', () => {
+      expect(findStaticMaterialCoverageGaps(['Linnea', 'Escoffier', 'Sethos'])).toEqual([]);
+      expect(findStaticMaterialCoverageGaps(['TotallyFakeCharacter'])).toEqual([
+        { characterKey: 'TotallyFakeCharacter', reasons: ['missing-entry'] },
+      ]);
     });
   });
 

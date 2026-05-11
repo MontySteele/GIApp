@@ -46,6 +46,7 @@ import {
   buildCampaignCalculatorHref,
   buildCampaignMaterialHref,
 } from '../lib/campaignActionLinks';
+import { formatCampaignDate, sortCampaignsForControlCenter } from '../lib/campaignOrdering';
 
 const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
   { value: 'functional', label: 'Functional' },
@@ -88,19 +89,6 @@ const PLAN_STATUS_BADGE: Record<CampaignPlan['status'], 'success' | 'warning' | 
   ready: 'success',
   attention: 'warning',
   blocked: 'danger',
-};
-
-const STATUS_SORT_WEIGHT: Record<CampaignStatus, number> = {
-  active: 0,
-  paused: 1,
-  completed: 2,
-  archived: 3,
-};
-
-const PLAN_SORT_WEIGHT: Record<CampaignPlan['status'], number> = {
-  blocked: 0,
-  attention: 1,
-  ready: 2,
 };
 
 function formatBuildGoal(value: CampaignBuildGoal): string {
@@ -179,42 +167,6 @@ function getCopiesForTargetConstellation(currentConstellation: number, targetCon
 function getPullPlanParam(value: string | null): boolean | null {
   if (value === null) return null;
   return !['0', 'false', 'no'].includes(value.toLowerCase());
-}
-
-function formatDate(value: string | undefined): string {
-  if (!value) return 'No deadline';
-  return new Date(`${value}T00:00:00`).toLocaleDateString();
-}
-
-function getDeadlineTime(value: string | undefined): number {
-  if (!value) return Number.POSITIVE_INFINITY;
-  const timestamp = new Date(`${value}T00:00:00`).getTime();
-  return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
-}
-
-function sortCampaignsForControlCenter(
-  campaigns: Campaign[],
-  plans: Record<string, CampaignPlan>
-): Campaign[] {
-  return [...campaigns].sort((a, b) => {
-    const statusDelta = STATUS_SORT_WEIGHT[a.status] - STATUS_SORT_WEIGHT[b.status];
-    if (statusDelta !== 0) return statusDelta;
-
-    const aPlan = plans[a.id];
-    const bPlan = plans[b.id];
-    const planDelta =
-      (aPlan ? PLAN_SORT_WEIGHT[aPlan.status] : 3) -
-      (bPlan ? PLAN_SORT_WEIGHT[bPlan.status] : 3);
-    if (planDelta !== 0) return planDelta;
-
-    const priorityDelta = a.priority - b.priority;
-    if (priorityDelta !== 0) return priorityDelta;
-
-    const deadlineDelta = getDeadlineTime(a.deadline) - getDeadlineTime(b.deadline);
-    if (deadlineDelta !== 0) return deadlineDelta;
-
-    return b.updatedAt.localeCompare(a.updatedAt);
-  });
 }
 
 function isClosedCampaign(campaign: Campaign): boolean {
@@ -609,7 +561,7 @@ export default function CampaignsPage() {
   const refreshPlan = async (campaign: Campaign) => {
     try {
       setMutationError('');
-      await updateCampaign(campaign.id, {});
+      await updateCampaign(campaign.id, { updatedAt: new Date().toISOString() });
     } catch {
       setMutationError(`Failed to refresh "${campaign.name}".`);
     }
@@ -1074,7 +1026,7 @@ function CampaignCard({
                 <Badge variant="outline">P{campaign.priority}</Badge>
                 <span className="text-xs text-slate-500 flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
-                  {formatDate(campaign.deadline)}
+                  {formatCampaignDate(campaign.deadline)}
                 </span>
               </div>
             </div>

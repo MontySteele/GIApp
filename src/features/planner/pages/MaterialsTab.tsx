@@ -22,6 +22,7 @@ import {
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useCampaignPlans } from '@/features/campaigns/hooks/useCampaignPlans';
 import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
+import { getHighestPriorityCampaign } from '@/features/campaigns/lib/campaignOrdering';
 import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
 import { useAccountDataFreshness } from '@/features/sync';
 import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
@@ -87,19 +88,7 @@ export default function MaterialsTab() {
   });
 
   const activeCampaign = useMemo(
-    () =>
-      campaigns
-        .filter((candidate) => candidate.status === 'active')
-        .sort((a, b) => {
-          const priorityDelta = a.priority - b.priority;
-          if (priorityDelta !== 0) return priorityDelta;
-
-          const aDeadline = a.deadline ? new Date(`${a.deadline}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
-          const bDeadline = b.deadline ? new Date(`${b.deadline}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
-          if (aDeadline !== bDeadline) return aDeadline - bDeadline;
-
-          return b.updatedAt.localeCompare(a.updatedAt);
-        })[0],
+    () => getHighestPriorityCampaign(campaigns),
     [campaigns]
   );
   const campaign = useMemo(

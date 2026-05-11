@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { GACHA_TYPE_MAP, WishImport } from './WishImport';
 import { db } from '@/db/schema';
 import { wishRepo } from '../repo/wishRepo';
@@ -615,7 +616,11 @@ describe('WishImport', () => {
         });
       }) as any;
 
-      render(<WishImport onImportComplete={vi.fn()} />);
+      render(
+        <MemoryRouter>
+          <WishImport onImportComplete={vi.fn()} />
+        </MemoryRouter>
+      );
 
       const urlInput = screen.getByLabelText(/wish history url/i);
       await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');
@@ -628,6 +633,7 @@ describe('WishImport', () => {
         const stored = await wishRepo.getAll();
         expect(stored).toHaveLength(1);
       });
+      expect(screen.queryByRole('link', { name: /review campaign odds/i })).not.toBeInTheDocument();
     });
 
     it('shows pity and campaign odds impact after import', async () => {
@@ -672,7 +678,11 @@ describe('WishImport', () => {
         });
       }) as any;
 
-      render(<WishImport onImportComplete={vi.fn()} />);
+      render(
+        <MemoryRouter>
+          <WishImport onImportComplete={vi.fn()} />
+        </MemoryRouter>
+      );
 
       const urlInput = screen.getByLabelText(/wish history url/i);
       await user.type(urlInput, 'https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test');

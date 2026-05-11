@@ -108,6 +108,7 @@ export const CHARACTER_METADATA: CharacterMetadata[] = [
   { key: 'Kachina', element: 'Geo', weaponType: 'Claymore', rarity: 4 },
   { key: 'Kinich', element: 'Dendro', weaponType: 'Claymore', rarity: 5 },
   { key: 'Lan Yan', element: 'Anemo', weaponType: 'Catalyst', rarity: 4 },
+  { key: 'Linnea', element: 'Geo', weaponType: 'Bow', rarity: 5 },
   { key: 'Mavuika', element: 'Pyro', weaponType: 'Claymore', rarity: 5 },
   { key: 'Mualani', element: 'Hydro', weaponType: 'Catalyst', rarity: 5 },
   { key: 'Ororon', element: 'Electro', weaponType: 'Bow', rarity: 4 },

@@ -1,4 +1,5 @@
 import { useReducer, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
 import Badge from '@/components/ui/Badge';
@@ -727,12 +728,12 @@ function ImportImpactSummary({ impact }: { impact: WishImportImpact }) {
           </p>
         </div>
         {impact.activePullCampaigns > 0 && (
-          <a
-            href="/campaigns"
+          <Link
+            to="/campaigns"
             className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
           >
             Review Campaign Odds
-          </a>
+          </Link>
         )}
       </div>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
