@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### First Target Setup
+- Added a reusable first-target setup state and card that guides new users through roster import, pull/resource setup, target selection, and target review.
+- Dashboard now shows the guided setup card only while no campaign, planned banner, or wishlist target exists.
+- Import Hub now surfaces the same first-target setup progress above import status cards until the first target is ready.
+- Pulls/Budget now shows a first-target resources handoff when there are no snapshots or wish records yet, sharing routes with the setup domain.
+
+### Documentation
+- Moved historical sprint plans, refactor plans, roster UI plans, team DPS design notes, and the old Phase 3 roster plan into `docs/archive/`.
+- Added an archive index that marks archived docs as historical context rather than current source of truth.
+- Refreshed README, architecture, manual testing, test coverage, and agent handoff docs around the current target-first IA and first-target setup flow.
+
+### Verification
+- Current branch verification: 150 Vitest files / 2075 tests passing, plus lint/build verification.
+
 ## 2026-05-11 (Goal-first UX and Targets Reframe)
 
 ### Product IA
@@ -51,7 +67,7 @@
 - Added and hardened tests across target summary domain logic, Start Target wizard paths, dashboard loading/freshness/resume logic, Import Hub, GOOD/Irminsul import summaries, Quick Action Bar, Quick Resource Logger undo, and mobile navigation.
 - Added Playwright campaign-flow smoke for dashboard -> target wizard -> target creation -> calculator/planner handoffs.
 - Added Playwright navigation smoke for quick-action hash deep links.
-- Verified after this work: 147 Vitest files / 2055 tests passing, plus focused Playwright campaign-flow, navigation, and team-management smokes.
+- That pass also included full Vitest verification plus focused Playwright campaign-flow, navigation, and team-management smokes.
 
 ## 2026-04-21 (Patch update: 6.4 → 6.5 "Luna VI")
 
@@ -188,7 +204,7 @@
 - Build status: Passing
 - TypeScript errors: 0
 
-See `docs/SPRINT_17_PLAN.md` for full details.
+See `docs/archive/SPRINT_17_PLAN.md` for historical planning details.
 
 ---
 
@@ -276,7 +292,7 @@ See `docs/SPRINT_17_PLAN.md` for full details.
 - Documented E2E testing patterns in docs/E2E_TESTING.md
 - Added Playwright to devDependencies
 
-See `docs/SPRINT_15_PLAN.md` for full details.
+See `docs/archive/SPRINT_15_PLAN.md` for historical planning details.
 
 ---
 
@@ -338,7 +354,7 @@ See `docs/SPRINT_15_PLAN.md` for full details.
 - 67 new tests (32 key mappings, 20 config generator, 15 modal UI)
 - Total test count: 1,169+
 
-See `docs/SPRINT_12_PLAN.md` for full details.
+See `docs/archive/SPRINT_12_PLAN.md` for historical planning details.
 
 ---
 
@@ -360,7 +376,7 @@ See `docs/SPRINT_12_PLAN.md` for full details.
 ### Key Decision
 - Pivoted from custom DPS calculator to wfpsim integration (see Sprint 12)
 
-See `docs/SPRINT_11_PLAN.md` for full details.
+See `docs/archive/SPRINT_11_PLAN.md` for historical planning details.
 
 ---
 
@@ -372,7 +388,7 @@ See `docs/SPRINT_11_PLAN.md` for full details.
 - Identified critical gaps in test coverage (page components, hooks)
 - Documented technical debt areas (large components, type safety)
 
-See `docs/SPRINT_11_PLAN.md` for full details.
+See `docs/archive/SPRINT_11_PLAN.md` for historical planning details.
 
 ## 2026-01 (Sprint 10 - Accessibility & Polish)
 

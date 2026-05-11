@@ -24,7 +24,9 @@ import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
 import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
 import { upcomingWishRepo } from '@/features/wishes/repo/upcomingWishRepo';
 import QuickResourceLogger from '@/features/ledger/components/QuickResourceLogger';
+import FirstTargetSetupCard from '@/features/targets/components/FirstTargetSetupCard';
 import TargetQuickStart from '@/features/targets/components/TargetQuickStart';
+import { buildFirstTargetSetupState } from '@/features/targets/domain/firstTargetSetup';
 import { buildTargetSummaries, type TargetSummary } from '@/features/targets/domain/targetSummary';
 import { useAccountDataFreshness } from '@/features/sync/hooks/useAccountDataFreshness';
 import { useWishlistStore } from '@/stores/wishlistStore';
@@ -143,9 +145,30 @@ export default function DashboardPage() {
       characters,
     });
   }, [campaigns, characters, plannedBanners, wishlistCharacters]);
-  const hasExistingTargets = campaigns.length > 0 || plannedBanners.length > 0 || wishlistCharacters.length > 0;
+  const campaignCount = campaigns.length;
+  const plannedBannerCount = plannedBanners.length;
+  const wishlistCount = wishlistCharacters.length;
+  const hasExistingTargets = campaignCount > 0 || plannedBannerCount > 0 || wishlistCount > 0;
   const activeTargetCount = campaigns.filter((campaign) => campaign.status === 'active').length;
   const needsAccountRefresh = accountFreshness.status !== 'fresh';
+  const firstTargetSetup = useMemo(() => buildFirstTargetSetupState({
+    characterCount: charStats.total,
+    wishHistoryCount: typeof wishHistoryCount === 'number' ? wishHistoryCount : 0,
+    targetCount: campaignCount,
+    accountFreshnessStatus: accountFreshness.status,
+    accountFreshnessDetail: accountFreshness.detail,
+    availablePulls: eventPulls,
+    resourceSnapshotCount: availablePulls?.hasSnapshot ? 1 : 0,
+  }), [
+    accountFreshness.detail,
+    accountFreshness.status,
+    availablePulls?.hasSnapshot,
+    campaignCount,
+    charStats.total,
+    eventPulls,
+    wishHistoryCount,
+  ]);
+  const showFirstTargetSetup = !hasExistingTargets && firstTargetSetup.activeStep !== 'review-plan';
   const resumeAction = useMemo(
     () => buildDashboardResumeAction({
       targets: targetSummaries,
@@ -198,6 +221,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.8fr)]">
         <div className="min-w-0 space-y-4">
           <DashboardCampaignFocus resumeAction={resumeAction} />
+          {showFirstTargetSetup && <FirstTargetSetupCard setup={firstTargetSetup} />}
           {!needsAccountRefresh && !hasExistingTargets && <TargetQuickStart />}
           <TodayFarmingWidget suppressFreshnessCallout={needsAccountRefresh} />
           {!needsAccountRefresh && hasExistingTargets && (

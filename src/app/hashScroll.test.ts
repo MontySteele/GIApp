@@ -13,6 +13,17 @@ describe('scrollToHashTarget', () => {
     expect(target.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
   });
 
+  it('scrolls to the resource snapshot anchor used by first-target setup links', () => {
+    const doc = document.implementation.createHTMLDocument();
+    const target = doc.createElement('section');
+    target.id = 'resource-snapshot';
+    target.scrollIntoView = vi.fn();
+    doc.body.appendChild(target);
+
+    expect(scrollToHashTarget('#resource-snapshot', doc)).toBe(true);
+    expect(target.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+  });
+
   it('returns false when there is no hash target', () => {
     const doc = document.implementation.createHTMLDocument();
 

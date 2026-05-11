@@ -344,6 +344,30 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /new target/i })).toHaveAttribute('href', '/campaigns');
   });
 
+  it('does not reopen first-target setup when a planned banner already exists', () => {
+    mocks.plannedBanners = [
+      {
+        id: 'planned-furina',
+        characterKey: 'Furina',
+        bannerType: 'character',
+        expectedStartDate: '2099-06-01T00:00:00.000Z',
+        expectedEndDate: '2099-06-21T00:00:00.000Z',
+        isConfirmed: false,
+        priority: 2,
+        maxPullBudget: 80,
+        notes: '',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ];
+
+    renderPage();
+
+    expect(screen.queryByRole('heading', { name: /set up your first target/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('target-quick-start')).not.toBeInTheDocument();
+    expect(screen.getByText('Pull for Furina')).toBeInTheDocument();
+  });
+
   it('prioritizes stale imports over starting another build target', () => {
     mocks.campaigns = [
       campaign({

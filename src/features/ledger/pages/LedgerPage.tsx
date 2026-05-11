@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Calculator, ChevronDown, ChevronUp, History, Plus, RefreshCw, Target } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -7,6 +9,10 @@ import { primogemEntryRepo } from '../repo/primogemEntryRepo';
 import { fateEntryRepo } from '../repo/fateEntryRepo';
 import { resourceSnapshotRepo } from '../repo/resourceSnapshotRepo';
 import { wishRepo } from '@/features/wishes/repo/wishRepo';
+import {
+  buildFirstTargetResourceActions,
+  type FirstTargetResourceActionId,
+} from '@/features/targets/domain/firstTargetSetup';
 import { UnifiedChart } from '../components/UnifiedChart';
 import { IncomeRateTrendChart } from '../components/IncomeRateTrendChart';
 import { TransactionLog } from '../components/TransactionLog';
@@ -157,6 +163,11 @@ export default function LedgerPage() {
 
   const wishSpendingTotals =
     wishSpending ?? { totalPulls: 0, primogemEquivalent: 0, pullsByFate: { intertwined: 0, acquaint: 0 } };
+  const resourceSetupLoaded = allSnapshots !== undefined && wishRecords !== undefined;
+  const showFirstTargetResources =
+    resourceSetupLoaded &&
+    allSnapshots.length === 0 &&
+    wishRecords.length === 0;
 
   // Handlers
   const handleSnapshotSave = async () => {
@@ -196,6 +207,8 @@ export default function LedgerPage() {
           Track your primogem stash with snapshots and see historical + projected values.
         </p>
       </div>
+
+      {showFirstTargetResources && <FirstTargetResourcesPanel />}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -242,7 +255,7 @@ export default function LedgerPage() {
       </div>
 
       {/* Snapshot Logger (moved higher) */}
-      <section className="bg-slate-900 border border-slate-800 rounded-xl">
+      <section id="resource-snapshot" className="scroll-mt-24 bg-slate-900 border border-slate-800 rounded-xl">
         <button
           className="w-full px-4 py-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors rounded-t-xl"
           onClick={() => setSnapshotExpanded(!snapshotExpanded)}
@@ -403,5 +416,49 @@ export default function LedgerPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function FirstTargetResourcesPanel() {
+  const actions = buildFirstTargetResourceActions();
+  const icons: Record<FirstTargetResourceActionId, LucideIcon> = {
+    'set-resources': RefreshCw,
+    'import-wishes': History,
+    'enter-pity': Calculator,
+    'choose-target': Target,
+  };
+
+  return (
+    <section className="rounded-xl border border-primary-900/50 bg-primary-950/20 p-4" aria-labelledby="first-target-resources-heading">
+      <div className="mb-4">
+        <h2 id="first-target-resources-heading" className="text-xl font-semibold text-slate-100">
+          First Target Resources
+        </h2>
+        <p className="mt-1 text-sm text-slate-300">
+          Add just enough pull data to make your first target useful. Detailed ledger tracking can come later.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        {actions.map((action) => {
+          const Icon = icons[action.id];
+          return (
+            <Link
+              key={action.href}
+              to={action.href}
+              className="flex items-center justify-between gap-3 rounded-lg bg-slate-950/70 px-3 py-2 transition-colors hover:bg-slate-800"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <Icon className="h-4 w-4 flex-shrink-0 text-primary-300" aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-100">{action.label}</span>
+                  <span className="block text-xs text-slate-500">{action.detail}</span>
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-500" aria-hidden="true" />
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import LedgerPage from './LedgerPage';
 
 // Mock dexie-react-hooks
@@ -76,16 +77,24 @@ describe('LedgerPage', () => {
     vi.clearAllMocks();
   });
 
+  function renderPage() {
+    return render(
+      <MemoryRouter>
+        <LedgerPage />
+      </MemoryRouter>
+    );
+  }
+
   describe('rendering', () => {
     it('renders the page title', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByRole('heading', { name: /primogem tracker/i })).toBeInTheDocument();
       expect(screen.getByText(/track your primogem stash/i)).toBeInTheDocument();
     });
 
     it('renders all summary cards', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/current primogems/i)).toBeInTheDocument();
       expect(screen.getByText(/purchased primogems/i)).toBeInTheDocument();
@@ -93,21 +102,35 @@ describe('LedgerPage', () => {
       expect(screen.getByText(/pulls since snapshot/i)).toBeInTheDocument();
     });
 
+    it('shows a first-target resource handoff before deep tracking when empty', () => {
+      renderPage();
+
+      expect(screen.getByRole('heading', { name: /first target resources/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /set current resources/i })).toHaveAttribute('href', '/pulls#resource-snapshot');
+      expect(screen.getByRole('link', { name: /import wish history/i })).toHaveAttribute('href', '/pulls/history');
+      expect(screen.getByRole('link', { name: /enter pity manually/i })).toHaveAttribute('href', '/pulls/calculator');
+      expect(screen.getByRole('link', { name: /choose first target/i })).toHaveAttribute('href', '/campaigns');
+    });
+
     it('renders resource snapshot section', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/resource snapshot/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /resource snapshot/i }).closest('section')).toHaveAttribute(
+        'id',
+        'resource-snapshot'
+      );
     });
 
     it('renders unified chart section', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/primogem history & projection/i)).toBeInTheDocument();
       expect(screen.getByTestId('unified-chart')).toBeInTheDocument();
     });
 
     it('renders purchase ledger section', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       // "Purchase Ledger" appears as both heading and data-testid container
       const purchaseLedgerElements = screen.getAllByText(/purchase ledger/i);
@@ -115,7 +138,7 @@ describe('LedgerPage', () => {
     });
 
     it('renders transaction log section', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/transaction log/i)).toBeInTheDocument();
     });
@@ -123,7 +146,7 @@ describe('LedgerPage', () => {
 
   describe('summary card values', () => {
     it('displays zero primogems initially', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       // Current primogems should show 0 when no snapshot
       const primogemCard = screen.getByText(/current primogems/i).closest('div');
@@ -131,7 +154,7 @@ describe('LedgerPage', () => {
     });
 
     it('shows add snapshot message when no snapshots', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/add a snapshot to track/i)).toBeInTheDocument();
     });
@@ -139,7 +162,7 @@ describe('LedgerPage', () => {
 
   describe('collapsible sections', () => {
     it('snapshot section is expanded by default', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       // Snapshot inputs should be visible
       expect(screen.getByText(/enter your current in-game values/i)).toBeInTheDocument();
@@ -147,7 +170,7 @@ describe('LedgerPage', () => {
 
     it('can collapse snapshot section', async () => {
       const user = userEvent.setup();
-      render(<LedgerPage />);
+      renderPage();
 
       // Click to collapse
       const sectionHeader = screen.getByText(/resource snapshot/i).closest('button');
@@ -162,13 +185,13 @@ describe('LedgerPage', () => {
     });
 
     it('purchase ledger is expanded by default', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByTestId('purchase-ledger')).toBeInTheDocument();
     });
 
     it('transaction log is collapsed by default', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       // Transaction log should not show its content initially
       expect(screen.queryByTestId('transaction-log')).not.toBeInTheDocument();
@@ -176,7 +199,7 @@ describe('LedgerPage', () => {
 
     it('can expand transaction log', async () => {
       const user = userEvent.setup();
-      render(<LedgerPage />);
+      renderPage();
 
       // Find the transaction log header button
       const transactionLogHeader = screen.getByText(/transaction log/i).closest('button');
@@ -192,7 +215,7 @@ describe('LedgerPage', () => {
 
   describe('snapshot form', () => {
     it('renders all snapshot input fields', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByLabelText(/primogems/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/genesis crystals/i)).toBeInTheDocument();
@@ -203,14 +226,14 @@ describe('LedgerPage', () => {
     });
 
     it('renders save snapshot button', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByRole('button', { name: /save snapshot/i })).toBeInTheDocument();
     });
 
     it('can enter values in snapshot form', async () => {
       const user = userEvent.setup();
-      render(<LedgerPage />);
+      renderPage();
 
       const primogemsInput = screen.getByLabelText(/^primogems$/i);
       await user.clear(primogemsInput);
@@ -222,25 +245,25 @@ describe('LedgerPage', () => {
 
   describe('section descriptions', () => {
     it('shows snapshot description', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/ground truth for calculations/i)).toBeInTheDocument();
     });
 
     it('shows chart description', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/historical values reconstructed/i)).toBeInTheDocument();
     });
 
     it('shows purchase ledger description', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/track primogem purchases separately/i)).toBeInTheDocument();
     });
 
     it('shows transaction log description', () => {
-      render(<LedgerPage />);
+      renderPage();
 
       expect(screen.getByText(/unified view of snapshots/i)).toBeInTheDocument();
     });

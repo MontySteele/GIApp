@@ -32,7 +32,16 @@ Target summaries are a facade over existing tables:
 - Wishlist entries in Zustand
 - Owned character build/polish shortcuts from `characters`
 
-The dashboard consumes those summaries to choose one Next Up action and decide whether Start Target should be a full wizard or a compact entry point.
+The dashboard consumes those summaries to choose one Next Up action and decide whether First Target Setup, the full Start Target wizard, or a compact target entry point should appear.
+
+First Target Setup is intentionally separate from storage. `features/targets/domain/firstTargetSetup.ts` computes a small state machine from live counts and account freshness:
+
+1. Import or refresh roster data
+2. Add pull/resource context
+3. Choose the first target
+4. Review the target plan
+
+Dashboard and Import Hub render the shared setup card only while no campaign, planned banner, or wishlist target exists. Pulls renders a resource-specific handoff when there are no snapshots or wish records yet, using the same route constants from the setup domain.
 
 ## Feature Boundaries
 
@@ -57,7 +66,7 @@ src/
 │   ├── planner/            # Material planning, farming schedule, target deficits
 │   ├── roster/             # Characters, teams hooks, GOOD/Irminsul/Enka import UI
 │   ├── sync/               # Import Hub, backup/restore, app metadata, freshness
-│   ├── targets/            # Product-level target facade and Start Target wizard
+│   ├── targets/            # Product-level target facade, First Target Setup, Start Target wizard
 │   ├── teams/              # Team hub, team detail, bosses, wfpsim export
 │   ├── weapons/            # Standalone weapon inventory
 │   └── wishes/             # Wish records, pity, import, banners, freshness
@@ -97,7 +106,7 @@ Compatibility redirects:
 - `/builds` -> `/roster/builds`
 - `/bosses` -> `/roster/bosses`
 
-Hash links are handled in the app shell so SPA navigation such as `/#quick-resource-logger` scrolls after route changes.
+Hash links are handled in the app shell so SPA navigation such as `/#quick-resource-logger` and `/pulls#resource-snapshot` scrolls after route changes.
 
 ## Database Schema (Dexie v5)
 
@@ -131,6 +140,7 @@ Hash links are handled in the app shell so SPA navigation such as `/#quick-resou
 - **Feature modules own their domain logic.** Prefer `features/*/domain` for calculations and selectors, then consume those from hooks/components.
 - **Repositories hide Dexie details.** UI code should not call `db.table` directly unless it is a small page-level live count or a focused migration/import surface.
 - **Target facade avoids schema churn.** Product-level Target logic lives in `features/targets` while storage remains in `campaigns`, `plannedBanners`, and existing stores.
+- **Setup state is derived, not persisted.** First Target Setup is computed from live counts, resource state, and import freshness so it cannot drift from the actual account state.
 - **Manual fast paths matter.** Pull odds and target creation should work with user-entered pity/pulls even when imports are incomplete.
 - **Import freshness is product data.** `useAccountDataFreshness` and Import Hub summaries feed dashboard guidance, not just settings screens.
 - **Dashboard ownership is narrow.** Dashboard owns "what should I do now?" and quick capture. Pulls owns budget depth, wish history, and charts. Targets owns target management and target-specific material deficits. Roster owns characters, teams, domains, and progression planning.

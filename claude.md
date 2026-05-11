@@ -10,7 +10,9 @@ This is a local-first PWA for Genshin Impact players. Its current product direct
 - [E2E Testing](docs/E2E_TESTING.md) - Playwright setup and current smoke suites
 - [Changelog](docs/CHANGELOG.md) - Current history and release notes
 - [Test Coverage Plan](TEST_COVERAGE_PLAN.md) - Current test metrics and priorities
+- [Testing Checklist](TESTING_CHECKLIST.md) - Manual smoke checks for current user flows
 - [Patch Update Runbook](CLAUDE_UPDATE.md) - Static game-data update instructions
+- [Archive](docs/archive/README.md) - Historical plans and retired design docs
 
 ## Current App Structure
 
@@ -69,6 +71,19 @@ The dashboard and target surfaces expose a three-step wizard:
 
 Manual mode is intentional. The wizard should remain useful before roster or wish imports are complete.
 
+### First Target Setup
+
+First Target Setup is a derived onboarding state machine in `src/features/targets/domain/firstTargetSetup.ts`.
+
+The flow is:
+
+1. Import or refresh roster data
+2. Set pull/resource context
+3. Choose a first target
+4. Review the target plan
+
+Dashboard and Import Hub show the shared setup card only while no campaign, planned banner, or wishlist target exists. Pulls shows a resource-specific handoff when there are no snapshots or wish records, with routes shared through `FIRST_TARGET_SETUP_ROUTES`.
+
 ### Import Hub and Freshness
 
 `/imports` centralizes setup:
@@ -116,8 +131,8 @@ npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 
 Latest verified baseline:
 
-- 147 Vitest files
-- 2055 Vitest tests
+- 150 Vitest files
+- 2075 Vitest tests
 - Campaign-flow Playwright smoke passing
 - Navigation Playwright smoke passing
 - Team-management Playwright smoke passing
