@@ -9,6 +9,40 @@ Visit: http://localhost:5173
 
 ---
 
+## 0. Goal-First UX Smoke ✅
+
+### Test: Start a manual target without imports
+- [ ] Open Dashboard at `/`
+- [ ] In "Start a Target", choose "Get"
+- [ ] Select a target character, e.g. Furina
+- [ ] Enter saved pulls, current pity, guarantee status, deadline, and target constellation
+- [ ] Click through to Preview
+- [ ] Verify preview shows hard-pity coverage, worst-case shortfall, and daily pace
+- [ ] Click "Create Target"
+- [ ] Verify `/campaigns` opens with a prefilled target draft
+
+### Test: Already-met constellation target
+- [ ] Start a Get character target
+- [ ] Enter Current C higher than or equal to Target C
+- [ ] Open Preview
+- [ ] Verify it says "Target already met"
+- [ ] Verify Create Target is disabled and Check Odds is hidden
+
+### Test: Import Hub and freshness
+- [ ] Open `/imports`
+- [ ] Verify roster, wish history, manual fast path, and backup/restore status cards render
+- [ ] Return to Dashboard
+- [ ] Verify the account freshness badge links to `/imports`
+
+### Test: Quick actions
+- [ ] Open any non-dashboard route, e.g. `/pulls`
+- [ ] Open the floating Quick Actions button
+- [ ] Click "Log Primos"
+- [ ] Verify URL becomes `/#quick-resource-logger`
+- [ ] Verify the dashboard quick resource logger is visible
+
+---
+
 ## 1. Manual Character Entry ✅
 
 ### Test: Create a new character

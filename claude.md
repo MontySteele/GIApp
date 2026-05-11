@@ -1,142 +1,128 @@
 # Genshin Progress Tracker
 
-A local-first PWA for Genshin Impact players to track characters, wishes, primogems, and plan future pulls.
+This is a local-first PWA for Genshin Impact players. Its current product direction is goal-first: help users decide what to do next from their account data, not just store character and primogem records.
 
-## Documentation
+## Living Documentation
 
-- **[Architecture](docs/ARCHITECTURE.md)** - Tech stack, file structure, design patterns
-- **[Contributing](docs/CONTRIBUTING.md)** - Development guidelines, TDD, coding standards
-- **[E2E Testing](docs/E2E_TESTING.md)** - Playwright setup, troubleshooting, containerized environments
-- **[Changelog](docs/CHANGELOG.md)** - Sprint history and recent changes
-- **[Refactoring Plan](docs/REFACTORING_PLAN.md)** - UI consolidation plan (13→6 tabs)
-- **[Test Plan](TEST_COVERAGE_PLAN.md)** - Test coverage strategy and priorities
+- [README](README.md) - Product overview, current routes, and quick start
+- [Architecture](docs/ARCHITECTURE.md) - Feature boundaries, schema, routing, and patterns
+- [Contributing](docs/CONTRIBUTING.md) - Development workflow and coding standards
+- [E2E Testing](docs/E2E_TESTING.md) - Playwright setup and current smoke suites
+- [Changelog](docs/CHANGELOG.md) - Current history and release notes
+- [Test Coverage Plan](TEST_COVERAGE_PLAN.md) - Current test metrics and priorities
+- [Patch Update Runbook](CLAUDE_UPDATE.md) - Static game-data update instructions
 
----
+## Current App Structure
 
-## App Structure (6 Tabs)
+### Primary Routes
 
-| Tab | Route | Description |
-|-----|-------|-------------|
-| **Dashboard** | `/` | Quick stats, notes widget, today's priorities |
-| **Roster** | `/roster` | Characters, weapons, artifacts collection |
-| **Teams** | `/teams` | Team hub with materials, bosses, build templates, wfpsim export |
-| **Wishes** | `/wishes` | Pity tracking, pull calculator, primogem budget |
-| **Calendar** | `/calendar` | Domain schedule, reset timers, events |
-| **Settings** | `/settings` | Configuration and data sync |
+| Surface | Route | Notes |
+|---|---|---|
+| Dashboard | `/` | Resume card, today's plan, target wizard, quick logger, freshness, account snapshot |
+| Targets | `/campaigns` | User-facing Targets control center, storage still uses campaigns |
+| Target Detail | `/campaigns/:id` | Target plan, readiness, next actions |
+| Roster | `/roster` | Characters plus nested weapons, artifacts, build templates |
+| Teams | `/teams` | Team hub, bosses, team detail, export flows |
+| Pulls | `/pulls` | Budget, calculator, wish history, banners |
+| Planner | `/planner` | Materials, domains, target deficits |
+| Import Hub | `/imports` | Roster, wish history, manual fallback, backup, last import impact |
+| More | `/more` | Mobile secondary navigation |
+| Notes | `/notes` | Notes and quick notes |
+| Settings | `/settings` | Sync, backup, restore |
 
-### Key Nested Routes
-- `/roster/weapons`, `/roster/artifacts` - Collection sub-views
-- `/roster/:id` - Character detail with goals
-- `/teams/:id` - Team detail (materials, bosses, build gaps)
-- `/teams/templates` - Build template browser
-- `/wishes/calculator` - Pull probability simulator
-- `/wishes/budget` - Primogem income tracking
+### Route Compatibility
 
----
+Old routes redirect rather than breaking saved links:
 
-## Quick Start
+- `/wishes` -> `/pulls`
+- `/wishes/calculator` -> `/pulls/calculator`
+- `/calculator` -> `/pulls/calculator`
+- `/ledger` -> `/pulls/budget`
+- `/calendar` -> `/planner/domains`
+- `/builds` -> `/roster/builds`
+- `/bosses` -> `/teams/bosses`
+
+## Key Product Concepts
+
+### Targets
+
+Targets are the user-facing planning model. Keep the `/campaigns` route and `campaigns` table for compatibility, but use "Targets" in new UI copy unless a code identifier requires "campaign".
+
+Target summaries normalize:
+
+- Active campaigns
+- Planned banners
+- Wishlist characters
+- Owned character polish shortcuts
+
+### Start a Target Wizard
+
+The dashboard and target surfaces expose a three-step wizard:
+
+1. Goal: Get character, Build character, or Polish team
+2. Details: character/team, build goal, deadline, pull state, pity, guarantee, constellation
+3. Preview: hard-pity coverage, shortfall, daily pace, advice, create/check-odds actions
+
+Manual mode is intentional. The wizard should remain useful before roster or wish imports are complete.
+
+### Import Hub and Freshness
+
+`/imports` centralizes setup:
+
+- Roster and inventory import status
+- Wish history status
+- Manual fast path
+- Backup and restore status
+- Live snapshot counts
+- Last import impact summary
+
+Dashboard freshness should point users here when account data is missing or stale.
+
+### Quick Actions
+
+The floating Quick Action Bar currently exposes:
+
+- Start Target -> `/campaigns`
+- Log Primos -> `/#quick-resource-logger`
+- Update Pity -> `/pulls/history`
+- Import Data -> `/imports`
+- Add Note -> `/notes`
+
+Hash scrolling is handled in the app layout so deep links land on the intended dashboard section.
+
+## Development Commands
 
 ```bash
-npm install          # Install dependencies
-npm run dev          # Start dev server
-npm run build        # Production build
-npm run test:run     # Run unit tests
-npm run test:coverage   # Coverage report
-npm run test:e2e     # Run E2E tests (requires: npx playwright install chromium)
+npm install
+npm run dev
+npm run lint
+npm run test:run
+npm run build
+npm run test:e2e -- --project=chromium
 ```
 
----
+Focused smokes after target/dashboard/navigation work:
 
-## Architecture Overview
-
-```
-React Components → Hooks → Repository Layer → Dexie (IndexedDB)
-                ↘ Zustand (UI State)
-                ↘ Shared Services (lib/services)
+```bash
+npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
+npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 ```
 
-**Key Patterns:**
-- Feature-based organization (`/domain`, `/repo`, `/hooks`, `/components`, `/pages`)
-- Repository pattern for all database access
-- `useLiveQuery` for reactive database queries
-- Web Workers for Monte Carlo simulations
+## Current Test Baseline
 
----
+Latest verified baseline:
 
-## Current Sprint: 14 - Complete (January 2026)
+- 147 Vitest files
+- 2075 Vitest tests
+- Campaign-flow Playwright smoke passing
+- Navigation Playwright smoke passing
 
-### Sprint 14: Build Templates UX Enhancement
-- ✅ **Character search in TeamForm** - Quick filter when building teams
-- ✅ **Equipment data** - Static weapon/artifact data for form dropdowns
-- ✅ **BuildTemplateForm overhaul** - Searchable weapon/artifact selectors, main stat buttons, substat priority
-- ✅ **Filter/sort utilities** - Consolidated ~480 lines of duplicate logic into shared utils
-- ✅ **gcsim import** - Parse gcsim configs into build templates via modal
+## Engineering Guidelines
 
-### Test Status
-- All 1,263 tests passing
-- Run `npm run test:run` before committing
-
-### Previous Sprint (13) - Completed ✅
-- PityHeader across all Wishes sub-tabs
-- BuildGapDisplay with completion percentage
-- ApplyTemplateModal and TeamMemberCard
-- Weekly boss filtering by team needs
-- Goal creation in-context
-
----
-
-## Essential Guidelines
-
-### TDD
-- Write tests first
-- Domain logic must have unit tests
-- 80% coverage target
-
-### TypeScript
-- No `any` types
-- Define props interfaces
-- Discriminated unions for complex state
-
-### Architecture
-- Feature-based organization
-- Repository pattern
-- No circular dependencies
-
-See [Contributing Guide](docs/CONTRIBUTING.md) for details.
-
----
-
-## Key Domain Logic
-
-### Primogem Reconstruction
-`src/features/ledger/domain/historicalReconstruction.ts`
-- Reconstruct from snapshots + wish spending (160 primos/pull)
-- Forward projection from pull frequency
-
-### Gacha Probability
-`src/features/calculator/domain/pityEngine.ts`
-- Post-5.0 Capturing Radiance: 55% base, guarantee after 3 losses
-- Soft pity: 74+, Hard pity: 90
-
-### Material Identification
-`src/lib/services/genshinDbService.ts`
-- genshin-db API with 7-day cache
-- LOCAL_SPECIALTIES whitelist
-- COMMON_TIER_PATTERNS for material categorization
-- Cache schema versioning for automatic refresh on structure changes
-
----
-
-## Future Sprint Backlog
-
-### Sprint 15 Candidates
-1. **Link budget to calculator** - Connect primogem projections to pull scenarios
-2. **Team sharing/export** - JSON export, shareable links for team compositions
-3. **Today's farming widget** - Dashboard widget showing optimal daily farming
-4. **Artifact optimizer** - Basic artifact scoring and set recommendations
-
-### Technical Debt (Ongoing)
-- Maintain 80%+ test coverage
-- Add E2E tests for critical user flows
-- Performance profiling for large inventories
-- Extract duplicate filter/sort logic to shared utilities
+- Prefer feature-local domain logic over page-component calculations.
+- Keep storage compatibility unless the user explicitly approves schema churn.
+- Preserve user data and old routes during naming changes.
+- Use `useLiveQuery` for reactive Dexie reads.
+- Use workers for heavy probability simulations.
+- Add tests around user advice, routing, import writes, and dashboard next actions.
+- Prefer roles and accessible names in Playwright selectors; scope repeated labels with regions.

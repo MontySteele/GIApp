@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-05-11 (Goal-first UX and Targets Reframe)
+
+### Product IA
+- Reframed user-facing "Campaigns" language around **Targets** while preserving `/campaigns` routes and storage compatibility.
+- Simplified mobile bottom navigation to Home, Targets, Roster, Pulls, and More.
+- Added More page links for secondary destinations including Imports, Planner, Teams, Notes, Settings, Build Templates, and Bosses.
+
+### Dashboard Command Center
+- Consolidated dashboard into higher-signal zones: resume card, today's plan, Start a Target wizard, quick resource logger, import freshness, and compact account snapshot.
+- Added visible account data freshness badge linking to `/imports`.
+- Added Resume Where You Left Off logic for active targets, missing imports, manual pull setup, and first-target starts.
+- Added global Quick Action Bar for Start Target, Log Primos, Update Pity, Import Data, and Add Note.
+- Added SPA hash scrolling so quick actions such as `/#quick-resource-logger` land on the intended dashboard capture tool.
+
+### Targets
+- Added target summary facade over campaigns, planned banners, wishlist characters, and owned character polish shortcuts.
+- Added TargetSummary readiness fields and next-action support for dashboard and target lists.
+- Added three-step Start a Target wizard:
+  - Get character
+  - Build character
+  - Polish team
+- Wizard manual mode now accepts saved pulls, current pity, guarantee, deadline, current constellation, and target constellation.
+- Wizard preview shows hard-pity coverage, worst-case pull shortfall, daily pace, and creation/calculator handoffs.
+- Already-met constellation targets now show "Target already met" instead of creating a misleading one-copy pull need.
+
+### Imports and Setup
+- Added Import Hub at `/imports` for roster status, wish history status, manual fallback, backup status, live counts, and last import impact.
+- GOOD and Irminsul roster imports now persist lightweight last-import summaries.
+- Roster import impact totals now separate created characters from updated inventory records.
+- Dashboard setup progress now reflects real imported wish records instead of stale localStorage flags.
+- Empty setup/import CTAs route directly to the Irminsul import path where appropriate.
+
+### Pulls and Ledger
+- Quick Resource Logger supports presets, repeat-last behavior, and undo.
+- Log Primos quick action deep-links from any page to the dashboard logger.
+- Pull setup supports a manual fast path before wish history import.
+
+### Tests
+- Added and hardened tests across target summary domain logic, Start Target wizard paths, dashboard loading/freshness/resume logic, Import Hub, GOOD/Irminsul import summaries, Quick Action Bar, Quick Resource Logger undo, and mobile navigation.
+- Added Playwright campaign-flow smoke for dashboard -> target wizard -> target creation -> calculator/planner handoffs.
+- Added Playwright navigation smoke for quick-action hash deep links.
+- Verified after this work: 147 Vitest files / 2075 tests passing, plus focused Playwright campaign-flow and navigation suites.
+
 ## 2026-04-21 (Patch update: 6.4 → 6.5 "Luna VI")
 
 ### Static game data

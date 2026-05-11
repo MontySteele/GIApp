@@ -1,273 +1,152 @@
-# Test Coverage Plan - Genshin Impact Progress Tracker
+# Test Coverage Plan - Genshin Progress Tracker
 
-## Current State (January 2026 - Sprint 16)
+## Current State (May 2026)
 
 ### Test Infrastructure
-- **Framework:** Vitest 4.0.16
-- **UI Testing:** @testing-library/react
-- **E2E Testing:** Playwright (added Sprint 15)
-- **Coverage:** v8 provider with 80% threshold target
-- **Environment:** jsdom with fake-indexeddb
+
+- **Unit/integration framework:** Vitest 4.0.16
+- **UI testing:** Testing Library React
+- **E2E testing:** Playwright
+- **Coverage provider:** v8
+- **Browser-like environment:** jsdom plus fake-indexeddb
 
 ### Current Metrics
-- **Total Tests:** ~1,400+
-- **Passing:** ~99%+
-- **Test Files:** 60+
 
-### Coverage by Feature
+Last verified after the goal-first UX branch:
 
-| Feature | Status | Tests | Notes |
-|---------|--------|-------|-------|
-| Wishes | Excellent | ~200+ | Domain, hooks, components, pages |
-| Calculator | Good | ~120+ | Single/multi-target, reverse calculator |
-| Roster | Excellent | ~150+ | Characters, teams, mappers |
-| Ledger | Good | ~30+ | Repos and components |
-| Sync | Good | ~20+ | Compression/encryption tested |
-| Artifacts | Good | ~50+ | Scoring, filtering, CRUD |
-| Calendar | Excellent | 111 | ResetTimers, EventList, useEvents, eventTypes |
-| Notes | Good | ~40+ | CRUD, goals, tags |
-| Planner | Good | ~80+ | Multi-character, material calculations |
-| Weapons | Good | ~30+ | Inventory and filtering |
-| Bosses | Excellent | 81 | WeeklyBossTracker, weeklyBossData |
-| UI Components | Good | ~50+ | Button, Card, Modal, ErrorBoundary, Breadcrumbs, Skeleton |
-| Dashboard | Good | ~40+ | Widgets, hooks |
-| Builds | Partial | ~75+ | Templates, gcsim parser |
+- **Test files:** 147 passing
+- **Tests:** 2075 passing
+- **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`
 
-### Recent Test Additions (Sprint 16)
-- Calendar feature: +65 tests
-- Bosses feature: +66 tests
-- ErrorBoundary: +17 tests
-- Breadcrumbs: +10 tests
+Use `npm run test:run` as the authoritative local unit/integration check.
 
----
+## Coverage by Area
 
-## Phase 1: Fix Failing Tests (Priority: Critical)
+| Area | Status | Notes |
+|---|---|---|
+| Targets / Campaigns | Good | Target summaries, wizard math, campaign links, campaign pages, dashboard handoffs |
+| Dashboard | Good | Resume card, loading states, freshness badge, today actions, empty states |
+| Imports / Sync | Good | Import Hub, backup/restore, app metadata, import impact summaries, freshness |
+| Pulls / Wishes | Excellent | Wish import, history, pity selectors, replay, import impact, calculators |
+| Calculator | Excellent | Single, multi-target, reverse calculator, worker integration |
+| Roster | Excellent | Characters, forms, wishlist, progression, import components, selectors |
+| Planner | Good | Material calculations, farming schedule, target deficits, planner pages |
+| Teams / Builds | Good | Team flows, build templates, gcsim/wfpsim parsing and export |
+| Ledger | Good | Resource calculations, quick logger, historical reconstruction, repos |
+| Artifacts / Weapons | Good | Inventory hooks, repo behavior, scoring/filtering/page tests |
+| Notes | Good | CRUD hooks, page behavior, quick notes |
+| Calendar / Bosses | Good | Reset timers, event types, boss data and trackers |
+| UI Components | Good | Button, Card, Modal, Badge, Skeleton, ErrorBoundary, common navigation |
 
-### 1.1 WishStatistics.test.tsx (3 failures)
-- **Issue:** Test expects '8' but component renders '8.0'
-- **Fix:** Update test assertions to match actual decimal rendering
+## Recent Coverage Added
 
-### 1.2 MultiTargetCalculator.test.tsx (26 failures)
-- **Issue:** Complex component with async worker interactions
-- **Fix:** Review component changes, update mock implementations
+Goal-first UX work added or hardened tests for:
 
-### 1.3 ReverseCalculator.test.tsx (3 failures)
-- **Issue:** Input validation and benchmark tests failing
-- **Fix:** Update expected values to match current implementation
+- Target aggregation and ordering
+- Goal-first Start Target wizard paths
+- Manual pull fast path and hard-pity preview math
+- Current constellation and already-met constellation handling
+- Dashboard checklist/self-healing import state
+- Dashboard loading skeleton branch
+- Dashboard resume card priorities
+- Dashboard data freshness badge
+- Import Hub status and persisted impact summaries
+- GOOD and Irminsul component-level import summary writes
+- Quick Resource Logger presets and undo
+- Quick Action Bar routes
+- Mobile navigation active states
+- Hash-link scrolling for quick actions
+- Campaign-flow and navigation Playwright smokes
 
-### 1.4 Mapper tests (teamSnapshot, enka) (3 failures)
-- **Issue:** Snapshot creation and character ID mapping
-- **Fix:** Update test data to match current mapper behavior
+## Standard Verification
 
-### 1.5 LedgerRepos.test.ts (3 failures)
-- **Issue:** Timestamp/metadata default values
-- **Fix:** Update expected default values
+Run these before committing feature work:
 
----
+```bash
+npm run lint
+npm run test:run
+npm run build
+```
 
-## Phase 2: Add Tests for Untested Features (Priority: High)
+For UX/navigation work, also run the relevant Playwright smoke:
 
-### 2.1 Planner Feature
-Files needing tests:
-- `features/planner/domain/ascensionCalculator.ts`
-- `features/planner/domain/materialConstants.ts`
-- `lib/services/genshinDbService.ts`
-- `lib/utils/materialNormalization.ts`
+```bash
+npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
+npx playwright test e2e/tests/navigation.spec.ts --project=chromium
+```
 
-Test categories:
-- Material calculation accuracy
-- API response parsing
-- Cache behavior
-- Error handling
+Run the full E2E suite when changing shared routing, persistence setup, page objects, or Playwright config:
 
-### 2.2 Calendar Feature
-Files needing tests:
-- `features/calendar/domain/resetTimers.ts`
-- `features/calendar/hooks/useEvents.ts`
+```bash
+npm run test:e2e -- --project=chromium
+```
 
-Test categories:
-- Timer calculations
-- Server time conversions
-- Event filtering
+## Coverage Priorities
 
-### 2.3 Artifacts Feature
-Files needing tests:
-- `features/artifacts/repo/artifactRepo.ts`
+### Keep Strong
 
-Test categories:
-- CRUD operations
-- Artifact filtering/sorting
+- Domain functions that compute user-facing advice, readiness, pity, odds, or import deltas.
+- Import flows that write persistent state.
+- Dashboard actions that route users to another workflow.
+- Route compatibility and redirects.
+- Manual-mode paths that are meant to work without imports.
 
-### 2.4 Weapons Feature
-Files needing tests:
-- `features/weapons/repo/weaponRepo.ts`
+### Watch For Gaps
 
-Test categories:
-- CRUD operations
-- Weapon inventory management
-
-### 2.5 Notes Feature
-Files needing tests:
-- `features/notes/repo/notesRepo.ts`
-- `features/notes/hooks/useNotes.ts`
-
-Test categories:
-- Note CRUD operations
-- Tag filtering
-- Search functionality
-
----
-
-## Phase 3: Add UI Component Tests (Priority: Medium)
-
-### 3.1 Core UI Components
-- `components/ui/Button.tsx`
-- `components/ui/Card.tsx`
-- `components/ui/Input.tsx`
-- `components/ui/Modal.tsx`
-- `components/ui/Select.tsx`
-- `components/ui/Badge.tsx`
-
-Test categories:
-- Render with different props
-- User interactions
-- Accessibility attributes
-
-### 3.2 Common Components
-- `components/common/Header.tsx`
-- `components/common/TabNav.tsx`
-
----
-
-## Phase 4: Service Layer Tests (Priority: High)
-
-### 4.1 genshinDbService.ts
-Test categories:
-- API fetch success/failure
-- Response parsing
-- Cache hit/miss
-- Stale data fallback
-- Error handling
-
-### 4.2 resourceService.ts
-Test categories:
-- Available pulls calculation
-- Resource aggregation
-
-### 4.3 materialNormalization.ts
-Test categories:
-- Key normalization
-- Inventory matching
-- Tier identification
-
----
-
-## Implementation Checklist
-
-### Sprint 11: Core Test Expansion ✅
-- [x] Fix WishStatistics decimal rendering tests
-- [x] Fix MultiTargetCalculator component tests
-- [x] Fix ReverseCalculator input tests
-- [x] Fix mapper tests (teamSnapshot, enka)
-- [x] Fix ledgerRepos timestamp tests
-
-### Sprint 11-14: Feature Tests ✅
-- [x] ascensionCalculator.test.ts
-- [x] materialConstants.test.ts
-- [x] genshinDbService.test.ts
-- [x] materialNormalization.test.ts
-- [x] Calendar feature tests (partial)
-- [x] Artifacts feature tests
-- [x] Weapons feature tests
-- [x] Notes feature tests
-
-### Sprint 15: E2E & Infrastructure ✅
-- [x] Playwright E2E framework setup
-- [x] MobileBottomNav component tests
-- [x] Page object model pattern
-
-### Sprint 16: UX & Coverage ✅
-- [x] Calendar feature tests (expanded to 111)
-- [x] Bosses feature tests (expanded to 81)
-- [x] ErrorBoundary component tests (17)
-- [x] Breadcrumbs component tests (10)
-- [x] Button component tests
-- [x] Card component tests
-- [x] Input/Select component tests
-- [x] Modal component tests
-- [x] Skeleton component tests
-
-### Remaining Work (Future Sprints)
-- [ ] E2E Tier 2 tests (8 flows)
-- [ ] E2E Tier 3 tests (7 flows)
-- [ ] Visual regression testing
-- [ ] Performance testing for large rosters
-
----
+- True before/after import deltas for campaign readiness if that feature is expanded beyond count summaries.
+- Material readiness in the target wizard preview if it starts reading inventory.
+- Full mobile visual smoke if more controls move into the More/quick-action surfaces.
+- Larger roster/inventory performance tests.
 
 ## Test File Naming Convention
 
-```
+```text
 src/
 ├── features/
 │   └── [feature]/
 │       ├── domain/
-│       │   └── [module].test.ts      # Domain logic tests
+│       │   └── [module].test.ts
 │       ├── components/
-│       │   └── [Component].test.tsx  # Component tests
+│       │   └── [Component].test.tsx
 │       ├── hooks/
-│       │   └── [useHook].test.ts     # Hook tests
+│       │   └── [useHook].test.ts
 │       └── repo/
-│           └── [repo].test.ts        # Repository tests
+│           └── [repo].test.ts
 ├── lib/
 │   ├── services/
-│   │   └── [service].test.ts         # Service tests
+│   │   └── [service].test.ts
 │   └── utils/
-│       └── [util].test.ts            # Utility tests
+│       └── [util].test.ts
 └── components/
     └── ui/
-        └── [Component].test.tsx      # UI component tests
+        └── [Component].test.tsx
 ```
 
----
-
-## Coverage Goals
-
-| Metric | Sprint 11 | Sprint 16 | Target | Status |
-|--------|-----------|-----------|--------|--------|
-| Statements | ~60% | ~75% | 80% | On Track |
-| Branches | ~50% | ~68% | 75% | On Track |
-| Functions | ~55% | ~72% | 80% | On Track |
-| Lines | ~60% | ~75% | 80% | On Track |
-| Total Tests | 545 | 1,400+ | - | Exceeded |
-
----
+E2E specs live in `e2e/tests/*.spec.ts`.
 
 ## TDD Process for New Features
 
-1. **Write failing test first** - Define expected behavior
-2. **Implement minimum code** - Make test pass
-3. **Refactor** - Clean up while keeping tests green
-4. **Add edge cases** - Cover boundary conditions
-5. **Document** - Update this plan with new tests
-
----
+1. Write or update a failing test that captures the behavior.
+2. Implement the smallest coherent change.
+3. Add edge cases around boundary math, routing, missing data, and stale imports.
+4. Refactor only with tests green.
+5. Update docs when product vocabulary, routes, or test expectations change.
 
 ## Running Tests
 
 ```bash
-# Run all tests
+# Run all unit/integration tests
 npm run test:run
 
-# Run tests in watch mode
+# Watch mode
 npm run test
 
-# Run with coverage report
+# Coverage report
 npm run test:coverage
 
-# Run specific test file
-npx vitest run src/features/planner/domain/ascensionCalculator.test.ts
+# Focused file
+npx vitest run src/features/targets/domain/targetWizard.test.ts
 
-# Run tests matching pattern
-npx vitest run --grep "material"
+# E2E focused file
+npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
 ```
