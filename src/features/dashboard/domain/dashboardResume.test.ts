@@ -51,6 +51,29 @@ describe('dashboard resume action', () => {
 
   it('falls back to import and manual setup before asking for a target', () => {
     expect(buildDashboardResumeAction({
+      targets: [target({
+        nextAction: {
+          id: 'pulls',
+          category: 'pulls',
+          label: 'Save 38 more pulls',
+          detail: '52/90 pulls ready.',
+          priority: 1,
+        },
+      })],
+      accountFreshness: {
+        status: 'stale',
+        label: 'Refresh account data',
+        detail: 'Last GOOD import was 14 days ago.',
+      },
+      characterCount: 10,
+      wishHistoryCount: 20,
+    })).toMatchObject({
+      title: 'Refresh account data',
+      href: '/imports',
+      priority: 'import',
+    });
+
+    expect(buildDashboardResumeAction({
       targets: [target({ nextAction: undefined })],
       accountFreshness: fresh,
       characterCount: 10,

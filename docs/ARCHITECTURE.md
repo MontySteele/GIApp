@@ -32,7 +32,7 @@ Target summaries are a facade over existing tables:
 - Wishlist entries in Zustand
 - Owned character build/polish shortcuts from `characters`
 
-The dashboard consumes those summaries to choose resume actions, today's plan, and target wizard defaults.
+The dashboard consumes those summaries to choose one Next Up action and decide whether Start Target should be a full wizard or a compact entry point.
 
 ## Feature Boundaries
 
@@ -50,7 +50,7 @@ src/
 │   ├── calculator/         # Pull probability calculators and worker integration
 │   ├── calendar/           # Reset timers and event/domain schedule helpers
 │   ├── campaigns/          # Target storage, target control center, campaign planning
-│   ├── dashboard/          # Command center, resume logic, today actions
+│   ├── dashboard/          # Command center, Next Up logic, quick capture
 │   ├── ledger/             # Primogem/fate/resource entries and projections
 │   ├── more/               # Mobile secondary navigation hub
 │   ├── notes/              # Notes and quick note widgets
@@ -129,6 +129,7 @@ Hash links are handled in the app shell so SPA navigation such as `/#quick-resou
 - **Target facade avoids schema churn.** Product-level Target logic lives in `features/targets` while storage remains in `campaigns`, `plannedBanners`, and existing stores.
 - **Manual fast paths matter.** Pull odds and target creation should work with user-entered pity/pulls even when imports are incomplete.
 - **Import freshness is product data.** `useAccountDataFreshness` and Import Hub summaries feed dashboard guidance, not just settings screens.
+- **Dashboard ownership is narrow.** Dashboard owns "what should I do now?" and quick capture. Pulls owns budget depth, wish history, and charts. Planner owns farming math and target deficits. Targets owns target management and grouping.
 - **Workers own expensive simulations.** Monte Carlo and heavy probability work must stay off the main thread.
 
 ## Design Guidelines
@@ -137,7 +138,7 @@ Hash links are handled in the app shell so SPA navigation such as `/#quick-resou
 
 - Use `useLiveQuery` for reactive database queries.
 - Memoize expensive selectors and plan calculations.
-- Keep dashboard widgets high-signal and avoid duplicating large page surfaces.
+- Keep dashboard widgets high-signal, compact, and free of duplicated page-depth surfaces.
 - Run pull simulations in workers.
 
 ### Accessibility

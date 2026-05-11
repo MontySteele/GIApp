@@ -18,7 +18,7 @@ This is a local-first PWA for Genshin Impact players. Its current product direct
 
 | Surface | Route | Notes |
 |---|---|---|
-| Dashboard | `/` | Resume card, today's plan, target wizard, quick logger, freshness, account snapshot |
+| Dashboard | `/` | Next Up, contextual target entry, quick capture, compact snapshot, freshness |
 | Targets | `/campaigns` | User-facing Targets control center, storage still uses campaigns |
 | Target Detail | `/campaigns/:id` | Target plan, readiness, next actions |
 | Roster | `/roster` | Characters plus nested weapons, artifacts, build templates |
@@ -76,7 +76,7 @@ Manual mode is intentional. The wizard should remain useful before roster or wis
 - Live snapshot counts
 - Last import impact summary
 
-Dashboard freshness should point users here when account data is missing or stale.
+Dashboard freshness should point users here when account data is missing or stale; fresh data should stay subtle.
 
 ### Quick Actions
 
@@ -112,8 +112,8 @@ npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 
 Latest verified baseline:
 
-- 147 Vitest files
-- 2075 Vitest tests
+- 145 Vitest files
+- 2052 Vitest tests
 - Campaign-flow Playwright smoke passing
 - Navigation Playwright smoke passing
 

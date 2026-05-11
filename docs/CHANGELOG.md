@@ -8,8 +8,13 @@
 - Added More page links for secondary destinations including Imports, Planner, Teams, Notes, Settings, Build Templates, and Bosses.
 
 ### Dashboard Command Center
-- Consolidated dashboard into higher-signal zones: resume card, today's plan, Start a Target wizard, quick resource logger, import freshness, and compact account snapshot.
-- Added visible account data freshness badge linking to `/imports`.
+- Consolidated dashboard into higher-signal zones around Next Up, contextual Start Target, quick capture, import freshness, and compact account/resource snapshot.
+- Follow-up cleanup merged Resume and Today's Plan into one **Next Up** system with one dominant action and compact secondary actions.
+- Combined quick resource capture and key account/resource data into a single **Capture + Snapshot** panel.
+- Made Start Target contextual: full wizard for no real targets, compact entry when targets already exist, and import refresh priority when data is stale or missing.
+- Fresh account data now stays subtle; stale or missing account data is promoted into Next Up.
+- Clarified dashboard ownership: Dashboard owns immediate action and quick capture; Pulls owns budget depth/history/charts; Planner owns farming math; Targets owns management/grouping.
+- Added account data freshness routing to `/imports`.
 - Added Resume Where You Left Off logic for active targets, missing imports, manual pull setup, and first-target starts.
 - Added global Quick Action Bar for Start Target, Log Primos, Update Pity, Import Data, and Add Note.
 - Added SPA hash scrolling so quick actions such as `/#quick-resource-logger` land on the intended dashboard capture tool.
@@ -41,7 +46,7 @@
 - Added and hardened tests across target summary domain logic, Start Target wizard paths, dashboard loading/freshness/resume logic, Import Hub, GOOD/Irminsul import summaries, Quick Action Bar, Quick Resource Logger undo, and mobile navigation.
 - Added Playwright campaign-flow smoke for dashboard -> target wizard -> target creation -> calculator/planner handoffs.
 - Added Playwright navigation smoke for quick-action hash deep links.
-- Verified after this work: 147 Vitest files / 2075 tests passing, plus focused Playwright campaign-flow and navigation suites.
+- Verified after this work: 145 Vitest files / 2052 tests passing, plus focused Playwright campaign-flow and navigation suites.
 
 ## 2026-04-21 (Patch update: 6.4 → 6.5 "Luna VI")
 

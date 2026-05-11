@@ -7,11 +7,11 @@ import {
   Sword,
   Sparkles,
   Zap,
-  TrendingUp,
   ArrowRight,
   LayoutDashboard,
+  Target,
+  RefreshCw,
 } from 'lucide-react';
-import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { StatCardSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
 import { db } from '@/db/schema';
@@ -30,7 +30,6 @@ import TargetSummaryList from '@/features/targets/components/TargetSummaryList';
 import { buildTargetSummaries } from '@/features/targets/domain/targetSummary';
 import { useAccountDataFreshness } from '@/features/sync/hooks/useAccountDataFreshness';
 import { useWishlistStore } from '@/stores/wishlistStore';
-import ResumeNextCard from '../components/ResumeNextCard';
 import DashboardCampaignFocus from '../components/DashboardCampaignFocus';
 import TodayFarmingWidget from '../components/TodayFarmingWidget';
 import { buildDashboardResumeAction } from '../domain/dashboardResume';
@@ -53,12 +52,6 @@ function formatPrimos(primos: number): string {
     return `${(primos / 1000).toFixed(1)}K`;
   }
   return primos.toLocaleString();
-}
-
-function getFreshnessVariant(status: ReturnType<typeof useAccountDataFreshness>['status']): 'success' | 'warning' | 'outline' {
-  if (status === 'fresh') return 'success';
-  if (status === 'stale') return 'warning';
-  return 'outline';
 }
 
 export default function DashboardPage() {
@@ -140,16 +133,20 @@ export default function DashboardPage() {
   const pullSubtext = genesisCrystals > 0
     ? `${formatPrimos(primogems)} primos + ${formatPrimos(genesisCrystals)} crystals`
     : `${formatPrimos(primogems)} primogems`;
+  const plannedBanners = useMemo(
+    () => (Array.isArray(plannedBannersResult) ? plannedBannersResult : []),
+    [plannedBannersResult]
+  );
   const targetSummaries = useMemo(() => {
-    const plannedBanners = Array.isArray(plannedBannersResult) ? plannedBannersResult : [];
-
     return buildTargetSummaries({
       campaigns,
       plannedBanners,
       wishlist: wishlistCharacters,
       characters,
     });
-  }, [campaigns, characters, plannedBannersResult, wishlistCharacters]);
+  }, [campaigns, characters, plannedBanners, wishlistCharacters]);
+  const hasExistingTargets = campaigns.length > 0 || plannedBanners.length > 0 || wishlistCharacters.length > 0;
+  const activeTargetCount = campaigns.filter((campaign) => campaign.status === 'active').length;
   const resumeAction = useMemo(
     () => buildDashboardResumeAction({
       targets: targetSummaries,
@@ -182,45 +179,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
-          <p className="text-slate-400">Your targets, resources, and next action in one place.</p>
+          <p className="text-slate-400">What to do now, plus the fastest capture points.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/imports"
-            aria-label={`${accountFreshness.status} ${accountFreshness.label}: ${accountFreshness.detail || 'Open Import Hub'}`}
-            className="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-left transition-colors hover:border-primary-500"
-          >
-            <Badge variant={getFreshnessVariant(accountFreshness.status)}>
-              {accountFreshness.status}
-            </Badge>
-            <span className="min-w-0">
-              <span className="block truncate text-xs font-medium text-slate-200">{accountFreshness.label}</span>
-              <span className="block truncate text-xs text-slate-500">
-                {accountFreshness.detail || 'Open Import Hub'}
-              </span>
-            </span>
-          </Link>
-          <Link
-            to="/campaigns"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-          >
-            <TrendingUp className="h-4 w-4" aria-hidden="true" />
-            New Target
-          </Link>
-          <Link
-            to="/imports"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-700"
-          >
-            Import Data
-          </Link>
-        </div>
+        <FreshnessHeaderLink freshness={accountFreshness} />
       </div>
 
-      {/* Getting Started Checklist - shown for new users */}
       {hasCompletedOnboardingWizard && showChecklist && checklistProgress < checklistTotal && (
         <GettingStartedChecklist
           checklist={checklist}
@@ -232,57 +198,112 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
-          <ResumeNextCard action={resumeAction} />
-          <DashboardCampaignFocus />
-          <TargetQuickStart />
+          <DashboardCampaignFocus resumeAction={resumeAction} />
+          {hasExistingTargets ? (
+            <TargetEntryCard
+              activeTargetCount={activeTargetCount}
+              freshness={accountFreshness}
+            />
+          ) : (
+            <TargetQuickStart />
+          )}
         </div>
-        <div className="space-y-4">
-          <QuickResourceLogger />
-          <AccountSnapshotCard
-            charStats={charStats}
-            artifactStats={artifactStats}
-            weaponStats={weaponStats}
-            eventPulls={eventPulls}
-            pullSubtext={pullSubtext}
-            primogems={primogems}
-            intertwined={intertwined}
-            starglitterPulls={starglitterPulls}
-            currentResin={currentResin}
-            maxResin={resinBudget.maxResin}
-            minutesToFull={minutesToFull}
-            fragileResin={resinBudget.fragileResin}
-          />
-        </div>
+        <CaptureSnapshotPanel
+          charStats={charStats}
+          artifactStats={artifactStats}
+          weaponStats={weaponStats}
+          eventPulls={eventPulls}
+          pullSubtext={pullSubtext}
+          primogems={primogems}
+          intertwined={intertwined}
+          starglitterPulls={starglitterPulls}
+          currentResin={currentResin}
+          maxResin={resinBudget.maxResin}
+          minutesToFull={minutesToFull}
+          fragileResin={resinBudget.fragileResin}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <TargetSummaryList targets={targetSummaries} />
         <TodayFarmingWidget />
       </div>
-
-      {/* Empty State */}
-      {charStats.total === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <TrendingUp className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-200 mb-2">Get Started</h3>
-            <p className="text-slate-400 mb-4">
-              Import your character data to see your account overview
-            </p>
-            <Link
-              to="/roster?import=irminsul"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded text-white"
-            >
-              Import Account Data <ArrowRight className="w-4 h-4" aria-hidden="true" />
-            </Link>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
 
-interface AccountSnapshotCardProps {
+function FreshnessHeaderLink({
+  freshness,
+}: {
+  freshness: ReturnType<typeof useAccountDataFreshness>;
+}) {
+  if (freshness.status !== 'fresh') return null;
+
+  return (
+    <Link
+      to="/imports"
+      aria-label={`Account data current: ${freshness.detail || 'Open Import Hub'}`}
+      className="inline-flex max-w-full items-center gap-2 text-xs text-slate-500 transition-colors hover:text-slate-300"
+    >
+      <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
+      <span className="truncate">{freshness.detail || 'Account data current'}</span>
+    </Link>
+  );
+}
+
+interface TargetEntryCardProps {
+  activeTargetCount: number;
+  freshness: ReturnType<typeof useAccountDataFreshness>;
+}
+
+function TargetEntryCard({ activeTargetCount, freshness }: TargetEntryCardProps) {
+  const needsImport = freshness.status !== 'fresh';
+  const title = needsImport ? 'Refresh before adding targets' : 'Start another target';
+  const detail = needsImport
+    ? freshness.detail || 'Update account data before creating another target.'
+    : activeTargetCount > 0
+      ? `${activeTargetCount} active target${activeTargetCount === 1 ? '' : 's'} already in motion.`
+      : 'Review existing target ideas or start a new one from Targets.';
+  const href = needsImport ? '/imports' : '/campaigns';
+  const actionLabel = needsImport ? 'Open Import Hub' : 'New Target';
+  const Icon = needsImport ? RefreshCw : Target;
+
+  return (
+    <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="mb-1 flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary-400" aria-hidden="true" />
+            <h2 className="text-lg font-semibold text-slate-100">Start Target</h2>
+          </div>
+          <p className="text-sm font-medium text-slate-200">{title}</p>
+          <p className="mt-1 text-sm text-slate-400">{detail}</p>
+        </div>
+        <div className="flex flex-shrink-0 flex-wrap gap-2">
+          <Link
+            to={href}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              needsImport
+                ? 'bg-amber-600 text-white hover:bg-amber-500'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
+            }`}
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            {actionLabel}
+          </Link>
+          <Link
+            to="/campaigns"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-700"
+          >
+            Manage
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+interface CaptureSnapshotPanelProps {
   charStats: { total: number; maxLevel: number; maxConst: number };
   artifactStats: { total: number; fiveStar: number };
   weaponStats: { total: number; fiveStars: number };
@@ -297,7 +318,7 @@ interface AccountSnapshotCardProps {
   fragileResin: number;
 }
 
-function AccountSnapshotCard({
+function CaptureSnapshotPanel({
   charStats,
   artifactStats,
   weaponStats,
@@ -310,20 +331,23 @@ function AccountSnapshotCard({
   maxResin,
   minutesToFull,
   fragileResin,
-}: AccountSnapshotCardProps) {
+}: CaptureSnapshotPanelProps) {
   return (
-    <Card>
-      <CardHeader className="flex items-center justify-between">
+    <section id="quick-resource-logger" className="scroll-mt-20 rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <LayoutDashboard className="h-5 w-5 text-primary-400" aria-hidden="true" />
-          <h2 className="font-semibold">Account Snapshot</h2>
+          <h2 className="font-semibold">Capture + Snapshot</h2>
         </div>
         <Link to="/pulls" className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300">
-          Budget <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          Pulls <ArrowRight className="h-3 w-3" aria-hidden="true" />
         </Link>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+      </div>
+
+      <div className="space-y-4">
+        <QuickResourceLogger variant="embedded" />
+
+        <div className="grid grid-cols-2 gap-2">
           <SnapshotTile
             icon={<Users className="h-4 w-4" aria-hidden="true" />}
             label="Characters"
@@ -358,8 +382,8 @@ function AccountSnapshotCard({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Link to="/planner" className="rounded-lg bg-slate-900 p-3 transition-colors hover:bg-slate-800">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Link to="/planner" className="rounded-lg bg-slate-950/70 p-3 transition-colors hover:bg-slate-800">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
                 <Zap className="h-4 w-4 text-blue-400" aria-hidden="true" />
@@ -392,7 +416,7 @@ function AccountSnapshotCard({
             )}
           </Link>
 
-          <Link to="/pulls" className="rounded-lg bg-slate-900 p-3 transition-colors hover:bg-slate-800">
+          <Link to="/pulls" className="rounded-lg bg-slate-950/70 p-3 transition-colors hover:bg-slate-800">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
                 <Sparkles className="h-4 w-4 text-yellow-400" aria-hidden="true" />
@@ -415,8 +439,8 @@ function AccountSnapshotCard({
             </div>
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
 
@@ -432,7 +456,7 @@ interface SnapshotTileProps {
 function SnapshotTile({ icon, label, value, subtext, color, to }: SnapshotTileProps) {
   return (
     <Link to={to}>
-      <div className="rounded-lg bg-slate-900 p-3 transition-colors hover:bg-slate-800">
+      <div className="rounded-lg bg-slate-950/70 p-3 transition-colors hover:bg-slate-800">
         <div className={`${color} mb-2`}>{icon}</div>
         <div className="text-xl font-bold text-slate-100">{value}</div>
         <div className="text-xs text-slate-400">{label}</div>

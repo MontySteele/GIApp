@@ -1,10 +1,10 @@
 import { useCampaignPlanContext } from '@/features/campaigns/hooks/useCampaignPlanContext';
 import { useCampaignPlans } from '@/features/campaigns/hooks/useCampaignPlans';
 import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
-import { ActiveCampaignsWidgetView } from './ActiveCampaignsWidget';
 import CampaignNextActionsWidget from './CampaignNextActionsWidget';
+import type { DashboardResumeAction } from '../domain/dashboardResume';
 
-export default function DashboardCampaignFocus() {
+export default function DashboardCampaignFocus({ resumeAction }: { resumeAction: DashboardResumeAction }) {
   const { activeCampaigns, isLoading: campaignsLoading } = useCampaigns();
   const { context: campaignPlanContext, isLoading: campaignPlanContextLoading } = useCampaignPlanContext();
   const {
@@ -17,23 +17,13 @@ export default function DashboardCampaignFocus() {
   const plansPending = plansLoading || isCalculating;
 
   return (
-    <div className="space-y-4">
-      <CampaignNextActionsWidget
-        activeCampaigns={activeCampaigns}
-        isLoading={campaignsLoading}
-        plans={plans}
-        plansPending={plansPending}
-        error={error}
-      />
-      {(campaignsLoading || activeCampaigns.length > 1) && (
-        <ActiveCampaignsWidgetView
-          activeCampaigns={activeCampaigns}
-          isLoading={campaignsLoading}
-          plans={plans}
-          plansPending={plansPending}
-          showFreshnessCallout={false}
-        />
-      )}
-    </div>
+    <CampaignNextActionsWidget
+      activeCampaigns={activeCampaigns}
+      isLoading={campaignsLoading}
+      plans={plans}
+      plansPending={plansPending}
+      resumeAction={resumeAction}
+      error={error}
+    />
   );
 }

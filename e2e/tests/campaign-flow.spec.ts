@@ -235,7 +235,7 @@ test.describe('Campaign flow smoke', () => {
       resourceSnapshots: [pullResourceSnapshot(20)],
     });
 
-    await expect(page.getByRole('heading', { name: "Today's Plan" })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Next Up' })).toBeVisible();
     await expect(page.getByText('Save 60 more pulls')).toBeVisible();
 
     await page.getByRole('link', { name: /open calculator/i }).click();
@@ -267,7 +267,7 @@ test.describe('Campaign flow smoke', () => {
       materialInventory: [{ id: 'materials', materials: {}, updatedAt: NOW }],
     });
 
-    await expect(page.getByRole('heading', { name: "Today's Plan" })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Next Up' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /^Farm / })).toBeVisible({ timeout: 15000 });
 
     await page.getByRole('link', { name: /open materials/i }).click();
@@ -284,14 +284,13 @@ test.describe('Campaign flow smoke', () => {
       importRecords: [staleImport()],
     });
 
-    await expect(page.getByRole('heading', { name: "Today's Plan" })).toBeVisible();
-    const todayPlan = page.getByRole('region', { name: /today's plan/i });
-    await expect(todayPlan.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
-    await expect(todayPlan.getByText(/Last GOOD import was \d+ days ago/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Next Up' })).toBeVisible();
+    const nextUp = page.getByRole('region', { name: /next up/i });
+    await expect(nextUp.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
+    await expect(nextUp.getByText(/Last GOOD import was \d+ days ago/)).toBeVisible();
 
-    await todayPlan.getByRole('link', { name: /refresh import/i }).click();
+    await nextUp.getByRole('link', { name: /refresh import/i }).click();
 
-    await expect(page).toHaveURL(/\/roster$/);
-    await expect(page.getByRole('dialog', { name: /import from irminsul/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/imports$/);
   });
 });
