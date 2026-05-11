@@ -15,8 +15,8 @@ describe('roster import impact summary', () => {
       source: 'Irminsul',
       importedAt: '2026-05-11T00:00:00.000Z',
       totals: {
-        created: 11,
-        updated: 1,
+        created: 2,
+        updated: 10,
         skipped: 0,
       },
       rows: [

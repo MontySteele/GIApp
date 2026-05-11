@@ -12,6 +12,7 @@ export interface TargetWizardState {
   deadline: string;
   savedPulls: string;
   currentPity: string;
+  currentConstellation: string;
   targetConstellation: string;
   pullBudget: string;
   guaranteed: boolean;
@@ -45,10 +46,14 @@ function nonNegativeInteger(value: string, fallback = 0): number {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
-function targetConstellation(value: string): number | null {
+export function parseConstellationInput(value: string): number | null {
   if (!value.trim()) return null;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 && parsed <= 6 ? parsed : null;
+}
+
+export function isValidConstellationInput(value: string): boolean {
+  return !value.trim() || parseConstellationInput(value) !== null;
 }
 
 function daysUntil(deadline: string, now: Date): number | null {
@@ -89,9 +94,10 @@ export function buildTargetWizardPreview(
   options: PreviewOptions = {}
 ): TargetWizardPreview {
   const now = options.now ?? new Date();
-  const constellation = targetConstellation(state.targetConstellation);
+  const constellation = parseConstellationInput(state.targetConstellation);
+  const currentConstellation = parseConstellationInput(state.currentConstellation);
   const desiredCopies = state.mode === 'get-character' && constellation !== null
-    ? Math.max(1, constellation + 1)
+    ? Math.max(1, currentConstellation === null ? constellation + 1 : constellation - currentConstellation)
     : 1;
   const savedPulls = nonNegativeInteger(state.savedPulls);
   const currentPity = Math.min(89, nonNegativeInteger(state.currentPity));
@@ -116,9 +122,9 @@ export function buildTargetWizardPreview(
 
   if (state.mode === 'get-character') {
     if (pullShortfall === 0) {
-      adviceRows.push('You cover hard pity with current pulls and pity.');
+      adviceRows.push('Worst case: you cover hard pity with current pulls and pity.');
     } else {
-      adviceRows.push(`You need ${pullShortfall} more ${pullShortfall === 1 ? 'pull' : 'pulls'} before the banner target.`);
+      adviceRows.push(`Worst case: you need ${pullShortfall} more ${pullShortfall === 1 ? 'pull' : 'pulls'} before the banner target.`);
     }
 
     if (pullsPerDay !== null) {

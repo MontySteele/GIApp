@@ -11,6 +11,7 @@ import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import type { CampaignBuildGoal } from '@/types';
 import {
   buildTargetWizardPreview,
+  isValidConstellationInput,
   type TargetWizardMode,
   type TargetWizardState,
 } from '../domain/targetWizard';
@@ -40,6 +41,7 @@ function getInitialState(): TargetWizardState {
     deadline: todayIso(),
     savedPulls: '0',
     currentPity: '0',
+    currentConstellation: '',
     targetConstellation: '',
     pullBudget: '',
     guaranteed: false,
@@ -78,8 +80,9 @@ export default function TargetQuickStart() {
   const preview = useMemo(() => buildTargetWizardPreview(state), [state]);
   const selectedMode = MODE_OPTIONS.find((mode) => mode.value === state.mode) ?? MODE_OPTIONS[0]!;
   const SelectedIcon = selectedMode.icon;
-  const hasInvalidConstellation = state.targetConstellation.trim().length > 0 &&
-    !/^[0-6]$/.test(state.targetConstellation.trim());
+  const hasInvalidCurrentConstellation = !isValidConstellationInput(state.currentConstellation);
+  const hasInvalidTargetConstellation = !isValidConstellationInput(state.targetConstellation);
+  const hasInvalidConstellation = hasInvalidCurrentConstellation || hasInvalidTargetConstellation;
 
   const updateState = (patch: Partial<TargetWizardState>) => {
     setState((current) => ({ ...current, ...patch }));
@@ -90,13 +93,15 @@ export default function TargetQuickStart() {
       mode,
       ...(mode !== 'polish-team' ? { teamId: '' } : { characterKey: '' }),
       ...(mode !== 'get-character'
-        ? { savedPulls: '0', currentPity: '0', targetConstellation: '', pullBudget: '', guaranteed: false }
+        ? { savedPulls: '0', currentPity: '0', currentConstellation: '', targetConstellation: '', pullBudget: '', guaranteed: false }
         : {}),
     });
     setStep(1);
   };
 
-  const canAdvance = step === 0 || (step === 1 && preview.canCreate && !hasInvalidConstellation);
+  const canPreview = preview.canCreate && !hasInvalidConstellation;
+  const canAdvance = step === 0 || (step === 1 && canPreview);
+  const canOpenStep = (targetStep: number) => targetStep < 2 || canPreview;
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
@@ -112,10 +117,15 @@ export default function TargetQuickStart() {
             <button
               key={item}
               type="button"
-              onClick={() => setStep(item)}
+              onClick={() => {
+                if (canOpenStep(item)) {
+                  setStep(item);
+                }
+              }}
+              disabled={!canOpenStep(item)}
               className={`h-2.5 w-8 rounded-full transition-colors ${
                 item <= step ? 'bg-primary-500' : 'bg-slate-700'
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-label={`Go to ${getStepLabel(item)} step`}
             />
           ))}
@@ -183,7 +193,7 @@ export default function TargetQuickStart() {
 
           {state.mode === 'get-character' && (
             <>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <Input
                   label="Pulls saved"
                   type="number"
@@ -200,6 +210,16 @@ export default function TargetQuickStart() {
                   onChange={(event) => updateState({ currentPity: event.target.value })}
                 />
                 <Input
+                  label="Current C"
+                  type="number"
+                  min="0"
+                  max="6"
+                  value={state.currentConstellation}
+                  onChange={(event) => updateState({ currentConstellation: event.target.value })}
+                  placeholder="optional"
+                  error={hasInvalidCurrentConstellation ? 'Use C0-C6' : undefined}
+                />
+                <Input
                   label="Target C"
                   type="number"
                   min="0"
@@ -207,7 +227,7 @@ export default function TargetQuickStart() {
                   value={state.targetConstellation}
                   onChange={(event) => updateState({ targetConstellation: event.target.value })}
                   placeholder="0"
-                  error={hasInvalidConstellation ? 'Use C0-C6' : undefined}
+                  error={hasInvalidTargetConstellation ? 'Use C0-C6' : undefined}
                 />
                 <Input
                   label="Pull budget"

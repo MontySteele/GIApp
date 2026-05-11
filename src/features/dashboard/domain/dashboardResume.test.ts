@@ -51,6 +51,18 @@ describe('dashboard resume action', () => {
 
   it('falls back to import and manual setup before asking for a target', () => {
     expect(buildDashboardResumeAction({
+      targets: [target({ nextAction: undefined })],
+      accountFreshness: fresh,
+      characterCount: 10,
+      wishHistoryCount: 20,
+    })).toMatchObject({
+      title: 'Continue Recruit Furina',
+      detail: 'Furina',
+      href: '/campaigns/1',
+      priority: 'target',
+    });
+
+    expect(buildDashboardResumeAction({
       targets: [],
       accountFreshness: {
         status: 'missing',

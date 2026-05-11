@@ -49,8 +49,8 @@ export function buildRosterImportImpactSummary({
     source,
     importedAt,
     totals: {
-      created: charactersCreated + artifactsChanged + weaponsChanged + materialsChanged,
-      updated: charactersUpdated,
+      created: charactersCreated,
+      updated: charactersUpdated + artifactsChanged + weaponsChanged + materialsChanged,
       skipped: 0,
     },
     rows,

@@ -85,7 +85,7 @@ export default function QuickResourceLogger() {
   };
 
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <section id="quick-resource-logger" className="scroll-mt-20 rounded-xl border border-slate-800 bg-slate-900 p-4">
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-slate-100">Quick Log</h2>
         <p className="text-sm text-slate-400">Capture common primogem income without opening the full tracker.</p>

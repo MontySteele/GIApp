@@ -14,7 +14,7 @@ export default function ResumeNextCard({ action }: { action: DashboardResumeActi
   const Icon = ICONS[action.priority];
 
   return (
-    <Card>
+    <Card role="region" aria-label="Resume where you left off">
       <CardHeader className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 text-primary-300" aria-hidden="true" />

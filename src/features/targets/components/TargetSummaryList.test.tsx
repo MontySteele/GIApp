@@ -58,6 +58,29 @@ describe('TargetSummaryList', () => {
     expect(screen.queryByText('Build Neuvillette')).not.toBeInTheDocument();
   });
 
+  it('renders status and readiness badge variants', () => {
+    render(
+      <MemoryRouter>
+        <TargetSummaryList
+          targets={[
+            { ...target, id: 'active', status: 'active', title: 'Active Target', readinessPercent: 90 },
+            { ...target, id: 'paused', status: 'paused', title: 'Paused Target', readinessPercent: 50 },
+            { ...target, id: 'completed', status: 'completed', title: 'Completed Target' },
+            { ...target, id: 'wishlist', source: 'wishlist', status: 'wishlist', title: 'Wishlist Target' },
+          ]}
+          maxItems={4}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('active')).toHaveClass('bg-primary-600');
+    expect(screen.getByText('paused')).toHaveClass('bg-yellow-600');
+    expect(screen.getByText('completed')).toHaveClass('bg-green-600');
+    expect(screen.getByText('wishlist')).toHaveClass('bg-transparent');
+    expect(screen.getByText('90% ready')).toHaveClass('bg-green-600');
+    expect(screen.getByText('50% ready')).toHaveClass('bg-yellow-600');
+  });
+
   it('renders an empty state', () => {
     render(
       <MemoryRouter>

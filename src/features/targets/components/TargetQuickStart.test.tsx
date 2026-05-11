@@ -80,6 +80,23 @@ describe('TargetQuickStart', () => {
     expect(oddsHref).toContain('pity=10');
   });
 
+  it('uses current constellation to avoid overestimating copy count', async () => {
+    const user = userEvent.setup();
+    renderQuickStart();
+
+    await goToDetails(user, 'Get');
+    await chooseCharacter(user, 'Furina');
+    await user.type(screen.getByLabelText(/^current c$/i), '0');
+    await user.type(screen.getByLabelText(/^target c$/i), '1');
+    await goToPreview(user);
+
+    const href = screen.getByRole('link', { name: /create target/i }).getAttribute('href');
+    expect(Object.fromEntries(new URLSearchParams(href?.split('?')[1]))).toMatchObject({
+      constellation: '1',
+      copies: '1',
+    });
+  });
+
   it('supports a build-character path without odds actions', async () => {
     const user = userEvent.setup();
     renderQuickStart();
@@ -121,6 +138,19 @@ describe('TargetQuickStart', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Use C0-C6');
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+  });
+
+  it('does not allow jumping to preview before details are valid', async () => {
+    const user = userEvent.setup();
+    renderQuickStart();
+
+    expect(screen.getByRole('button', { name: /go to preview step/i })).toBeDisabled();
+
+    await goToDetails(user, 'Get');
+    expect(screen.getByRole('button', { name: /go to preview step/i })).toBeDisabled();
+
+    await chooseCharacter(user, 'Furina');
+    expect(screen.getByRole('button', { name: /go to preview step/i })).not.toBeDisabled();
   });
 
   it('does not create before a known target is selected', async () => {

@@ -4,10 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import ImportHubPage from './ImportHubPage';
 import { writeLastImportSummary } from '../domain/lastImportSummary';
 
-const liveValues = vi.hoisted(() => [3, 24, 2, 1]);
-
 vi.mock('dexie-react-hooks', () => ({
-  useLiveQuery: vi.fn(() => liveValues.shift()),
+  useLiveQuery: vi.fn((query: () => unknown) => {
+    const querySource = query.toString();
+    if (querySource.includes('db.characters.count')) return 3;
+    if (querySource.includes('db.wishRecords.count')) return 24;
+    if (querySource.includes('db.resourceSnapshots.count')) return 2;
+    if (querySource.includes('db.campaigns.count')) return 1;
+    throw new Error(`Unexpected ImportHubPage live query: ${querySource}`);
+  }),
 }));
 
 vi.mock('../hooks/useAccountDataFreshness', () => ({
@@ -41,7 +46,6 @@ function renderPage() {
 
 describe('ImportHubPage', () => {
   beforeEach(() => {
-    liveValues.splice(0, liveValues.length, 3, 24, 2, 1);
     localStorage.clear();
   });
 

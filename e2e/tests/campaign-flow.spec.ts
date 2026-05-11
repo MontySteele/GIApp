@@ -215,7 +215,11 @@ test.describe('Campaign flow smoke', () => {
     await expect(page.getByRole('heading', { name: 'Get Furina' })).toBeVisible();
     await expect(page.getByText(/more pulls before the banner target/i)).toBeVisible();
 
-    await page.getByRole('link', { name: /create target/i }).nth(1).click();
+    await page
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: 'Get Furina' }) })
+      .getByRole('link', { name: /create target/i })
+      .click();
     await expect(page).toHaveURL(/\/campaigns\?/);
     await expect(page.getByText('Chase C1 Furina')).toBeVisible();
 
@@ -281,10 +285,11 @@ test.describe('Campaign flow smoke', () => {
     });
 
     await expect(page.getByRole('heading', { name: "Today's Plan" })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
-    await expect(page.getByText(/Last GOOD import was \d+ days ago/)).toBeVisible();
+    const todayPlan = page.getByRole('region', { name: /today's plan/i });
+    await expect(todayPlan.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
+    await expect(todayPlan.getByText(/Last GOOD import was \d+ days ago/)).toBeVisible();
 
-    await page.getByRole('link', { name: /refresh import/i }).first().click();
+    await todayPlan.getByRole('link', { name: /refresh import/i }).click();
 
     await expect(page).toHaveURL(/\/roster$/);
     await expect(page.getByRole('dialog', { name: /import from irminsul/i })).toBeVisible();

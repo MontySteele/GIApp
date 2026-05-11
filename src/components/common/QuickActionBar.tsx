@@ -10,8 +10,8 @@ interface QuickAction {
 }
 
 const ACTIONS: QuickAction[] = [
-  { label: 'Start Target', href: '/', icon: Target },
-  { label: 'Log Primos', href: '/pulls', icon: Sparkles },
+  { label: 'Start Target', href: '/campaigns', icon: Target },
+  { label: 'Log Primos', href: '/#quick-resource-logger', icon: Sparkles },
   { label: 'Update Pity', href: '/pulls/history', icon: Edit3 },
   { label: 'Import Data', href: '/imports', icon: Database },
   { label: 'Add Note', href: '/notes', icon: NotebookPen },

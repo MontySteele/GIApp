@@ -55,6 +55,12 @@ function formatPrimos(primos: number): string {
   return primos.toLocaleString();
 }
 
+function getFreshnessVariant(status: ReturnType<typeof useAccountDataFreshness>['status']): 'success' | 'warning' | 'outline' {
+  if (status === 'fresh') return 'success';
+  if (status === 'stale') return 'warning';
+  return 'outline';
+}
+
 export default function DashboardPage() {
   const { characters, isLoading: loadingChars } = useCharacters();
   const { stats: artifactStats, isLoading: loadingArtifacts } = useArtifacts();
@@ -184,10 +190,25 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
+            to="/imports"
+            aria-label={`${accountFreshness.status} ${accountFreshness.label}: ${accountFreshness.detail || 'Open Import Hub'}`}
+            className="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-left transition-colors hover:border-primary-500"
+          >
+            <Badge variant={getFreshnessVariant(accountFreshness.status)}>
+              {accountFreshness.status}
+            </Badge>
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-medium text-slate-200">{accountFreshness.label}</span>
+              <span className="block truncate text-xs text-slate-500">
+                {accountFreshness.detail || 'Open Import Hub'}
+              </span>
+            </span>
+          </Link>
+          <Link
             to="/campaigns"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
           >
-            <TrendingUp className="h-4 w-4" />
+            <TrendingUp className="h-4 w-4" aria-hidden="true" />
             New Target
           </Link>
           <Link
@@ -252,7 +273,7 @@ export default function DashboardPage() {
               to="/roster?import=irminsul"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded text-white"
             >
-              Import Account Data <ArrowRight className="w-4 h-4" />
+              Import Account Data <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Link>
           </CardContent>
         </Card>

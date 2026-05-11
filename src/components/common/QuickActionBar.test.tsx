@@ -15,8 +15,8 @@ describe('QuickActionBar', () => {
 
     await user.click(screen.getByRole('button', { name: /quick actions/i }));
 
-    expect(screen.getByRole('link', { name: /start target/i })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: /log primos/i })).toHaveAttribute('href', '/pulls');
+    expect(screen.getByRole('link', { name: /start target/i })).toHaveAttribute('href', '/campaigns');
+    expect(screen.getByRole('link', { name: /log primos/i })).toHaveAttribute('href', '/#quick-resource-logger');
     expect(screen.getByRole('link', { name: /update pity/i })).toHaveAttribute('href', '/pulls/history');
     expect(screen.getByRole('link', { name: /import data/i })).toHaveAttribute('href', '/imports');
     expect(screen.getByRole('link', { name: /add note/i })).toHaveAttribute('href', '/notes');

@@ -23,4 +23,27 @@ describe('ResumeNextCard', () => {
     expect(screen.getByText('Resume Recruit Furina')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open target/i })).toHaveAttribute('href', '/campaigns/1');
   });
+
+  it.each([
+    ['import' as const, 'Open Import Hub', '/imports'],
+    ['manual' as const, 'Set Up Pulls', '/imports'],
+    ['start' as const, 'New Target', '/campaigns'],
+  ])('renders the %s resume variant', (priority, actionLabel, href) => {
+    render(
+      <MemoryRouter>
+        <ResumeNextCard
+          action={{
+            title: `${priority} action`,
+            detail: 'Next step detail',
+            href,
+            actionLabel,
+            priority,
+          }}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(`${priority} action`)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: new RegExp(actionLabel, 'i') })).toHaveAttribute('href', href);
+  });
 });

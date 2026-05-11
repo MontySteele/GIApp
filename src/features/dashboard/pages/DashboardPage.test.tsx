@@ -178,7 +178,16 @@ describe('DashboardPage', () => {
       .mockReset()
       .mockReturnValueOnce(mockAvailablePulls)
       .mockReturnValueOnce(2)
-      .mockReturnValueOnce([]);
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce({
+        id: 'import-1',
+        source: 'GOOD',
+        importedAt: new Date().toISOString(),
+        characterCount: 3,
+        artifactCount: 150,
+        weaponCount: 50,
+        materialCount: 0,
+      });
     mockLocalStorage.getItem.mockReturnValue(null);
   });
 
@@ -220,6 +229,13 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('quick-resource-logger')).toBeInTheDocument();
       expect(screen.getByTestId('target-quick-start')).toBeInTheDocument();
       expect(screen.getByTestId('target-summary-list')).toBeInTheDocument();
+    });
+
+    it('shows a visible account freshness link', () => {
+      renderPage();
+
+      expect(screen.getByRole('link', { name: /fresh account data current/i })).toHaveAttribute('href', '/imports');
+      expect(screen.getByText(/last good import was today/i)).toBeInTheDocument();
     });
   });
 
@@ -482,5 +498,62 @@ describe('DashboardPage empty state', () => {
       'href',
       '/roster?import=irminsul'
     );
+  });
+});
+
+describe('DashboardPage loading state', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('shows skeleton placeholders while dashboard data is loading', async () => {
+    vi.doMock('@/features/roster/hooks/useCharacters', () => ({
+      useCharacters: () => ({ characters: [], isLoading: true }),
+    }));
+    vi.doMock('@/features/artifacts/hooks/useArtifacts', () => ({
+      useArtifacts: () => ({ stats: { total: 0, fiveStar: 0 }, isLoading: false }),
+    }));
+    vi.doMock('@/features/weapons/hooks/useWeapons', () => ({
+      useWeapons: () => ({ stats: { total: 0, fiveStars: 0 }, isLoading: false }),
+    }));
+    vi.doMock('@/features/roster/hooks/useTeams', () => ({
+      useTeams: () => ({ teams: [], isLoading: false }),
+    }));
+    vi.doMock('@/features/campaigns/hooks/useCampaigns', () => ({
+      useCampaigns: () => ({ campaigns: [], activeCampaigns: [], isLoading: false }),
+    }));
+    vi.doMock('@/contexts/OnboardingContext', () => ({
+      useOnboardingContext: () => ({
+        isComplete: true,
+        checklist: {
+          hasImportedCharacters: false,
+          hasCreatedTeam: false,
+          hasVisitedPlanner: false,
+          hasImportedWishHistory: false,
+        },
+        checklistProgress: 0,
+        checklistTotal: 4,
+        updateChecklist: vi.fn(),
+      }),
+    }));
+    vi.doMock('dexie-react-hooks', () => ({
+      useLiveQuery: vi.fn(() => undefined),
+    }));
+    vi.doMock('@/lib/services/resourceService', () => ({
+      getAvailablePullsFromTracker: vi.fn(),
+    }));
+    vi.doMock('@/stores/wishlistStore', () => ({
+      useWishlistStore: () => [],
+    }));
+
+    const { default: DashboardPageLoading } = await import('./DashboardPage');
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardPageLoading />
+      </MemoryRouter>
+    );
+
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('heading', { name: /dashboard/i })).not.toBeInTheDocument();
   });
 });

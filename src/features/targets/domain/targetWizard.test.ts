@@ -9,6 +9,7 @@ const baseState: TargetWizardState = {
   deadline: '2026-06-10',
   savedPulls: '42',
   currentPity: '10',
+  currentConstellation: '',
   targetConstellation: '',
   pullBudget: '',
   guaranteed: false,
@@ -33,15 +34,16 @@ describe('target wizard preview', () => {
     });
     expect(preview.calculatorHref).toContain('/pulls/calculator?');
     expect(preview.adviceRows).toEqual([
-      'You need 38 more pulls before the banner target.',
+      'Worst case: you need 38 more pulls before the banner target.',
       '1.3 pulls/day until your deadline.',
       'Manual mode is enough to start; importing wish history can refine the odds later.',
     ]);
   });
 
-  it('accounts for constellation, guarantee, and pull budget warnings', () => {
+  it('accounts for current constellation, guarantee, and pull budget warnings', () => {
     const preview = buildTargetWizardPreview({
       ...baseState,
+      currentConstellation: '0',
       targetConstellation: '1',
       savedPulls: '20',
       currentPity: '5',
@@ -52,11 +54,27 @@ describe('target wizard preview', () => {
       now: new Date('2026-05-11T12:00:00.000Z'),
     });
 
-    expect(preview.desiredCopies).toBe(2);
-    expect(preview.pullShortfall).toBe(155);
+    expect(preview.desiredCopies).toBe(1);
+    expect(preview.pullShortfall).toBe(65);
     expect(preview.createHref).toContain('constellation=1');
     expect(preview.createHref).toContain('budget=80');
     expect(preview.adviceRows).toContain('Guarantee is active, so the next character five-star is featured.');
+    expect(preview.adviceRows).not.toContain('Budget warning: 80 pulls is below the current hard-pity shortfall.');
+  });
+
+  it('treats constellation targets as unowned when current constellation is blank', () => {
+    const preview = buildTargetWizardPreview({
+      ...baseState,
+      targetConstellation: '1',
+      savedPulls: '20',
+      currentPity: '5',
+      pullBudget: '80',
+    }, {
+      now: new Date('2026-05-11T12:00:00.000Z'),
+    });
+
+    expect(preview.desiredCopies).toBe(2);
+    expect(preview.pullShortfall).toBe(155);
     expect(preview.adviceRows).toContain('Budget warning: 80 pulls is below the current hard-pity shortfall.');
   });
 
