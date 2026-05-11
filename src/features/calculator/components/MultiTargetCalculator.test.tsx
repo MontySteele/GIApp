@@ -144,6 +144,9 @@ describe('MultiTargetCalculator', () => {
         campaign: 'campaign-1',
         name: 'Recruit Furina',
         pulls: '69',
+        targetPulls: '160',
+        shortfall: '91',
+        deadline: '2026-06-01',
       });
       params.append('target', JSON.stringify({ name: 'Furina', banner: 'character', copies: 2 }));
       window.history.replaceState(null, '', `/pulls/calculator?${params.toString()}`);
@@ -152,6 +155,9 @@ describe('MultiTargetCalculator', () => {
 
       expect(screen.getByText('Recruit Furina pull plan loaded')).toBeInTheDocument();
       expect(screen.getByText(/1 target with 69 pulls available/i)).toBeInTheDocument();
+      expect(screen.getByText('Campaign Pull Decision')).toBeInTheDocument();
+      expect(screen.getByText('91 short')).toBeInTheDocument();
+      expect(screen.getByText('Run calc')).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/character name/i)).toHaveValue('Furina');
       expect(screen.getByLabelText('Event Pulls')).toHaveValue(69);
       expect(screen.getByRole('link', { name: /back to campaign/i })).toHaveAttribute(

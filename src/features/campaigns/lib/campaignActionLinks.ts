@@ -50,7 +50,13 @@ export function buildCampaignCalculatorHref(campaign: Campaign, plan: CampaignPl
     campaign: campaign.id,
     name: campaign.name,
     pulls: String(plan.pullReadiness.availablePulls),
+    targetPulls: String(plan.pullReadiness.targetPulls),
+    shortfall: String(plan.pullReadiness.remainingPulls),
   });
+
+  if (campaign.deadline) {
+    params.set('deadline', campaign.deadline);
+  }
 
   for (const target of pullTargets) {
     params.append(

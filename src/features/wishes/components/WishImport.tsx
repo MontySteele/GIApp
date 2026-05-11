@@ -1,6 +1,8 @@
 import { useReducer, useCallback, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
+import Badge from '@/components/ui/Badge';
+import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import { wishRepo } from '../repo/wishRepo';
 import {
@@ -9,6 +11,10 @@ import {
   wishHistoryItemToRecord,
 } from '../utils/wishHistory';
 import { markWishHistoryImportComplete } from '../services/wishDataFreshness';
+import {
+  getPityByBanner,
+  type BannerPitySnapshot,
+} from '../selectors/pitySelectors';
 import { resolveIsFeatured } from '../data/standardPool';
 
 // Check if running in Tauri
@@ -58,6 +64,21 @@ interface WishApiResponse {
   };
 }
 
+interface BannerImportImpact {
+  banner: BannerType;
+  pityBefore: number;
+  pityAfter: number;
+  guaranteedBefore: boolean;
+  guaranteedAfter: boolean;
+  fatePointsBefore?: number;
+  fatePointsAfter?: number;
+}
+
+interface WishImportImpact {
+  rows: BannerImportImpact[];
+  activePullCampaigns: number;
+}
+
 // State management with useReducer
 interface WishImportState {
   url: string;
@@ -66,6 +87,7 @@ interface WishImportState {
   importError: string;
   currentBanner: string;
   importSummary: Record<BannerType, number> | null;
+  importImpact: WishImportImpact | null;
   selectedBanners: Set<BannerType>;
 }
 
@@ -76,6 +98,7 @@ type WishImportAction =
   | { type: 'SET_IMPORT_ERROR'; payload: string }
   | { type: 'SET_CURRENT_BANNER'; payload: string }
   | { type: 'SET_IMPORT_SUMMARY'; payload: Record<BannerType, number> | null }
+  | { type: 'SET_IMPORT_IMPACT'; payload: WishImportImpact | null }
   | { type: 'TOGGLE_BANNER'; payload: BannerType }
   | { type: 'RESET_IMPORT_STATE' };
 
@@ -86,6 +109,7 @@ const initialState: WishImportState = {
   importError: '',
   currentBanner: '',
   importSummary: null,
+  importImpact: null,
   selectedBanners: new Set(['character', 'weapon', 'standard', 'chronicled']),
 };
 
@@ -103,6 +127,8 @@ function wishImportReducer(state: WishImportState, action: WishImportAction): Wi
       return { ...state, currentBanner: action.payload };
     case 'SET_IMPORT_SUMMARY':
       return { ...state, importSummary: action.payload };
+    case 'SET_IMPORT_IMPACT':
+      return { ...state, importImpact: action.payload };
     case 'TOGGLE_BANNER': {
       const newSelection = new Set(state.selectedBanners);
       if (newSelection.has(action.payload)) {
@@ -117,14 +143,45 @@ function wishImportReducer(state: WishImportState, action: WishImportAction): Wi
         ...state,
         importError: '',
         importSummary: null,
+        importImpact: null,
       };
     default:
       return state;
   }
 }
 
+function bannerLabel(banner: BannerType): string {
+  return BANNER_NAMES[banner];
+}
+
+function buildImportImpact(
+  before: Record<BannerType, BannerPitySnapshot>,
+  after: Record<BannerType, BannerPitySnapshot>,
+  importedSummary: Record<BannerType, number>,
+  activePullCampaigns: number
+): WishImportImpact {
+  const rows = (Object.keys(importedSummary) as BannerType[])
+    .filter((banner) => importedSummary[banner] > 0)
+    .map((banner) => ({
+      banner,
+      pityBefore: before[banner].pity,
+      pityAfter: after[banner].pity,
+      guaranteedBefore: before[banner].guaranteed,
+      guaranteedAfter: after[banner].guaranteed,
+      fatePointsBefore: before[banner].fatePoints,
+      fatePointsAfter: after[banner].fatePoints,
+    }));
+
+  return { rows, activePullCampaigns };
+}
+
 export function WishImport({ onImportComplete }: WishImportProps) {
   const [state, dispatch] = useReducer(wishImportReducer, initialState);
+  const { activeCampaigns } = useCampaigns();
+  const activePullCampaignCount = useMemo(
+    () => activeCampaigns.filter((campaign) => campaign.pullTargets.length > 0).length,
+    [activeCampaigns]
+  );
 
   // Normalize URL - convert /index.html to /log
   const normalizeUrl = (inputUrl: string): string => {
@@ -337,6 +394,8 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
     try {
       let allWishes: WishHistoryItem[];
+      const beforeRecords = await wishRepo.getAll();
+      const beforePity = getPityByBanner(beforeRecords);
 
       // Use Tauri invoke if running in desktop app
       if (isTauri) {
@@ -366,14 +425,31 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       // Previously this filtered out existing gachaIds, which prevented
       // timestamp corrections from being applied on re-import.
       const wishesToStore = allWishes.map(wishHistoryItemToRecord);
+      const importedSummary = allWishes.reduce(
+        (summary, wish) => ({
+          ...summary,
+          [wish.banner]: (summary[wish.banner] ?? 0) + 1,
+        }),
+        {
+          character: 0,
+          weapon: 0,
+          standard: 0,
+          chronicled: 0,
+        } as Record<BannerType, number>
+      );
       await wishRepo.bulkCreate(wishesToStore);
 
       const persistedRecords = await wishRepo.getAll();
       const persistedSummary = summarizeWishRecords(persistedRecords);
+      const afterPity = getPityByBanner(persistedRecords);
       const persistedHistory = await loadWishHistoryFromRepo();
       await markWishHistoryImportComplete();
 
       dispatch({ type: 'SET_IMPORT_SUMMARY', payload: persistedSummary });
+      dispatch({
+        type: 'SET_IMPORT_IMPACT',
+        payload: buildImportImpact(beforePity, afterPity, importedSummary, activePullCampaignCount),
+      });
       dispatch({ type: 'SET_CURRENT_BANNER', payload: '' });
       onImportComplete(persistedHistory);
     } catch (error) {
@@ -399,7 +475,14 @@ export function WishImport({ onImportComplete }: WishImportProps) {
     } finally {
       dispatch({ type: 'SET_IS_IMPORTING', payload: false });
     }
-  }, [state.url, state.selectedBanners, validateUrl, fetchBannerHistory, onImportComplete]);
+  }, [
+    state.url,
+    state.selectedBanners,
+    validateUrl,
+    fetchBannerHistory,
+    activePullCampaignCount,
+    onImportComplete,
+  ]);
 
   // Memoized computed values
   const isValidUrl = useMemo(
@@ -625,6 +708,81 @@ export function WishImport({ onImportComplete }: WishImportProps) {
           </ul>
         </div>
       )}
+
+      {state.importImpact && state.importImpact.rows.length > 0 && (
+        <ImportImpactSummary impact={state.importImpact} />
+      )}
+    </div>
+  );
+}
+
+function ImportImpactSummary({ impact }: { impact: WishImportImpact }) {
+  return (
+    <div className="rounded-lg border border-primary-700/40 bg-primary-950/20 p-4">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h4 className="font-semibold text-primary-100">Import Impact</h4>
+          <p className="mt-1 text-sm text-slate-400">
+            Pity and guarantee changes are now available to campaign calculators.
+          </p>
+        </div>
+        {impact.activePullCampaigns > 0 && (
+          <a
+            href="/campaigns"
+            className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+          >
+            Review Campaign Odds
+          </a>
+        )}
+      </div>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        {impact.rows.map((row) => (
+          <div key={row.banner} className="rounded-lg bg-slate-950/50 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-slate-100">{bannerLabel(row.banner)}</span>
+              <Badge variant={row.guaranteedAfter ? 'success' : 'outline'}>
+                {row.guaranteedAfter ? 'Guaranteed' : 'Not guaranteed'}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <ImpactMetric label="Pity" before={row.pityBefore} after={row.pityAfter} />
+              <ImpactMetric
+                label={row.banner === 'weapon' ? 'Fate points' : 'Guarantee'}
+                before={row.banner === 'weapon' ? row.fatePointsBefore ?? 0 : row.guaranteedBefore ? 1 : 0}
+                after={row.banner === 'weapon' ? row.fatePointsAfter ?? 0 : row.guaranteedAfter ? 1 : 0}
+                format={row.banner === 'weapon' ? undefined : (value) => (value > 0 ? 'Yes' : 'No')}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      {impact.activePullCampaigns > 0 && (
+        <p className="mt-3 text-xs text-slate-500">
+          {impact.activePullCampaigns} active pull campaign
+          {impact.activePullCampaigns === 1 ? '' : 's'} can use the updated pity state.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ImpactMetric({
+  label,
+  before,
+  after,
+  format = (value: number) => String(value),
+}: {
+  label: string;
+  before: number;
+  after: number;
+  format?: (value: number) => string;
+}) {
+  return (
+    <div>
+      <div className="text-slate-500">{label}</div>
+      <div className="mt-0.5 font-medium text-slate-200">
+        {format(before)} → {format(after)}
+      </div>
     </div>
   );
 }
