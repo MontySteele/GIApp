@@ -1,25 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Archive,
-  ArrowRight,
-  Calculator,
-  Calendar,
   CheckCircle2,
-  CirclePause,
-  CirclePlay,
-  Package,
   Plus,
-  RefreshCw,
-  Sparkles,
   Target,
-  Trash2,
-  UsersRound,
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import DeleteConfirmModal from '@/features/roster/components/DeleteConfirmModal';
 import Input from '@/components/ui/Input';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import Select from '@/components/ui/Select';
@@ -37,16 +25,12 @@ import type {
   CampaignType,
   Team,
 } from '@/types';
-import type { CampaignNextAction, CampaignPlan } from '../domain/campaignPlan';
-import { getCampaignPullTargets } from '../domain/campaignPlan';
+import CampaignCard from '../components/CampaignCard';
+import CampaignDraftCard from '../components/CampaignDraftCard';
 import { useCampaignPlanContext } from '../hooks/useCampaignPlanContext';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
-import {
-  buildCampaignCalculatorHref,
-  buildCampaignMaterialHref,
-} from '../lib/campaignActionLinks';
-import { formatCampaignDate, sortCampaignsForControlCenter } from '../lib/campaignOrdering';
+import { sortCampaignsForControlCenter } from '../lib/campaignOrdering';
 
 const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
   { value: 'functional', label: 'Functional' },
@@ -69,27 +53,6 @@ const PRIORITY_OPTIONS = [
   { value: '4', label: '4 - Low' },
   { value: '5', label: '5 - Someday' },
 ];
-
-const STATUS_BADGE: Record<CampaignStatus, 'success' | 'warning' | 'secondary' | 'outline'> = {
-  active: 'success',
-  paused: 'warning',
-  completed: 'secondary',
-  archived: 'outline',
-};
-
-const ACTION_BADGE: Record<CampaignNextAction['category'], 'primary' | 'secondary' | 'success' | 'warning' | 'outline'> = {
-  pulls: 'primary',
-  materials: 'warning',
-  build: 'secondary',
-  roster: 'outline',
-  done: 'success',
-};
-
-const PLAN_STATUS_BADGE: Record<CampaignPlan['status'], 'success' | 'warning' | 'danger'> = {
-  ready: 'success',
-  attention: 'warning',
-  blocked: 'danger',
-};
 
 function formatBuildGoal(value: CampaignBuildGoal): string {
   return BUILD_GOAL_OPTIONS.find((option) => option.value === value)?.label ?? value;
@@ -606,11 +569,11 @@ export default function CampaignsPage() {
           campaignType={campaignType}
           characterKey={selectedCharacterKey}
           selectedTeam={selectedTeam}
-          buildGoal={buildGoal}
+          buildGoalLabel={formatBuildGoal(buildGoal)}
           priority={toPriority(priority)}
           includePullTarget={includePullTarget}
           desiredCopies={desiredCopies}
-          targetConstellation={targetConstellation}
+          targetConstellationValue={targetConstellationValue}
           maxPullBudget={maxPullBudget}
           matchingCampaign={matchingOpenCampaign}
           isCreating={isCreating}
@@ -859,342 +822,6 @@ export default function CampaignsPage() {
           </div>
         </details>
       )}
-    </div>
-  );
-}
-
-function CampaignDraftCard({
-  campaignType,
-  characterKey,
-  selectedTeam,
-  buildGoal,
-  priority,
-  includePullTarget,
-  desiredCopies,
-  targetConstellation,
-  maxPullBudget,
-  matchingCampaign,
-  isCreating,
-  onCreate,
-  onClear,
-}: {
-  campaignType: CampaignType;
-  characterKey: string;
-  selectedTeam: Team | undefined;
-  buildGoal: CampaignBuildGoal;
-  priority: Campaign['priority'];
-  includePullTarget: boolean;
-  desiredCopies: string;
-  targetConstellation: string;
-  maxPullBudget: string;
-  matchingCampaign: Campaign | undefined;
-  isCreating: boolean;
-  onCreate: () => Promise<void>;
-  onClear: () => void;
-}) {
-  const isTeamCampaign = campaignType === 'team-polish';
-  const isCharacterPolishCampaign = campaignType === 'character-polish';
-  const targetConstellationValue = getConstellationValue(targetConstellation);
-  const title = isTeamCampaign
-    ? `Polish ${selectedTeam?.name ?? 'selected team'}`
-    : isCharacterPolishCampaign
-      ? `Polish ${getDisplayName(characterKey)}`
-    : targetConstellationValue !== null
-      ? `Chase C${targetConstellationValue} ${getDisplayName(characterKey)}`
-      : `Recruit ${getDisplayName(characterKey)}`;
-  const Icon = isTeamCampaign ? UsersRound : isCharacterPolishCampaign ? Target : Sparkles;
-  const copyCount = Math.max(1, Number(desiredCopies) || 1);
-  const pullLabel = campaignType === 'character-acquisition' && includePullTarget
-    ? `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}${maxPullBudget ? `, ${maxPullBudget} pull budget` : ''}`
-    : 'No pull plan';
-  const targetLabel = isTeamCampaign
-    ? `${selectedTeam?.characterKeys.length ?? 0} members`
-    : getDisplayName(characterKey);
-
-  return (
-    <Card className="border-primary-900/60 bg-primary-950/20">
-      <CardContent className="space-y-4 p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="rounded-lg bg-primary-500/20 p-2">
-              <Icon className="h-5 w-5 text-primary-300" />
-            </div>
-            <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge variant="primary">Campaign draft</Badge>
-                {matchingCampaign && <Badge variant="warning">Existing campaign found</Badge>}
-              </div>
-              <h2 className="truncate text-lg font-semibold text-slate-100">{title}</h2>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Badge variant="outline">{targetLabel}</Badge>
-                {targetConstellationValue !== null && (
-                  <Badge variant="outline">C{targetConstellationValue} target</Badge>
-                )}
-                <Badge variant="outline">{formatBuildGoal(buildGoal)}</Badge>
-                <Badge variant="outline">P{priority}</Badge>
-                <Badge variant="outline">{pullLabel}</Badge>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            {matchingCampaign ? (
-              <Link
-                to={`/campaigns/${matchingCampaign.id}`}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-              >
-                <ArrowRight className="h-4 w-4" />
-                Open Existing
-              </Link>
-            ) : (
-              <Button type="button" onClick={onCreate} loading={isCreating}>
-                <Plus className="h-4 w-4" />
-                Create Draft
-              </Button>
-            )}
-            {matchingCampaign && (
-              <Button type="button" variant="secondary" onClick={onCreate} loading={isCreating}>
-                <Plus className="h-4 w-4" />
-                Create Anyway
-              </Button>
-            )}
-            <Button type="button" variant="ghost" onClick={onClear} disabled={isCreating}>
-              Clear Draft
-            </Button>
-          </div>
-        </div>
-
-        {matchingCampaign && (
-          <p className="rounded-lg bg-amber-950/30 px-3 py-2 text-sm text-amber-200">
-            {matchingCampaign.name} is already {matchingCampaign.status}. Open it to continue, or create a separate campaign if this is a different goal.
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function CampaignCard({
-  campaign,
-  plan,
-  isPlanLoading,
-  dataFreshnessStatus,
-  onStatusChange,
-  onRefresh,
-  onDelete,
-}: {
-  campaign: Campaign;
-  plan: CampaignPlan | undefined;
-  isPlanLoading: boolean;
-  dataFreshnessStatus: 'fresh' | 'stale' | 'missing';
-  onStatusChange: (campaign: Campaign, status: CampaignStatus) => Promise<void>;
-  onRefresh: (campaign: Campaign) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-}) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const Icon = campaign.type === 'team-polish'
-    ? UsersRound
-    : campaign.type === 'character-polish'
-      ? Target
-      : Sparkles;
-  const targetCount = campaign.characterTargets.length;
-  const pullTargets = getCampaignPullTargets(campaign);
-  const pullCopyGoal = pullTargets.reduce((sum, target) => sum + target.desiredCopies, 0);
-  const pullGoalLabel = pullTargets.length > 0
-    ? `${pullCopyGoal} ${pullCopyGoal === 1 ? 'copy' : 'copies'}`
-    : 'None';
-  const dataFreshnessLabel =
-    dataFreshnessStatus === 'fresh'
-      ? 'Current'
-      : dataFreshnessStatus === 'stale'
-        ? 'Stale'
-        : 'Import';
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="p-2 rounded-lg bg-primary-500/20">
-              <Icon className="w-5 h-5 text-primary-400" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="font-semibold text-slate-100 truncate">{campaign.name}</h2>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <Badge variant={STATUS_BADGE[campaign.status]}>{campaign.status}</Badge>
-                {plan && <Badge variant={PLAN_STATUS_BADGE[plan.status]}>{plan.overallPercent}% ready</Badge>}
-                <Badge variant="outline">P{campaign.priority}</Badge>
-                <span className="text-xs text-slate-500 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {formatCampaignDate(campaign.deadline)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-900 rounded-lg p-3">
-            <div className="text-xs text-slate-500 mb-1">Targets</div>
-            <div className="text-lg font-semibold text-slate-100">{targetCount}</div>
-          </div>
-          <div className="bg-slate-900 rounded-lg p-3">
-            <div className="text-xs text-slate-500 mb-1">Pull Goal</div>
-            <div className="text-lg font-semibold text-slate-100">{pullGoalLabel}</div>
-          </div>
-        </div>
-
-        {isPlanLoading && (
-          <div className="grid grid-cols-3 gap-3">
-            <div className="h-16 bg-slate-900 rounded-lg animate-pulse" />
-            <div className="h-16 bg-slate-900 rounded-lg animate-pulse" />
-            <div className="h-16 bg-slate-900 rounded-lg animate-pulse" />
-          </div>
-        )}
-
-        {plan && (
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <PlanStat
-              label="Pulls"
-              value={`${plan.pullReadiness.percent}%`}
-              detail={
-                plan.pullReadiness.hasTargets
-                  ? `${plan.pullReadiness.availablePulls}/${plan.pullReadiness.targetPulls}`
-                  : 'No pull target'
-              }
-            />
-            <PlanStat
-              label="Build"
-              value={`${plan.buildReadiness.percent}%`}
-              detail={`${plan.buildReadiness.readyCount ?? 0}/${plan.buildReadiness.targetCount} built`}
-            />
-            <PlanStat
-              label="Materials"
-              value={`${plan.materialReadiness.percent}%`}
-              detail={
-                plan.materialReadiness.hasTargets
-                  ? `${plan.materialReadiness.deficitMaterials} deficits`
-                  : 'No materials'
-              }
-            />
-            <PlanStat
-              label="Data"
-              value={dataFreshnessLabel}
-              detail={dataFreshnessStatus === 'fresh' ? 'Fresh import' : 'Refresh recommended'}
-            />
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {campaign.characterTargets.map((target) => (
-            <Badge key={target.id} variant={target.ownership === 'owned' ? 'secondary' : 'primary'}>
-              {getDisplayName(target.characterKey)} - {target.buildGoal}
-            </Badge>
-          ))}
-        </div>
-
-        {campaign.notes && (
-          <p className="text-sm text-slate-400 bg-slate-900/60 rounded-lg p-3">{campaign.notes}</p>
-        )}
-
-        {plan && (
-          <div className="space-y-2">
-            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Next Actions</div>
-            <div className="space-y-2">
-              {plan.nextActions.slice(0, 3).map((action) => (
-                <div
-                  key={action.id}
-                  className="flex items-start justify-between gap-3 rounded-lg bg-slate-900/70 p-3"
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-slate-200">{action.label}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{action.detail}</div>
-                  </div>
-                  <Badge variant={ACTION_BADGE[action.category]}>{action.category}</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Link
-            to={`/campaigns/${campaign.id}`}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
-          >
-            <ArrowRight className="w-4 h-4" />
-            Open
-          </Link>
-          {plan?.materialReadiness.hasTargets && (
-            <Link
-              to={buildCampaignMaterialHref(campaign.id)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
-            >
-              <Package className="w-4 h-4" />
-              Materials
-            </Link>
-          )}
-          {plan?.pullReadiness.hasTargets && (
-            <Link
-              to={buildCampaignCalculatorHref(campaign, plan)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
-            >
-              <Calculator className="w-4 h-4" />
-              Calculator
-            </Link>
-          )}
-          <Button size="sm" variant="secondary" onClick={() => onRefresh(campaign)}>
-            <RefreshCw className="w-4 h-4" />
-            Refresh Plan
-          </Button>
-          {campaign.status === 'active' ? (
-            <Button size="sm" variant="secondary" onClick={() => onStatusChange(campaign, 'paused')}>
-              <CirclePause className="w-4 h-4" />
-              Pause
-            </Button>
-          ) : (
-            <Button size="sm" variant="secondary" onClick={() => onStatusChange(campaign, 'active')}>
-              <CirclePlay className="w-4 h-4" />
-              Activate
-            </Button>
-          )}
-          <Button size="sm" variant="secondary" onClick={() => onStatusChange(campaign, 'completed')}>
-            <CheckCircle2 className="w-4 h-4" />
-            Complete
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onStatusChange(campaign, 'archived')}>
-            <Archive className="w-4 h-4" />
-            Archive
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => setConfirmDelete(true)}>
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </Button>
-        </div>
-
-        <DeleteConfirmModal
-          isOpen={confirmDelete}
-          onClose={() => setConfirmDelete(false)}
-          onConfirm={() => {
-            setConfirmDelete(false);
-            onDelete(campaign.id);
-          }}
-          title="Delete Campaign"
-          itemName={campaign.name}
-          description="This will permanently delete the campaign, including all targets and planning data. This action cannot be undone."
-        />
-      </CardContent>
-    </Card>
-  );
-}
-
-function PlanStat({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="bg-slate-900 rounded-lg p-3">
-      <div className="text-xs text-slate-500 mb-1">{label}</div>
-      <div className="text-lg font-semibold text-slate-100">{value}</div>
-      <div className="text-xs text-slate-500 truncate">{detail}</div>
     </div>
   );
 }
