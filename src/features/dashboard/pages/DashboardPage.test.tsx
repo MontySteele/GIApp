@@ -38,7 +38,7 @@ vi.mock('@/contexts/OnboardingContext', () => ({
       hasImportedCharacters: false,
       hasCreatedTeam: false,
       hasVisitedPlanner: false,
-      hasSetResin: false,
+      hasImportedWishHistory: false,
     },
     checklistProgress: 0,
     checklistTotal: 4,
@@ -367,7 +367,12 @@ describe('DashboardPage empty state', () => {
       useOnboardingContext: () => ({
         isComplete: true,
         showWizard: false,
-        checklist: { hasImportedCharacters: false, hasCreatedTeam: false, hasVisitedPlanner: false, hasSetResin: false },
+        checklist: {
+          hasImportedCharacters: false,
+          hasCreatedTeam: false,
+          hasVisitedPlanner: false,
+          hasImportedWishHistory: false,
+        },
         checklistProgress: 0,
         checklistTotal: 4,
         isChecklistComplete: false,
@@ -441,5 +446,9 @@ describe('DashboardPage empty state', () => {
 
     expect(screen.getByText(/get started/i)).toBeInTheDocument();
     expect(screen.getByText(/import your character data/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /import account data/i })).toHaveAttribute(
+      'href',
+      '/roster?import=irminsul'
+    );
   });
 });

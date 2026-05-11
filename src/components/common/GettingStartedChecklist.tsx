@@ -40,7 +40,7 @@ const CHECKLIST_ITEMS: Array<{
     linkLabel: 'Go to Planner',
   },
   {
-    key: 'hasCheckedPulls',
+    key: 'hasImportedWishHistory',
     title: 'Import wish history',
     description: 'Refresh pity, guarantees, and pull odds before planning banners.',
     link: '/pulls/history',

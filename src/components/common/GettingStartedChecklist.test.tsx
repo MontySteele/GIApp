@@ -8,7 +8,7 @@ const emptyChecklist: OnboardingChecklist = {
   hasImportedCharacters: false,
   hasCreatedTeam: false,
   hasVisitedPlanner: false,
-  hasCheckedPulls: false,
+  hasImportedWishHistory: false,
 };
 
 function renderChecklist(checklist = emptyChecklist) {

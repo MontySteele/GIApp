@@ -13,6 +13,7 @@ import {
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { StatCardSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
+import { db } from '@/db/schema';
 import GettingStartedChecklist from '@/components/common/GettingStartedChecklist';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
@@ -50,6 +51,7 @@ export default function DashboardPage() {
   const { stats: artifactStats, isLoading: loadingArtifacts } = useArtifacts();
   const { stats: weaponStats, isLoading: loadingWeapons } = useWeapons();
   const availablePulls = useLiveQuery(() => getAvailablePullsFromTracker(), []);
+  const wishHistoryCount = useLiveQuery(() => db.wishRecords.count(), []);
   const loadingResources = availablePulls === undefined;
   const { teams } = useTeams();
   const { activeCampaigns, isLoading: loadingCampaigns } = useCampaigns();
@@ -96,7 +98,14 @@ export default function DashboardPage() {
     if (teams.length > 0 && !checklist.hasCreatedTeam) {
       updateChecklist({ hasCreatedTeam: true });
     }
-  }, [characters.length, teams.length, checklist, updateChecklist]);
+    if (
+      typeof wishHistoryCount === 'number' &&
+      wishHistoryCount > 0 &&
+      !checklist.hasImportedWishHistory
+    ) {
+      updateChecklist({ hasImportedWishHistory: true });
+    }
+  }, [characters.length, teams.length, wishHistoryCount, checklist, updateChecklist]);
 
   const isLoading = loadingChars || loadingArtifacts || loadingWeapons || loadingResources || loadingCampaigns;
   const hasActiveCampaigns = activeCampaigns.length > 0;
@@ -298,10 +307,10 @@ export default function DashboardPage() {
               Import your character data to see your account overview
             </p>
             <Link
-              to="/settings"
+              to="/roster?import=irminsul"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded text-white"
             >
-              Go to Settings <ArrowRight className="w-4 h-4" />
+              Import Account Data <ArrowRight className="w-4 h-4" />
             </Link>
           </CardContent>
         </Card>

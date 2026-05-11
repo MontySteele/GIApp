@@ -6,6 +6,7 @@ import {
   loadWishHistoryFromRepo,
   wishHistoryItemToRecord,
 } from '../utils/wishHistory';
+import { markChecklistItem } from '@/hooks/useOnboarding';
 
 interface WishManualEntryProps {
   onEntrySaved?: (wishes: WishHistoryItem[]) => void;
@@ -54,6 +55,7 @@ export function WishManualEntry({ onEntrySaved }: WishManualEntryProps) {
       };
 
       await wishRepo.create(wishHistoryItemToRecord(manualWish));
+      markChecklistItem('hasImportedWishHistory');
       const history = await loadWishHistoryFromRepo();
       setSuccess('Wish saved to your history.');
       onEntrySaved?.(history);

@@ -10,6 +10,7 @@ import {
   wishHistoryItemToRecord,
 } from '../utils/wishHistory';
 import { markWishHistoryImportComplete } from '../services/wishDataFreshness';
+import { markChecklistItem } from '@/hooks/useOnboarding';
 import {
   getPityByBanner,
 } from '../selectors/pitySelectors';
@@ -401,6 +402,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       const afterPity = getPityByBanner(persistedRecords);
       const persistedHistory = await loadWishHistoryFromRepo();
       await markWishHistoryImportComplete();
+      markChecklistItem('hasImportedWishHistory');
 
       dispatch({ type: 'SET_IMPORT_SUMMARY', payload: persistedSummary });
       dispatch({

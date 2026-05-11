@@ -31,6 +31,7 @@ vi.mock('@/db/schema', async (importOriginal) => {
 
 beforeEach(async () => {
   await db.wishRecords.clear();
+  localStorage.clear();
   campaignMocks.activeCampaigns = [];
   global.fetch = vi.fn(() =>
     Promise.resolve({
@@ -273,6 +274,9 @@ describe('WishImport', () => {
         expect(onImportComplete).toHaveBeenCalled();
         const stored = await wishRepo.getAll();
         expect(stored).toHaveLength(1);
+        expect(JSON.parse(localStorage.getItem('onboarding_checklist') ?? '{}')).toMatchObject({
+          hasImportedWishHistory: true,
+        });
       });
     });
 

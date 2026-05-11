@@ -33,10 +33,10 @@ export default function CalculatorPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Pull Calculator</h1>
-        <p className="text-slate-400 flex items-center gap-2">
+        <div className="text-slate-400 flex items-center gap-2">
           Calculate probabilities using Monte Carlo simulation
           <InfoTooltip content={GACHA_TOOLTIPS.monteCarloSimulation} size="md" />
-        </p>
+        </div>
       </div>
 
       <WishDataFreshnessCallout freshness={wishDataFreshness} className="mb-6" />
