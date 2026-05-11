@@ -201,6 +201,29 @@ test.describe('Campaign flow smoke', () => {
     });
   });
 
+  test('manual dashboard target wizard creates a target without imports', async ({ page }) => {
+    await loadSeededApp(page, {});
+
+    await page.getByRole('button', { name: 'Get', exact: true }).click();
+    await page.getByLabel('Target character').fill('Furina');
+    await page.getByRole('option', { name: /Furina/i }).click();
+    await page.getByLabel('Pulls saved').fill('42');
+    await page.getByLabel('Current pity').fill('10');
+    await page.getByRole('spinbutton', { name: 'Target C' }).fill('1');
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Get Furina' })).toBeVisible();
+    await expect(page.getByText(/more pulls before the banner target/i)).toBeVisible();
+
+    await page.getByRole('link', { name: /create target/i }).nth(1).click();
+    await expect(page).toHaveURL(/\/campaigns\?/);
+    await expect(page.getByText('Chase C1 Furina')).toBeVisible();
+
+    await page.getByRole('button', { name: /create target/i }).click();
+    await expect(page).toHaveURL(/\/campaigns\/.+/);
+    await expect(page.getByRole('heading', { name: /Chase C1 Furina/i })).toBeVisible();
+  });
+
   test('pull campaign routes the dashboard action into a campaign-aware calculator', async ({ page }) => {
     await loadSeededApp(page, {
       campaigns: [pullCampaign()],
