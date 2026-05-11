@@ -187,7 +187,7 @@ describe('CampaignNextActionsWidget', () => {
     expect(screen.getByText(/why this/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open materials/i })).toHaveAttribute(
       'href',
-      '/planner/materials?campaign=campaign-1&material=Mora'
+      '/campaigns/materials?campaign=campaign-1&material=Mora'
     );
     expect(screen.getByRole('link', { name: /improve furina/i })).toHaveAttribute(
       'href',
@@ -355,10 +355,10 @@ describe('CampaignNextActionsWidget', () => {
       'href',
       '/imports'
     );
-    expect(screen.getByRole('link', { name: /farm urgent mora/i })).toHaveAttribute(
-      'href',
-      '/planner/materials?campaign=campaign-1&material=Mora'
-    );
+    expect(screen.queryByRole('link', { name: /farm urgent mora/i })).not.toBeInTheDocument();
+    expect(screen.getByText('2 target actions queued after refresh.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /review targets/i })).toHaveAttribute('href', '/campaigns');
+    expect(screen.queryByRole('button', { name: /done/i })).not.toBeInTheDocument();
   });
 
   it('lets the top action disappear for today when it is marked done', async () => {

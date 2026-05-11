@@ -19,12 +19,10 @@ This is a local-first PWA for Genshin Impact players. Its current product direct
 | Surface | Route | Notes |
 |---|---|---|
 | Dashboard | `/` | Next Up, contextual target entry, quick capture, compact snapshot, freshness |
-| Targets | `/campaigns` | User-facing Targets control center, storage still uses campaigns |
+| Targets | `/campaigns` | User-facing Targets control center, target material deficits, storage still uses campaigns |
 | Target Detail | `/campaigns/:id` | Target plan, readiness, next actions |
-| Roster | `/roster` | Characters plus nested weapons, artifacts, build templates |
-| Teams | `/teams` | Team hub, bosses, team detail, export flows |
+| Roster | `/roster` | Characters plus nested teams, progression, domains, bosses, weapons, artifacts, build templates |
 | Pulls | `/pulls` | Budget, calculator, wish history, banners |
-| Planner | `/planner` | Materials, domains, target deficits |
 | Import Hub | `/imports` | Roster, wish history, manual fallback, backup, last import impact |
 | More | `/more` | Mobile secondary navigation |
 | Notes | `/notes` | Notes and quick notes |
@@ -38,9 +36,15 @@ Old routes redirect rather than breaking saved links:
 - `/wishes/calculator` -> `/pulls/calculator`
 - `/calculator` -> `/pulls/calculator`
 - `/ledger` -> `/pulls/budget`
-- `/calendar` -> `/planner/domains`
+- `/planner` -> `/roster/planner`
+- `/planner/materials` -> `/campaigns/materials`
+- `/planner/domains` -> `/roster/domains`
+- `/teams` -> `/roster/teams`
+- `/teams/bosses` -> `/roster/bosses`
+- `/teams/:id` -> `/roster/teams/:id`
+- `/calendar` -> `/roster/domains`
 - `/builds` -> `/roster/builds`
-- `/bosses` -> `/teams/bosses`
+- `/bosses` -> `/roster/bosses`
 
 ## Key Product Concepts
 
@@ -112,10 +116,11 @@ npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 
 Latest verified baseline:
 
-- 145 Vitest files
-- 2052 Vitest tests
+- 147 Vitest files
+- 2055 Vitest tests
 - Campaign-flow Playwright smoke passing
 - Navigation Playwright smoke passing
+- Team-management Playwright smoke passing
 
 ## Engineering Guidelines
 

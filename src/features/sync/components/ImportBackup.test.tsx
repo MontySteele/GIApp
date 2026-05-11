@@ -89,7 +89,7 @@ describe('ImportBackup', () => {
       expect(screen.getByText('What changed')).toBeInTheDocument();
     });
     expect(screen.getByRole('link', { name: /roster refreshed/i })).toHaveAttribute('href', '/roster');
-    expect(screen.getByRole('link', { name: /build planning updated/i })).toHaveAttribute('href', '/planner');
+    expect(screen.getByRole('link', { name: /build planning updated/i })).toHaveAttribute('href', '/roster/planner');
     expect(screen.getByRole('link', { name: /wish history refreshed/i })).toHaveAttribute('href', '/pulls/history');
     expect(screen.getByRole('link', { name: /budget refreshed/i })).toHaveAttribute('href', '/pulls');
     expect(screen.getByRole('link', { name: /targets restored/i })).toHaveAttribute('href', '/campaigns');

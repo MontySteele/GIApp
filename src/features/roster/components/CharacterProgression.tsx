@@ -123,10 +123,10 @@ export default function CharacterProgression({ character }: CharacterProgression
             Progression
           </h2>
           <Link
-            to={`/planner?character=${encodeURIComponent(character.key)}`}
+            to={`/roster/planner?character=${encodeURIComponent(character.key)}`}
             className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
           >
-            Open in Planner <ExternalLink className="w-3 h-3" />
+            Open Progression <ExternalLink className="w-3 h-3" />
           </Link>
         </div>
       </CardHeader>

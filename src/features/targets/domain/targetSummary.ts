@@ -184,7 +184,7 @@ export function wishlistToTargetSummary(
       ? 'Already attached to an active target'
       : `${wishlist.targetGoal} build goal`,
     priority: hasOpenCampaign ? 5 : 3,
-    href: '/planner',
+    href: '/roster/planner',
     actionHref: buildCharacterCampaignUrl(wishlist.key, wishlist.targetGoal, true),
     actionLabel: hasOpenCampaign ? 'Open Targets' : 'Start Target',
     characterKeys: [wishlist.key],

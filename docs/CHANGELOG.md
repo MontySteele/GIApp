@@ -5,7 +5,8 @@
 ### Product IA
 - Reframed user-facing "Campaigns" language around **Targets** while preserving `/campaigns` routes and storage compatibility.
 - Simplified mobile bottom navigation to Home, Targets, Roster, Pulls, and More.
-- Added More page links for secondary destinations including Imports, Planner, Teams, Notes, Settings, Build Templates, and Bosses.
+- Folded Teams and Planner out of the top-level navigation: Roster now owns teams, progression, domains, bosses, builds, weapons, and artifacts; Targets owns target material deficits.
+- Preserved `/teams` and `/planner` compatibility URLs with redirects into the new Roster/Targets IA.
 
 ### Dashboard Command Center
 - Consolidated dashboard into higher-signal zones around Next Up, contextual Start Target, quick capture, import freshness, and compact account/resource snapshot.
@@ -13,7 +14,10 @@
 - Combined quick resource capture and key account/resource data into a single **Capture + Snapshot** panel.
 - Made Start Target contextual: full wizard for no real targets, compact entry when targets already exist, and import refresh priority when data is stale or missing.
 - Fresh account data now stays subtle; stale or missing account data is promoted into Next Up.
-- Clarified dashboard ownership: Dashboard owns immediate action and quick capture; Pulls owns budget depth/history/charts; Planner owns farming math; Targets owns management/grouping.
+- Next-pass cleanup suppresses target action cards while freshness is the dominant Next Up action, condenses dashboard Targets into a summary handoff, and removes duplicate farming freshness prompts.
+- Capture + Snapshot now keeps quick capture prominent while moving account/resource depth into compact links to Pulls and Roster.
+- Dashboard layout now uses natural-height panels so compact cards no longer stretch into empty framed space.
+- Clarified dashboard ownership: Dashboard owns immediate action and quick capture; Pulls owns budget depth/history/charts; Targets owns target materials/management; Roster owns character, team, domain, and progression planning.
 - Added account data freshness routing to `/imports`.
 - Added Resume Where You Left Off logic for active targets, missing imports, manual pull setup, and first-target starts.
 - Added global Quick Action Bar for Start Target, Log Primos, Update Pity, Import Data, and Add Note.
@@ -34,6 +38,7 @@
 - Added Import Hub at `/imports` for roster status, wish history status, manual fallback, backup status, live counts, and last import impact.
 - GOOD and Irminsul roster imports now persist lightweight last-import summaries.
 - Roster import impact totals now separate created characters from updated inventory records.
+- Irminsul weapon imports now use stable property-based IDs and reconcile the current weapon snapshot so repeated imports do not append duplicate weapons.
 - Dashboard setup progress now reflects real imported wish records instead of stale localStorage flags.
 - Empty setup/import CTAs route directly to the Irminsul import path where appropriate.
 
@@ -46,7 +51,7 @@
 - Added and hardened tests across target summary domain logic, Start Target wizard paths, dashboard loading/freshness/resume logic, Import Hub, GOOD/Irminsul import summaries, Quick Action Bar, Quick Resource Logger undo, and mobile navigation.
 - Added Playwright campaign-flow smoke for dashboard -> target wizard -> target creation -> calculator/planner handoffs.
 - Added Playwright navigation smoke for quick-action hash deep links.
-- Verified after this work: 145 Vitest files / 2052 tests passing, plus focused Playwright campaign-flow and navigation suites.
+- Verified after this work: 147 Vitest files / 2055 tests passing, plus focused Playwright campaign-flow, navigation, and team-management smokes.
 
 ## 2026-04-21 (Patch update: 6.4 → 6.5 "Luna VI")
 

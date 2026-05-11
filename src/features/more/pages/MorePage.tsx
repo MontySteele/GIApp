@@ -4,9 +4,6 @@ import {
   Database,
   NotebookText,
   Settings,
-  Target,
-  UsersRound,
-  WandSparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -18,24 +15,6 @@ interface MoreLink {
 }
 
 const MORE_LINKS: MoreLink[] = [
-  {
-    label: 'Teams',
-    detail: 'Teams, bosses',
-    href: '/teams',
-    icon: UsersRound,
-  },
-  {
-    label: 'Planner',
-    detail: 'Materials, domains',
-    href: '/planner',
-    icon: Target,
-  },
-  {
-    label: 'Build Templates',
-    detail: 'Roster builds',
-    href: '/roster/builds',
-    icon: WandSparkles,
-  },
   {
     label: 'Notes',
     detail: 'Planning notes',

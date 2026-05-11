@@ -413,7 +413,7 @@ describe('CampaignDetailPage', () => {
 
       expect(screen.getAllByRole('link', { name: /open materials/i })[0]).toHaveAttribute(
         'href',
-        '/planner/materials?campaign=campaign-1&material=Mora'
+        '/campaigns/materials?campaign=campaign-1&material=Mora'
       );
       expect(screen.getByRole('link', { name: /open character/i })).toHaveAttribute(
         'href',
@@ -495,7 +495,7 @@ describe('CampaignDetailPage', () => {
       const moraLink = screen.getByText('800 short').closest('a');
       expect(moraLink).toHaveAttribute(
         'href',
-        '/planner/materials?campaign=campaign-1&material=Mora'
+        '/campaigns/materials?campaign=campaign-1&material=Mora'
       );
     });
 
@@ -515,7 +515,7 @@ describe('CampaignDetailPage', () => {
       expect(screen.getByText('Farm Equity (Fontaine) today.')).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /domain calendar/i })).toHaveAttribute(
         'href',
-        '/planner/domains'
+        '/roster/domains'
       );
       expect(screen.getByText('Farm Today')).toBeInTheDocument();
       expect(screen.getAllByText('Guide to Equity').length).toBeGreaterThan(0);

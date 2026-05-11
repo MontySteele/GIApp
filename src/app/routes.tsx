@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation, useParams } from 'react-router-dom';
 import Layout from './Layout';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
 import RosterLayout from '@/features/roster/pages/RosterLayout';
@@ -11,15 +11,13 @@ import HistoryTab from '@/features/wishes/pages/HistoryTab';
 import CalculatorTab from '@/features/wishes/pages/CalculatorTab';
 import BudgetTab from '@/features/wishes/pages/BudgetTab';
 import BannersTab from '@/features/wishes/pages/BannersTab';
-import { CampaignDetailPage, CampaignsPage } from '@/features/campaigns';
+import { CampaignDetailPage, CampaignsLayout, CampaignsPage } from '@/features/campaigns';
 import {
-  TeamsLayout,
   TeamsPage,
   TeamDetailPage,
   TemplatesTab,
   BossesTab,
 } from '@/features/teams';
-import PlannerLayout from '@/features/planner/pages/PlannerLayout';
 import PlannerPage from '@/features/planner/pages/PlannerPage';
 import MaterialsTab from '@/features/planner/pages/MaterialsTab';
 import DomainsTab from '@/features/planner/pages/DomainsTab';
@@ -27,6 +25,21 @@ import MorePage from '@/features/more/pages/MorePage';
 import NotesPage from '@/features/notes/pages/NotesPage';
 import SyncPage from '@/features/sync/pages/SyncPage';
 import ImportHubPage from '@/features/sync/pages/ImportHubPage';
+
+function RedirectPreserveSearch({ pathname }: { pathname: string }) {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{ pathname, search: location.search, hash: location.hash }}
+      replace
+    />
+  );
+}
+
+function TeamDetailRedirect() {
+  const { id } = useParams();
+  return <RedirectPreserveSearch pathname={`/roster/teams/${id ?? ''}`} />;
+}
 
 export const router = createBrowserRouter([
   {
@@ -39,11 +52,21 @@ export const router = createBrowserRouter([
       },
       {
         path: 'campaigns',
-        element: <CampaignsPage />,
-      },
-      {
-        path: 'campaigns/:id',
-        element: <CampaignDetailPage />,
+        element: <CampaignsLayout />,
+        children: [
+          {
+            index: true,
+            element: <CampaignsPage />,
+          },
+          {
+            path: 'materials',
+            element: <MaterialsTab />,
+          },
+          {
+            path: ':id',
+            element: <CampaignDetailPage />,
+          },
+        ],
       },
       // Roster with nested routes for Characters, Weapons, Artifacts, Builds
       {
@@ -66,20 +89,21 @@ export const router = createBrowserRouter([
             path: 'builds',
             element: <TemplatesTab />,
           },
-        ],
-      },
-      {
-        path: 'roster/:id',
-        element: <CharacterDetailPage />,
-      },
-      // Teams hub with nested routes for My Teams, Bosses
-      {
-        path: 'teams',
-        element: <TeamsLayout />,
-        children: [
           {
-            index: true,
+            path: 'teams',
             element: <TeamsPage />,
+          },
+          {
+            path: 'teams/:id',
+            element: <TeamDetailPage />,
+          },
+          {
+            path: 'planner',
+            element: <PlannerPage />,
+          },
+          {
+            path: 'domains',
+            element: <DomainsTab />,
           },
           {
             path: 'bosses',
@@ -88,8 +112,8 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: 'teams/:id',
-        element: <TeamDetailPage />,
+        path: 'roster/:id',
+        element: <CharacterDetailPage />,
       },
       // Pulls (renamed from Wishes) with nested routes for Budget, Calculator, History, Banners
       {
@@ -111,25 +135,6 @@ export const router = createBrowserRouter([
           {
             path: 'banners',
             element: <BannersTab />,
-          },
-        ],
-      },
-      // Planner (promoted to top-level) with Overview, Materials, Domains
-      {
-        path: 'planner',
-        element: <PlannerLayout />,
-        children: [
-          {
-            index: true,
-            element: <PlannerPage />,
-          },
-          {
-            path: 'materials',
-            element: <MaterialsTab />,
-          },
-          {
-            path: 'domains',
-            element: <DomainsTab />,
           },
         ],
       },
@@ -163,14 +168,26 @@ export const router = createBrowserRouter([
         path: 'ledger',
         element: <Navigate to="/pulls/budget" replace />,
       },
-      // Teams -> new locations redirects
+      // Teams and Planner -> Roster/Targets redirects
       {
         path: 'teams/planner',
-        element: <Navigate to="/planner" replace />,
+        element: <RedirectPreserveSearch pathname="/roster/planner" />,
+      },
+      {
+        path: 'teams/bosses',
+        element: <RedirectPreserveSearch pathname="/roster/bosses" />,
       },
       {
         path: 'teams/templates',
-        element: <Navigate to="/roster/builds" replace />,
+        element: <RedirectPreserveSearch pathname="/roster/builds" />,
+      },
+      {
+        path: 'teams/:id',
+        element: <TeamDetailRedirect />,
+      },
+      {
+        path: 'teams',
+        element: <RedirectPreserveSearch pathname="/roster/teams" />,
       },
       {
         path: 'builds',
@@ -178,12 +195,24 @@ export const router = createBrowserRouter([
       },
       {
         path: 'bosses',
-        element: <Navigate to="/teams/bosses" replace />,
+        element: <RedirectPreserveSearch pathname="/roster/bosses" />,
+      },
+      {
+        path: 'planner/materials',
+        element: <RedirectPreserveSearch pathname="/campaigns/materials" />,
+      },
+      {
+        path: 'planner/domains',
+        element: <RedirectPreserveSearch pathname="/roster/domains" />,
+      },
+      {
+        path: 'planner',
+        element: <RedirectPreserveSearch pathname="/roster/planner" />,
       },
       // Calendar -> Planner domains redirect
       {
         path: 'calendar',
-        element: <Navigate to="/planner/domains" replace />,
+        element: <RedirectPreserveSearch pathname="/roster/domains" />,
       },
       {
         path: 'notes',

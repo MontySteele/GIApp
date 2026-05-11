@@ -201,8 +201,11 @@ test.describe('Campaign flow smoke', () => {
     });
   });
 
-  test('manual dashboard target wizard creates a target without imports', async ({ page }) => {
-    await loadSeededApp(page, {});
+  test('manual dashboard target wizard creates a target when account data is current', async ({ page }) => {
+    await loadSeededApp(page, {
+      characters: [furinaCharacter()],
+      importRecords: [freshImport()],
+    });
 
     await page.getByRole('button', { name: 'Get', exact: true }).click();
     await page.getByLabel('Target character').fill('Furina');
@@ -272,7 +275,7 @@ test.describe('Campaign flow smoke', () => {
 
     await page.getByRole('link', { name: /open materials/i }).click();
 
-    await expect(page).toHaveURL(/\/planner\/materials\?/);
+    await expect(page).toHaveURL(/\/campaigns\/materials\?/);
     await expect(page).toHaveURL(/campaign=campaign-build-furina/);
     await expect(page.getByText('Target material plan for Build Furina')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Target Deficits' })).toBeVisible();

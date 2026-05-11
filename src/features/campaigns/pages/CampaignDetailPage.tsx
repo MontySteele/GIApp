@@ -361,7 +361,7 @@ export default function CampaignDetailPage() {
                     <Badge variant="outline">{farmingSchedule.dayName}</Badge>
                   </div>
                   <Link
-                    to="/planner/domains"
+                    to="/roster/domains"
                     className="inline-flex items-center gap-1 text-xs text-primary-400 transition-colors hover:text-primary-300"
                   >
                     Domain Calendar

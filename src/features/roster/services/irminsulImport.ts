@@ -189,7 +189,7 @@ export async function importIrminsul(
         }
 
         // Import weapons
-        if (opts.importWeapons && result.weapons.length > 0) {
+        if (opts.importWeapons && data.weapons !== undefined) {
           if (opts.replaceAll) {
             await db.inventoryWeapons.clear();
           }
@@ -200,6 +200,19 @@ export async function importIrminsul(
             createdAt: now,
             updatedAt: now,
           }));
+
+          // Reconcile weapons as a point-in-time scan, matching artifact import.
+          // This also removes older index-based weapon IDs from prior imports.
+          if (!opts.replaceAll) {
+            const importedIds = new Set(result.weapons.map((w) => w.id));
+            const existingWeapons = await db.inventoryWeapons.toArray();
+            const staleIds = existingWeapons
+              .filter((w) => !importedIds.has(w.id))
+              .map((w) => w.id);
+            if (staleIds.length > 0) {
+              await db.inventoryWeapons.bulkDelete(staleIds);
+            }
+          }
 
           await db.inventoryWeapons.bulkPut(weaponsWithTimestamps);
           weaponsImported = result.weapons.length;

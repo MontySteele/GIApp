@@ -284,7 +284,7 @@ function TeamCard({ team, members, onEdit, onDelete, onExport }: TeamCardProps) 
 
         {/* View Details Link */}
         <Link
-          to={`/teams/${team.id}`}
+          to={`/roster/teams/${team.id}`}
           className="flex items-center justify-center gap-2 w-full py-2 mt-2 text-sm text-primary-400 hover:text-primary-300 hover:bg-primary-400/10 rounded-lg transition-colors"
         >
           View Details

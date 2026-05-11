@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Database, Edit3, NotebookPen, Plus, Sparkles, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -19,9 +19,11 @@ const ACTIONS: QuickAction[] = [
 
 export default function QuickActionBar() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const dashboardDesktopClass = location.pathname === '/' ? 'md:hidden' : '';
 
   return (
-    <div className="fixed bottom-20 right-4 z-40 md:bottom-6">
+    <div className={`fixed bottom-20 right-4 z-40 md:bottom-6 ${dashboardDesktopClass}`}>
       {open && (
         <div className="mb-2 w-48 overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-xl">
           {ACTIONS.map((action) => {

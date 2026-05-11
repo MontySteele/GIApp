@@ -6,14 +6,11 @@
 
 // Components
 export { default as WfpsimExportModal } from './components/WfpsimExportModal';
-export { default as TeamsSubNav } from './components/TeamsSubNav';
 export { default as TeamMemberCard } from './components/TeamMemberCard';
 
 // Pages
-export { default as TeamsLayout } from './pages/TeamsLayout';
 export { default as TeamsPage } from './pages/TeamsPage';
 export { default as TeamDetailPage } from './pages/TeamDetailPage';
-export { default as PlannerTab } from './pages/PlannerTab';
 export { default as TemplatesTab } from './pages/TemplatesTab';
 export { default as BossesTab } from './pages/BossesTab';
 

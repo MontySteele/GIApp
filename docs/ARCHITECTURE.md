@@ -73,11 +73,9 @@ src/
 Primary routes:
 
 - `/` - Dashboard command center
-- `/campaigns` and `/campaigns/:id` - Targets control center and target detail
-- `/roster`, `/roster/weapons`, `/roster/artifacts`, `/roster/builds`, `/roster/:id`
-- `/teams`, `/teams/bosses`, `/teams/:id`
+- `/campaigns`, `/campaigns/materials`, and `/campaigns/:id` - Targets control center, target material deficits, and target detail
+- `/roster`, `/roster/teams`, `/roster/teams/:id`, `/roster/planner`, `/roster/domains`, `/roster/bosses`, `/roster/weapons`, `/roster/artifacts`, `/roster/builds`, `/roster/:id`
 - `/pulls`, `/pulls/calculator`, `/pulls/history`, `/pulls/banners`
-- `/planner`, `/planner/materials`, `/planner/domains`
 - `/imports` - Import Hub
 - `/more` - Mobile More page
 - `/notes`
@@ -89,9 +87,15 @@ Compatibility redirects:
 - `/wishes/calculator` -> `/pulls/calculator`
 - `/calculator` -> `/pulls/calculator`
 - `/ledger` -> `/pulls/budget`
-- `/calendar` -> `/planner/domains`
+- `/planner` -> `/roster/planner`
+- `/planner/materials` -> `/campaigns/materials`
+- `/planner/domains` -> `/roster/domains`
+- `/teams` -> `/roster/teams`
+- `/teams/bosses` -> `/roster/bosses`
+- `/teams/:id` -> `/roster/teams/:id`
+- `/calendar` -> `/roster/domains`
 - `/builds` -> `/roster/builds`
-- `/bosses` -> `/teams/bosses`
+- `/bosses` -> `/roster/bosses`
 
 Hash links are handled in the app shell so SPA navigation such as `/#quick-resource-logger` scrolls after route changes.
 
@@ -129,7 +133,7 @@ Hash links are handled in the app shell so SPA navigation such as `/#quick-resou
 - **Target facade avoids schema churn.** Product-level Target logic lives in `features/targets` while storage remains in `campaigns`, `plannedBanners`, and existing stores.
 - **Manual fast paths matter.** Pull odds and target creation should work with user-entered pity/pulls even when imports are incomplete.
 - **Import freshness is product data.** `useAccountDataFreshness` and Import Hub summaries feed dashboard guidance, not just settings screens.
-- **Dashboard ownership is narrow.** Dashboard owns "what should I do now?" and quick capture. Pulls owns budget depth, wish history, and charts. Planner owns farming math and target deficits. Targets owns target management and grouping.
+- **Dashboard ownership is narrow.** Dashboard owns "what should I do now?" and quick capture. Pulls owns budget depth, wish history, and charts. Targets owns target management and target-specific material deficits. Roster owns characters, teams, domains, and progression planning.
 - **Workers own expensive simulations.** Monte Carlo and heavy probability work must stay off the main thread.
 
 ## Design Guidelines

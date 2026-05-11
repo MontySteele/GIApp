@@ -105,6 +105,11 @@ export default function CampaignNextActionsWidget({
   const actions = allActions.filter((action) => !getActionState(getActionKey(action)));
   const handledActionCount = allActions.length - actions.length;
   const [focusAction, ...secondaryActions] = actions;
+  const hasFreshnessFocus = focusAction?.kind === 'freshness';
+  const visibleSecondaryActions = hasFreshnessFocus ? [] : secondaryActions.slice(0, 3);
+  const hiddenActionCount = hasFreshnessFocus
+    ? Math.max(0, actions.length - 1)
+    : Math.max(0, actions.length - 4);
   const focusedCampaign = getFocusedCampaign(activeCampaigns, plans, focusAction);
   const focusedPlan = focusedCampaign ? plans[focusedCampaign.id] : undefined;
   const activeTargetLabel = `${activeCampaigns.length} active target${activeCampaigns.length === 1 ? '' : 's'}`;
@@ -150,7 +155,7 @@ export default function CampaignNextActionsWidget({
           </div>
         ) : focusAction ? (
           <div className="space-y-3">
-            {focusedCampaign && (
+            {focusedCampaign && !hasFreshnessFocus && (
               <Link
                 to={`/campaigns/${focusedCampaign.id}`}
                 className="flex flex-col gap-3 rounded-lg border border-primary-900/50 bg-slate-950/50 p-3 transition-colors hover:border-primary-700/70 sm:flex-row sm:items-center sm:justify-between"
@@ -181,9 +186,13 @@ export default function CampaignNextActionsWidget({
             <ActionCard
               item={focusAction}
               prominent
-              onSetState={(state) => setActionState(state, getActionActivityInput(focusAction))}
+              onSetState={
+                focusAction.kind === 'campaign'
+                  ? (state) => setActionState(state, getActionActivityInput(focusAction))
+                  : undefined
+              }
             />
-            {secondaryActions.slice(0, 3).map((item) => (
+            {visibleSecondaryActions.map((item) => (
               <ActionCard key={getActionKey(item)} item={item} />
             ))}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3 text-xs text-slate-500">
@@ -191,12 +200,20 @@ export default function CampaignNextActionsWidget({
                 {actions.length} next action{actions.length === 1 ? '' : 's'}
                 {handledActionCount > 0 && `, ${handledActionCount} handled`}.
               </span>
-              <span>{activeTargetLabel}</span>
-              {actions.length > 4 && (
+              <span>
+                {hasFreshnessFocus && hiddenActionCount > 0
+                  ? `${hiddenActionCount} target action${hiddenActionCount === 1 ? '' : 's'} queued after refresh.`
+                  : activeTargetLabel}
+              </span>
+              {hasFreshnessFocus && hiddenActionCount > 0 ? (
                 <Link to="/campaigns" className="text-primary-400 hover:text-primary-300">
-                  {actions.length - 4} more actions
+                  Review targets
                 </Link>
-              )}
+              ) : hiddenActionCount > 0 ? (
+                <Link to="/campaigns" className="text-primary-400 hover:text-primary-300">
+                  {hiddenActionCount} more actions
+                </Link>
+              ) : null}
             </div>
             {todayActivities.length > 0 && (
               <ActivityLog activities={todayActivities.slice(0, 3)} />
@@ -303,13 +320,14 @@ function ActionCard({
   const detail = getActionDetail(item);
   const badge = getActionBadge(item);
   const campaignName = getActionCampaignName(item);
+  const isFreshness = item.kind === 'freshness';
 
   if (prominent) {
     return (
       <div className="flex flex-col gap-4 rounded-lg bg-slate-900 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant={badge}>{category === 'freshness' ? 'refresh' : category}</Badge>
+            <Badge variant={badge}>{isFreshness ? 'refresh' : category}</Badge>
             <span className="text-xs text-slate-500">{campaignName}</span>
             {item.kind === 'campaign' && (
               <span className="text-xs text-slate-600">{item.plan.overallPercent}% ready</span>
@@ -320,9 +338,11 @@ function ActionCard({
             <div className="min-w-0">
               <h4 className="text-base font-semibold text-slate-100">{label}</h4>
               <p className="mt-1 text-sm text-slate-400">{detail}</p>
-              <p className="mt-2 text-xs text-slate-500">
-                <span className="font-medium text-slate-400">Why this?</span> {item.why}
-              </p>
+              {item.kind === 'campaign' && (
+                <p className="mt-2 text-xs text-slate-500">
+                  <span className="font-medium text-slate-400">Why this?</span> {item.why}
+                </p>
+              )}
             </div>
           </div>
         </div>

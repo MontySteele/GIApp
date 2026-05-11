@@ -38,7 +38,7 @@ export function buildCampaignMaterialHref(campaignId: string, materialKey?: stri
   if (materialKey) {
     params.set('material', materialKey);
   }
-  return `/planner/materials?${params.toString()}`;
+  return `/campaigns/materials?${params.toString()}`;
 }
 
 export function buildCampaignCalculatorHref(campaign: Campaign, plan: CampaignPlan): string {

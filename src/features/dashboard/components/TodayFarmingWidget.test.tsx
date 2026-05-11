@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import type { ComponentProps } from 'react';
 import TodayFarmingWidget from './TodayFarmingWidget';
 
 const mocks = vi.hoisted(() => ({
@@ -32,10 +33,10 @@ vi.mock('@/features/sync', () => ({
 import { useTodayFarming } from '../hooks/useTodayFarming';
 
 // Helper to render with router
-function renderWidget() {
+function renderWidget(props: ComponentProps<typeof TodayFarmingWidget> = {}) {
   return render(
     <MemoryRouter>
-      <TodayFarmingWidget />
+      <TodayFarmingWidget {...props} />
     </MemoryRouter>
   );
 }
@@ -97,6 +98,20 @@ describe('TodayFarmingWidget', () => {
 
       expect(screen.getByText('Refresh account data')).toBeInTheDocument();
       expect(screen.getByText(/today's farming recommendations/i)).toBeInTheDocument();
+    });
+
+    it('can suppress the freshness prompt when Next Up already owns it', () => {
+      mocks.dataFreshness = {
+        status: 'stale',
+        latestImport: null,
+        daysSinceImport: 12,
+        label: 'Refresh account data',
+        detail: 'Last Irminsul import was 12 days ago.',
+      };
+
+      renderWidget({ suppressFreshnessCallout: true });
+
+      expect(screen.queryByText('Refresh account data')).not.toBeInTheDocument();
     });
   });
 

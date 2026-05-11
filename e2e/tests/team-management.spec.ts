@@ -7,10 +7,28 @@ import { test, expect } from '@playwright/test';
 import { TeamsPage, RosterPage } from '../pages';
 import { clearDatabase, waitForAppReady, sampleGOODData } from '../fixtures/test-data';
 
+const teamManagementGOODData = {
+  ...sampleGOODData,
+  artifacts: [
+    ...sampleGOODData.artifacts,
+    { setKey: 'GoldenTroupe', slotKey: 'flower', level: 20, rarity: 5, mainStatKey: 'hp', location: 'Furina', lock: true, substats: [] },
+    { setKey: 'GoldenTroupe', slotKey: 'plume', level: 20, rarity: 5, mainStatKey: 'atk', location: 'Furina', lock: true, substats: [] },
+    { setKey: 'GoldenTroupe', slotKey: 'sands', level: 20, rarity: 5, mainStatKey: 'hp_', location: 'Furina', lock: true, substats: [] },
+    { setKey: 'GoldenTroupe', slotKey: 'goblet', level: 20, rarity: 5, mainStatKey: 'hydro_dmg_', location: 'Furina', lock: true, substats: [] },
+    { setKey: 'GoldenTroupe', slotKey: 'circlet', level: 20, rarity: 5, mainStatKey: 'critRate_', location: 'Furina', lock: true, substats: [] },
+  ],
+};
+
 test.describe('Team Management', () => {
   test.beforeEach(async ({ page }) => {
     // Clear database first (navigates away to avoid Dexie crash)
     await clearDatabase(page);
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async () => undefined },
+      });
+    });
     await page.goto('/');
     await waitForAppReady(page);
 
@@ -19,7 +37,7 @@ test.describe('Team Management', () => {
     await roster.goto();
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
-    await roster.importFromGOOD(JSON.stringify(sampleGOODData));
+    await roster.importFromGOOD(JSON.stringify(teamManagementGOODData));
     // Wait for import to complete by checking for success indicator
     await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
@@ -133,10 +151,10 @@ test.describe('Team Management', () => {
       await teams.openTeamDetail('View Test Team');
 
       // Should navigate to detail page
-      await expect(page).toHaveURL(/\/teams\/.+/);
+      await expect(page).toHaveURL(/\/roster\/teams\/.+/);
 
       // Should show team name
-      await expect(page.locator('text=View Test Team')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'View Test Team' })).toBeVisible();
     });
   });
 
@@ -235,7 +253,8 @@ test.describe('Team Management', () => {
       await expect(modal).toBeVisible();
 
       // Should show export options
-      await expect(modal.locator('text=/wfpsim|gcsim|export|config/i')).toBeVisible();
+      await expect(modal.getByRole('heading', { name: /export to wfpsim/i })).toBeVisible();
+      await expect(modal.getByText('Generated Config')).toBeVisible();
     });
 
     test('should generate gcsim config', async ({ page }) => {
@@ -260,6 +279,7 @@ test.describe('Team Management', () => {
       const modal = page.locator('[role="dialog"]');
 
       // Click copy button
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
       await modal.getByRole('button', { name: /copy/i }).click();
 
       // Should show success feedback

@@ -18,15 +18,15 @@ export class TeamsPage extends BasePage {
     // Button text is "New Team" with Plus icon
     this.newTeamButton = page.getByRole('button', { name: /new team/i });
     // Team cards - cards in the grid with team info
-    this.teamCards = page.locator('.grid > div').filter({
-      has: page.locator('h3, text=/\\d+ member/i')
-    });
+    this.teamCards = page.locator('.grid > div')
+      .filter({ has: page.locator('h3') })
+      .filter({ hasText: /\d+ members?/i });
     // Empty state shows "No teams yet"
     this.emptyState = page.locator('text=/no teams yet/i');
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/teams');
+    await this.page.goto('/roster/teams');
     await this.waitForLoad();
   }
 
@@ -116,10 +116,8 @@ export class TeamsPage extends BasePage {
   async openTeamDetail(teamName: string): Promise<void> {
     const teamCard = this.teamCards.filter({ hasText: teamName }).first();
     // Click the "View Details" link
-    await teamCard.getByRole('link', { name: /view details/i })
-      .or(teamCard.locator('a'))
-      .click();
-    await this.page.waitForURL(/\/teams\/.+/);
+    await teamCard.getByRole('link', { name: /view details/i }).click();
+    await this.page.waitForURL(/\/roster\/teams\/.+/);
   }
 
   /**
@@ -174,19 +172,19 @@ export class TeamsPage extends BasePage {
   }
 
   /**
-   * Navigate to Planner (top-level route)
+   * Navigate to Progression (under Roster)
    */
   async goToPlanner(): Promise<void> {
-    await this.page.getByRole('link', { name: /planner/i }).click();
-    await this.page.waitForURL(/\/planner/);
+    await this.page.getByRole('link', { name: /progression/i }).click();
+    await this.page.waitForURL(/\/roster\/planner/);
   }
 
   /**
    * Navigate to Weekly Bosses under Teams
    */
   async goToBosses(): Promise<void> {
-    await this.page.getByRole('link', { name: /weekly bosses/i }).click();
-    await this.page.waitForURL(/\/teams\/bosses/);
+    await this.page.getByRole('link', { name: /^bosses$/i }).click();
+    await this.page.waitForURL(/\/roster\/bosses/);
   }
 
   /**
