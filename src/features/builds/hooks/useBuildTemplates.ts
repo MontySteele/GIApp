@@ -87,52 +87,11 @@ export function useBuildTemplates(query?: BuildTemplateQuery) {
   const templates = useLiveQuery(() => buildTemplateRepo.getAll(), []);
   const filters = query?.filters;
   const sort = query?.sort;
-  const hasQuery = query !== undefined;
-  const characterKey = filters?.characterKey;
-  const role = filters?.role;
-  const difficulty = filters?.difficulty;
-  const budget = filters?.budget;
-  const isOfficial = filters?.isOfficial;
-  const tags = filters?.tags;
-  const tagsKey = tags?.join('\u0000') ?? '';
-  const search = filters?.search;
-  const sortField = sort?.field;
-  const sortDirection = sort?.direction;
 
   const filteredTemplates = useMemo(() => {
-    const stableQuery = hasQuery
-      ? {
-          filters: {
-            characterKey,
-            role,
-            difficulty,
-            budget,
-            isOfficial,
-            tags: tagsKey ? tagsKey.split('\u0000') : undefined,
-            search,
-          },
-          sort: sortField
-            ? {
-                field: sortField,
-                direction: sortDirection ?? 'asc',
-              }
-            : undefined,
-        }
-      : undefined;
+    const stableQuery = filters || sort ? { filters, sort } : undefined;
     return filterAndSortTemplates(templates ?? [], stableQuery);
-  }, [
-    budget,
-    characterKey,
-    difficulty,
-    hasQuery,
-    isOfficial,
-    role,
-    search,
-    sortDirection,
-    sortField,
-    tagsKey,
-    templates,
-  ]);
+  }, [filters, sort, templates]);
 
   const createTemplate = useCallback(
     async (template: Omit<BuildTemplate, 'id' | 'createdAt' | 'updatedAt'>) => {
