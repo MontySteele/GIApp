@@ -14,6 +14,7 @@ import {
 } from '../services/importService';
 import { parseSyncPayload, unwrapFromTextImport, type SyncPayload } from '../services/syncUtils';
 import { buildImportValueRows } from '../domain/importValueSummary';
+import { writeLastImportSummary } from '../domain/lastImportSummary';
 
 interface ImportBackupProps {
   onImportComplete?: (result: ImportResult) => void;
@@ -143,14 +144,21 @@ export default function ImportBackup({ onImportComplete }: ImportBackupProps) {
     });
 
     setImportResult(result);
+    if (result.success) {
+      const totals = getTotals(result);
+      writeLastImportSummary({
+        source: 'Backup restore',
+        importedAt: new Date().toISOString(),
+        totals,
+        rows: buildImportValueRows(result),
+      });
+    }
     setStep('complete');
     onImportComplete?.(result);
   };
 
-  const getTotalStats = () => {
-    if (!importResult) return { created: 0, updated: 0, skipped: 0 };
-
-    const stats = importResult.stats;
+  const getTotals = (result: ImportResult) => {
+    const stats = result.stats;
     let created = 0, updated = 0, skipped = 0;
 
     for (const key of Object.keys(stats) as (keyof typeof stats)[]) {
@@ -161,6 +169,8 @@ export default function ImportBackup({ onImportComplete }: ImportBackupProps) {
 
     return { created, updated, skipped };
   };
+
+  const getTotalStats = () => importResult ? getTotals(importResult) : { created: 0, updated: 0, skipped: 0 };
 
   const importValueRows = importResult ? buildImportValueRows(importResult) : [];
 

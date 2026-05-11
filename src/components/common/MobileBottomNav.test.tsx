@@ -87,6 +87,13 @@ describe('MobileBottomNav', () => {
       expect(moreLink).toHaveClass('text-primary-400');
     });
 
+    it('highlights more for the import hub', () => {
+      renderNav('/imports');
+
+      const moreLink = screen.getByRole('link', { name: /more/i });
+      expect(moreLink).toHaveClass('text-primary-400');
+    });
+
     it('highlights more instead of roster for build templates', () => {
       renderNav('/roster/builds');
 

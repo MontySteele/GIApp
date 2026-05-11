@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
+  Database,
   NotebookText,
   Settings,
   Target,
@@ -40,6 +41,12 @@ const MORE_LINKS: MoreLink[] = [
     detail: 'Planning notes',
     href: '/notes',
     icon: NotebookText,
+  },
+  {
+    label: 'Import Hub',
+    detail: 'Setup, refresh status',
+    href: '/imports',
+    icon: Database,
   },
   {
     label: 'Settings & Sync',

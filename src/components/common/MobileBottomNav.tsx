@@ -40,7 +40,7 @@ const MOBILE_NAV_ITEMS: readonly MobileNavItem[] = [
     label: 'More',
     path: '/more',
     icon: Menu,
-    activePaths: ['/more', '/teams', '/planner', '/notes', '/settings', '/roster/builds'],
+    activePaths: ['/more', '/teams', '/planner', '/notes', '/settings', '/imports', '/roster/builds'],
   },
 ] as const;
 

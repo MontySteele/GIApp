@@ -178,7 +178,7 @@ export default function DashboardPage() {
             New Target
           </Link>
           <Link
-            to="/roster?import=irminsul"
+            to="/imports"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-700"
           >
             Import Data

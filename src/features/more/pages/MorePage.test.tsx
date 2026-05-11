@@ -20,6 +20,7 @@ describe('MorePage', () => {
     expect(screen.getByRole('link', { name: /planner/i })).toHaveAttribute('href', '/planner');
     expect(screen.getByRole('link', { name: /build templates/i })).toHaveAttribute('href', '/roster/builds');
     expect(screen.getByRole('link', { name: /notes/i })).toHaveAttribute('href', '/notes');
+    expect(screen.getByRole('link', { name: /import hub/i })).toHaveAttribute('href', '/imports');
     expect(screen.getByRole('link', { name: /settings & sync/i })).toHaveAttribute('href', '/settings');
   });
 });
