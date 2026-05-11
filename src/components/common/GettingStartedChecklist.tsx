@@ -29,15 +29,15 @@ const CHECKLIST_ITEMS: Array<{
     key: 'hasCreatedTeam',
     title: 'Create a team',
     description: 'Build your first team composition for Spiral Abyss or other content.',
-    link: '/teams',
+    link: '/roster/teams',
     linkLabel: 'Go to Teams',
   },
   {
     key: 'hasVisitedPlanner',
     title: 'Plan your materials',
     description: 'See what materials you need to farm for your characters.',
-    link: '/planner',
-    linkLabel: 'Go to Planner',
+    link: '/roster/planner',
+    linkLabel: 'Go to Progression',
   },
   {
     key: 'hasImportedWishHistory',

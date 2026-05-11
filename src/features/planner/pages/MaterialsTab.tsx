@@ -395,7 +395,7 @@ function CampaignMaterialContextCard({
             Target
           </Link>
           <Link
-            to="/planner/materials?scope=priority"
+            to="/campaigns/materials?scope=priority"
             className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
           >
             Priority Materials
@@ -421,7 +421,7 @@ function PriorityFallbackContextCard({ activeCampaign }: { activeCampaign: Campa
           </p>
         </div>
         <Link
-          to={`/planner/materials?campaign=${encodeURIComponent(activeCampaign.id)}`}
+          to={`/campaigns/materials?campaign=${encodeURIComponent(activeCampaign.id)}`}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
         >
           <Flag className="h-4 w-4" />
@@ -545,7 +545,7 @@ function FarmingRecommendationLinks({
       {recommendations.slice(0, compact ? 2 : 4).map((recommendation) => (
         <Link
           key={`${recommendation.material.key}-${recommendation.material.tier ?? 'base'}`}
-          to={`/planner/materials?campaign=${encodeURIComponent(campaignId)}&material=${encodeURIComponent(recommendation.material.key)}`}
+          to={`/campaigns/materials?campaign=${encodeURIComponent(campaignId)}&material=${encodeURIComponent(recommendation.material.key)}`}
           className="flex items-center justify-between gap-3 rounded-md bg-slate-950/60 px-3 py-2 transition-colors hover:bg-slate-800"
         >
           <span className="min-w-0">

@@ -10,7 +10,6 @@ import {
   ArrowRight,
   LayoutDashboard,
   Target,
-  RefreshCw,
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { StatCardSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
@@ -26,8 +25,7 @@ import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
 import { upcomingWishRepo } from '@/features/wishes/repo/upcomingWishRepo';
 import QuickResourceLogger from '@/features/ledger/components/QuickResourceLogger';
 import TargetQuickStart from '@/features/targets/components/TargetQuickStart';
-import TargetSummaryList from '@/features/targets/components/TargetSummaryList';
-import { buildTargetSummaries } from '@/features/targets/domain/targetSummary';
+import { buildTargetSummaries, type TargetSummary } from '@/features/targets/domain/targetSummary';
 import { useAccountDataFreshness } from '@/features/sync/hooks/useAccountDataFreshness';
 import { useWishlistStore } from '@/stores/wishlistStore';
 import DashboardCampaignFocus from '../components/DashboardCampaignFocus';
@@ -147,6 +145,7 @@ export default function DashboardPage() {
   }, [campaigns, characters, plannedBanners, wishlistCharacters]);
   const hasExistingTargets = campaigns.length > 0 || plannedBanners.length > 0 || wishlistCharacters.length > 0;
   const activeTargetCount = campaigns.filter((campaign) => campaign.status === 'active').length;
+  const needsAccountRefresh = accountFreshness.status !== 'fresh';
   const resumeAction = useMemo(
     () => buildDashboardResumeAction({
       targets: targetSummaries,
@@ -196,37 +195,31 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.85fr)]">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.8fr)]">
+        <div className="min-w-0 space-y-4">
           <DashboardCampaignFocus resumeAction={resumeAction} />
-          {hasExistingTargets ? (
-            <TargetEntryCard
-              activeTargetCount={activeTargetCount}
-              freshness={accountFreshness}
-            />
-          ) : (
-            <TargetQuickStart />
+          {!needsAccountRefresh && !hasExistingTargets && <TargetQuickStart />}
+          <TodayFarmingWidget suppressFreshnessCallout={needsAccountRefresh} />
+          {!needsAccountRefresh && hasExistingTargets && (
+            <TargetEntryCard activeTargetCount={activeTargetCount} />
           )}
         </div>
-        <CaptureSnapshotPanel
-          charStats={charStats}
-          artifactStats={artifactStats}
-          weaponStats={weaponStats}
-          eventPulls={eventPulls}
-          pullSubtext={pullSubtext}
-          primogems={primogems}
-          intertwined={intertwined}
-          starglitterPulls={starglitterPulls}
-          currentResin={currentResin}
-          maxResin={resinBudget.maxResin}
-          minutesToFull={minutesToFull}
-          fragileResin={resinBudget.fragileResin}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <TargetSummaryList targets={targetSummaries} />
-        <TodayFarmingWidget />
+        <div className="min-w-0 space-y-4">
+          <CaptureSnapshotPanel
+            charStats={charStats}
+            artifactStats={artifactStats}
+            weaponStats={weaponStats}
+            eventPulls={eventPulls}
+            pullSubtext={pullSubtext}
+            intertwined={intertwined}
+            starglitterPulls={starglitterPulls}
+            currentResin={currentResin}
+            maxResin={resinBudget.maxResin}
+            minutesToFull={minutesToFull}
+            fragileResin={resinBudget.fragileResin}
+          />
+          <TargetOverviewCard targets={targetSummaries} activeTargetCount={activeTargetCount} />
+        </div>
       </div>
     </div>
   );
@@ -251,22 +244,88 @@ function FreshnessHeaderLink({
   );
 }
 
-interface TargetEntryCardProps {
+interface TargetOverviewCardProps {
+  targets: TargetSummary[];
   activeTargetCount: number;
-  freshness: ReturnType<typeof useAccountDataFreshness>;
 }
 
-function TargetEntryCard({ activeTargetCount, freshness }: TargetEntryCardProps) {
-  const needsImport = freshness.status !== 'fresh';
-  const title = needsImport ? 'Refresh before adding targets' : 'Start another target';
-  const detail = needsImport
-    ? freshness.detail || 'Update account data before creating another target.'
-    : activeTargetCount > 0
-      ? `${activeTargetCount} active target${activeTargetCount === 1 ? '' : 's'} already in motion.`
-      : 'Review existing target ideas or start a new one from Targets.';
-  const href = needsImport ? '/imports' : '/campaigns';
-  const actionLabel = needsImport ? 'Open Import Hub' : 'New Target';
-  const Icon = needsImport ? RefreshCw : Target;
+function TargetOverviewCard({ targets, activeTargetCount }: TargetOverviewCardProps) {
+  const plannedCount = targets.filter((target) => target.status === 'planned' || target.status === 'wishlist').length;
+  const pausedCount = targets.filter((target) => target.status === 'paused').length;
+  const topTarget = targets.find((target) => target.status === 'active') ?? targets[0];
+  const secondaryLabel = pausedCount > 0
+    ? `${pausedCount} paused`
+    : `${plannedCount} planned`;
+
+  return (
+    <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Target className="h-5 w-5 text-primary-400" aria-hidden="true" />
+          <h2 className="font-semibold text-slate-100">Targets</h2>
+        </div>
+        <Link to="/campaigns" className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300">
+          Manage <ArrowRight className="h-3 w-3" aria-hidden="true" />
+        </Link>
+      </div>
+
+      {targets.length === 0 ? (
+        <div className="rounded-lg bg-slate-950/60 p-3">
+          <p className="text-sm font-medium text-slate-200">No targets yet</p>
+          <p className="mt-1 text-xs text-slate-500">Create one from the setup above when account data is ready.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <TargetMetric label="Active" value={activeTargetCount} />
+            <TargetMetric label={pausedCount > 0 ? 'Paused' : 'Planned'} value={pausedCount || plannedCount} />
+            <TargetMetric label="Total" value={targets.length} />
+          </div>
+
+          {topTarget && (
+            <Link
+              to={topTarget.actionHref}
+              className="flex items-center justify-between gap-3 rounded-lg bg-slate-950/60 px-3 py-2 transition-colors hover:bg-slate-800"
+            >
+              <div className="min-w-0">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <Badge variant={topTarget.status === 'active' ? 'primary' : 'outline'} className="text-xs">
+                    {topTarget.status}
+                  </Badge>
+                  <span className="text-xs text-slate-500">{secondaryLabel}</span>
+                </div>
+                <p className="truncate text-sm font-medium text-slate-100">{topTarget.title}</p>
+                <p className="truncate text-xs text-slate-500">{topTarget.subtitle}</p>
+              </div>
+              <span className="flex flex-shrink-0 items-center gap-1 text-xs font-medium text-primary-300">
+                {topTarget.actionLabel}
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </span>
+            </Link>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TargetMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg bg-slate-950/60 px-3 py-2">
+      <div className="text-lg font-semibold text-slate-100">{value}</div>
+      <div className="text-xs text-slate-500">{label}</div>
+    </div>
+  );
+}
+
+interface TargetEntryCardProps {
+  activeTargetCount: number;
+}
+
+function TargetEntryCard({ activeTargetCount }: TargetEntryCardProps) {
+  const detail = activeTargetCount > 0
+    ? `${activeTargetCount} active target${activeTargetCount === 1 ? '' : 's'} already in motion.`
+    : 'Review existing target ideas or start a new one from Targets.';
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
@@ -276,20 +335,16 @@ function TargetEntryCard({ activeTargetCount, freshness }: TargetEntryCardProps)
             <Target className="h-5 w-5 text-primary-400" aria-hidden="true" />
             <h2 className="text-lg font-semibold text-slate-100">Start Target</h2>
           </div>
-          <p className="text-sm font-medium text-slate-200">{title}</p>
+          <p className="text-sm font-medium text-slate-200">Start another target</p>
           <p className="mt-1 text-sm text-slate-400">{detail}</p>
         </div>
         <div className="flex flex-shrink-0 flex-wrap gap-2">
           <Link
-            to={href}
-            className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              needsImport
-                ? 'bg-amber-600 text-white hover:bg-amber-500'
-                : 'bg-primary-600 text-white hover:bg-primary-700'
-            }`}
+            to="/campaigns"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
-            {actionLabel}
+            <Target className="h-4 w-4" aria-hidden="true" />
+            New Target
           </Link>
           <Link
             to="/campaigns"
@@ -309,7 +364,6 @@ interface CaptureSnapshotPanelProps {
   weaponStats: { total: number; fiveStars: number };
   eventPulls: number;
   pullSubtext: string;
-  primogems: number;
   intertwined: number;
   starglitterPulls: number;
   currentResin: number;
@@ -324,7 +378,6 @@ function CaptureSnapshotPanel({
   weaponStats,
   eventPulls,
   pullSubtext,
-  primogems,
   intertwined,
   starglitterPulls,
   currentResin,
@@ -347,120 +400,112 @@ function CaptureSnapshotPanel({
       <div className="space-y-4">
         <QuickResourceLogger variant="embedded" />
 
-        <div className="grid grid-cols-2 gap-2">
-          <SnapshotTile
-            icon={<Users className="h-4 w-4" aria-hidden="true" />}
+        <div className="space-y-2">
+          <SnapshotRow
+            to="/pulls"
+            icon={<Sparkles className="h-4 w-4 text-yellow-400" aria-hidden="true" />}
+            label="Pulls"
+            value={`${eventPulls} event pulls`}
+            detail={`${pullSubtext}, ${intertwined} Intertwined${starglitterPulls > 0 ? `, ${starglitterPulls} via Starglitter` : ''}`}
+            actionLabel="Pulls"
+          />
+          <SnapshotRow
+            to="/roster/planner"
+            icon={<Zap className="h-4 w-4 text-blue-400" aria-hidden="true" />}
+            label="Resin"
+            value={`${currentResin} / ${maxResin}`}
+            detail={currentResin >= maxResin ? 'Full' : `Full in ${formatTime(minutesToFull)}`}
+            badge={currentResin >= maxResin ? 'Full!' : undefined}
+            actionLabel="Roster"
+          />
+          {fragileResin > 0 && (
+            <p className="px-1 text-xs text-slate-500">+{fragileResin} Fragile Resin available</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <SnapshotPill
+            to="/roster"
+            icon={<Users className="h-4 w-4 text-blue-400" aria-hidden="true" />}
             label="Characters"
             value={charStats.total}
             subtext={`${charStats.maxLevel} at Lv.90`}
-            color="text-blue-400"
-            to="/roster"
           />
-          <SnapshotTile
-            icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
-            label="Event Pulls"
-            value={eventPulls}
-            subtext={pullSubtext}
-            color="text-green-400"
-            to="/pulls"
-          />
-          <SnapshotTile
-            icon={<Gem className="h-4 w-4" aria-hidden="true" />}
+          <SnapshotPill
+            to="/roster/artifacts"
+            icon={<Gem className="h-4 w-4 text-purple-400" aria-hidden="true" />}
             label="Artifacts"
             value={artifactStats.total}
             subtext={`${artifactStats.fiveStar} 5-star`}
-            color="text-purple-400"
-            to="/roster/artifacts"
           />
-          <SnapshotTile
-            icon={<Sword className="h-4 w-4" aria-hidden="true" />}
+          <SnapshotPill
+            to="/roster/weapons"
+            icon={<Sword className="h-4 w-4 text-yellow-400" aria-hidden="true" />}
             label="Weapons"
             value={weaponStats.total}
             subtext={`${weaponStats.fiveStars} 5-star`}
-            color="text-yellow-400"
-            to="/roster/weapons"
           />
-        </div>
-
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Link to="/planner" className="rounded-lg bg-slate-950/70 p-3 transition-colors hover:bg-slate-800">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                <Zap className="h-4 w-4 text-blue-400" aria-hidden="true" />
-                Resin
-              </span>
-              <span className="text-xs text-primary-400">Planner</span>
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <div className="text-2xl font-bold text-blue-400">{currentResin}</div>
-                <div className="text-xs text-slate-500">/ {maxResin}</div>
-              </div>
-              {currentResin >= maxResin ? (
-                <Badge variant="warning">Full!</Badge>
-              ) : (
-                <div className="text-right text-xs text-slate-400">
-                  Full in
-                  <div className="text-sm font-medium text-slate-200">{formatTime(minutesToFull)}</div>
-                </div>
-              )}
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
-              <div
-                className="h-full bg-blue-500"
-                style={{ width: `${(currentResin / maxResin) * 100}%` }}
-              />
-            </div>
-            {fragileResin > 0 && (
-              <div className="mt-2 text-xs text-slate-500">+{fragileResin} Fragile Resin available</div>
-            )}
-          </Link>
-
-          <Link to="/pulls" className="rounded-lg bg-slate-950/70 p-3 transition-colors hover:bg-slate-800">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                <Sparkles className="h-4 w-4 text-yellow-400" aria-hidden="true" />
-                Primogems
-              </span>
-              <span className="text-xs text-primary-400">Budget</span>
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <div className="text-2xl font-bold text-yellow-400">{formatPrimos(primogems)}</div>
-                <div className="text-xs text-slate-500">
-                  + {intertwined} Intertwined
-                  {starglitterPulls > 0 && `, ${starglitterPulls} via Starglitter`}
-                </div>
-              </div>
-              <div className="text-right text-xs text-slate-400">
-                Event Pulls
-                <div className="text-sm font-medium text-slate-200">{eventPulls}</div>
-              </div>
-            </div>
-          </Link>
         </div>
       </div>
     </section>
   );
 }
 
-interface SnapshotTileProps {
+interface SnapshotRowProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+  actionLabel: string;
+  badge?: string;
+}
+
+function SnapshotRow({ to, icon, label, value, detail, actionLabel, badge }: SnapshotRowProps) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center justify-between gap-3 rounded-lg bg-slate-950/70 px-3 py-2 transition-colors hover:bg-slate-800"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        {icon}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-slate-200">{label}</span>
+            {badge && <Badge variant="warning">{badge}</Badge>}
+          </div>
+          <p className="truncate text-xs text-slate-500">{detail}</p>
+        </div>
+      </div>
+      <div className="flex flex-shrink-0 items-center gap-2 text-right">
+        <span>
+          <span className="block text-sm font-semibold text-slate-100">{value}</span>
+          <span className="text-xs text-primary-400">{actionLabel}</span>
+        </span>
+        <ArrowRight className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
+      </div>
+    </Link>
+  );
+}
+
+interface SnapshotPillProps {
+  to: string;
   icon: React.ReactNode;
   label: string;
   value: number;
   subtext: string;
-  color: string;
-  to: string;
 }
 
-function SnapshotTile({ icon, label, value, subtext, color, to }: SnapshotTileProps) {
+function SnapshotPill({ to, icon, label, value, subtext }: SnapshotPillProps) {
   return (
-    <Link to={to}>
-      <div className="rounded-lg bg-slate-950/70 p-3 transition-colors hover:bg-slate-800">
-        <div className={`${color} mb-2`}>{icon}</div>
-        <div className="text-xl font-bold text-slate-100">{value}</div>
-        <div className="text-xs text-slate-400">{label}</div>
-        <div className="mt-1 truncate text-xs text-slate-500">{subtext}</div>
+    <Link
+      to={to}
+      className="flex items-center gap-3 rounded-lg bg-slate-950/70 px-3 py-2 transition-colors hover:bg-slate-800"
+    >
+      {icon}
+      <div className="min-w-0">
+        <div className="truncate text-sm font-semibold text-slate-100">{value} {label}</div>
+        <div className="truncate text-xs text-slate-500">{subtext}</div>
       </div>
     </Link>
   );

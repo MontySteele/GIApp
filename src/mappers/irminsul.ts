@@ -231,11 +231,21 @@ function generateArtifactId(artifact: IrminsulArtifact, occurrenceIndex: number)
 }
 
 /**
- * Generate a deterministic ID for a weapon based on its properties
- * Note: Multiple identical weapons can exist, so we include location
+ * Generate a deterministic ID for a weapon based on its visible properties.
+ * Multiple identical unequipped weapons can exist, so callers pass an
+ * occurrence index within that property group.
  */
-function generateWeaponId(weapon: IrminsulWeapon, index: number): string {
-  return `weapon:${weapon.key}:${weapon.level}:${weapon.refinement}:${weapon.location || 'unequipped'}:${index}`;
+function generateWeaponId(weapon: IrminsulWeapon, occurrenceIndex: number): string {
+  const baseKey = [
+    'weapon',
+    weapon.key,
+    weapon.level,
+    weapon.ascension,
+    weapon.refinement,
+    weapon.location || 'unequipped',
+    weapon.lock ? 'locked' : 'unlocked',
+  ].join(':');
+  return occurrenceIndex === 0 ? baseKey : `${baseKey}:${occurrenceIndex}`;
 }
 
 /**
@@ -334,10 +344,16 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
     });
   }
 
-  // Process all weapons (including unequipped)
-  (data.weapons || []).forEach((weapon, index) => {
+  // Process all weapons (including unequipped). Track occurrences per
+  // property-based key so IDs stay stable if Irminsul changes export order.
+  const weaponKeyOccurrences = new Map<string, number>();
+  for (const weapon of data.weapons || []) {
+    const tempId = generateWeaponId(weapon, 0);
+    const occurrence = weaponKeyOccurrences.get(tempId) || 0;
+    weaponKeyOccurrences.set(tempId, occurrence + 1);
+
     weapons.push({
-      id: generateWeaponId(weapon, index),
+      id: generateWeaponId(weapon, occurrence),
       key: weapon.key,
       level: weapon.level,
       ascension: weapon.ascension,
@@ -345,7 +361,7 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
       location: weapon.location || '',
       lock: weapon.lock,
     });
-  });
+  }
 
   return {
     characters,

@@ -206,7 +206,7 @@ function createCampaignPlan(summary: AggregatedMaterialSummary): CampaignPlan {
   };
 }
 
-function renderMaterialsTab(initialEntry = '/planner/materials') {
+function renderMaterialsTab(initialEntry = '/campaigns/materials') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <MaterialsTab />
@@ -254,7 +254,7 @@ describe('MaterialsTab campaign context', () => {
       'campaign-1': createCampaignPlan(summary),
     };
 
-    renderMaterialsTab('/planner/materials?campaign=campaign-1&material=Mora');
+    renderMaterialsTab('/campaigns/materials?campaign=campaign-1&material=Mora');
 
     expect(screen.getByText('Target material plan for Recruit Furina')).toBeInTheDocument();
     expect(screen.getByText('Focused on Mora: 800 still needed.')).toBeInTheDocument();
@@ -266,7 +266,7 @@ describe('MaterialsTab campaign context', () => {
     );
     expect(screen.getByRole('link', { name: 'Priority Materials' })).toHaveAttribute(
       'href',
-      '/planner/materials?scope=priority'
+      '/campaigns/materials?scope=priority'
     );
 
     const deficitText = screen.getByText('Need 800 more');
@@ -281,7 +281,7 @@ describe('MaterialsTab campaign context', () => {
       'campaign-1': createCampaignPlan(summary),
     };
 
-    renderMaterialsTab('/planner/materials');
+    renderMaterialsTab('/campaigns/materials');
 
     expect(screen.getByText('Target material plan for Recruit Furina')).toBeInTheDocument();
     expect(screen.getByText('Active target')).toBeInTheDocument();
@@ -294,13 +294,13 @@ describe('MaterialsTab campaign context', () => {
     mocks.campaigns = [campaign];
     mocks.multiSummary = createMaterialSummary([moraRequirement]);
 
-    renderMaterialsTab('/planner/materials?scope=priority');
+    renderMaterialsTab('/campaigns/materials?scope=priority');
 
     expect(screen.getByText('Priority roster')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Priority Deficits' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /active target/i })).toHaveAttribute(
       'href',
-      '/planner/materials?campaign=campaign-1'
+      '/campaigns/materials?campaign=campaign-1'
     );
   });
 
@@ -318,7 +318,7 @@ describe('MaterialsTab campaign context', () => {
       detail: 'Last Irminsul import was 14 days ago.',
     };
 
-    renderMaterialsTab('/planner/materials?campaign=campaign-1&material=Mora');
+    renderMaterialsTab('/campaigns/materials?campaign=campaign-1&material=Mora');
 
     expect(screen.getByText('Data stale')).toBeInTheDocument();
     expect(screen.getByText(/material deficits and resin estimates/i)).toBeInTheDocument();
@@ -327,7 +327,7 @@ describe('MaterialsTab campaign context', () => {
   it('warns and falls back to priority materials when the campaign cannot be found', () => {
     mocks.multiSummary = createMaterialSummary([moraRequirement]);
 
-    renderMaterialsTab('/planner/materials?campaign=missing-campaign&material=Mora');
+    renderMaterialsTab('/campaigns/materials?campaign=missing-campaign&material=Mora');
 
     expect(screen.getByText('Target not found')).toBeInTheDocument();
     expect(screen.getByText('Showing priority character materials instead.')).toBeInTheDocument();

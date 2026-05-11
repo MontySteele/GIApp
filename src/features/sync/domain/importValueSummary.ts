@@ -43,7 +43,7 @@ export function buildImportValueRows(result: ImportResult): ImportValueRow[] {
       id: 'build-data',
       title: 'Build planning updated',
       detail: `${formatCount(buildDataCount, 'inventory record')} can update readiness and material gaps.`,
-      href: '/planner',
+      href: '/roster/planner',
     });
   }
 

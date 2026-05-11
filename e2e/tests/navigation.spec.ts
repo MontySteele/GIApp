@@ -23,17 +23,9 @@ test.describe('Navigation', () => {
       await dashboard.navigateToTab('Roster');
       await expect(page).toHaveURL(/\/roster/);
 
-      // Navigate to Teams
-      await page.getByRole('link', { name: /teams/i }).click();
-      await expect(page).toHaveURL(/\/teams/);
-
       // Navigate to Pulls (renamed from Wishes)
       await page.getByRole('link', { name: /pulls/i }).click();
       await expect(page).toHaveURL(/\/pulls/);
-
-      // Navigate to Planner (now top-level)
-      await page.getByRole('link', { name: /planner/i }).click();
-      await expect(page).toHaveURL(/\/planner/);
 
       // Navigate to Settings
       await page.getByRole('link', { name: /settings/i }).click();
@@ -71,6 +63,14 @@ test.describe('Navigation', () => {
       await roster.goToArtifacts();
       await expect(page).toHaveURL(/\/roster\/artifacts/);
 
+      // Navigate to Teams
+      await page.getByRole('link', { name: /^teams$/i }).click();
+      await expect(page).toHaveURL(/\/roster\/teams/);
+
+      // Navigate to Progression
+      await page.getByRole('link', { name: /progression/i }).click();
+      await expect(page).toHaveURL(/\/roster\/planner/);
+
       // Return to Characters
       await page.getByRole('link', { name: /characters/i }).click();
       await expect(page).toHaveURL(/\/roster$/);
@@ -84,11 +84,11 @@ test.describe('Navigation', () => {
 
       // Navigate to Bosses (only sub-tab under Teams now)
       await teams.goToBosses();
-      await expect(page).toHaveURL(/\/teams\/bosses/);
+      await expect(page).toHaveURL(/\/roster\/bosses/);
 
-      // Navigate to Planner (now top-level)
+      // Navigate to Progression (now under Roster)
       await teams.goToPlanner();
-      await expect(page).toHaveURL(/\/planner/);
+      await expect(page).toHaveURL(/\/roster\/planner/);
 
       // Navigate to Templates (now under Roster)
       await teams.goToTemplates();
@@ -121,11 +121,11 @@ test.describe('Navigation', () => {
   test.describe('Browser Navigation', () => {
     test('should support browser back/forward buttons', async ({ page }) => {
       await page.goto('/');
-      await page.getByRole('link', { name: /roster/i }).click();
+      await page.getByRole('link', { name: /^roster$/i }).click();
       await expect(page).toHaveURL(/\/roster/);
 
-      await page.getByRole('link', { name: /teams/i }).click();
-      await expect(page).toHaveURL(/\/teams/);
+      await page.getByRole('link', { name: /^teams$/i }).click();
+      await expect(page).toHaveURL(/\/roster\/teams/);
 
       // Go back
       await page.goBack();
@@ -158,9 +158,16 @@ test.describe('Navigation', () => {
       await page.goto('/wishes/calculator');
       await expect(page).toHaveURL(/\/pulls\/calculator/);
 
-      // Old /calendar route should redirect to /planner/domains
+      // Old /calendar route should redirect to the roster domain schedule
       await page.goto('/calendar');
-      await expect(page).toHaveURL(/\/planner\/domains/);
+      await expect(page).toHaveURL(/\/roster\/domains/);
+
+      // Old planner and teams routes should redirect into the new IA
+      await page.goto('/planner/materials?scope=priority');
+      await expect(page).toHaveURL(/\/campaigns\/materials\?scope=priority/);
+
+      await page.goto('/teams/bosses');
+      await expect(page).toHaveURL(/\/roster\/bosses/);
     });
 
     test('should handle invalid routes gracefully', async ({ page }) => {

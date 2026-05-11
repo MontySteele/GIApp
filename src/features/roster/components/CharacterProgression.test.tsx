@@ -146,10 +146,10 @@ describe('CharacterProgression', () => {
     });
   });
 
-  it('shows "Open in Planner" link', () => {
+  it('shows progression link', () => {
     renderProgression();
-    const link = screen.getByText('Open in Planner');
-    expect(link.closest('a')).toHaveAttribute('href', '/planner?character=Furina');
+    const link = screen.getByText('Open Progression');
+    expect(link.closest('a')).toHaveAttribute('href', '/roster/planner?character=Furina');
   });
 
   it('shows complete state when character meets goal', async () => {

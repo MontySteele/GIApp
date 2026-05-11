@@ -30,7 +30,7 @@ describe('roster import impact summary', () => {
           id: 'build-data',
           title: 'Build planning updated',
           detail: '9 inventory records can update target readiness and material gaps.',
-          href: '/planner',
+          href: '/roster/planner',
         },
       ],
     });

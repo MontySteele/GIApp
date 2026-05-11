@@ -33,14 +33,14 @@ function pathMatches(pathname: string, path: string): boolean {
 const MOBILE_NAV_ITEMS: readonly MobileNavItem[] = [
   { id: 'dashboard', label: 'Home', path: '/', icon: LayoutDashboard, end: true },
   { id: 'campaigns', label: 'Targets', path: '/campaigns', icon: Target },
-  { id: 'roster', label: 'Roster', path: '/roster', icon: Users, inactivePaths: ['/roster/builds'] },
+  { id: 'roster', label: 'Roster', path: '/roster', icon: Users },
   { id: 'pulls', label: 'Pulls', path: '/pulls', icon: Sparkles },
   {
     id: 'more',
     label: 'More',
     path: '/more',
     icon: Menu,
-    activePaths: ['/more', '/teams', '/planner', '/notes', '/settings', '/imports', '/roster/builds'],
+    activePaths: ['/more', '/notes', '/settings', '/imports'],
   },
 ] as const;
 

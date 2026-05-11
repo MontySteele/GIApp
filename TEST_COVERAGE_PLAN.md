@@ -14,9 +14,9 @@
 
 Last verified after the goal-first UX branch:
 
-- **Test files:** 145 passing
-- **Tests:** 2052 passing
-- **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`
+- **Test files:** 147 passing
+- **Tests:** 2055 passing
+- **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`, `team-management.spec.ts`
 
 Use `npm run test:run` as the authoritative local unit/integration check.
 
@@ -24,14 +24,14 @@ Use `npm run test:run` as the authoritative local unit/integration check.
 
 | Area | Status | Notes |
 |---|---|---|
-| Targets / Campaigns | Good | Target summaries, wizard math, campaign links, campaign pages, dashboard handoffs |
+| Targets / Campaigns | Good | Target summaries, wizard math, campaign links, campaign pages, target material handoffs |
 | Dashboard | Good | Next Up states, contextual target entry, loading states, freshness behavior, capture/snapshot panel, mobile viewport smoke |
 | Imports / Sync | Good | Import Hub, backup/restore, app metadata, import impact summaries, freshness |
 | Pulls / Wishes | Excellent | Wish import, history, pity selectors, replay, import impact, calculators |
 | Calculator | Excellent | Single, multi-target, reverse calculator, worker integration |
 | Roster | Excellent | Characters, forms, wishlist, progression, import components, selectors |
-| Planner | Good | Material calculations, farming schedule, target deficits, planner pages |
-| Teams / Builds | Good | Team flows, build templates, gcsim/wfpsim parsing and export |
+| Roster Planning | Good | Progression planning, domain schedule, teams, bosses, build templates |
+| Materials | Good | Material calculations, farming schedule, target deficits, inventory updates |
 | Ledger | Good | Resource calculations, quick logger, historical reconstruction, repos |
 | Artifacts / Weapons | Good | Inventory hooks, repo behavior, scoring/filtering/page tests |
 | Notes | Good | CRUD hooks, page behavior, quick notes |
@@ -56,7 +56,7 @@ Goal-first UX work added or hardened tests for:
 - Quick Action Bar routes
 - Mobile navigation active states
 - Hash-link scrolling for quick actions
-- Campaign-flow and navigation Playwright smokes
+- Campaign-flow, navigation, and team-management Playwright smokes
 
 ## Standard Verification
 
@@ -73,6 +73,7 @@ For UX/navigation work, also run the relevant Playwright smoke:
 ```bash
 npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
 npx playwright test e2e/tests/navigation.spec.ts --project=chromium
+npx playwright test e2e/tests/team-management.spec.ts --project=chromium
 ```
 
 Run the full E2E suite when changing shared routing, persistence setup, page objects, or Playwright config:

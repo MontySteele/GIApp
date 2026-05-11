@@ -41,7 +41,7 @@ export function buildRosterImportImpactSummary({
       id: 'build-data',
       title: 'Build planning updated',
       detail: `${plural(buildChanged, 'inventory record')} can update target readiness and material gaps.`,
-      href: '/planner',
+      href: '/roster/planner',
     });
   }
 

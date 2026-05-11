@@ -39,7 +39,7 @@ describe('buildImportValueRows', () => {
 
     expect(buildImportValueRows(result)).toEqual([
       expect.objectContaining({ id: 'roster', href: '/roster' }),
-      expect.objectContaining({ id: 'build-data', href: '/planner' }),
+      expect.objectContaining({ id: 'build-data', href: '/roster/planner' }),
       expect.objectContaining({ id: 'wishes', href: '/pulls/history' }),
       expect.objectContaining({ id: 'budget', href: '/pulls' }),
       expect.objectContaining({ id: 'targets', href: '/campaigns' }),

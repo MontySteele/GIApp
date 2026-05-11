@@ -94,11 +94,11 @@ describe('MobileBottomNav', () => {
       expect(moreLink).toHaveClass('text-primary-400');
     });
 
-    it('highlights more instead of roster for build templates', () => {
+    it('highlights roster for roster subcategories', () => {
       renderNav('/roster/builds');
 
-      expect(screen.getByRole('link', { name: /more/i })).toHaveClass('text-primary-400');
-      expect(screen.getByRole('link', { name: /roster/i })).not.toHaveClass('text-primary-400');
+      expect(screen.getByRole('link', { name: /roster/i })).toHaveClass('text-primary-400');
+      expect(screen.getByRole('link', { name: /more/i })).not.toHaveClass('text-primary-400');
     });
 
     it('does not highlight non-active links', () => {

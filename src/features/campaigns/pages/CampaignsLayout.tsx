@@ -1,12 +1,12 @@
 import { Outlet } from 'react-router-dom';
-import TeamsSubNav from '../components/TeamsSubNav';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import TargetsSubNav from '../components/TargetsSubNav';
 
-export default function TeamsLayout() {
+export default function CampaignsLayout() {
   return (
     <div>
-      <TeamsSubNav />
-      <ErrorBoundary featureName="Teams">
+      <TargetsSubNav />
+      <ErrorBoundary featureName="Targets">
         <Outlet />
       </ErrorBoundary>
     </div>

@@ -46,7 +46,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../components/TodayFarmingWidget', () => ({
-  default: () => <div data-testid="today-farming-widget">TodayFarmingWidget</div>,
+  default: ({ suppressFreshnessCallout }: { suppressFreshnessCallout?: boolean }) => (
+    <div data-testid="today-farming-widget">
+      TodayFarmingWidget {suppressFreshnessCallout ? 'freshness suppressed' : 'freshness visible'}
+    </div>
+  ),
 }));
 
 vi.mock('../components/DashboardCampaignFocus', () => ({
@@ -67,12 +71,6 @@ vi.mock('@/features/ledger/components/QuickResourceLogger', () => ({
 
 vi.mock('@/features/targets/components/TargetQuickStart', () => ({
   default: () => <div data-testid="target-quick-start">Full Start Target Wizard</div>,
-}));
-
-vi.mock('@/features/targets/components/TargetSummaryList', () => ({
-  default: ({ targets }: { targets: unknown[] }) => (
-    <div data-testid="target-summary-list">{targets.length} targets</div>
-  ),
 }));
 
 vi.mock('@/components/common/GettingStartedChecklist', () => ({
@@ -293,11 +291,11 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /118 event pulls/i })).toHaveAttribute('href', '/pulls');
     expect(screen.getByRole('link', { name: /150 artifacts/i })).toHaveAttribute('href', '/roster/artifacts');
     expect(screen.getByRole('link', { name: /50 weapons/i })).toHaveAttribute('href', '/roster/weapons');
-    expect(screen.getByRole('link', { name: /resinplanner/i })).toHaveAttribute('href', '/planner');
+    expect(screen.getByRole('link', { name: /resin.*roster/i })).toHaveAttribute('href', '/roster/planner');
     expect(screen.getByText(/\+10 fragile resin available/i)).toBeInTheDocument();
   });
 
-  it('promotes import setup and keeps the full wizard when there is no data', () => {
+  it('promotes import setup before target creation when there is no data', () => {
     mocks.characters = [];
     mocks.artifacts = { total: 0, fiveStar: 0 };
     mocks.weapons = { total: 0, fiveStars: 0 };
@@ -320,7 +318,8 @@ describe('DashboardPage', () => {
     const nextUp = screen.getByTestId('dashboard-next-up');
     expect(nextUp).toHaveTextContent('Import your roster');
     expect(within(nextUp).getByRole('link', { name: /open import hub/i })).toHaveAttribute('href', '/imports');
-    expect(screen.getByTestId('target-quick-start')).toHaveTextContent('Full Start Target Wizard');
+    expect(screen.queryByTestId('target-quick-start')).not.toBeInTheDocument();
+    expect(screen.getByText('No targets yet')).toBeInTheDocument();
   });
 
   it('promotes pull setup when roster data exists but wishes are missing', () => {
@@ -370,10 +369,12 @@ describe('DashboardPage', () => {
 
     renderPage();
 
-    expect(screen.getByTestId('dashboard-next-up')).toHaveTextContent('Refresh account data');
+    const nextUp = screen.getByTestId('dashboard-next-up');
+    expect(nextUp).toHaveTextContent('Refresh account data');
     expect(screen.queryByRole('link', { name: /account data current/i })).not.toBeInTheDocument();
-    expect(screen.getByText('Refresh before adding targets')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open import hub/i })).toHaveAttribute('href', '/imports');
+    expect(screen.queryByText('Refresh before adding targets')).not.toBeInTheDocument();
+    expect(within(nextUp).getByRole('link', { name: /refresh import/i })).toHaveAttribute('href', '/imports');
+    expect(screen.getByTestId('today-farming-widget')).toHaveTextContent('freshness suppressed');
   });
 
   it('keeps many targets scannable instead of reopening the full wizard', () => {
@@ -388,7 +389,10 @@ describe('DashboardPage', () => {
     renderPage();
 
     expect(screen.getByText('5 active targets already in motion.')).toBeInTheDocument();
-    expect(screen.getByTestId('target-summary-list')).toHaveTextContent('5 targets');
+    const targetsPanel = screen.getByRole('heading', { name: 'Targets' }).closest('section');
+    expect(targetsPanel).not.toBeNull();
+    expect(within(targetsPanel as HTMLElement).getByText('Target 1')).toBeInTheDocument();
+    expect(within(targetsPanel as HTMLElement).getByText('Total')).toBeInTheDocument();
   });
 
   it('keeps core panels present at a mobile-sized viewport', () => {

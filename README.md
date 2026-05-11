@@ -5,10 +5,8 @@ GIApp is a local-first Genshin Impact progress tracker focused on turning accoun
 ## What It Tracks
 
 - **Targets** - Goal-first planning for character acquisition, character builds, and team polish.
-- **Roster** - Owned characters, wishlist intent, weapons, artifacts, build templates, and imports.
+- **Roster** - Owned characters, teams, progression planning, domains, weapons, artifacts, build templates, and imports.
 - **Pulls** - Wish history, pity, guarantee state, odds calculators, primogem budget, and resource ledger.
-- **Planner** - Material deficits, farming schedule, resin guidance, and campaign-aware material routes.
-- **Teams** - Team compositions, build gaps, boss needs, and wfpsim/gcsim export.
 - **Imports and Sync** - GOOD/Irminsul roster imports, wish history import, backups, freshness status, and last import impact.
 
 The app keeps user data in IndexedDB through Dexie and can run as a PWA.
@@ -20,16 +18,14 @@ The app keeps user data in IndexedDB through Dexie and can run as a PWA.
 | Route | Surface | Purpose |
 |---|---|---|
 | `/` | Dashboard | Command center with Next Up, contextual target entry, quick capture, compact snapshot, and conditional data freshness |
-| `/campaigns` | Targets | Active, planned, wishlist, and completed planning targets |
-| `/roster` | Roster | Characters plus nested weapons, artifacts, and build templates |
-| `/teams` | Teams | Team management, boss needs, and team detail flows |
+| `/campaigns` | Targets | Active, planned, wishlist, completed targets, and target material deficits |
+| `/roster` | Roster | Characters plus nested teams, progression, domains, weapons, artifacts, bosses, and build templates |
 | `/pulls` | Pulls | Budget, calculator, wish history, and planned banners |
-| `/planner` | Planner | Material planning, target deficits, domain schedule |
 | `/settings` | Sync | Backup, restore, and app sync settings |
 
 ### Mobile Navigation
 
-Mobile keeps daily-use routes in the bottom nav: Home, Targets, Roster, Pulls, and More. Secondary destinations such as Planner, Teams, Notes, Imports, Settings, Build Templates, and Bosses live under More or contextual links.
+Mobile keeps daily-use routes in the bottom nav: Home, Targets, Roster, Pulls, and More. Roster owns teams, progression, domain schedule, bosses, weapons, artifacts, and builds. More is reserved for secondary utilities such as Notes, Imports, and Settings.
 
 ### Key Deep Links
 
@@ -39,7 +35,7 @@ Mobile keeps daily-use routes in the bottom nav: Home, Targets, Roster, Pulls, a
 - `/pulls/calculator` - Manual odds fast path and campaign handoff destination.
 - `/campaigns?character=Furina&pullPlan=1` - Target draft prefill for one-click "make this a target" flows.
 
-Legacy routes such as `/wishes`, `/calculator`, `/ledger`, `/calendar`, `/builds`, and `/bosses` redirect to their current locations.
+Legacy routes such as `/wishes`, `/calculator`, `/ledger`, `/planner`, `/teams`, `/calendar`, `/builds`, and `/bosses` redirect to their current locations.
 
 ## Goal-First UX
 
@@ -54,7 +50,7 @@ Recent UX work reframed the old Campaigns concept around Targets while preservin
 - Planned banners, wishlist items, character cards, calculator flows, and dashboard empty states can promote intent into a target.
 - Quick actions provide fast access to Start Target, Log Primos, Update Pity, Import Data, and Add Note.
 
-Dashboard ownership stays intentionally narrow: Pulls owns budget depth, wish history, and charts; Planner owns farming math and material deficits; Targets owns target management and grouping.
+Dashboard ownership stays intentionally narrow: Pulls owns budget depth, wish history, and charts; Targets owns target-specific material deficits; Roster owns character, team, domain, and progression planning.
 
 ## Development Quick Start
 

@@ -59,7 +59,7 @@ export class PlannerPage extends BasePage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/planner');
+    await this.page.goto('/roster/planner');
     await this.waitForLoad();
   }
 

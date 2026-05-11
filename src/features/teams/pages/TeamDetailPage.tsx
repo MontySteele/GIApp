@@ -133,7 +133,7 @@ export default function TeamDetailPage() {
       <div className="text-center py-12">
         <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
         <p className="text-slate-400 text-lg mb-4">Team not found</p>
-        <Button variant="secondary" onClick={() => navigate('/teams')}>
+        <Button variant="secondary" onClick={() => navigate('/roster/teams')}>
           <ArrowLeft className="w-4 h-4" />
           Back to Teams
         </Button>
@@ -146,8 +146,9 @@ export default function TeamDetailPage() {
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
-          { label: 'Teams', path: '/teams' },
-          { label: team.name, path: `/teams/${team.id}` },
+          { label: 'Roster', path: '/roster' },
+          { label: 'Teams', path: '/roster/teams' },
+          { label: team.name, path: `/roster/teams/${team.id}` },
         ]}
       />
 

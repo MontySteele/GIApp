@@ -81,7 +81,11 @@ const REGION_COLORS: Record<string, 'primary' | 'default' | 'success' | 'warning
   'Natlan': 'danger',
 };
 
-export default function TodayFarmingWidget() {
+interface TodayFarmingWidgetProps {
+  suppressFreshnessCallout?: boolean;
+}
+
+export default function TodayFarmingWidget({ suppressFreshnessCallout = false }: TodayFarmingWidgetProps) {
   const [scope, setScope] = useState<FarmingScope>('campaign');
   const accountDataFreshness = useAccountDataFreshness();
 
@@ -157,12 +161,14 @@ export default function TodayFarmingWidget() {
         </div>
       </CardHeader>
       <CardContent>
-        <AccountDataFreshnessCallout
-          freshness={accountDataFreshness}
-          context="farming"
-          variant="compact"
-          className="mb-4"
-        />
+        {!suppressFreshnessCallout && (
+          <AccountDataFreshnessCallout
+            freshness={accountDataFreshness}
+            context="farming"
+            variant="compact"
+            className="mb-4"
+          />
+        )}
 
         {isSunday && !hasCharacterData ? (
           <div className="text-center py-4">
