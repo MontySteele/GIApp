@@ -158,6 +158,15 @@ test.describe('Navigation', () => {
       await page.goto('/wishes/calculator');
       await expect(page).toHaveURL(/\/pulls\/calculator/);
 
+      // Old budget and ledger routes should redirect to the canonical Pulls budget page
+      await page.goto('/wishes/budget');
+      await expect(page).toHaveURL(/\/pulls$/);
+      await expect(page.getByRole('heading', { name: /primogem tracker/i })).toBeVisible();
+
+      await page.goto('/ledger?range=90');
+      await expect(page).toHaveURL(/\/pulls\?range=90$/);
+      await expect(page.getByRole('heading', { name: /primogem tracker/i })).toBeVisible();
+
       // Old /calendar route should redirect to the roster domain schedule
       await page.goto('/calendar');
       await expect(page).toHaveURL(/\/roster\/domains/);

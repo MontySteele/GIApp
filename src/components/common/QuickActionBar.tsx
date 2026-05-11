@@ -20,10 +20,10 @@ const ACTIONS: QuickAction[] = [
 export default function QuickActionBar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  const dashboardDesktopClass = location.pathname === '/' ? 'md:hidden' : '';
+  const desktopVisibilityClass = location.pathname === '/' ? 'md:hidden' : 'md:block';
 
   return (
-    <div className={`fixed bottom-20 right-4 z-40 md:bottom-6 ${dashboardDesktopClass}`}>
+    <div className={`fixed bottom-20 right-4 z-40 hidden md:bottom-6 ${desktopVisibilityClass}`}>
       {open && (
         <div className="mb-2 w-48 overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-xl">
           {ACTIONS.map((action) => {

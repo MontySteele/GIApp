@@ -125,6 +125,10 @@ export const router = createBrowserRouter([
             element: <BudgetTab />,
           },
           {
+            path: 'budget',
+            element: <RedirectPreserveSearch pathname="/pulls" />,
+          },
+          {
             path: 'calculator',
             element: <CalculatorTab />,
           },
@@ -158,7 +162,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'wishes/budget',
-        element: <Navigate to="/pulls/budget" replace />,
+        element: <RedirectPreserveSearch pathname="/pulls" />,
       },
       {
         path: 'calculator',
@@ -166,7 +170,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'ledger',
-        element: <Navigate to="/pulls/budget" replace />,
+        element: <RedirectPreserveSearch pathname="/pulls" />,
       },
       // Teams and Planner -> Roster/Targets redirects
       {
