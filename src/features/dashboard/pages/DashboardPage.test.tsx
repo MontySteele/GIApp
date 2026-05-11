@@ -17,6 +17,18 @@ vi.mock('@/features/notes/components/QuickNotesWidget', () => ({
   default: () => <div data-testid="quick-notes-widget">QuickNotesWidget</div>,
 }));
 
+vi.mock('@/features/ledger/components/QuickResourceLogger', () => ({
+  default: () => <div data-testid="quick-resource-logger">QuickResourceLogger</div>,
+}));
+
+vi.mock('@/features/targets/components/TargetQuickStart', () => ({
+  default: () => <div data-testid="target-quick-start">TargetQuickStart</div>,
+}));
+
+vi.mock('@/features/targets/components/TargetSummaryList', () => ({
+  default: () => <div data-testid="target-summary-list">TargetSummaryList</div>,
+}));
+
 vi.mock('@/components/common/GettingStartedChecklist', () => ({
   default: () => <div data-testid="getting-started-checklist">GettingStartedChecklist</div>,
 }));
@@ -118,6 +130,10 @@ vi.mock('@/features/notes/hooks/useNotes', () => ({
   }),
 }));
 
+vi.mock('@/stores/wishlistStore', () => ({
+  useWishlistStore: () => [],
+}));
+
 // Mock localStorage for resin
 const mockLocalStorage = {
   getItem: vi.fn(),
@@ -165,7 +181,7 @@ describe('DashboardPage', () => {
       renderPage();
 
       expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
-      expect(screen.getByText(/your next campaign, farming, and wish priorities/i)).toBeInTheDocument();
+      expect(screen.getByText(/your target, resources, and next action/i)).toBeInTheDocument();
     });
 
     it('renders all stat cards', () => {
@@ -195,7 +211,9 @@ describe('DashboardPage', () => {
 
       expect(screen.getByTestId('dashboard-campaign-focus')).toBeInTheDocument();
       expect(screen.getByTestId('today-farming-widget')).toBeInTheDocument();
-      expect(screen.getByTestId('quick-notes-widget')).toBeInTheDocument();
+      expect(screen.getByTestId('quick-resource-logger')).toBeInTheDocument();
+      expect(screen.getByTestId('target-quick-start')).toBeInTheDocument();
+      expect(screen.getByTestId('target-summary-list')).toBeInTheDocument();
     });
   });
 
@@ -277,7 +295,7 @@ describe('DashboardPage', () => {
       renderPage();
 
       expect(screen.getByText('Planner').closest('a')).toHaveAttribute('href', '/planner');
-      expect(screen.getByText('Budget').closest('a')).toHaveAttribute('href', '/pulls');
+      expect(screen.getAllByText('Budget')[0]?.closest('a')).toHaveAttribute('href', '/pulls');
     });
 
     it('resin card has link to planner', () => {
@@ -357,6 +375,15 @@ describe('DashboardPage empty state', () => {
     vi.doMock('@/features/notes/components/QuickNotesWidget', () => ({
       default: () => <div data-testid="quick-notes-widget">QuickNotesWidget</div>,
     }));
+    vi.doMock('@/features/ledger/components/QuickResourceLogger', () => ({
+      default: () => <div data-testid="quick-resource-logger">QuickResourceLogger</div>,
+    }));
+    vi.doMock('@/features/targets/components/TargetQuickStart', () => ({
+      default: () => <div data-testid="target-quick-start">TargetQuickStart</div>,
+    }));
+    vi.doMock('@/features/targets/components/TargetSummaryList', () => ({
+      default: () => <div data-testid="target-summary-list">TargetSummaryList</div>,
+    }));
     vi.doMock('@/components/common/GettingStartedChecklist', () => ({
       default: () => <div data-testid="getting-started-checklist">GettingStartedChecklist</div>,
     }));
@@ -433,6 +460,9 @@ describe('DashboardPage empty state', () => {
     }));
     vi.doMock('@/features/notes/hooks/useNotes', () => ({
       useNotes: () => ({ notes: [], allNotes: [], createNote: vi.fn(), updateNote: vi.fn(), deleteNote: vi.fn(), isLoading: false }),
+    }));
+    vi.doMock('@/stores/wishlistStore', () => ({
+      useWishlistStore: () => [],
     }));
 
     // Re-import after mocking
