@@ -318,14 +318,14 @@ describe('CharacterCard', () => {
       expect(onClick).not.toHaveBeenCalled();
     });
 
-    it('links to a prefilled build campaign without bubbling to card onClick', () => {
+    it('links to a prefilled polish campaign without bubbling to card onClick', () => {
       const onClick = vi.fn();
       render(<CharacterCard character={makeCharacter()} onClick={onClick} />);
 
-      const campaignLink = screen.getByLabelText('Start campaign for Furina');
+      const campaignLink = screen.getByLabelText('Start polish campaign for Furina');
       expect(campaignLink).toHaveAttribute(
         'href',
-        '/campaigns?character=Furina&buildGoal=comfortable&pullPlan=0'
+        '/campaigns?type=character-polish&character=Furina&buildGoal=comfortable&pullPlan=0'
       );
 
       campaignLink.click();

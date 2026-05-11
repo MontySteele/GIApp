@@ -314,6 +314,6 @@ describe('PlannerPage without materials', () => {
 
     renderWithRouter(<PlannerPageNoMats />);
 
-    expect(screen.getByText(/import from irminsul to track materials/i)).toBeInTheDocument();
+    expect(screen.getByText(/import from irminsul or good to track materials/i)).toBeInTheDocument();
   });
 });

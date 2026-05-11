@@ -236,7 +236,7 @@ describe('CampaignsPage', () => {
       renderPage();
 
       expect(screen.getByText('No campaigns yet')).toBeInTheDocument();
-      expect(screen.getByText(/create a character acquisition/i)).toBeInTheDocument();
+      expect(screen.getByText(/create a character, build, or team campaign/i)).toBeInTheDocument();
     });
 
     it('shows the create form even with no campaigns', () => {
@@ -428,7 +428,7 @@ describe('CampaignsPage', () => {
 
   describe('campaign creation', () => {
     it('applies character campaign prefill from the URL', () => {
-      renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=0&copies=2&budget=150&priority=1');
+      renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=0&copies=2&budget=150&priority=1&deadline=2026-06-01');
 
       expect(screen.getByText('Campaign draft')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Recruit Furina' })).toBeInTheDocument();
@@ -436,9 +436,46 @@ describe('CampaignsPage', () => {
       expect(screen.getByLabelText('Target character')).toHaveValue('Furina');
       expect(screen.getByLabelText('Build goal')).toHaveValue('full');
       expect(screen.getByLabelText('Priority')).toHaveValue('1');
+      expect(screen.getByLabelText('Deadline')).toHaveValue('2026-06-01');
       expect(screen.getByLabelText('Copies')).toHaveValue(2);
       expect(screen.getByLabelText('Pull budget')).toHaveValue(150);
       expect(screen.getByLabelText('Include pull plan')).not.toBeChecked();
+    });
+
+    it('applies owned character polish prefill from the URL', () => {
+      renderPage('/campaigns?type=character-polish&character=Furina&buildGoal=full&pullPlan=0&priority=2');
+
+      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Polish Furina' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Campaign type')).toHaveValue('character-polish');
+      expect(screen.getByLabelText('Owned character')).toHaveValue('Furina');
+      expect(screen.getByLabelText('Build goal')).toHaveValue('full');
+      expect(screen.getByLabelText('Copies')).toBeDisabled();
+      expect(screen.queryByLabelText('Include pull plan')).not.toBeInTheDocument();
+    });
+
+    it('creates an owned character polish campaign without pull targets', async () => {
+      const user = userEvent.setup();
+      renderPage('/campaigns?type=character-polish&character=Furina&buildGoal=full&pullPlan=0&priority=2');
+
+      await user.click(screen.getByRole('button', { name: /create draft/i }));
+
+      expect(mocks.createCampaign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'character-polish',
+          name: 'Polish Furina',
+          priority: 2,
+          characterTargets: [
+            expect.objectContaining({
+              characterKey: 'Furina',
+              buildGoal: 'full',
+              ownership: 'owned',
+            }),
+          ],
+          pullTargets: [],
+        })
+      );
+      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
     });
 
     it('creates a prefilled character campaign from the draft card', async () => {
@@ -469,6 +506,33 @@ describe('CampaignsPage', () => {
         })
       );
       expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+    });
+
+    it('preserves unreleased character names from banner prefill links', async () => {
+      const user = userEvent.setup();
+      renderPage('/campaigns?character=Columbina&buildGoal=comfortable&pullPlan=1&priority=1');
+
+      expect(screen.getByRole('heading', { name: 'Recruit Columbina' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Target character')).toHaveValue('Columbina');
+
+      await user.click(screen.getByRole('button', { name: /create draft/i }));
+
+      expect(mocks.createCampaign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Recruit Columbina',
+          characterTargets: [
+            expect.objectContaining({
+              characterKey: 'Columbina',
+              ownership: 'wishlist',
+            }),
+          ],
+          pullTargets: [
+            expect.objectContaining({
+              itemKey: 'Columbina',
+            }),
+          ],
+        })
+      );
     });
 
     it('creates a constellation chase campaign from the prefilled draft card', async () => {

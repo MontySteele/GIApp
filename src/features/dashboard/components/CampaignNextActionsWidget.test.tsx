@@ -1,0 +1,215 @@
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, expect, it } from 'vitest';
+import type { ComponentProps } from 'react';
+import CampaignNextActionsWidget from './CampaignNextActionsWidget';
+import type { CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
+import type { Campaign } from '@/types';
+
+const campaign: Campaign = {
+  id: 'campaign-1',
+  type: 'character-polish',
+  name: 'Polish Furina',
+  status: 'active',
+  priority: 1,
+  pullTargets: [],
+  characterTargets: [
+    {
+      id: 'target-1',
+      characterKey: 'Furina',
+      ownership: 'owned',
+      buildGoal: 'comfortable',
+    },
+  ],
+  notes: '',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
+const plan: CampaignPlan = {
+  campaignId: 'campaign-1',
+  overallPercent: 42,
+  status: 'blocked',
+  pullReadiness: {
+    hasTargets: false,
+    availablePulls: 0,
+    targetPulls: 0,
+    remainingPulls: 0,
+    percent: 100,
+    status: 'ready',
+  },
+  buildReadiness: {
+    targetCount: 1,
+    ownedCount: 1,
+    percent: 60,
+    status: 'attention',
+    characters: [],
+  },
+  materialReadiness: {
+    hasTargets: true,
+    percent: 20,
+    status: 'blocked',
+    totalMaterials: 4,
+    readyMaterials: 1,
+    deficitMaterials: 3,
+    topDeficits: [],
+    totalEstimatedResin: 240,
+    totalEstimatedDays: 2,
+    summary: null,
+    errors: [],
+  },
+  nextActions: [
+    {
+      id: 'campaign-1-material-Mora',
+      category: 'materials',
+      label: 'Farm Mora',
+      detail: '120,000 still needed.',
+      priority: 2,
+      materialKey: 'Mora',
+    },
+    {
+      id: 'campaign-1-build-Furina',
+      category: 'build',
+      label: 'Improve Furina',
+      detail: 'Artifacts: 3/5 at +20',
+      priority: 3,
+      characterKey: 'Furina',
+    },
+  ],
+};
+
+function renderWidget(
+  props: Partial<ComponentProps<typeof CampaignNextActionsWidget>> = {}
+) {
+  return render(
+    <MemoryRouter>
+      <CampaignNextActionsWidget
+        activeCampaigns={[campaign]}
+        isLoading={false}
+        plans={{ [campaign.id]: plan }}
+        plansPending={false}
+        error={null}
+        {...props}
+      />
+    </MemoryRouter>
+  );
+}
+
+describe('CampaignNextActionsWidget', () => {
+  it('points users to campaign creation when there is no active focus', () => {
+    renderWidget({ activeCampaigns: [], plans: {} });
+
+    expect(screen.getByText('No campaign focus yet.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /create campaign/i })).toHaveAttribute(
+      'href',
+      '/campaigns'
+    );
+  });
+
+  it('shows a loading state while campaign actions are being calculated', () => {
+    renderWidget({ plans: {}, plansPending: true });
+
+    expect(screen.getByLabelText('Campaign action loading')).toBeInTheDocument();
+  });
+
+  it('shows an error state when campaign plans cannot be calculated', () => {
+    renderWidget({
+      plans: {},
+      plansPending: false,
+      error: 'Failed to calculate campaigns',
+    });
+
+    expect(screen.getByText("Unable to calculate today's plan.")).toBeInTheDocument();
+    expect(screen.getByText('Failed to calculate campaigns')).toBeInTheDocument();
+  });
+
+  it('shows a terminal review state when campaigns have no remaining actions', () => {
+    renderWidget({
+      plans: {
+        [campaign.id]: {
+          ...plan,
+          overallPercent: 100,
+          status: 'ready',
+          nextActions: [],
+        },
+      },
+    });
+
+    expect(screen.getByText('Campaigns are ready for review.')).toBeInTheDocument();
+    expect(screen.getByText(/mark completed goals/i)).toBeInTheDocument();
+  });
+
+  it('elevates the highest-value campaign action with the correct destination', () => {
+    renderWidget();
+
+    expect(screen.getByText("Today's Plan")).toBeInTheDocument();
+    expect(screen.getByText('Farm Mora')).toBeInTheDocument();
+    expect(screen.getByText('120,000 still needed.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
+      'href',
+      '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
+    );
+    expect(screen.getByRole('link', { name: /improve furina/i })).toHaveAttribute(
+      'href',
+      '/roster'
+    );
+  });
+
+  it('prioritizes the action queue by action urgency and campaign priority', () => {
+    const pullCampaign: Campaign = {
+      ...campaign,
+      id: 'campaign-2',
+      type: 'character-acquisition',
+      name: 'Recruit Furina',
+      priority: 1,
+      pullTargets: [
+        {
+          id: 'pull-target-1',
+          itemKey: 'Furina',
+          itemType: 'character',
+          bannerType: 'character',
+          desiredCopies: 1,
+          maxPullBudget: null,
+          isConfirmed: true,
+        },
+      ],
+    };
+    const pullPlan: CampaignPlan = {
+      ...plan,
+      campaignId: 'campaign-2',
+      overallPercent: 70,
+      status: 'attention',
+      pullReadiness: {
+        hasTargets: true,
+        availablePulls: 60,
+        targetPulls: 80,
+        remainingPulls: 20,
+        percent: 75,
+        status: 'attention',
+      },
+      nextActions: [
+        {
+          id: 'campaign-2-pulls',
+          category: 'pulls',
+          label: 'Save 20 more pulls',
+          detail: '60/80 pulls ready.',
+          priority: 1,
+        },
+      ],
+    };
+
+    renderWidget({
+      activeCampaigns: [{ ...campaign, priority: 5 }, pullCampaign],
+      plans: {
+        'campaign-1': plan,
+        'campaign-2': pullPlan,
+      },
+    });
+
+    expect(screen.getByRole('link', { name: /open calculator/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/pulls/calculator?')
+    );
+    expect(screen.getByText('Save 20 more pulls')).toBeInTheDocument();
+  });
+});

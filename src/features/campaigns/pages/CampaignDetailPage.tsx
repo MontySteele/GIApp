@@ -120,7 +120,11 @@ export default function CampaignDetailPage() {
     );
   }
 
-  const CampaignIcon = campaign.type === 'team-polish' ? UsersRound : Sparkles;
+  const CampaignIcon = campaign.type === 'team-polish'
+    ? UsersRound
+    : campaign.type === 'character-polish'
+      ? Target
+      : Sparkles;
   const statusAction = getStatusAction(campaign);
   const StatusActionIcon = statusAction.icon;
   const materialRows = plan?.materialReadiness.summary?.aggregatedMaterials ?? [];

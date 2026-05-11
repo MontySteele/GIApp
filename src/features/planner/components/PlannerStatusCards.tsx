@@ -71,7 +71,7 @@ export function MaterialInventoryStatus({
               />
             </div>
             {!hasMaterials && (
-              <Badge variant="warning">Import from Irminsul to track materials</Badge>
+              <Badge variant="warning">Import from Irminsul or GOOD to track materials</Badge>
             )}
           </div>
         </div>

@@ -80,6 +80,12 @@ function SetupStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatCampaignType(type: Campaign['type']): string {
+  if (type === 'team-polish') return 'Team polish';
+  if (type === 'character-polish') return 'Character polish';
+  return 'Character acquisition';
+}
+
 export default function CampaignSetupCard({
   campaign,
   ownedKeys,
@@ -399,7 +405,7 @@ export default function CampaignSetupCard({
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <SetupStat label="Type" value={campaign.type === 'team-polish' ? 'Team polish' : 'Character'} />
+              <SetupStat label="Type" value={formatCampaignType(campaign.type)} />
               <SetupStat label="Priority" value={`P${campaign.priority}`} />
               <SetupStat label="Deadline" value={formatDate(campaign.deadline)} />
               <SetupStat label="Pull Target" value={pullSummary} />

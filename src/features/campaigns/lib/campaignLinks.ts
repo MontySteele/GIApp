@@ -1,6 +1,7 @@
-import type { Campaign, CampaignBuildGoal } from '@/types';
+import type { Campaign, CampaignBuildGoal, PlannedBanner } from '@/types';
 
 interface CampaignPrefill {
+  campaignType?: Campaign['type'];
   characterKey?: string;
   teamId?: string;
   buildGoal?: CampaignBuildGoal;
@@ -8,12 +9,16 @@ interface CampaignPrefill {
   desiredCopies?: number;
   targetConstellation?: number;
   maxPullBudget?: number;
+  deadline?: string;
   includePullTarget?: boolean;
 }
 
 export function buildCampaignPrefillUrl(prefill: CampaignPrefill): string {
   const params = new URLSearchParams();
 
+  if (prefill.campaignType) {
+    params.set('type', prefill.campaignType);
+  }
   if (prefill.teamId) {
     params.set('team', prefill.teamId);
   }
@@ -35,6 +40,9 @@ export function buildCampaignPrefillUrl(prefill: CampaignPrefill): string {
   if (prefill.maxPullBudget !== undefined) {
     params.set('budget', String(prefill.maxPullBudget));
   }
+  if (prefill.deadline) {
+    params.set('deadline', prefill.deadline);
+  }
   if (prefill.includePullTarget !== undefined) {
     params.set('pullPlan', prefill.includePullTarget ? '1' : '0');
   }
@@ -52,6 +60,18 @@ export function buildCharacterCampaignUrl(
     characterKey,
     buildGoal,
     includePullTarget,
+  });
+}
+
+export function buildCharacterPolishCampaignUrl(
+  characterKey: string,
+  buildGoal: CampaignBuildGoal = 'comfortable'
+): string {
+  return buildCampaignPrefillUrl({
+    campaignType: 'character-polish',
+    characterKey,
+    buildGoal,
+    includePullTarget: false,
   });
 }
 
@@ -80,5 +100,28 @@ export function buildTeamCampaignUrl(
   return buildCampaignPrefillUrl({
     teamId,
     buildGoal,
+  });
+}
+
+function toDateParam(value: string): string | undefined {
+  const dateOnly = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (dateOnly) return dateOnly;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString().slice(0, 10);
+}
+
+export function buildPlannedBannerCampaignUrl(
+  banner: Pick<PlannedBanner, 'characterKey' | 'expectedStartDate' | 'maxPullBudget' | 'priority'>,
+  buildGoal: CampaignBuildGoal = 'comfortable'
+): string {
+  return buildCampaignPrefillUrl({
+    characterKey: banner.characterKey,
+    buildGoal,
+    priority: banner.priority,
+    maxPullBudget: banner.maxPullBudget ?? undefined,
+    deadline: banner.expectedStartDate ? toDateParam(banner.expectedStartDate) : undefined,
+    includePullTarget: true,
   });
 }

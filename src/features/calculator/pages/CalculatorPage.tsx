@@ -4,6 +4,8 @@ import SingleTargetCalculator from '../components/SingleTargetCalculator';
 import { MultiTargetCalculator } from '../components/MultiTargetCalculator';
 import { ReverseCalculator } from '../components/ReverseCalculator';
 import InfoTooltip, { GACHA_TOOLTIPS } from '@/components/ui/InfoTooltip';
+import WishDataFreshnessCallout from '@/features/wishes/components/WishDataFreshnessCallout';
+import { useWishDataFreshness } from '@/features/wishes/hooks/useWishDataFreshness';
 
 type TabType = 'single' | 'multi' | 'reverse';
 
@@ -18,6 +20,7 @@ function getInitialTab(): TabType {
 
 export default function CalculatorPage() {
   const [activeTab, setActiveTab] = useState<TabType>(() => getInitialTab());
+  const wishDataFreshness = useWishDataFreshness();
 
   const tabs = [
     { id: 'single' as const, label: 'Single Target', icon: Target },
@@ -35,6 +38,8 @@ export default function CalculatorPage() {
           <InfoTooltip content={GACHA_TOOLTIPS.monteCarloSimulation} size="md" />
         </p>
       </div>
+
+      <WishDataFreshnessCallout freshness={wishDataFreshness} className="mb-6" />
 
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">

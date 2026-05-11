@@ -25,23 +25,23 @@ interface OnboardingWizardProps {
 
 const IMPORT_OPTIONS = [
   {
-    id: 'enka',
-    title: 'Enka.Network',
-    description: 'Quick UID import for showcased characters only.',
-    icon: Download,
-    recommended: false,
-  },
-  {
     id: 'irminsul',
     title: 'Irminsul Scanner',
-    description: 'Full account import for characters, weapons, artifacts, and materials.',
+    description: 'Best for campaigns: imports roster, weapons, artifacts, and materials for planning.',
     icon: Download,
     recommended: true,
   },
   {
     id: 'good',
     title: 'GOOD Format',
-    description: 'Import JSON file from other Genshin tools.',
+    description: 'Full planning import from GOOD-compatible tools and exports.',
+    icon: Download,
+    recommended: false,
+  },
+  {
+    id: 'enka',
+    title: 'Enka.Network',
+    description: 'Quick UID import for showcased characters only. Useful for trying the app, not full planning.',
     icon: Download,
     recommended: false,
   },
@@ -71,8 +71,8 @@ const FEATURES = [
   },
   {
     id: 'planner',
-    title: 'Material Planner',
-    description: 'Plan farming routes and track material deficits for your characters.',
+    title: 'Campaign Planner',
+    description: 'Turn pulls, builds, materials, and teams into concrete next actions.',
     icon: Calendar,
     color: 'text-purple-400',
   },
@@ -88,7 +88,7 @@ const FEATURES = [
 export default function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWizardProps) {
   const navigate = useNavigate();
   const [step, setStep] = useState<WizardStep>('welcome');
-  const [selectedImport, setSelectedImport] = useState<string | null>(null);
+  const [selectedImport, setSelectedImport] = useState<string | null>('irminsul');
 
   const handleNext = () => {
     switch (step) {
@@ -164,7 +164,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
           </h2>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
             Your personal Genshin Impact companion for tracking characters,
-            planning materials, managing teams, and optimizing your pulls.
+            planning campaigns, managing teams, and optimizing your pulls.
           </p>
           <div className="flex flex-col gap-2 text-left max-w-sm mx-auto mb-6">
             <div className="flex items-center gap-3 text-slate-300">
@@ -173,7 +173,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
             </div>
             <div className="flex items-center gap-3 text-slate-300">
               <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
-              <span>Plan material farming efficiently</span>
+              <span>Turn goals into campaign next actions</span>
             </div>
             <div className="flex items-center gap-3 text-slate-300">
               <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
@@ -193,7 +193,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
             Import Your Data
           </h2>
           <p className="text-slate-400 mb-6 text-center">
-            Get started quickly by importing your existing characters.
+            Choose the data source that matches how much planning you want GIApp to do.
           </p>
           <div className="grid gap-3">
             {IMPORT_OPTIONS.map((option) => {
@@ -219,7 +219,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
                       </span>
                       {option.recommended && (
                         <span className="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded">
-                          Recommended
+                          Recommended for campaigns
                         </span>
                       )}
                     </div>
@@ -235,7 +235,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
             })}
           </div>
           <p className="text-sm text-slate-500 mt-4 text-center">
-            You can always import more characters later from the Roster page.
+            Irminsul and GOOD unlock material, weapon, artifact, and farming guidance. Enka is intentionally lightweight.
           </p>
         </div>
       )}
@@ -275,7 +275,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
             You're All Set!
           </h2>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
-            Head to the Roster page to import your characters and start tracking your progress.
+            Start with a full account import to make campaigns, farming recommendations, and build readiness useful immediately.
           </p>
           <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 text-left max-w-sm mx-auto">
             <p className="text-sm text-slate-400 mb-2">Quick tip:</p>
@@ -303,7 +303,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
         <div className="flex items-center gap-2">
           {step === 'complete' ? (
             <Button onClick={handleStartImport}>
-              Go to Roster
+              {selectedImport ? 'Start Import' : 'Go to Roster'}
               <ArrowRight className="w-4 h-4" />
             </Button>
           ) : (

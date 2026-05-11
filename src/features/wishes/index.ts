@@ -10,6 +10,7 @@ export { WishHistoryPage } from './pages/WishHistoryPage';
 
 // Hooks
 export { useCurrentPity, useAllCurrentPity } from './hooks/useCurrentPity';
+export { useWishDataFreshness } from './hooks/useWishDataFreshness';
 
 // Repositories
 export { wishRepo, type NewWishRecord } from './repo/wishRepo';
@@ -80,3 +81,15 @@ export { WishImport, GACHA_TYPE_MAP } from './components/WishImport';
 export { WishManualEntry } from './components/WishManualEntry';
 export { WishStatistics } from './components/WishStatistics';
 export { default as PityHeader } from './components/PityHeader';
+export { default as WishDataFreshnessCallout } from './components/WishDataFreshnessCallout';
+
+// Services
+export {
+  DEFAULT_WISH_STALE_AFTER_DAYS,
+  WISH_HISTORY_IMPORTED_AT_KEY,
+  getWishDataFreshness,
+  getWishDataSnapshot,
+  markWishHistoryImportComplete,
+  type WishDataFreshness,
+  type WishDataSnapshot,
+} from './services/wishDataFreshness';

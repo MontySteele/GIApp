@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar, Flag, Sparkles, UsersRound } from 'lucide-react';
+import { ArrowRight, Calendar, Flag, Sparkles, Target, UsersRound } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useCampaignPlanContext } from '@/features/campaigns/hooks/useCampaignPlanContext';
 import { useCampaignPlans } from '@/features/campaigns/hooks/useCampaignPlans';
 import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
+import type { CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
 import AccountDataFreshnessCallout from '@/features/sync/components/AccountDataFreshnessCallout';
 import { useAccountDataFreshness } from '@/features/sync';
 import { getDisplayName } from '@/lib/gameData';
@@ -25,16 +26,20 @@ function getCampaignSummary(campaign: Campaign): string {
   return getDisplayName(target.characterKey);
 }
 
-export default function ActiveCampaignsWidget() {
-  const { activeCampaigns, isLoading } = useCampaigns();
-  const { context: campaignPlanContext, isLoading: campaignPlanContextLoading } = useCampaignPlanContext();
-  const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(
-    activeCampaigns,
-    campaignPlanContext,
-    campaignPlanContextLoading
-  );
+interface ActiveCampaignsWidgetViewProps {
+  activeCampaigns: Campaign[];
+  isLoading: boolean;
+  plans: Record<string, CampaignPlan>;
+  plansPending: boolean;
+}
+
+export function ActiveCampaignsWidgetView({
+  activeCampaigns,
+  isLoading,
+  plans,
+  plansPending,
+}: ActiveCampaignsWidgetViewProps) {
   const dataFreshness = useAccountDataFreshness();
-  const plansPending = plansLoading || isCalculating;
 
   if (isLoading) {
     return (
@@ -86,7 +91,11 @@ export default function ActiveCampaignsWidget() {
               variant="compact"
             />
             {activeCampaigns.slice(0, 3).map((campaign) => {
-              const Icon = campaign.type === 'team-polish' ? UsersRound : Sparkles;
+              const Icon = campaign.type === 'team-polish'
+                ? UsersRound
+                : campaign.type === 'character-polish'
+                  ? Target
+                  : Sparkles;
               const nextAction = plans[campaign.id]?.nextActions[0];
               const readiness = plans[campaign.id]?.overallPercent;
               return (
@@ -143,5 +152,24 @@ export default function ActiveCampaignsWidget() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+export default function ActiveCampaignsWidget() {
+  const { activeCampaigns, isLoading } = useCampaigns();
+  const { context: campaignPlanContext, isLoading: campaignPlanContextLoading } = useCampaignPlanContext();
+  const { plans, isLoading: plansLoading, isCalculating } = useCampaignPlans(
+    activeCampaigns,
+    campaignPlanContext,
+    campaignPlanContextLoading
+  );
+
+  return (
+    <ActiveCampaignsWidgetView
+      activeCampaigns={activeCampaigns}
+      isLoading={isLoading}
+      plans={plans}
+      plansPending={plansLoading || isCalculating}
+    />
   );
 }
