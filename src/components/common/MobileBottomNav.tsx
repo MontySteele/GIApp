@@ -6,30 +6,46 @@
  * Hidden on desktop where the top TabNav is used instead.
  */
 
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
+  type LucideIcon,
   LayoutDashboard,
-  Flag,
-  Users,
-  UsersRound,
-  Sparkles,
+  Menu,
   Target,
-  Settings,
+  Users,
+  Sparkles,
 } from 'lucide-react';
 
-// Mobile-optimized navigation items
-// Includes Settings for easy access to data import (critical for new users)
-const MOBILE_NAV_ITEMS = [
-  { id: 'dashboard', label: 'Home', path: '/', icon: LayoutDashboard },
-  { id: 'campaigns', label: 'Camp', path: '/campaigns', icon: Flag },
+type MobileNavItem = {
+  id: string;
+  label: string;
+  path: string;
+  icon: LucideIcon;
+  end?: boolean;
+  activePaths?: readonly string[];
+};
+
+function pathMatches(pathname: string, path: string): boolean {
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+const MOBILE_NAV_ITEMS: readonly MobileNavItem[] = [
+  { id: 'dashboard', label: 'Home', path: '/', icon: LayoutDashboard, end: true },
+  { id: 'campaigns', label: 'Targets', path: '/campaigns', icon: Target },
   { id: 'roster', label: 'Roster', path: '/roster', icon: Users },
-  { id: 'teams', label: 'Teams', path: '/teams', icon: UsersRound },
   { id: 'pulls', label: 'Pulls', path: '/pulls', icon: Sparkles },
-  { id: 'planner', label: 'Plan', path: '/planner', icon: Target },
-  { id: 'settings', label: 'Settings', path: '/settings', icon: Settings },
+  {
+    id: 'more',
+    label: 'More',
+    path: '/more',
+    icon: Menu,
+    activePaths: ['/more', '/teams', '/planner', '/notes', '/settings'],
+  },
 ] as const;
 
 export default function MobileBottomNav() {
+  const location = useLocation();
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-50 md:hidden safe-area-inset-bottom"
@@ -38,14 +54,15 @@ export default function MobileBottomNav() {
       <div className="flex items-center justify-around">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
+          const isSecondaryRouteActive = item.activePaths?.some((path) => pathMatches(location.pathname, path)) ?? false;
           return (
             <NavLink
               key={item.id}
               to={item.path}
-              end={item.path === '/'}
+              end={item.end}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center py-2 px-1.5 min-w-0 flex-1 transition-colors ${
-                  isActive
+                  isActive || isSecondaryRouteActive
                     ? 'text-primary-400'
                     : 'text-slate-400 active:text-slate-200'
                 }`

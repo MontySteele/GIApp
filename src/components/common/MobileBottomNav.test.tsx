@@ -24,24 +24,23 @@ describe('MobileBottomNav', () => {
       renderNav();
 
       expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Camp')).toBeInTheDocument();
+      expect(screen.getByText('Targets')).toBeInTheDocument();
       expect(screen.getByText('Roster')).toBeInTheDocument();
-      expect(screen.getByText('Teams')).toBeInTheDocument();
       expect(screen.getByText('Pulls')).toBeInTheDocument();
-      expect(screen.getByText('Plan')).toBeInTheDocument();
-      expect(screen.getByText('Settings')).toBeInTheDocument();
+      expect(screen.getByText('More')).toBeInTheDocument();
+      expect(screen.queryByText('Teams')).not.toBeInTheDocument();
+      expect(screen.queryByText('Plan')).not.toBeInTheDocument();
+      expect(screen.queryByText('Settings')).not.toBeInTheDocument();
     });
 
     it('renders links with correct hrefs', () => {
       renderNav();
 
       expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('href', '/');
-      expect(screen.getByRole('link', { name: /camp/i })).toHaveAttribute('href', '/campaigns');
+      expect(screen.getByRole('link', { name: /targets/i })).toHaveAttribute('href', '/campaigns');
       expect(screen.getByRole('link', { name: /roster/i })).toHaveAttribute('href', '/roster');
-      expect(screen.getByRole('link', { name: /teams/i })).toHaveAttribute('href', '/teams');
       expect(screen.getByRole('link', { name: /pulls/i })).toHaveAttribute('href', '/pulls');
-      expect(screen.getByRole('link', { name: /plan/i })).toHaveAttribute('href', '/planner');
-      expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('href', '/settings');
+      expect(screen.getByRole('link', { name: /more/i })).toHaveAttribute('href', '/more');
     });
   });
 
@@ -60,13 +59,6 @@ describe('MobileBottomNav', () => {
       expect(rosterLink).toHaveClass('text-primary-400');
     });
 
-    it('highlights teams when on teams route', () => {
-      renderNav('/teams');
-
-      const teamsLink = screen.getByRole('link', { name: /teams/i });
-      expect(teamsLink).toHaveClass('text-primary-400');
-    });
-
     it('highlights pulls when on pulls route', () => {
       renderNav('/pulls');
 
@@ -77,32 +69,32 @@ describe('MobileBottomNav', () => {
     it('highlights campaigns when on campaigns route', () => {
       renderNav('/campaigns');
 
-      const campaignsLink = screen.getByRole('link', { name: /camp/i });
+      const campaignsLink = screen.getByRole('link', { name: /targets/i });
       expect(campaignsLink).toHaveClass('text-primary-400');
     });
 
-    it('highlights planner when on planner route', () => {
-      renderNav('/planner');
+    it('highlights more when on the more route', () => {
+      renderNav('/more');
 
-      const planLink = screen.getByRole('link', { name: /plan/i });
-      expect(planLink).toHaveClass('text-primary-400');
+      const moreLink = screen.getByRole('link', { name: /more/i });
+      expect(moreLink).toHaveClass('text-primary-400');
     });
 
-    it('highlights settings when on settings route', () => {
+    it('highlights more for secondary routes', () => {
       renderNav('/settings');
 
-      const settingsLink = screen.getByRole('link', { name: /settings/i });
-      expect(settingsLink).toHaveClass('text-primary-400');
+      const moreLink = screen.getByRole('link', { name: /more/i });
+      expect(moreLink).toHaveClass('text-primary-400');
     });
 
     it('does not highlight non-active links', () => {
       renderNav('/roster');
 
       const homeLink = screen.getByRole('link', { name: /home/i });
-      const teamsLink = screen.getByRole('link', { name: /teams/i });
+      const moreLink = screen.getByRole('link', { name: /more/i });
 
       expect(homeLink).not.toHaveClass('text-primary-400');
-      expect(teamsLink).not.toHaveClass('text-primary-400');
+      expect(moreLink).not.toHaveClass('text-primary-400');
     });
   });
 
@@ -119,7 +111,7 @@ describe('MobileBottomNav', () => {
 
       // Each nav item should have an SVG icon
       const icons = container.querySelectorAll('svg');
-      expect(icons.length).toBe(7);
+      expect(icons.length).toBe(5);
     });
   });
 

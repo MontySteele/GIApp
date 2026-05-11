@@ -23,6 +23,7 @@ import PlannerLayout from '@/features/planner/pages/PlannerLayout';
 import PlannerPage from '@/features/planner/pages/PlannerPage';
 import MaterialsTab from '@/features/planner/pages/MaterialsTab';
 import DomainsTab from '@/features/planner/pages/DomainsTab';
+import MorePage from '@/features/more/pages/MorePage';
 import NotesPage from '@/features/notes/pages/NotesPage';
 import SyncPage from '@/features/sync/pages/SyncPage';
 
@@ -186,6 +187,10 @@ export const router = createBrowserRouter([
       {
         path: 'notes',
         element: <NotesPage />,
+      },
+      {
+        path: 'more',
+        element: <MorePage />,
       },
       {
         path: 'settings',
