@@ -223,8 +223,16 @@ function getActionBadge(item: DashboardAction): 'primary' | 'warning' | 'success
 
 function getStateLabel(state: CampaignActionState): string {
   if (state === 'done') return 'Done today';
+  if (state === 'started') return 'Started';
   if (state === 'skipped') return 'Skipped';
   return 'Snoozed';
+}
+
+function getStateBadge(state: CampaignActionState): 'primary' | 'secondary' | 'success' | 'warning' {
+  if (state === 'done') return 'success';
+  if (state === 'started') return 'primary';
+  if (state === 'skipped') return 'secondary';
+  return 'warning';
 }
 
 function ActionCard({
@@ -316,7 +324,7 @@ function ActivityLog({ activities }: { activities: Array<{ state: CampaignAction
         {activities.map((activity, index) => (
           <div key={`${activity.actionLabel}-${index}`} className="flex items-center justify-between gap-2 text-xs">
             <span className="truncate text-slate-400">{activity.actionLabel}</span>
-            <Badge variant={activity.state === 'done' ? 'success' : activity.state === 'skipped' ? 'secondary' : 'warning'}>
+            <Badge variant={getStateBadge(activity.state)}>
               {getStateLabel(activity.state)}
             </Badge>
           </div>

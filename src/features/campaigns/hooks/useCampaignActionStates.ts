@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 
-export type CampaignActionState = 'done' | 'skipped' | 'snoozed';
+export type CampaignActionState = 'done' | 'started' | 'skipped' | 'snoozed';
 
 export interface CampaignActionActivity {
   id: string;

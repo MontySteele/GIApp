@@ -114,13 +114,13 @@ describe('useCampaignActionStates', () => {
       result.current.setActionState('done', actionInput('action-1'));
     });
     act(() => {
-      result.current.setActionState('snoozed', actionInput('action-1'));
+      result.current.setActionState('started', actionInput('action-1'));
     });
 
     expect(result.current.todayActivities).toHaveLength(1);
     expect(result.current.todayActivities[0]).toMatchObject({
       actionKey: 'action-1',
-      state: 'snoozed',
+      state: 'started',
       dateKey: '2026-05-11',
     });
     expect(readActivities().activities).toHaveLength(1);
