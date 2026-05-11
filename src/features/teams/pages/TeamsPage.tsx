@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Users } from 'lucide-react';
+import { Download, Plus, Users } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
@@ -8,6 +8,7 @@ import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import TeamForm from '@/features/roster/components/TeamForm';
 import TeamCard from '@/features/roster/components/TeamCard';
+import TeamSnapshotExport from '@/features/roster/components/TeamSnapshotExport';
 import { WfpsimExportModal } from '@/features/teams';
 import type { Team, Character } from '@/types';
 
@@ -17,6 +18,7 @@ export default function TeamsPage() {
 
   // Modal state
   const [showTeamModal, setShowTeamModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
   const [wfpsimTeam, setWfpsimTeam] = useState<Team | null>(null);
@@ -90,10 +92,18 @@ export default function TeamsPage() {
             {teams.length} team{teams.length !== 1 ? 's' : ''} • Click a team to view details
           </p>
         </div>
-        <Button variant="primary" onClick={handleCreateTeam}>
-          <Plus className="w-4 h-4" />
-          New Team
-        </Button>
+        <div className="flex items-center gap-2">
+          {teams.length > 0 && (
+            <Button variant="ghost" onClick={() => setShowExportModal(true)} aria-label="Export teams">
+              <Download className="w-4 h-4" aria-hidden="true" />
+              Export Teams
+            </Button>
+          )}
+          <Button variant="primary" onClick={handleCreateTeam}>
+            <Plus className="w-4 h-4" />
+            New Team
+          </Button>
+        </div>
       </div>
 
       {/* Teams Grid */}
@@ -144,6 +154,15 @@ export default function TeamsPage() {
           onSubmit={handleSaveTeam}
           onCancel={handleCloseTeamModal}
         />
+      </Modal>
+
+      <Modal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Teams"
+        size="lg"
+      >
+        <TeamSnapshotExport onClose={() => setShowExportModal(false)} />
       </Modal>
 
       {/* Delete Confirmation Modal */}

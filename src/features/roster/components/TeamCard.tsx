@@ -30,7 +30,7 @@ export default function TeamCard({
   const memberLabel = `${members.length} member${members.length === 1 ? '' : 's'}`;
 
   return (
-    <Card className="relative h-full">
+    <Card className="relative">
       <div className="absolute top-3 right-3 flex items-center gap-1">
         {showPlannerLink && team.characterKeys.length > 0 && (
           <Link
