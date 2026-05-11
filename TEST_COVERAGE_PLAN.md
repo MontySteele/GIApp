@@ -14,8 +14,8 @@
 
 Last verified after the goal-first UX branch:
 
-- **Test files:** 147 passing
-- **Tests:** 2075 passing
+- **Test files:** 145 passing
+- **Tests:** 2052 passing
 - **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`
 
 Use `npm run test:run` as the authoritative local unit/integration check.
@@ -25,7 +25,7 @@ Use `npm run test:run` as the authoritative local unit/integration check.
 | Area | Status | Notes |
 |---|---|---|
 | Targets / Campaigns | Good | Target summaries, wizard math, campaign links, campaign pages, dashboard handoffs |
-| Dashboard | Good | Resume card, loading states, freshness badge, today actions, empty states |
+| Dashboard | Good | Next Up states, contextual target entry, loading states, freshness behavior, capture/snapshot panel, mobile viewport smoke |
 | Imports / Sync | Good | Import Hub, backup/restore, app metadata, import impact summaries, freshness |
 | Pulls / Wishes | Excellent | Wish import, history, pity selectors, replay, import impact, calculators |
 | Calculator | Excellent | Single, multi-target, reverse calculator, worker integration |
@@ -48,8 +48,8 @@ Goal-first UX work added or hardened tests for:
 - Current constellation and already-met constellation handling
 - Dashboard checklist/self-healing import state
 - Dashboard loading skeleton branch
-- Dashboard resume card priorities
-- Dashboard data freshness badge
+- Dashboard Next Up priorities and stale/missing import promotion
+- Dashboard contextual Start Target states and Capture + Snapshot panel
 - Import Hub status and persisted impact summaries
 - GOOD and Irminsul component-level import summary writes
 - Quick Resource Logger presets and undo

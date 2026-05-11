@@ -20,13 +20,18 @@ const PRESETS: PresetEntry[] = [
   { label: 'Event', amount: 420, source: 'event', notes: 'Event rewards' },
 ];
 
+interface QuickResourceLoggerProps {
+  variant?: 'card' | 'embedded';
+}
+
 function getRepeatableEntry(entries: PrimogemEntry[] | undefined): PrimogemEntry | null {
   return entries?.find((entry) => entry.amount > 0 && entry.source !== 'purchase') ?? null;
 }
 
-export default function QuickResourceLogger() {
+export default function QuickResourceLogger({ variant = 'card' }: QuickResourceLoggerProps) {
   const entries = useLiveQuery(() => primogemEntryRepo.getAll(), []);
   const repeatEntry = useMemo(() => getRepeatableEntry(entries), [entries]);
+  const Heading = variant === 'embedded' ? 'h3' : 'h2';
   const [customAmount, setCustomAmount] = useState('');
   const [customNotes, setCustomNotes] = useState('');
   const [lastSaved, setLastSaved] = useState<{ id: string; message: string } | null>(null);
@@ -84,10 +89,10 @@ export default function QuickResourceLogger() {
     setCustomNotes('');
   };
 
-  return (
-    <section id="quick-resource-logger" className="scroll-mt-20 rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-slate-100">Quick Log</h2>
+  const content = (
+    <>
+      <div className={variant === 'embedded' ? 'mb-3' : 'mb-4'}>
+        <Heading className="text-lg font-semibold text-slate-100">Quick Log</Heading>
         <p className="text-sm text-slate-400">Capture common primogem income without opening the full tracker.</p>
       </div>
 
@@ -139,6 +144,16 @@ export default function QuickResourceLogger() {
           </Button>
         </div>
       )}
+    </>
+  );
+
+  if (variant === 'embedded') {
+    return <div>{content}</div>;
+  }
+
+  return (
+    <section id="quick-resource-logger" className="scroll-mt-20 rounded-xl border border-slate-800 bg-slate-900 p-4">
+      {content}
     </section>
   );
 }

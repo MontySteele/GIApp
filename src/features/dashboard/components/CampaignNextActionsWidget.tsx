@@ -4,11 +4,14 @@ import {
   CheckCircle2,
   ClipboardList,
   Hammer,
+  Import,
   Package,
+  Play,
   RefreshCw,
   Sparkles,
   Target,
   UserPlus,
+  ListChecks,
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -33,6 +36,7 @@ import type {
   CampaignActionCategory,
   CampaignPlan,
 } from '@/features/campaigns/domain/campaignPlan';
+import type { DashboardResumeAction } from '../domain/dashboardResume';
 import type { Campaign } from '@/types';
 
 interface CampaignNextActionsWidgetProps {
@@ -40,6 +44,7 @@ interface CampaignNextActionsWidgetProps {
   isLoading: boolean;
   plans: Record<string, CampaignPlan>;
   plansPending: boolean;
+  resumeAction: DashboardResumeAction;
   error?: string | null;
 }
 
@@ -52,6 +57,20 @@ const CATEGORY_BADGE: Record<CampaignActionCategory, 'primary' | 'warning' | 'su
 };
 
 const FRESHNESS_BADGE = 'warning' as const;
+
+const RESUME_BADGE: Record<DashboardResumeAction['priority'], 'primary' | 'warning' | 'success' | 'outline'> = {
+  target: 'primary',
+  import: 'warning',
+  manual: 'outline',
+  start: 'success',
+};
+
+const RESUME_ICONS = {
+  target: Target,
+  import: Import,
+  manual: ListChecks,
+  start: Play,
+} satisfies Record<DashboardResumeAction['priority'], typeof Target>;
 
 function getCategoryIcon(category: CampaignActionCategory | 'freshness') {
   switch (category) {
@@ -75,6 +94,7 @@ export default function CampaignNextActionsWidget({
   isLoading,
   plans,
   plansPending,
+  resumeAction,
   error,
 }: CampaignNextActionsWidgetProps) {
   const dataFreshness = useAccountDataFreshness();
@@ -87,6 +107,7 @@ export default function CampaignNextActionsWidget({
   const [focusAction, ...secondaryActions] = actions;
   const focusedCampaign = getFocusedCampaign(activeCampaigns, plans, focusAction);
   const focusedPlan = focusedCampaign ? plans[focusedCampaign.id] : undefined;
+  const activeTargetLabel = `${activeCampaigns.length} active target${activeCampaigns.length === 1 ? '' : 's'}`;
 
   if (isLoading) {
     return (
@@ -100,11 +121,11 @@ export default function CampaignNextActionsWidget({
   }
 
   return (
-    <Card role="region" aria-label="Today's plan" className="border-primary-900/50 bg-primary-950/10">
+    <Card role="region" aria-label="Next up" className="border-primary-900/50 bg-primary-950/10">
       <CardHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-primary-400" aria-hidden="true" />
-          <h3 className="font-semibold">Today's Plan</h3>
+          <h3 className="font-semibold">Next Up</h3>
         </div>
         <Link
           to="/campaigns"
@@ -114,28 +135,12 @@ export default function CampaignNextActionsWidget({
         </Link>
       </CardHeader>
       <CardContent>
-        {activeCampaigns.length === 0 ? (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-200">No target focus yet.</p>
-              <p className="mt-1 text-sm text-slate-400">
-                Create a pull, build, or team target so the dashboard can choose your next action.
-              </p>
-            </div>
-            <Link
-              to="/campaigns"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-            >
-              <Target className="h-4 w-4" aria-hidden="true" />
-              Create Target
-            </Link>
-          </div>
-        ) : error && !plansPending && actions.length === 0 ? (
+        {error && activeCampaigns.length > 0 && !plansPending && actions.length === 0 ? (
           <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-3">
-            <p className="text-sm font-medium text-red-100">Unable to calculate today's plan.</p>
+            <p className="text-sm font-medium text-red-100">Unable to calculate the next target action.</p>
             <p className="mt-1 text-xs text-red-200/80">{error}</p>
           </div>
-        ) : plansPending && actions.length === 0 ? (
+        ) : activeCampaigns.length > 0 && plansPending && actions.length === 0 ? (
           <div className="space-y-3">
             <div className="h-5 w-44 animate-pulse rounded bg-slate-700" />
             <div
@@ -178,17 +183,18 @@ export default function CampaignNextActionsWidget({
               prominent
               onSetState={(state) => setActionState(state, getActionActivityInput(focusAction))}
             />
-            {secondaryActions.slice(0, 2).map((item) => (
+            {secondaryActions.slice(0, 3).map((item) => (
               <ActionCard key={getActionKey(item)} item={item} />
             ))}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3 text-xs text-slate-500">
               <span>
-                {actions.length} action{actions.length === 1 ? '' : 's'} left today
+                {actions.length} next action{actions.length === 1 ? '' : 's'}
                 {handledActionCount > 0 && `, ${handledActionCount} handled`}.
               </span>
-              {actions.length > 3 && (
+              <span>{activeTargetLabel}</span>
+              {actions.length > 4 && (
                 <Link to="/campaigns" className="text-primary-400 hover:text-primary-300">
-                  {actions.length - 3} more actions
+                  {actions.length - 4} more actions
                 </Link>
               )}
             </div>
@@ -196,23 +202,70 @@ export default function CampaignNextActionsWidget({
               <ActivityLog activities={todayActivities.slice(0, 3)} />
             )}
           </div>
-        ) : (
+        ) : activeCampaigns.length > 0 && allActions.length > 0 ? (
           <div className="rounded-lg bg-slate-900 p-3">
             <p className="text-sm font-medium text-slate-200">
-              {allActions.length > 0 ? 'All target actions handled today.' : 'Targets are ready for review.'}
+              All target actions handled today.
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {allActions.length > 0
-                ? 'Completed and snoozed actions return tomorrow.'
-                : 'Open your active targets and mark completed goals when you are happy with them.'}
+              Completed and snoozed actions return tomorrow.
             </p>
             {todayActivities.length > 0 && (
               <ActivityLog activities={todayActivities.slice(0, 3)} />
             )}
           </div>
+        ) : (
+          <ResumeActionPanel action={resumeAction} activeTargetCount={activeCampaigns.length} />
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ResumeActionPanel({
+  action,
+  activeTargetCount,
+}: {
+  action: DashboardResumeAction;
+  activeTargetCount: number;
+}) {
+  const Icon = RESUME_ICONS[action.priority];
+  const badgeLabel =
+    action.priority === 'import'
+      ? 'setup'
+      : action.priority === 'manual'
+        ? 'setup'
+        : action.priority === 'start'
+          ? 'target'
+          : 'resume';
+
+  return (
+    <div className="flex flex-col gap-4 rounded-lg bg-slate-900 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Badge variant={RESUME_BADGE[action.priority]}>{badgeLabel}</Badge>
+          {activeTargetCount > 0 && (
+            <span className="text-xs text-slate-500">
+              {activeTargetCount} active target{activeTargetCount === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+        <div className="flex items-start gap-3">
+          <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-400" aria-hidden="true" />
+          <div className="min-w-0">
+            <h4 className="text-base font-semibold text-slate-100">{action.title}</h4>
+            <p className="mt-1 text-sm text-slate-400">{action.detail}</p>
+          </div>
+        </div>
+      </div>
+      <Link
+        to={action.href}
+        className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+      >
+        {action.actionLabel}
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      </Link>
+    </div>
   );
 }
 
@@ -273,23 +326,25 @@ function ActionCard({
             </div>
           </div>
         </div>
-        <Link
-          to={item.destination.href}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-        >
-          {item.destination.label}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
-        {onSetState && (
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <Button size="sm" variant="secondary" onClick={() => onSetState('done')}>
-              Done Today
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => onSetState('snoozed')}>
-              Not Now
-            </Button>
-          </div>
-        )}
+        <div className="flex flex-shrink-0 flex-col gap-2 sm:min-w-40">
+          <Link
+            to={item.destination.href}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+          >
+            {item.destination.label}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+          {onSetState && (
+            <div className="grid grid-cols-2 gap-2">
+              <Button size="sm" variant="secondary" onClick={() => onSetState('done')}>
+                Done
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => onSetState('snoozed')}>
+                Later
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }

@@ -54,7 +54,7 @@ e2e/
   - dashboard Start Target wizard creates a target without imports
   - pull targets hand off to the calculator
   - build targets hand off to target-aware material planning
-  - stale imports become a dashboard next action
+  - stale imports become the dashboard Next Up action
 - `navigation.spec.ts` covers:
   - desktop navigation
   - legacy route redirects
@@ -113,8 +113,8 @@ await expect(page.locator('#quick-resource-logger')).toBeInViewport();
 Scope repeated labels with regions or nearby headings:
 
 ```ts
-const todayPlan = page.getByRole('region', { name: /today's plan/i });
-await expect(todayPlan.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
+const nextUp = page.getByRole('region', { name: /next up/i });
+await expect(nextUp.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
 ```
 
 Avoid `.nth()` selectors unless the order itself is the behavior under test.

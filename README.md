@@ -19,7 +19,7 @@ The app keeps user data in IndexedDB through Dexie and can run as a PWA.
 
 | Route | Surface | Purpose |
 |---|---|---|
-| `/` | Dashboard | Command center with resume card, today's plan, target wizard, quick logger, account snapshot, and data freshness |
+| `/` | Dashboard | Command center with Next Up, contextual target entry, quick capture, compact snapshot, and conditional data freshness |
 | `/campaigns` | Targets | Active, planned, wishlist, and completed planning targets |
 | `/roster` | Roster | Characters plus nested weapons, artifacts, and build templates |
 | `/teams` | Teams | Team management, boss needs, and team detail flows |
@@ -45,12 +45,16 @@ Legacy routes such as `/wishes`, `/calculator`, `/ledger`, `/calendar`, `/builds
 
 Recent UX work reframed the old Campaigns concept around Targets while preserving the `/campaigns` route for storage and route compatibility.
 
-- The dashboard surfaces the next thing to resume, today's highest-value action, import freshness, and quick capture actions.
+- The dashboard owns "what should I do now?" through a single Next Up system, plus quick resource capture and a compact account snapshot.
 - The Start a Target wizard supports Get character, Build character, and Polish team modes.
+- Start Target is contextual: the full wizard appears when there are no real targets, while existing targets get a compact entry point.
+- Missing or stale imports are promoted into Next Up and the contextual target entry before suggesting another target.
 - Manual mode works without imports: users can enter saved pulls, current pity, guarantee, current constellation, target constellation, and deadline.
 - Preview math shows hard-pity coverage, worst-case pull shortfall, daily pace, and guards against already-met constellation targets.
 - Planned banners, wishlist items, character cards, calculator flows, and dashboard empty states can promote intent into a target.
 - Quick actions provide fast access to Start Target, Log Primos, Update Pity, Import Data, and Add Note.
+
+Dashboard ownership stays intentionally narrow: Pulls owns budget depth, wish history, and charts; Planner owns farming math and material deficits; Targets owns target management and grouping.
 
 ## Development Quick Start
 

@@ -6,6 +6,7 @@ import type { ComponentProps } from 'react';
 import CampaignNextActionsWidget from './CampaignNextActionsWidget';
 import type { CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
 import type { Campaign } from '@/types';
+import type { DashboardResumeAction } from '../domain/dashboardResume';
 
 const mocks = vi.hoisted(() => ({
   dataFreshness: {
@@ -94,6 +95,14 @@ const plan: CampaignPlan = {
   ],
 };
 
+const resumeAction: DashboardResumeAction = {
+  title: 'Start your first target',
+  detail: 'Pick a character or team and turn it into a daily next action.',
+  href: '/campaigns',
+  actionLabel: 'New Target',
+  priority: 'start',
+};
+
 function renderWidget(
   props: Partial<ComponentProps<typeof CampaignNextActionsWidget>> = {}
 ) {
@@ -104,6 +113,7 @@ function renderWidget(
         isLoading={false}
         plans={{ [campaign.id]: plan }}
         plansPending={false}
+        resumeAction={resumeAction}
         error={null}
         {...props}
       />
@@ -124,11 +134,12 @@ describe('CampaignNextActionsWidget', () => {
     };
   });
 
-  it('points users to campaign creation when there is no active focus', () => {
+  it('uses the resume action when there is no active focus', () => {
     renderWidget({ activeCampaigns: [], plans: {} });
 
-    expect(screen.getByText('No target focus yet.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /create target/i })).toHaveAttribute(
+    expect(screen.getByRole('heading', { name: 'Next Up' })).toBeInTheDocument();
+    expect(screen.getByText('Start your first target')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /new target/i })).toHaveAttribute(
       'href',
       '/campaigns'
     );
@@ -147,11 +158,11 @@ describe('CampaignNextActionsWidget', () => {
       error: 'Failed to calculate campaigns',
     });
 
-    expect(screen.getByText("Unable to calculate today's plan.")).toBeInTheDocument();
+    expect(screen.getByText('Unable to calculate the next target action.')).toBeInTheDocument();
     expect(screen.getByText('Failed to calculate campaigns')).toBeInTheDocument();
   });
 
-  it('shows a terminal review state when campaigns have no remaining actions', () => {
+  it('falls back to resume when campaigns have no calculated actions', () => {
     renderWidget({
       plans: {
         [campaign.id]: {
@@ -163,14 +174,13 @@ describe('CampaignNextActionsWidget', () => {
       },
     });
 
-    expect(screen.getByText('Targets are ready for review.')).toBeInTheDocument();
-    expect(screen.getByText(/mark completed goals/i)).toBeInTheDocument();
+    expect(screen.getByText('Start your first target')).toBeInTheDocument();
   });
 
   it('elevates the highest-value campaign action with the correct destination', () => {
     renderWidget();
 
-    expect(screen.getByText("Today's Plan")).toBeInTheDocument();
+    expect(screen.getByText('Next Up')).toBeInTheDocument();
     expect(screen.getByText('Current focus')).toBeInTheDocument();
     expect(screen.getByText('Farm Mora')).toBeInTheDocument();
     expect(screen.getByText('120,000 still needed.')).toBeInTheDocument();
@@ -243,6 +253,40 @@ describe('CampaignNextActionsWidget', () => {
     expect(screen.getByText('Save 20 more pulls')).toBeInTheDocument();
   });
 
+  it('keeps a compact count when many active targets feed the queue', () => {
+    const campaigns = Array.from({ length: 5 }, (_, index) => ({
+      ...campaign,
+      id: `campaign-${index}`,
+      name: `Target ${index + 1}`,
+      priority: Math.min(index + 1, 5) as Campaign['priority'],
+    }));
+    const plans = Object.fromEntries(
+      campaigns.map((item, index) => [
+        item.id,
+        {
+          ...plan,
+          campaignId: item.id,
+          nextActions: [
+            {
+              ...plan.nextActions[0]!,
+              id: `${item.id}-materials`,
+              label: `Farm target ${index + 1}`,
+            },
+          ],
+        },
+      ])
+    );
+
+    renderWidget({
+      activeCampaigns: campaigns,
+      plans,
+    });
+
+    expect(screen.getByText('5 active targets')).toBeInTheDocument();
+    expect(screen.getByText('Farm target 1')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /1 more actions/i })).toHaveAttribute('href', '/campaigns');
+  });
+
   it('uses campaign deadlines as a real tie-breaker instead of timestamp magnitude', () => {
     const earlyCampaign = {
       ...campaign,
@@ -277,7 +321,7 @@ describe('CampaignNextActionsWidget', () => {
     expect(screen.getByRole('heading', { name: 'Farm early Mora' })).toBeInTheDocument();
   });
 
-  it('adds account refresh to the ranked action queue when campaign data is stale', () => {
+  it('promotes account refresh above urgent campaign actions when campaign data is stale', () => {
     mocks.dataFreshness = {
       status: 'stale',
       isLoading: false,
@@ -287,12 +331,33 @@ describe('CampaignNextActionsWidget', () => {
       detail: 'Last GOOD import was 14 days ago.',
     };
 
-    renderWidget();
+    renderWidget({
+      plans: {
+        [campaign.id]: {
+          ...plan,
+          nextActions: [
+            {
+              id: 'campaign-1-urgent-material',
+              category: 'materials',
+              label: 'Farm urgent Mora',
+              detail: '120,000 still needed.',
+              priority: 1,
+              materialKey: 'Mora',
+            },
+            ...plan.nextActions,
+          ],
+        },
+      },
+    });
 
-    expect(screen.getByText('Refresh account data')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /refresh account data/i })).toHaveAttribute(
+    expect(screen.getByRole('heading', { name: 'Refresh account data' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /refresh import/i })).toHaveAttribute(
       'href',
-      '/roster?import=irminsul'
+      '/imports'
+    );
+    expect(screen.getByRole('link', { name: /farm urgent mora/i })).toHaveAttribute(
+      'href',
+      '/planner/materials?campaign=campaign-1&material=Mora'
     );
   });
 
@@ -300,13 +365,13 @@ describe('CampaignNextActionsWidget', () => {
     const user = userEvent.setup();
     renderWidget();
 
-    await user.click(screen.getByRole('button', { name: /done today/i }));
+    await user.click(screen.getByRole('button', { name: /done/i }));
 
     expect(screen.queryByRole('heading', { name: 'Farm Mora' })).not.toBeInTheDocument();
     expect(screen.getByText('Improve Furina')).toBeInTheDocument();
     expect(screen.getByText("Today's activity")).toBeInTheDocument();
     expect(screen.getByText('Done today')).toBeInTheDocument();
-    expect(screen.getByText(/1 action left today, 1 handled/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 next action, 1 handled/i)).toBeInTheDocument();
   });
 
   it('shows an all-handled state when every campaign action is handled today', async () => {
@@ -320,7 +385,7 @@ describe('CampaignNextActionsWidget', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: /not now/i }));
+    await user.click(screen.getByRole('button', { name: /later/i }));
 
     expect(screen.getByText('All target actions handled today.')).toBeInTheDocument();
     expect(screen.getByText(/return tomorrow/i)).toBeInTheDocument();

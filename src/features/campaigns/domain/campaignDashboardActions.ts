@@ -44,6 +44,7 @@ const STATUS_WEIGHT: Record<CampaignPlanStatus, number> = {
   attention: 1,
   ready: 2,
 };
+const FRESHNESS_ACTION_SORT_PRIORITY = -1;
 
 function getActionWhy(action: CampaignNextAction, campaign: Campaign, plan: CampaignPlan): string {
   switch (action.category) {
@@ -119,8 +120,8 @@ export function buildFreshnessDashboardAction(
     detail: dataFreshness.detail,
     priority: dataFreshness.status === 'missing' ? 1 : 2,
     destination: {
-      label: dataFreshness.status === 'missing' ? 'Import Data' : 'Refresh Import',
-      href: '/roster?import=irminsul',
+      label: dataFreshness.status === 'missing' ? 'Open Import Hub' : 'Refresh Import',
+      href: '/imports',
     },
     why: 'Campaign plans depend on current roster, artifact, weapon, material, and wish data.',
   };
@@ -159,7 +160,7 @@ export function getActionKey(item: DashboardAction): string {
 }
 
 export function getDashboardActionPriority(item: DashboardAction): number {
-  return item.kind === 'freshness' ? item.priority : item.action.priority;
+  return item.kind === 'freshness' ? FRESHNESS_ACTION_SORT_PRIORITY : item.action.priority;
 }
 
 export function getActionCategory(item: DashboardAction): CampaignActionCategory | 'freshness' {
