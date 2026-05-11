@@ -33,7 +33,6 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       'no-undef': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -43,7 +42,7 @@ export default [
           varsIgnorePattern: '^_',
         },
       ],
-      'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/exhaustive-deps': 'error',
       'react-refresh/only-export-components': 'off',
     },
   },
@@ -53,8 +52,10 @@ export default [
       'e2e/**/*.{ts,tsx}',
     ],
     rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      'react-hooks/exhaustive-deps': 'off',
     },
   },
 ];

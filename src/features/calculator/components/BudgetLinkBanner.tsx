@@ -62,7 +62,7 @@ export default function BudgetLinkBanner({
   const daysProjection = projectionDays;
   const projectedIncome = Math.floor(budget.dailyRate * daysProjection);
   const projectedPulls = Math.floor(projectedIncome / PRIMOS_PER_PULL);
-  const currentEventPulls = Math.floor(budget.currentPulls);
+  const currentEventPulls = budget.currentPulls;
   const totalProjectedPulls = currentEventPulls + projectedPulls;
 
   const formatNumber = (n: number) => n.toLocaleString();
@@ -104,7 +104,7 @@ export default function BudgetLinkBanner({
               </p>
               {budget.standardPulls > 0 && (
                 <p className="text-xs text-slate-500">
-                  {Math.floor(budget.allWishes)} all wishes incl. {budget.standardPulls} standard
+                  {budget.allWishes} all wishes incl. {budget.standardPulls} standard
                 </p>
               )}
             </div>

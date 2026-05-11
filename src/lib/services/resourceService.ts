@@ -26,7 +26,8 @@ import type { FateType } from '@/types';
 export interface AvailablePullsResult {
   /** Event-banner pulls available for character, weapon, and chronicled targets. */
   availablePulls: number;
-  pullAvailability?: PullAvailability;
+  /** Detailed pull breakdown; availablePulls is kept as an eventPulls convenience alias. */
+  pullAvailability: PullAvailability;
   resources: LedgerResourceSnapshot;
   lastUpdated: string | null;
   hasSnapshot: boolean;

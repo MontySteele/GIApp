@@ -100,7 +100,7 @@ export default function DashboardPage() {
   const primogems = availablePulls?.resources.primogems ?? 0;
   const genesisCrystals = availablePulls?.resources.genesisCrystals ?? 0;
   const intertwined = availablePulls?.resources.intertwined ?? 0;
-  const eventPulls = Math.floor(availablePulls?.availablePulls ?? 0);
+  const eventPulls = availablePulls?.availablePulls ?? 0;
   const starglitterPulls = availablePulls?.pullAvailability?.starglitterPulls ?? 0;
   const pullSubtext = genesisCrystals > 0
     ? `${formatPrimos(primogems)} primos + ${formatPrimos(genesisCrystals)} crystals`

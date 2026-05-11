@@ -41,6 +41,23 @@ const BANNER_NAMES: Record<BannerType, string> = {
   chronicled: 'Chronicled Wish',
 };
 
+interface WishApiItem {
+  id: string;
+  name: string;
+  gacha_type: string | number;
+  item_type: string;
+  rank_type: string | number;
+  time: string;
+}
+
+interface WishApiResponse {
+  retcode?: number;
+  message?: string;
+  data?: {
+    list?: WishApiItem[];
+  };
+}
+
 // State management with useReducer
 interface WishImportState {
   url: string;
@@ -245,7 +262,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as WishApiResponse;
 
       // Check for API errors
       if (data.retcode !== 0 && data.retcode !== undefined) {
@@ -255,14 +272,14 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         throw new Error(data.message || `API error: ${data.retcode}`);
       }
 
-      const list = data.data?.list || [];
+      const list = data.data?.list ?? [];
 
       if (list.length === 0) {
         break;
       }
 
       // Filter for items that match the requested banner type and haven't been seen
-      const newItems = list.filter((item: any) =>
+      const newItems = list.filter((item) =>
         !seenIds.has(item.id) && String(item.gacha_type) === normalizedGachaType
       );
 
@@ -272,7 +289,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
         const bannerType = GACHA_TYPE_MAP[String(item.gacha_type)];
         if (bannerType) {
           const itemType = item.item_type.toLowerCase() === 'character' ? 'character' : 'weapon';
-          const rarity = parseInt(item.rank_type) as 3 | 4 | 5;
+          const rarity = parseInt(String(item.rank_type), 10) as 3 | 4 | 5;
           wishes.push({
             id: item.id,
             name: item.name,

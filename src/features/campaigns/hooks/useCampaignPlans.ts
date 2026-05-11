@@ -19,6 +19,8 @@ export function useCampaignPlans(
     () => campaigns.map((campaign) => `${campaign.id}:${campaign.updatedAt}`).join('|'),
     [campaigns]
   );
+  // Keep the campaign array stable until a campaign's identity/update stamp changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const campaignSnapshot = useMemo(() => campaigns, [campaignSignature]);
 
   useEffect(() => {

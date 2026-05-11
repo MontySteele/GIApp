@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -28,6 +28,7 @@ export function ReverseCalculator() {
   const [radiantStreak, setRadiantStreak] = useState(0);
   const [bannerType, setBannerType] = useState<BannerType>('character');
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
+  const [hasCalculated, setHasCalculated] = useState(false);
   const pitySnapshot = useCurrentPity(bannerType);
   const budgetData = useBudgetLink(30);
 
@@ -43,7 +44,7 @@ export function ReverseCalculator() {
 
   const [results, setResults] = useState<ReturnType<typeof calculateRequiredIncome> | null>(null);
 
-  const validate = (): boolean => {
+  const validate = useCallback((): boolean => {
     const newErrors = new Map<string, string>();
     const rules = GACHA_RULES[bannerType];
 
@@ -71,11 +72,20 @@ export function ReverseCalculator() {
 
     setErrors(newErrors);
     return newErrors.size === 0;
-  };
+  }, [
+    bannerType,
+    currentAvailablePulls,
+    currentPity,
+    customDailyPrimogemIncome,
+    daysAvailable,
+    numTargets,
+    radiantStreak,
+    targetProbability,
+  ]);
 
-  const calculate = () => {
+  const runCalculation = useCallback(() => {
     const rules = GACHA_RULES[bannerType];
-    if (!validate() || !rules) return;
+    if (!validate() || !rules) return false;
 
     const result = calculateRequiredIncome(
       numTargets,
@@ -90,38 +100,37 @@ export function ReverseCalculator() {
     );
 
     setResults(result);
+    return true;
+  }, [
+    bannerType,
+    currentAvailablePulls,
+    currentPity,
+    customDailyPrimogemIncome,
+    daysAvailable,
+    isGuaranteed,
+    numTargets,
+    radiantStreak,
+    targetProbability,
+    validate,
+  ]);
+
+  const calculate = () => {
+    if (runCalculation()) {
+      setHasCalculated(true);
+    }
   };
 
   // Validate when inputs change
   useEffect(() => {
     validate();
-  }, [
-    numTargets,
-    targetProbability,
-    daysAvailable,
-    currentPity,
-    radiantStreak,
-    bannerType,
-    currentAvailablePulls,
-    customDailyPrimogemIncome,
-  ]);
+  }, [validate]);
 
   // Auto-calculate when inputs change
   useEffect(() => {
-    if (results) {
-      calculate();
+    if (hasCalculated) {
+      runCalculation();
     }
-  }, [
-    numTargets,
-    targetProbability,
-    daysAvailable,
-    currentPity,
-    currentAvailablePulls,
-    customDailyPrimogemIncome,
-    isGuaranteed,
-    radiantStreak,
-    bannerType,
-  ]);
+  }, [hasCalculated, runCalculation]);
 
   const setProbabilityPreset = (prob: number) => {
     setTargetProbability(prob);

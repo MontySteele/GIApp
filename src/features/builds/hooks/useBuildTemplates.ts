@@ -88,18 +88,7 @@ export function useBuildTemplates(query?: BuildTemplateQuery) {
 
   const filteredTemplates = useMemo(
     () => filterAndSortTemplates(templates ?? [], query),
-    [
-      templates,
-      query?.filters?.characterKey,
-      query?.filters?.role,
-      query?.filters?.difficulty,
-      query?.filters?.budget,
-      query?.filters?.isOfficial,
-      query?.filters?.tags,
-      query?.filters?.search,
-      query?.sort?.field,
-      query?.sort?.direction,
-    ]
+    [templates, query]
   );
 
   const createTemplate = useCallback(

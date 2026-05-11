@@ -76,13 +76,7 @@ export function useBudgetLink(rateLookbackDays: number = 30): BudgetLinkData {
     const currentGenesisCrystals = availablePullsResult.resources.genesisCrystals;
     const currentFates = availablePullsResult.resources.intertwined;
     const currentPulls = availablePullsResult.availablePulls;
-    const pullAvailability = availablePullsResult.pullAvailability ?? {
-      eventPulls: currentPulls,
-      standardPulls: 0,
-      allWishes: currentPulls,
-      currencyPulls: 0,
-      starglitterPulls: 0,
-    };
+    const pullAvailability = availablePullsResult.pullAvailability;
     const starglitterPulls = pullAvailability.starglitterPulls;
     const standardPulls = pullAvailability.standardPulls;
     const allWishes = pullAvailability.allWishes;

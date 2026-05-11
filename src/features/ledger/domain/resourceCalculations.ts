@@ -45,7 +45,7 @@ export interface PullAvailability {
   standardPulls: number;
   /** All wishes if every convertible resource is spent once. */
   allWishes: number;
-  /** Pulls from primogems + genesis crystals before fate/starglitter counts. */
+  /** Whole pulls from primogems + genesis crystals before fate/starglitter counts. */
   currencyPulls: number;
   /** Starglitter converted at 5 starglitter per wish. */
   starglitterPulls: number;
@@ -107,6 +107,7 @@ export function calculateWishSpending(wishes: WishRecord[], sinceTimestamp?: str
   };
 }
 
+/** @deprecated Use calculatePullAvailability for event/standard/all-wish breakdowns. */
 export function calculateAvailablePulls(resources: LedgerResourceSnapshot): number {
   return calculatePullAvailability(resources).allWishes;
 }
@@ -116,7 +117,7 @@ export function calculateEventPulls(resources: LedgerResourceSnapshot): number {
 }
 
 export function calculatePullAvailability(resources: LedgerResourceSnapshot): PullAvailability {
-  const currencyPulls = (resources.primogems + resources.genesisCrystals) / PRIMOGEMS_PER_PULL;
+  const currencyPulls = Math.floor((resources.primogems + resources.genesisCrystals) / PRIMOGEMS_PER_PULL);
   const starglitterPulls = Math.floor(resources.starglitter / 5);
   const eventPulls = currencyPulls + resources.intertwined + starglitterPulls;
   const standardPulls = resources.acquaint;

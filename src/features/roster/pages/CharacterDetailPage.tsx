@@ -38,18 +38,18 @@ export default function CharacterDetailPage() {
 
   const linkedTeams = useMemo(
     () => (character ? teams.filter((team) => character.teamIds.includes(team.id)) : []),
-    [teams, character?.teamIds]
+    [teams, character]
   );
   const constellationShortcuts = useMemo(() => {
     if (!character) return [];
     return [2, 6].filter((targetConstellation) => character.constellation < targetConstellation);
-  }, [character?.constellation]);
+  }, [character]);
 
   // Calculate artifact scores
   const artifactScoreData = useMemo(() => {
     if (!character || character.artifacts.length === 0) return null;
     return calculateCharacterArtifactScore(character.artifacts);
-  }, [character?.artifacts]);
+  }, [character]);
 
   const handleUpdate = async (data: Parameters<typeof updateCharacter>[1]) => {
     if (!character) return;

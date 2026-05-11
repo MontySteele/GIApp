@@ -9,16 +9,7 @@ export function useCharacters(query?: CharacterQuery) {
 
   const filteredCharacters = useMemo(
     () => filterAndSortCharacters(characters ?? [], query),
-    [
-      characters,
-      query?.filters?.element,
-      query?.filters?.weaponType,
-      query?.filters?.rarity,
-      query?.filters?.priority,
-      query?.filters?.search,
-      query?.sort?.field,
-      query?.sort?.direction,
-    ]
+    [characters, query]
   );
 
   const createCharacter = async (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>) => {
