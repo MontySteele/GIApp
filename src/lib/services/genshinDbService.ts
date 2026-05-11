@@ -18,7 +18,7 @@ import { getStaticCharacterMaterials } from '@/lib/data/characterMaterialMap';
 const API_BASE_URL = 'https://genshin-db-api.vercel.app/api/v5';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const API_VERSION = 'v5';
-const CACHE_SCHEMA_VERSION = 5; // Increment when cache structure changes - v5: improved material tier detection with fallback patterns
+const CACHE_SCHEMA_VERSION = 6; // Increment when parser taxonomy changes - v6: newer specialties/common families
 
 /**
  * In-memory cache for character materials
@@ -54,12 +54,15 @@ const LOCAL_SPECIALTIES = new Set([
   // Sumeru
   'Henna Berry', 'Kalpalata Lotus', 'Nilotpala Lotus', 'Padisarah',
   'Rukkhashava Mushrooms', 'Sand Grease Pupa', 'Scarab', 'Sumeru Rose',
+  'Mourning Flower', 'Trishiraite',
   // Fontaine
   'Beryl Conch', 'Lumidouce Bell', 'Lakelight Lily', 'Rainbow Rose',
   'Romaritime Flower', 'Spring of the First Dewdrop', 'Lumitoile', 'Subdetection Unit',
   // Natlan
   'Brilliant Chrysanthemum', 'Quenepa Berry', 'Saurian Claw Succulent', 'Talisman of the Warrior\'s Spirit',
   'Glowing Hornshroom', 'Withering Purpurbloom', 'Smoking Sunfire Saurian Eye', 'Sacred Chalice\'s Dew',
+  // Nod-Krai / newer regions
+  'Etherwing Moth', 'Frostlamp Flower', 'Moonfall Silver', 'Pine Amber', 'Portable Bearing', 'Winter Icelea',
 ]);
 
 /**
@@ -83,6 +86,8 @@ const COMMON_TIER_PATTERNS = {
     'Desiccated Shell', 'Juvenile Fang', 'Sentry\'s Wooden Whistle',
     'Withered Starconch', 'Whopperflower Nectar', 'Weathered Arrowhead',
     'Recruit\'s Insignia', 'Old Handguard',
+    // Nod-Krai / newer materials
+    'Tattered Warrant', 'Broken Drive Shaft',
     // Snezhnaya/Fatui materials (potential future)
     'Fatui Insignia', 'Recruit\'s Insignia',
   ],
@@ -103,6 +108,8 @@ const COMMON_TIER_PATTERNS = {
     'Marked Shell', 'Seasoned Fang', 'Sentry\'s Brass Whistle',
     'Aged Starconch', 'Shimmering Nectar', 'Sharp Arrowhead',
     'Sergeant\'s Insignia', 'Kageuchi Handguard',
+    // Natlan alternate/newer and Nod-Krai materials
+    'Warrior\'s Metal Whistle', 'Immaculate Warrant', 'Reinforced Drive Shaft',
   ],
   // Tier 3 (Blue) patterns
   tier3: [
@@ -121,6 +128,8 @@ const COMMON_TIER_PATTERNS = {
     'Alien Shell', 'Tyrant\'s Fang', 'Sentry\'s Golden Whistle',
     'Polished Starconch', 'Energy Nectar', 'Weathered Arrowhead',
     'Lieutenant\'s Insignia', 'Famed Handguard',
+    // Natlan alternate/newer and Nod-Krai materials
+    'Saurian-Crowned Warrior\'s Golden Whistle', 'Frost-Etched Warrant', 'Precision Drive Shaft',
   ],
 };
 
@@ -224,6 +233,7 @@ function identifyTalentBookSeries(name: string): {
     Sumeru: ['Admonition', 'Ingenuity', 'Praxis'],
     Fontaine: ['Equity', 'Justice', 'Order'],
     Natlan: ['Contention', 'Kindling', 'Conflict'],
+    'Nod-Krai': ['Moonlight', 'Elysium', 'Vagrancy'],
   };
 
   let region = 'Unknown';
@@ -262,6 +272,9 @@ function getBaseCommonName(name: string): string {
     'Dead Ley Line ', 'Ley Line ',
     'Faded Red ', 'Trimmed Red ', 'Rich Red ',
     'Juvenile ', 'Seasoned ', 'Tyrant\'s ',
+    'Tattered ', 'Immaculate ', 'Frost-Etched ',
+    'Broken ', 'Reinforced ', 'Precision ',
+    'Sentry\'s Wooden ', 'Warrior\'s Metal ', 'Saurian-Crowned Warrior\'s Golden ',
   ];
 
   for (const prefix of prefixes) {
@@ -283,6 +296,10 @@ function getBaseCommonName(name: string): string {
   if (name.includes('Statuette')) return 'Statuette';
   if (name.includes('Prism')) return 'Prism';
   if (name.includes('Horn')) return 'Horn';
+  if (name.includes('Gear')) return 'Gear';
+  if (name.includes('Whistle')) return 'Sentry Whistle';
+  if (name.includes('Warrant')) return 'Warrant';
+  if (name.includes('Drive Shaft')) return 'Drive Shaft';
 
   return name;
 }
@@ -326,19 +343,19 @@ function inferTierFromNamePatterns(name: string): 1 | 2 | 3 | 0 {
   const nameLower = name.toLowerCase();
 
   // Tier 1 (Gray) patterns - typically base/damaged/old/fragile prefixes
-  const tier1Prefixes = ['damaged', 'old', 'fragile', 'faded', 'recruit', 'firm', 'divining', 'whopperflower', 'treasure hoarder', 'gloomy', 'dismal', 'heavy', 'dead', 'feathery', 'ruined', 'axis', 'shard of a shattered'];
+  const tier1Prefixes = ['damaged', 'old', 'fragile', 'faded', 'recruit', 'firm', 'divining', 'whopperflower', 'treasure hoarder', 'gloomy', 'dismal', 'heavy', 'dead', 'feathery', 'ruined', 'axis', 'shard of a shattered', 'tattered', 'sentry'];
   for (const prefix of tier1Prefixes) {
     if (nameLower.includes(prefix)) return 1;
   }
 
   // Tier 2 (Green) patterns - typically mid-level prefixes
-  const tier2Prefixes = ['stained', 'sturdy', 'sealed', 'sharp', 'shimmering', 'sergeant', 'silver', 'agent', 'kageuchi', 'dark', 'crystal', 'black bronze', 'trimmed', 'seasoned', 'budding', 'foul legacy', 'operative\'s standard', 'lunar', 'splintered', 'sheath'];
+  const tier2Prefixes = ['stained', 'sturdy', 'sealed', 'sharp', 'shimmering', 'sergeant', 'silver', 'agent', 'kageuchi', 'dark', 'crystal', 'black bronze', 'trimmed', 'seasoned', 'budding', 'foul legacy', 'operative\'s standard', 'lunar', 'splintered', 'sheath', 'immaculate', 'warrior\'s metal'];
   for (const prefix of tier2Prefixes) {
     if (nameLower.includes(prefix)) return 2;
   }
 
   // Tier 3 (Blue) patterns - typically top-level prefixes
-  const tier3Prefixes = ['ominous', 'forbidden', 'weathered', 'energy', 'lieutenant', 'golden', 'fossilized', 'inspector', 'famed', 'deathly', 'polarizing', 'black crystal', 'rich', 'tyrant', 'wilting', 'conquered will', 'operative\'s constancy', 'chasmlight', 'still-smoldering', 'heart of'];
+  const tier3Prefixes = ['ominous', 'forbidden', 'weathered', 'energy', 'lieutenant', 'golden', 'fossilized', 'inspector', 'famed', 'deathly', 'polarizing', 'black crystal', 'rich', 'tyrant', 'wilting', 'conquered will', 'operative\'s constancy', 'chasmlight', 'still-smoldering', 'heart of', 'frost-etched', 'saurian-crowned'];
   for (const prefix of tier3Prefixes) {
     if (nameLower.includes(prefix)) return 3;
   }

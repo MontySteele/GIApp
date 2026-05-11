@@ -34,6 +34,10 @@ const GEMS: Record<string, string> = {
   Geo: 'Prithiva Topaz',
 };
 
+function normalizeCharacterKey(key: string): string {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 /**
  * Static material data for known characters.
  * Keys match GOOD format (PascalCase).
@@ -530,7 +534,7 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     weeklyBoss: 'Tears of the Calamitous God',
   },
   Sethos: {
-    element: 'Electro', gem: GEMS.Electro!, boss: 'Thunderclap Fruitcore', localSpecialty: 'Tainted Water-Splitting Phantasm',
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Cloudseam Scale', localSpecialty: 'Trishiraite',
     commonAscension: ['Faded Red Satin', 'Trimmed Red Silk', 'Rich Red Brocade'],
     talentBook: 'Praxis', talentBookRegion: 'Sumeru',
     commonTalent: ['Faded Red Satin', 'Trimmed Red Silk', 'Rich Red Brocade'],
@@ -665,6 +669,13 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     talentBook: 'Order', talentBookRegion: 'Fontaine',
     commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
     weeklyBoss: 'Lightless Mass',
+  },
+  Escoffier: {
+    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Secret Source Airflow Accumulator', localSpecialty: 'Beryl Conch',
+    commonAscension: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
+    talentBook: 'Justice', talentBookRegion: 'Fontaine',
+    commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
+    weeklyBoss: 'Eroded Horn',
   },
   Kachina: {
     element: 'Geo', gem: GEMS.Geo!, boss: 'Overripe Flamegranate', localSpecialty: 'Quenepa Berry',
@@ -896,6 +907,36 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
     weeklyBoss: 'Ascended Sample: Rook',
   },
+  Linnea: {
+    element: 'Geo', gem: GEMS.Geo!, boss: 'Plume of the Fallen Watcher', localSpecialty: 'Etherwing Moth',
+    commonAscension: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    talentBook: 'Vagrancy', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    weeklyBoss: 'Elixir of the Heretic',
+  },
+};
+
+const NORMALIZED_MATERIAL_KEY_TO_KEY = Object.keys(CHARACTER_MATERIALS).reduce<Record<string, string>>(
+  (acc, key) => {
+    acc[normalizeCharacterKey(key)] = key;
+    return acc;
+  },
+  {}
+);
+
+const CHARACTER_MATERIAL_ALIASES: Record<string, string> = {
+  aether: 'TravelerAnemo',
+  itto: 'Arataki Itto',
+  kazuha: 'KaedeharaKazuha',
+  lumine: 'TravelerAnemo',
+  mizuki: 'Mizuki',
+  olorun: 'Ororon',
+  raiden: 'RaidenShogun',
+  sangonomiyakokomi: 'Kokomi',
+  shikanoinheizou: 'Heizou',
+  traveler: 'TravelerAnemo',
+  yae: 'YaeMiko',
+  yumemizukimizuki: 'Mizuki',
 };
 
 /**
@@ -990,19 +1031,22 @@ function toCharacterMaterialData(key: string, entry: StaticMaterialEntry): Chara
  * - Exact match (e.g., "Furina")
  * - PascalCase (e.g., "HuTao")
  * - With spaces (e.g., "Hu Tao")
- * - Case-insensitive search
+ * - Known display aliases (e.g., "Sangonomiya Kokomi")
  */
 export function getStaticCharacterMaterials(characterKey: string): CharacterMaterialData | null {
   // Try exact match
   const entry = CHARACTER_MATERIALS[characterKey];
   if (entry) return toCharacterMaterialData(characterKey, entry);
 
-  // Try case-insensitive match
-  const lowerKey = characterKey.toLowerCase();
-  for (const [key, value] of Object.entries(CHARACTER_MATERIALS)) {
-    if (key.toLowerCase() === lowerKey) {
-      return toCharacterMaterialData(key, value);
-    }
+  const normalizedKey = normalizeCharacterKey(characterKey);
+  const normalizedMatch = NORMALIZED_MATERIAL_KEY_TO_KEY[normalizedKey];
+  if (normalizedMatch) {
+    return toCharacterMaterialData(normalizedMatch, CHARACTER_MATERIALS[normalizedMatch]!);
+  }
+
+  const aliasMatch = CHARACTER_MATERIAL_ALIASES[normalizedKey];
+  if (aliasMatch) {
+    return toCharacterMaterialData(aliasMatch, CHARACTER_MATERIALS[aliasMatch]!);
   }
 
   return null;
@@ -1013,4 +1057,49 @@ export function getStaticCharacterMaterials(characterKey: string): CharacterMate
  */
 export function hasStaticMaterialData(characterKey: string): boolean {
   return getStaticCharacterMaterials(characterKey) !== null;
+}
+
+export interface StaticMaterialCoverageGap {
+  characterKey: string;
+  reasons: string[];
+}
+
+function getMaterialDataGapReasons(data: CharacterMaterialData): string[] {
+  const reasons: string[] = [];
+
+  if (!data.element) reasons.push('missing-element');
+  if (!data.ascensionMaterials.gem.baseName) reasons.push('missing-gem');
+  if (!data.ascensionMaterials.boss.name) reasons.push('missing-boss');
+  if (!data.ascensionMaterials.localSpecialty.name) reasons.push('missing-local-specialty');
+  if (!data.ascensionMaterials.common.tierNames.gray) reasons.push('missing-ascension-common-gray');
+  if (!data.ascensionMaterials.common.tierNames.green) reasons.push('missing-ascension-common-green');
+  if (!data.ascensionMaterials.common.tierNames.blue) reasons.push('missing-ascension-common-blue');
+  if (!data.talentMaterials.books.series) reasons.push('missing-talent-book-series');
+  if (data.talentMaterials.books.days.length === 0) reasons.push('missing-talent-book-days');
+  if (!data.talentMaterials.common.tierNames.gray) reasons.push('missing-talent-common-gray');
+  if (!data.talentMaterials.common.tierNames.green) reasons.push('missing-talent-common-green');
+  if (!data.talentMaterials.common.tierNames.blue) reasons.push('missing-talent-common-blue');
+  if (!data.talentMaterials.weekly.name) reasons.push('missing-weekly-boss');
+
+  return reasons;
+}
+
+export function findStaticMaterialCoverageGaps(characterKeys: readonly string[]): StaticMaterialCoverageGap[] {
+  const uniqueKeys = Array.from(new Set(characterKeys.filter(Boolean)));
+  const gaps: StaticMaterialCoverageGap[] = [];
+
+  for (const characterKey of uniqueKeys) {
+    const data = getStaticCharacterMaterials(characterKey);
+    if (!data) {
+      gaps.push({ characterKey, reasons: ['missing-entry'] });
+      continue;
+    }
+
+    const reasons = getMaterialDataGapReasons(data);
+    if (reasons.length > 0) {
+      gaps.push({ characterKey, reasons });
+    }
+  }
+
+  return gaps;
 }
