@@ -3,11 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   ArrowRight,
+  Calculator,
   Calendar,
   CheckCircle2,
   CirclePause,
   CirclePlay,
+  Package,
   Plus,
+  RefreshCw,
   Sparkles,
   Target,
   Trash2,
@@ -39,6 +42,10 @@ import { getCampaignPullTargets } from '../domain/campaignPlan';
 import { useCampaignPlanContext } from '../hooks/useCampaignPlanContext';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useCampaignPlans } from '../hooks/useCampaignPlans';
+import {
+  buildCampaignCalculatorHref,
+  buildCampaignMaterialHref,
+} from '../lib/campaignActionLinks';
 
 const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
   { value: 'functional', label: 'Functional' },
@@ -81,6 +88,19 @@ const PLAN_STATUS_BADGE: Record<CampaignPlan['status'], 'success' | 'warning' | 
   ready: 'success',
   attention: 'warning',
   blocked: 'danger',
+};
+
+const STATUS_SORT_WEIGHT: Record<CampaignStatus, number> = {
+  active: 0,
+  paused: 1,
+  completed: 2,
+  archived: 3,
+};
+
+const PLAN_SORT_WEIGHT: Record<CampaignPlan['status'], number> = {
+  blocked: 0,
+  attention: 1,
+  ready: 2,
 };
 
 function formatBuildGoal(value: CampaignBuildGoal): string {
@@ -164,6 +184,39 @@ function getPullPlanParam(value: string | null): boolean | null {
 function formatDate(value: string | undefined): string {
   if (!value) return 'No deadline';
   return new Date(`${value}T00:00:00`).toLocaleDateString();
+}
+
+function getDeadlineTime(value: string | undefined): number {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const timestamp = new Date(`${value}T00:00:00`).getTime();
+  return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
+}
+
+function sortCampaignsForControlCenter(
+  campaigns: Campaign[],
+  plans: Record<string, CampaignPlan>
+): Campaign[] {
+  return [...campaigns].sort((a, b) => {
+    const statusDelta = STATUS_SORT_WEIGHT[a.status] - STATUS_SORT_WEIGHT[b.status];
+    if (statusDelta !== 0) return statusDelta;
+
+    const planDelta =
+      (plans[a.id] ? PLAN_SORT_WEIGHT[plans[a.id].status] : 3) -
+      (plans[b.id] ? PLAN_SORT_WEIGHT[plans[b.id].status] : 3);
+    if (planDelta !== 0) return planDelta;
+
+    const priorityDelta = a.priority - b.priority;
+    if (priorityDelta !== 0) return priorityDelta;
+
+    const deadlineDelta = getDeadlineTime(a.deadline) - getDeadlineTime(b.deadline);
+    if (deadlineDelta !== 0) return deadlineDelta;
+
+    return b.updatedAt.localeCompare(a.updatedAt);
+  });
+}
+
+function isClosedCampaign(campaign: Campaign): boolean {
+  return campaign.status === 'completed' || campaign.status === 'archived';
 }
 
 function buildCharacterTarget(
@@ -278,6 +331,7 @@ export default function CampaignsPage() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const { plans, isCalculating: plansCalculating } = useCampaignPlans(
     campaigns,
     campaignPlanContext,
@@ -395,6 +449,13 @@ export default function CampaignsPage() {
   );
   const hasOwnedCharacters = ownedCharacterOptions.length > 0;
   const hasCampaignPrefill = searchParams.has('character') || searchParams.has('team');
+  const sortedCampaigns = useMemo(
+    () => sortCampaignsForControlCenter(campaigns, plans),
+    [campaigns, plans]
+  );
+  const openCampaigns = sortedCampaigns.filter((campaign) => !isClosedCampaign(campaign));
+  const closedCampaigns = sortedCampaigns.filter(isClosedCampaign);
+  const shouldShowCreateForm = campaigns.length === 0 || hasCampaignPrefill || showCreateForm;
   const targetConstellationValue = getConstellationValue(targetConstellation);
   const matchingOpenCampaign = useMemo(
     () => findMatchingOpenCampaign(
@@ -416,6 +477,12 @@ export default function CampaignsPage() {
     setError('');
     setSearchParams({}, { replace: true });
   };
+
+  useEffect(() => {
+    if (hasCampaignPrefill) {
+      setShowCreateForm(true);
+    }
+  }, [hasCampaignPrefill]);
 
   const handleCampaignTypeChange = (nextType: CampaignType) => {
     setCampaignType(nextType);
@@ -537,6 +604,15 @@ export default function CampaignsPage() {
     }
   };
 
+  const refreshPlan = async (campaign: Campaign) => {
+    try {
+      setMutationError('');
+      await updateCampaign(campaign.id, {});
+    } catch {
+      setMutationError(`Failed to refresh "${campaign.name}".`);
+    }
+  };
+
   const pageLoading = isLoading || charactersLoading || teamsLoading;
 
   if (pageLoading) {
@@ -556,9 +632,17 @@ export default function CampaignsPage() {
             Plan character pulls, pre-farming, and team polish from one place.
           </p>
         </div>
-        <Badge variant="primary" className="w-fit">
-          {campaigns.filter((campaign) => campaign.status === 'active').length} active
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="primary" className="w-fit">
+            {campaigns.filter((campaign) => campaign.status === 'active').length} active
+          </Badge>
+          {campaigns.length > 0 && !shouldShowCreateForm && (
+            <Button type="button" onClick={() => setShowCreateForm(true)}>
+              <Plus className="w-4 h-4" />
+              New Campaign
+            </Button>
+          )}
+        </div>
       </div>
 
       <AccountDataFreshnessCallout freshness={accountDataFreshness} context="campaign" />
@@ -586,15 +670,23 @@ export default function CampaignsPage() {
         />
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Plus className="w-5 h-5 text-primary-400" />
-            <h2 className="text-lg font-semibold">New Campaign</h2>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+      {shouldShowCreateForm && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Plus className="w-5 h-5 text-primary-400" />
+                <h2 className="text-lg font-semibold">New Campaign</h2>
+              </div>
+              {campaigns.length > 0 && !hasCampaignPrefill && (
+                <Button type="button" size="sm" variant="ghost" onClick={() => setShowCreateForm(false)}>
+                  Hide
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select
                 label="Campaign type"
@@ -730,9 +822,10 @@ export default function CampaignsPage() {
               <Plus className="w-4 h-4" />
               Create Campaign
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {mutationError && (
         <div className="rounded-lg border border-red-700 bg-red-950/30 p-3 text-sm text-red-200">
@@ -751,14 +844,26 @@ export default function CampaignsPage() {
               </p>
             </CardContent>
           </Card>
+        ) : openCampaigns.length === 0 ? (
+          <Card className="xl:col-span-2">
+            <CardContent className="py-8 text-center">
+              <CheckCircle2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <h2 className="text-lg font-semibold text-slate-300 mb-1">No active campaigns</h2>
+              <p className="text-slate-400">
+                Start a new campaign or reopen one below when you have a target to chase.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          campaigns.map((campaign) => (
+          openCampaigns.map((campaign) => (
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
               plan={plans[campaign.id]}
               isPlanLoading={plansCalculating && !plans[campaign.id]}
+              dataFreshnessStatus={accountDataFreshness.status}
               onStatusChange={updateStatus}
+              onRefresh={refreshPlan}
               onDelete={async (id) => {
                 try {
                   setMutationError('');
@@ -771,6 +876,35 @@ export default function CampaignsPage() {
           ))
         )}
       </div>
+
+      {closedCampaigns.length > 0 && (
+        <details className="rounded-lg border border-slate-800 bg-slate-900/30">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-300">
+            Completed and archived campaigns ({closedCampaigns.length})
+          </summary>
+          <div className="grid grid-cols-1 gap-4 border-t border-slate-800 p-4 xl:grid-cols-2">
+            {closedCampaigns.map((campaign) => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                plan={plans[campaign.id]}
+                isPlanLoading={plansCalculating && !plans[campaign.id]}
+                dataFreshnessStatus={accountDataFreshness.status}
+                onStatusChange={updateStatus}
+                onRefresh={refreshPlan}
+                onDelete={async (id) => {
+                  try {
+                    setMutationError('');
+                    await deleteCampaign(id);
+                  } catch {
+                    setMutationError('Failed to delete campaign.');
+                  }
+                }}
+              />
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }
@@ -890,13 +1024,17 @@ function CampaignCard({
   campaign,
   plan,
   isPlanLoading,
+  dataFreshnessStatus,
   onStatusChange,
+  onRefresh,
   onDelete,
 }: {
   campaign: Campaign;
   plan: CampaignPlan | undefined;
   isPlanLoading: boolean;
+  dataFreshnessStatus: 'fresh' | 'stale' | 'missing';
   onStatusChange: (campaign: Campaign, status: CampaignStatus) => Promise<void>;
+  onRefresh: (campaign: Campaign) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -911,6 +1049,12 @@ function CampaignCard({
   const pullGoalLabel = pullTargets.length > 0
     ? `${pullCopyGoal} ${pullCopyGoal === 1 ? 'copy' : 'copies'}`
     : 'None';
+  const dataFreshnessLabel =
+    dataFreshnessStatus === 'fresh'
+      ? 'Current'
+      : dataFreshnessStatus === 'stale'
+        ? 'Stale'
+        : 'Import';
 
   return (
     <Card>
@@ -956,7 +1100,7 @@ function CampaignCard({
         )}
 
         {plan && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <PlanStat
               label="Pulls"
               value={`${plan.pullReadiness.percent}%`}
@@ -979,6 +1123,11 @@ function CampaignCard({
                   ? `${plan.materialReadiness.deficitMaterials} deficits`
                   : 'No materials'
               }
+            />
+            <PlanStat
+              label="Data"
+              value={dataFreshnessLabel}
+              detail={dataFreshnessStatus === 'fresh' ? 'Fresh import' : 'Refresh recommended'}
             />
           </div>
         )}
@@ -1023,6 +1172,28 @@ function CampaignCard({
             <ArrowRight className="w-4 h-4" />
             Open
           </Link>
+          {plan?.materialReadiness.hasTargets && (
+            <Link
+              to={buildCampaignMaterialHref(campaign.id)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
+            >
+              <Package className="w-4 h-4" />
+              Materials
+            </Link>
+          )}
+          {plan?.pullReadiness.hasTargets && (
+            <Link
+              to={buildCampaignCalculatorHref(campaign, plan)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
+            >
+              <Calculator className="w-4 h-4" />
+              Calculator
+            </Link>
+          )}
+          <Button size="sm" variant="secondary" onClick={() => onRefresh(campaign)}>
+            <RefreshCw className="w-4 h-4" />
+            Refresh Plan
+          </Button>
           {campaign.status === 'active' ? (
             <Button size="sm" variant="secondary" onClick={() => onStatusChange(campaign, 'paused')}>
               <CirclePause className="w-4 h-4" />

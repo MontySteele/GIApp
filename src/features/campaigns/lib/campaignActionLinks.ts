@@ -10,7 +10,7 @@ export function getActionDestination(
 ): { label: string; href: string } | null {
   switch (action.category) {
     case 'pulls':
-      return { label: 'Open Calculator', href: buildPullActionHref(campaign, plan) };
+      return { label: 'Open Calculator', href: buildCampaignCalculatorHref(campaign, plan) };
     case 'materials':
       return {
         label: shouldOpenCharacterPlanner(action, campaign) ? 'Open Planner' : 'Open Materials',
@@ -42,7 +42,7 @@ export function buildCampaignMaterialHref(campaignId: string, materialKey?: stri
   return `/planner/materials?${params.toString()}`;
 }
 
-function buildPullActionHref(campaign: Campaign, plan: CampaignPlan): string {
+export function buildCampaignCalculatorHref(campaign: Campaign, plan: CampaignPlan): string {
   const pullTargets = getCampaignPullTargets(campaign);
   if (pullTargets.length === 0) return '/pulls';
 
