@@ -97,10 +97,14 @@ describe('WishHistoryPage', () => {
   });
 
   describe('initial loading', () => {
-    it('shows loading state initially', () => {
+    it('shows loading state initially', async () => {
       render(<WishHistoryPage />);
 
       expect(screen.getByText(/loading wish history/i)).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.queryByText(/loading wish history/i)).not.toBeInTheDocument();
+      });
     });
   });
 

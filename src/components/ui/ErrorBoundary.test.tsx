@@ -14,12 +14,29 @@ function ThrowingComponent({ shouldThrow = true }: { shouldThrow?: boolean }) {
   return <div>Rendered successfully</div>;
 }
 
-// Suppress console.error for cleaner test output
+const expectedThrownMessages = new Set([
+  'Test error message',
+  'Test error',
+  'HOC test error',
+]);
+
+function preventExpectedThrownError(event: ErrorEvent) {
+  if (
+    event.error instanceof Error &&
+    expectedThrownMessages.has(event.error.message)
+  ) {
+    event.preventDefault();
+  }
+}
+
+// Suppress expected boundary errors for cleaner test output.
 const originalError = console.error;
 beforeEach(() => {
   console.error = vi.fn();
+  window.addEventListener('error', preventExpectedThrownError);
 });
 afterEach(() => {
+  window.removeEventListener('error', preventExpectedThrownError);
   console.error = originalError;
 });
 

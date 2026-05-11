@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { toGOOD, fromGOOD, fromGOODWithInventory, toGOODWithInventory, validateGOOD, type GOODFormat } from './good';
 import { toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 import type { Character, InventoryArtifact, InventoryWeapon } from '@/types';
@@ -221,26 +221,32 @@ describe('GOOD Mapper', () => {
     });
 
     it('should skip characters without weapons', () => {
-      const goodData: GOODFormat = {
-        format: 'GOOD',
-        version: 2,
-        source: 'Test',
-        characters: [
-          {
-            key: 'Furina',
-            level: 90,
-            ascension: 6,
-            constellation: 2,
-            talent: { auto: 9, skill: 10, burst: 10 },
-          },
-        ],
-        weapons: [], // No weapons
-        artifacts: [],
-      };
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const goodData: GOODFormat = {
+          format: 'GOOD',
+          version: 2,
+          source: 'Test',
+          characters: [
+            {
+              key: 'Furina',
+              level: 90,
+              ascension: 6,
+              constellation: 2,
+              talent: { auto: 9, skill: 10, burst: 10 },
+            },
+          ],
+          weapons: [], // No weapons
+          artifacts: [],
+        };
 
-      const result = fromGOOD(goodData);
+        const result = fromGOOD(goodData);
 
-      expect(result).toHaveLength(0);
+        expect(result).toHaveLength(0);
+        expect(warnSpy).toHaveBeenCalledWith('No weapon found for character Furina, skipping');
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('should handle characters with no artifacts', () => {

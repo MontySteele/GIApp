@@ -173,19 +173,25 @@ describe('Enka Mapper', () => {
     });
 
     it('should skip characters without weapons', () => {
-      const responseNoWeapon: EnkaResponse = {
-        ...mockEnkaResponse,
-        avatarInfoList: [
-          {
-            ...mockEnkaResponse.avatarInfoList![0],
-            equipList: [], // No weapon
-          },
-        ],
-      };
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const responseNoWeapon: EnkaResponse = {
+          ...mockEnkaResponse,
+          avatarInfoList: [
+            {
+              ...mockEnkaResponse.avatarInfoList![0],
+              equipList: [], // No weapon
+            },
+          ],
+        };
 
-      const result = fromEnka(responseNoWeapon);
+        const result = fromEnka(responseNoWeapon);
 
-      expect(result).toHaveLength(0); // Character skipped
+        expect(result).toHaveLength(0); // Character skipped
+        expect(warnSpy).toHaveBeenCalledWith('No weapon found for Furina, skipping');
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('should throw error if no character data', () => {

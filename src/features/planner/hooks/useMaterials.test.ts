@@ -29,10 +29,14 @@ describe('useMaterials', () => {
   });
 
   describe('data loading', () => {
-    it('starts with loading state', () => {
+    it('starts with loading state', async () => {
       const { result } = renderHook(() => useMaterials());
 
       expect(result.current.isLoading).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
     });
 
     it('loads materials from repository', async () => {
