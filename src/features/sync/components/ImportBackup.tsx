@@ -1,5 +1,6 @@
 import { useState, useRef, type ChangeEvent } from 'react';
 import { Upload, AlertCircle, CheckCircle2, FileJson, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import Modal from '@/components/ui/Modal';
@@ -12,6 +13,7 @@ import {
   type ValidationResult,
 } from '../services/importService';
 import { parseSyncPayload, unwrapFromTextImport, type SyncPayload } from '../services/syncUtils';
+import { buildImportValueRows } from '../domain/importValueSummary';
 
 interface ImportBackupProps {
   onImportComplete?: (result: ImportResult) => void;
@@ -159,6 +161,8 @@ export default function ImportBackup({ onImportComplete }: ImportBackupProps) {
 
     return { created, updated, skipped };
   };
+
+  const importValueRows = importResult ? buildImportValueRows(importResult) : [];
 
   return (
     <div className="space-y-4">
@@ -360,6 +364,24 @@ export default function ImportBackup({ onImportComplete }: ImportBackupProps) {
               </div>
             </div>
           </div>
+
+          {importValueRows.length > 0 && (
+            <div className="p-4 bg-primary-950/20 border border-primary-900/50 rounded-lg">
+              <div className="text-sm font-medium text-primary-100 mb-3">What changed</div>
+              <div className="space-y-2">
+                {importValueRows.map((row) => (
+                  <Link
+                    key={row.id}
+                    to={row.href}
+                    className="block rounded-lg bg-slate-950/60 p-3 transition-colors hover:bg-slate-900"
+                  >
+                    <div className="text-sm font-medium text-slate-100">{row.title}</div>
+                    <div className="mt-0.5 text-xs text-slate-400">{row.detail}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Detailed Stats */}
           <details className="text-sm">

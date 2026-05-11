@@ -59,20 +59,20 @@ export function ActiveCampaignsWidgetView({
       <CardHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Flag className="w-5 h-5 text-primary-400" />
-          <h3 className="font-semibold">Active Campaigns</h3>
+          <h3 className="font-semibold">Active Targets</h3>
         </div>
         <Link
           to="/campaigns"
           className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1"
         >
-          Campaigns <ArrowRight className="w-3 h-3" />
+          Targets <ArrowRight className="w-3 h-3" />
         </Link>
       </CardHeader>
       <CardContent>
         {activeCampaigns.length === 0 ? (
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-300">No active campaign selected.</p>
+              <p className="text-sm text-slate-300">No active target selected.</p>
               <p className="text-xs text-slate-500 mt-1">
                 Start with a pull target or a team you want to polish.
               </p>
@@ -130,7 +130,7 @@ export function ActiveCampaignsWidgetView({
                       </Badge>
                     ) : plansPending ? (
                       <span
-                        aria-label="Campaign readiness loading"
+                        aria-label="Target readiness loading"
                         className="h-5 w-12 rounded-full bg-slate-800 animate-pulse"
                       />
                     ) : null}
@@ -148,7 +148,7 @@ export function ActiveCampaignsWidgetView({
                 to="/campaigns"
                 className="flex items-center justify-between rounded-lg border border-slate-800 px-3 py-2 text-xs text-slate-400 transition-colors hover:border-slate-700 hover:text-slate-200"
               >
-                <span>+{activeCampaigns.length - 3} more active campaigns</span>
+                <span>+{activeCampaigns.length - 3} more active targets</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}

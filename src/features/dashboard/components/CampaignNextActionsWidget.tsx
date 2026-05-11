@@ -110,16 +110,16 @@ export default function CampaignNextActionsWidget({
           to="/campaigns"
           className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300"
         >
-          Campaigns <ArrowRight className="h-3 w-3" />
+          Targets <ArrowRight className="h-3 w-3" />
         </Link>
       </CardHeader>
       <CardContent>
         {activeCampaigns.length === 0 ? (
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-200">No campaign focus yet.</p>
+              <p className="text-sm font-medium text-slate-200">No target focus yet.</p>
               <p className="mt-1 text-sm text-slate-400">
-                Create a pull, build, or team campaign so the dashboard can choose your next action.
+                Create a pull, build, or team target so the dashboard can choose your next action.
               </p>
             </div>
             <Link
@@ -127,7 +127,7 @@ export default function CampaignNextActionsWidget({
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
             >
               <Target className="h-4 w-4" />
-              Create Campaign
+              Create Target
             </Link>
           </div>
         ) : error && !plansPending && actions.length === 0 ? (
@@ -199,12 +199,12 @@ export default function CampaignNextActionsWidget({
         ) : (
           <div className="rounded-lg bg-slate-900 p-3">
             <p className="text-sm font-medium text-slate-200">
-              {allActions.length > 0 ? 'All campaign actions handled today.' : 'Campaigns are ready for review.'}
+              {allActions.length > 0 ? 'All target actions handled today.' : 'Targets are ready for review.'}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {allActions.length > 0
                 ? 'Completed and snoozed actions return tomorrow.'
-                : 'Open your active campaigns and mark completed goals when you are happy with them.'}
+                : 'Open your active targets and mark completed goals when you are happy with them.'}
             </p>
             {todayActivities.length > 0 && (
               <ActivityLog activities={todayActivities.slice(0, 3)} />

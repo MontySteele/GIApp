@@ -53,7 +53,7 @@ export default function BannersTab() {
       <div>
         <h1 className="text-3xl font-bold mb-1">Banner Planning</h1>
         <p className="text-slate-400">
-          Track likely banners and turn them into pull campaigns when they matter.
+          Track likely banners and turn them into pull targets when they matter.
         </p>
       </div>
 
@@ -64,7 +64,7 @@ export default function BannersTab() {
             <div>
               <h3 className="font-medium text-primary-400">Local planning, external confirmation</h3>
               <p className="text-sm text-slate-400 mt-1">
-                Keep speculative and confirmed targets here, then open a campaign to connect the banner to budget, pity, and pre-farming.
+                Keep speculative and confirmed targets here, then open a target to connect the banner to budget, pity, and pre-farming.
               </p>
             </div>
           </div>
@@ -78,7 +78,7 @@ export default function BannersTab() {
           <div>
             <h2 className="text-lg font-semibold">Planned Banner Targets</h2>
             <p className="text-sm text-slate-400">
-              Use these cards as a staging area before committing to a full campaign.
+              Use these cards as a staging area before committing to a full target.
             </p>
           </div>
           <Badge variant="outline" className="w-fit">

@@ -20,7 +20,7 @@ import type { DayName } from '@/features/planner/domain/farmingSchedule';
 import { useTodayFarming, type FarmingScope } from '../hooks/useTodayFarming';
 
 const SCOPE_OPTIONS: { value: FarmingScope; label: string; icon: React.ReactNode }[] = [
-  { value: 'campaign', label: 'Campaigns', icon: <Flag className="w-3 h-3" /> },
+  { value: 'campaign', label: 'Targets', icon: <Flag className="w-3 h-3" /> },
   { value: 'team', label: 'Teams', icon: <UserCheck className="w-3 h-3" /> },
   { value: 'priority', label: 'Priority', icon: <Star className="w-3 h-3" /> },
   { value: 'all', label: 'All', icon: <Users className="w-3 h-3" /> },
@@ -103,15 +103,15 @@ export default function TodayFarmingWidget() {
 
   const scopeLabel =
     scope === 'campaign'
-      ? 'campaign targets'
+    ? 'target characters'
       : scope === 'team'
         ? 'team members'
         : scope === 'priority'
           ? 'priority characters'
           : 'characters';
-  const recommendationLabel = scope === 'campaign' ? 'Campaign targets need' : 'Your characters need';
+  const recommendationLabel = scope === 'campaign' ? 'Target characters need' : 'Your characters need';
   const emptyPersonalizedLabel = scope === 'campaign'
-    ? 'Create or activate a campaign to see focused recommendations'
+    ? 'Create or activate a target to see focused recommendations'
     : 'Add characters to see personalized recommendations';
 
   const formatNeedLabel = (character: { characterKey: string; campaignName?: string }) =>
@@ -178,7 +178,7 @@ export default function TodayFarmingWidget() {
           <div className="space-y-4">
             {isSunday && (
               <div className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
-                All domains are available today. Pick the highest campaign or roster need.
+                All domains are available today. Pick the highest target or roster need.
               </div>
             )}
             {/* Character-specific recommendations */}

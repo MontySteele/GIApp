@@ -127,8 +127,8 @@ describe('CampaignNextActionsWidget', () => {
   it('points users to campaign creation when there is no active focus', () => {
     renderWidget({ activeCampaigns: [], plans: {} });
 
-    expect(screen.getByText('No campaign focus yet.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /create campaign/i })).toHaveAttribute(
+    expect(screen.getByText('No target focus yet.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /create target/i })).toHaveAttribute(
       'href',
       '/campaigns'
     );
@@ -163,7 +163,7 @@ describe('CampaignNextActionsWidget', () => {
       },
     });
 
-    expect(screen.getByText('Campaigns are ready for review.')).toBeInTheDocument();
+    expect(screen.getByText('Targets are ready for review.')).toBeInTheDocument();
     expect(screen.getByText(/mark completed goals/i)).toBeInTheDocument();
   });
 
@@ -322,7 +322,7 @@ describe('CampaignNextActionsWidget', () => {
 
     await user.click(screen.getByRole('button', { name: /not now/i }));
 
-    expect(screen.getByText('All campaign actions handled today.')).toBeInTheDocument();
+    expect(screen.getByText('All target actions handled today.')).toBeInTheDocument();
     expect(screen.getByText(/return tomorrow/i)).toBeInTheDocument();
     expect(screen.getByText('Snoozed')).toBeInTheDocument();
   });

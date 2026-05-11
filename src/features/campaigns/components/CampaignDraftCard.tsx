@@ -55,8 +55,8 @@ export default function CampaignDraftCard({
             </div>
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge variant="primary">Campaign draft</Badge>
-                {matchingCampaign && <Badge variant="warning">Existing campaign found</Badge>}
+                <Badge variant="primary">Target draft</Badge>
+                {matchingCampaign && <Badge variant="warning">Existing target found</Badge>}
               </div>
               <h2 className="truncate text-lg font-semibold text-slate-100">{title}</h2>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -100,7 +100,7 @@ export default function CampaignDraftCard({
 
         {matchingCampaign && (
           <p className="rounded-lg bg-amber-950/30 px-3 py-2 text-sm text-amber-200">
-            {matchingCampaign.name} is already {matchingCampaign.status}. Open it to continue, or create a separate campaign if this is a different goal.
+            {matchingCampaign.name} is already {matchingCampaign.status}. Open it to continue, or create a separate target if this is a different goal.
           </p>
         )}
       </CardContent>

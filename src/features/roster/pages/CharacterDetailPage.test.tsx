@@ -95,7 +95,7 @@ describe('CharacterDetailPage', () => {
   it('links owned characters into constellation chase campaign drafts', () => {
     renderPage();
 
-    expect(screen.getByRole('link', { name: /build campaign/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /build target/i })).toHaveAttribute(
       'href',
       '/campaigns?type=character-polish&character=Furina&buildGoal=comfortable&pullPlan=0'
     );

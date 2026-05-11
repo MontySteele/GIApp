@@ -247,8 +247,8 @@ test.describe('Campaign flow smoke', () => {
 
     await expect(page).toHaveURL(/\/planner\/materials\?/);
     await expect(page).toHaveURL(/campaign=campaign-build-furina/);
-    await expect(page.getByText('Campaign material plan for Build Furina')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Campaign Deficits' })).toBeVisible();
+    await expect(page.getByText('Target material plan for Build Furina')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Target Deficits' })).toBeVisible();
   });
 
   test('stale imports become the next action when one active campaign is otherwise ready', async ({ page }) => {

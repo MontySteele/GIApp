@@ -258,9 +258,9 @@ export default function CampaignCard({
             setConfirmDelete(false);
             onDelete(campaign.id);
           }}
-          title="Delete Campaign"
+          title="Delete Target"
           itemName={campaign.name}
-          description="This will permanently delete the campaign, including all targets and planning data. This action cannot be undone."
+          description="This will permanently delete the target, including all planning data. This action cannot be undone."
         />
       </CardContent>
     </Card>

@@ -421,7 +421,7 @@ export async function importBackup(
 
       // Campaigns
       if (data.campaigns?.length) {
-        onProgress?.('Importing campaigns...', (stageIndex / stages.length) * 100);
+        onProgress?.('Importing targets...', (stageIndex / stages.length) * 100);
         result.stats.campaigns = await mergeTable('campaigns', data.campaigns, strategy);
       }
     });

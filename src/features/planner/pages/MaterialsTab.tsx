@@ -187,7 +187,7 @@ export default function MaterialsTab() {
         <h1 className="text-3xl font-bold mb-1">Material Inventory</h1>
         <p className="text-slate-400">
           {campaign
-            ? `Campaign material plan for ${campaign.name}`
+            ? `Target material plan for ${campaign.name}`
             : 'Track your materials and see what you need to farm for your priority characters'}
         </p>
       </div>
@@ -215,7 +215,7 @@ export default function MaterialsTab() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-amber-400">Campaign not found</h3>
+              <h3 className="font-medium text-amber-400">Target not found</h3>
               <p className="text-sm text-slate-400 mt-1">
                 Showing priority character materials instead.
               </p>
@@ -309,7 +309,7 @@ export default function MaterialsTab() {
       {!isCampaignPlanLoading && activeGroupedMaterials && (
         <div>
           <h2 className="text-lg font-semibold mb-4">
-            {campaign ? 'Campaign Deficits' : 'Priority Deficits'}
+            {campaign ? 'Target Deficits' : 'Priority Deficits'}
           </h2>
           <DeficitPriorityCard
             groupedMaterials={activeGroupedMaterials}
@@ -322,7 +322,7 @@ export default function MaterialsTab() {
       {!isCampaignPlanLoading && activeMaterials.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-4">
-            {campaign ? 'Campaign Materials' : 'All Required Materials'}
+            {campaign ? 'Target Materials' : 'All Required Materials'}
           </h2>
           <MaterialsList
             materials={activeMaterials}
@@ -364,7 +364,7 @@ function CampaignMaterialContextCard({
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant="primary">
-              {isDefaultCampaignContext ? 'Active campaign' : 'Selected campaign'}
+              {isDefaultCampaignContext ? 'Active target' : 'Selected target'}
             </Badge>
             <span className="text-xs uppercase text-slate-500">Material plan</span>
           </div>
@@ -378,11 +378,11 @@ function CampaignMaterialContextCard({
             </p>
           ) : focusedMaterialKey ? (
             <p className="mt-1 text-sm text-slate-400">
-              The linked material is not currently blocking this campaign.
+              The linked material is not currently blocking this target.
             </p>
           ) : (
             <p className="mt-1 text-sm text-slate-400">
-              Showing only materials required by this campaign.
+              Showing only materials required by this target.
             </p>
           )}
         </div>
@@ -392,7 +392,7 @@ function CampaignMaterialContextCard({
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
           >
             <ArrowLeft className="h-4 w-4" />
-            Campaign
+            Target
           </Link>
           <Link
             to="/planner/materials?scope=priority"
@@ -417,7 +417,7 @@ function PriorityFallbackContextCard({ activeCampaign }: { activeCampaign: Campa
           </div>
           <h2 className="text-base font-semibold text-slate-100">Showing roster priority materials</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Active campaign context is available for {activeCampaign.name}.
+            Active target context is available for {activeCampaign.name}.
           </p>
         </div>
         <Link
@@ -425,7 +425,7 @@ function PriorityFallbackContextCard({ activeCampaign }: { activeCampaign: Campa
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
         >
           <Flag className="h-4 w-4" />
-          Active Campaign
+          Active Target
         </Link>
       </div>
     </Card>
@@ -461,7 +461,7 @@ function CampaignFarmTodayCard({
             <Badge variant="warning">Farm today</Badge>
             <Badge variant="outline">{schedule.dayName}</Badge>
           </div>
-          <h2 className="text-lg font-semibold text-slate-100">Farm Today For Campaign</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Farm Today For Target</h2>
           <p className="mt-1 text-sm text-slate-400">{getFarmingSummary(schedule)}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm sm:min-w-72">
@@ -484,7 +484,7 @@ function CampaignFarmTodayCard({
               recommendations={schedule.farmToday}
             />
           ) : (
-            <p className="text-sm text-slate-500">No campaign talent books are available today.</p>
+            <p className="text-sm text-slate-500">No target talent books are available today.</p>
           )}
         </div>
         <div className="rounded-lg bg-slate-900/70 p-3">
@@ -569,7 +569,7 @@ function FarmingRecommendationLinks({
       ))}
       {recommendations.length > (compact ? 2 : 4) && (
         <p className="text-xs text-slate-500">
-          {recommendations.length - (compact ? 2 : 4)} more campaign deficits share this window.
+          {recommendations.length - (compact ? 2 : 4)} more target deficits share this window.
         </p>
       )}
     </div>

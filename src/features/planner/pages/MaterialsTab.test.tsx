@@ -256,11 +256,11 @@ describe('MaterialsTab campaign context', () => {
 
     renderMaterialsTab('/planner/materials?campaign=campaign-1&material=Mora');
 
-    expect(screen.getByText('Campaign material plan for Recruit Furina')).toBeInTheDocument();
+    expect(screen.getByText('Target material plan for Recruit Furina')).toBeInTheDocument();
     expect(screen.getByText('Focused on Mora: 800 still needed.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Campaign Deficits' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Campaign Materials' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Campaign' })).toHaveAttribute(
+    expect(screen.getByRole('heading', { name: 'Target Deficits' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Target Materials' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Target' })).toHaveAttribute(
       'href',
       '/campaigns/campaign-1'
     );
@@ -283,9 +283,9 @@ describe('MaterialsTab campaign context', () => {
 
     renderMaterialsTab('/planner/materials');
 
-    expect(screen.getByText('Campaign material plan for Recruit Furina')).toBeInTheDocument();
-    expect(screen.getByText('Active campaign')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Farm Today For Campaign' })).toBeInTheDocument();
+    expect(screen.getByText('Target material plan for Recruit Furina')).toBeInTheDocument();
+    expect(screen.getByText('Active target')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Farm Today For Target' })).toBeInTheDocument();
     expect(screen.getByText('Talent deficit')).toBeInTheDocument();
   });
 
@@ -298,7 +298,7 @@ describe('MaterialsTab campaign context', () => {
 
     expect(screen.getByText('Priority roster')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Priority Deficits' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /active campaign/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /active target/i })).toHaveAttribute(
       'href',
       '/planner/materials?campaign=campaign-1'
     );
@@ -329,7 +329,7 @@ describe('MaterialsTab campaign context', () => {
 
     renderMaterialsTab('/planner/materials?campaign=missing-campaign&material=Mora');
 
-    expect(screen.getByText('Campaign not found')).toBeInTheDocument();
+    expect(screen.getByText('Target not found')).toBeInTheDocument();
     expect(screen.getByText('Showing priority character materials instead.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Priority Deficits' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'All Required Materials' })).toBeInTheDocument();

@@ -83,7 +83,7 @@ export function campaignToTargetSummary(
     kind: getCampaignKind(campaign),
     status: campaign.status,
     title: campaign.name,
-    subtitle: targetLabel || 'Target campaign',
+    subtitle: targetLabel || 'Target',
     priority: campaign.priority,
     href: `/campaigns/${campaign.id}`,
     actionHref: `/campaigns/${campaign.id}`,

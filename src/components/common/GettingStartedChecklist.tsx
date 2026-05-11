@@ -21,7 +21,7 @@ const CHECKLIST_ITEMS: Array<{
   {
     key: 'hasImportedCharacters',
     title: 'Import full account data',
-    description: 'Use Irminsul or GOOD so campaigns can read roster, weapons, artifacts, and materials.',
+    description: 'Use Irminsul or GOOD so targets can read roster, weapons, artifacts, and materials.',
     link: '/roster?import=irminsul',
     linkLabel: 'Import Data',
   },

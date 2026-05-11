@@ -175,7 +175,7 @@ export default function TeamDetailPage() {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
           >
             <Target className="w-4 h-4" />
-            Start Campaign
+            Start Target
           </Link>
           <Button variant="secondary" onClick={() => setShowEditModal(true)}>
             <Edit2 className="w-4 h-4" />

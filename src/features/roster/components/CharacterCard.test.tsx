@@ -322,13 +322,13 @@ describe('CharacterCard', () => {
       const onClick = vi.fn();
       render(<CharacterCard character={makeCharacter()} onClick={onClick} />);
 
-      const campaignLink = screen.getByLabelText('Start polish campaign for Furina');
-      expect(campaignLink).toHaveAttribute(
+      const targetLink = screen.getByLabelText('Start polish target for Furina');
+      expect(targetLink).toHaveAttribute(
         'href',
         '/campaigns?type=character-polish&character=Furina&buildGoal=comfortable&pullPlan=0'
       );
 
-      campaignLink.click();
+      targetLink.click();
       expect(onClick).not.toHaveBeenCalled();
     });
 
