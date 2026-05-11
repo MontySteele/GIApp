@@ -207,7 +207,7 @@ function renderPage(initialEntry = '/campaigns') {
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/campaigns" element={<CampaignsPage />} />
-        <Route path="/campaigns/:id" element={<div>Campaign detail</div>} />
+        <Route path="/campaigns/:id" element={<div>Target detail</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -235,15 +235,15 @@ describe('CampaignsPage', () => {
     it('shows the empty state when there are no campaigns', () => {
       renderPage();
 
-      expect(screen.getByText('No campaigns yet')).toBeInTheDocument();
-      expect(screen.getByText(/create a character, build, or team campaign/i)).toBeInTheDocument();
+      expect(screen.getByText('No targets yet')).toBeInTheDocument();
+      expect(screen.getByText(/create a pull, build, or team target/i)).toBeInTheDocument();
     });
 
     it('shows the create form even with no campaigns', () => {
       renderPage();
 
-      expect(screen.getByRole('heading', { name: 'New Campaign' })).toBeInTheDocument();
-      expect(screen.getByLabelText('Campaign type')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'New Target' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Target type')).toBeInTheDocument();
     });
 
     it('prompts for an account import when freshness is missing', () => {
@@ -284,10 +284,10 @@ describe('CampaignsPage', () => {
 
       renderPage();
 
-      expect(screen.queryByRole('heading', { name: 'New Campaign' })).not.toBeInTheDocument();
-      await user.click(screen.getByRole('button', { name: /new campaign/i }));
+      expect(screen.queryByRole('heading', { name: 'New Target' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /new target/i }));
 
-      expect(screen.getByRole('heading', { name: 'New Campaign' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'New Target' })).toBeInTheDocument();
     });
 
     it('renders multiple campaigns', () => {
@@ -461,7 +461,7 @@ describe('CampaignsPage', () => {
       const dialog = screen.getByRole('dialog');
       await user.click(within(dialog).getByRole('button', { name: /delete/i }));
 
-      expect(screen.getByText(/failed to delete campaign/i)).toBeInTheDocument();
+      expect(screen.getByText(/failed to delete target/i)).toBeInTheDocument();
     });
   });
 
@@ -469,9 +469,9 @@ describe('CampaignsPage', () => {
     it('applies character campaign prefill from the URL', () => {
       renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=0&copies=2&budget=150&priority=1&deadline=2026-06-01');
 
-      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      expect(screen.getByText('Target draft')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Recruit Furina' })).toBeInTheDocument();
-      expect(screen.getByLabelText('Campaign type')).toHaveValue('character-acquisition');
+      expect(screen.getByLabelText('Target type')).toHaveValue('character-acquisition');
       expect(screen.getByLabelText('Target character')).toHaveValue('Furina');
       expect(screen.getByLabelText('Build goal')).toHaveValue('full');
       expect(screen.getByLabelText('Priority')).toHaveValue('1');
@@ -484,9 +484,9 @@ describe('CampaignsPage', () => {
     it('applies owned character polish prefill from the URL', () => {
       renderPage('/campaigns?type=character-polish&character=Furina&buildGoal=full&pullPlan=0&priority=2');
 
-      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      expect(screen.getByText('Target draft')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Polish Furina' })).toBeInTheDocument();
-      expect(screen.getByLabelText('Campaign type')).toHaveValue('character-polish');
+      expect(screen.getByLabelText('Target type')).toHaveValue('character-polish');
       expect(screen.getByLabelText('Owned character')).toHaveValue('Furina');
       expect(screen.getByLabelText('Build goal')).toHaveValue('full');
       expect(screen.getByLabelText('Copies')).toBeDisabled();
@@ -514,7 +514,7 @@ describe('CampaignsPage', () => {
           pullTargets: [],
         })
       );
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
 
     it('creates a prefilled character campaign from the draft card', async () => {
@@ -544,7 +544,7 @@ describe('CampaignsPage', () => {
           ],
         })
       );
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
 
     it('preserves unreleased character names from banner prefill links', async () => {
@@ -612,7 +612,7 @@ describe('CampaignsPage', () => {
 
       renderPage('/campaigns?character=Furina&buildGoal=comfortable&pullPlan=1');
 
-      expect(screen.getByText('Existing campaign found')).toBeInTheDocument();
+      expect(screen.getByText('Existing target found')).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /open existing/i })).toHaveAttribute(
         'href',
         '/campaigns/campaign-1'
@@ -625,7 +625,7 @@ describe('CampaignsPage', () => {
 
       renderPage('/campaigns?character=Furina&buildGoal=comfortable&pullPlan=1&copies=1&constellation=2');
 
-      expect(screen.queryByText('Existing campaign found')).not.toBeInTheDocument();
+      expect(screen.queryByText('Existing target found')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create draft/i })).toBeInTheDocument();
     });
 
@@ -633,10 +633,10 @@ describe('CampaignsPage', () => {
       const user = userEvent.setup();
       renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=0');
 
-      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      expect(screen.getByText('Target draft')).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: /clear draft/i }));
 
-      expect(screen.queryByText('Campaign draft')).not.toBeInTheDocument();
+      expect(screen.queryByText('Target draft')).not.toBeInTheDocument();
       expect(screen.getByLabelText('Target character')).toHaveValue('Furina');
     });
 
@@ -644,7 +644,7 @@ describe('CampaignsPage', () => {
       const user = userEvent.setup();
       renderPage('/campaigns?character=Furina&buildGoal=full&pullPlan=0');
 
-      await user.click(screen.getByRole('button', { name: /create campaign/i }));
+      await user.click(screen.getByRole('button', { name: /create target/i }));
 
       expect(mocks.createCampaign).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -659,15 +659,15 @@ describe('CampaignsPage', () => {
           pullTargets: [],
         })
       );
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
 
     it('applies team campaign prefill from the URL', () => {
       renderPage('/campaigns?team=team-1&buildGoal=functional');
 
-      expect(screen.getByText('Campaign draft')).toBeInTheDocument();
+      expect(screen.getByText('Target draft')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Polish Salon Core' })).toBeInTheDocument();
-      expect(screen.getByLabelText('Campaign type')).toHaveValue('team-polish');
+      expect(screen.getByLabelText('Target type')).toHaveValue('team-polish');
       expect(screen.getByLabelText('Target team')).toHaveValue('team-1');
       expect(screen.getByLabelText('Build goal')).toHaveValue('functional');
     });
@@ -690,7 +690,7 @@ describe('CampaignsPage', () => {
 
       renderPage('/campaigns?team=team-1&buildGoal=functional');
 
-      expect(screen.getByText('Existing campaign found')).toBeInTheDocument();
+      expect(screen.getByText('Existing target found')).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /open existing/i })).toHaveAttribute(
         'href',
         '/campaigns/team-campaign'
@@ -701,8 +701,8 @@ describe('CampaignsPage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.selectOptions(screen.getByLabelText('Campaign type'), 'team-polish');
-      await user.click(screen.getByRole('button', { name: /create campaign/i }));
+      await user.selectOptions(screen.getByLabelText('Target type'), 'team-polish');
+      await user.click(screen.getByRole('button', { name: /create target/i }));
 
       expect(screen.getByText(/choose a team/i)).toBeInTheDocument();
       expect(mocks.createCampaign).not.toHaveBeenCalled();
@@ -713,18 +713,18 @@ describe('CampaignsPage', () => {
       mocks.createCampaign.mockRejectedValueOnce(new Error('DB error'));
       renderPage();
 
-      await user.click(screen.getByRole('button', { name: /create campaign/i }));
+      await user.click(screen.getByRole('button', { name: /create target/i }));
 
-      expect(screen.getByText(/failed to create campaign/i)).toBeInTheDocument();
+      expect(screen.getByText(/failed to create target/i)).toBeInTheDocument();
     });
 
     it('navigates to detail page after successful creation', async () => {
       const user = userEvent.setup();
       renderPage();
 
-      await user.click(screen.getByRole('button', { name: /create campaign/i }));
+      await user.click(screen.getByRole('button', { name: /create target/i }));
 
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
   });
 });

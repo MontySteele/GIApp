@@ -83,11 +83,11 @@ describe('RosterWishlist', () => {
   it('links wishlisted characters into prefilled campaigns', () => {
     render(<RosterWishlist ownedKeys={ownedKeys} />);
 
-    expect(screen.getByLabelText('Start campaign for Furina')).toHaveAttribute(
+    expect(screen.getByLabelText('Start target for Furina')).toHaveAttribute(
       'href',
       '/campaigns?character=Furina&buildGoal=comfortable&pullPlan=1'
     );
-    expect(screen.getByLabelText('Start campaign for Alhaitham')).toHaveAttribute(
+    expect(screen.getByLabelText('Start target for Alhaitham')).toHaveAttribute(
       'href',
       '/campaigns?character=Alhaitham&buildGoal=full&pullPlan=1'
     );

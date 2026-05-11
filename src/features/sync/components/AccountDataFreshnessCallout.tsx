@@ -16,20 +16,20 @@ interface AccountDataFreshnessCalloutProps {
 
 const CONTEXT_DETAILS: Record<FreshnessContext, Partial<Record<AccountDataFreshness['status'], string>>> = {
   campaign: {
-    missing: 'Import from Irminsul/GOOD so campaign readiness can use your current roster, weapons, artifacts, materials, and pull resources.',
-    stale: 'Campaign readiness, farming gaps, and build gaps may be out of date until you refresh your account import.',
+    missing: 'Import from Irminsul/GOOD so target readiness can use your current roster, weapons, artifacts, materials, and pull resources.',
+    stale: 'Target readiness, farming gaps, and build gaps may be out of date until you refresh your account import.',
   },
   materials: {
-    missing: 'Import material inventory before trusting campaign deficits or resin estimates.',
+    missing: 'Import material inventory before trusting target deficits or resin estimates.',
     stale: 'Material deficits and resin estimates depend on inventory counts from your latest account import.',
   },
   farming: {
-    missing: "Import account data to turn today's domain schedule into campaign-specific farming recommendations.",
+    missing: "Import account data to turn today's domain schedule into target-specific farming recommendations.",
     stale: "Today's farming recommendations depend on current roster and material inventory data.",
   },
   calculator: {
-    missing: 'Import account data before trusting the broader campaign plan that sent you here.',
-    stale: 'This pull plan may still calculate correctly, but the campaign readiness behind it could be stale.',
+    missing: 'Import account data before trusting the broader target plan that sent you here.',
+    stale: 'This pull plan may still calculate correctly, but the target readiness behind it could be stale.',
   },
 };
 

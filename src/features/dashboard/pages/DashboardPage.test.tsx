@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import DashboardPage from './DashboardPage';
 
+const updateChecklistMock = vi.hoisted(() => vi.fn());
+
 // Mock child widgets that have their own async hooks
 vi.mock('../components/TodayFarmingWidget', () => ({
   default: () => <div data-testid="today-farming-widget">TodayFarmingWidget</div>,
@@ -15,6 +17,18 @@ vi.mock('../components/DashboardCampaignFocus', () => ({
 
 vi.mock('@/features/notes/components/QuickNotesWidget', () => ({
   default: () => <div data-testid="quick-notes-widget">QuickNotesWidget</div>,
+}));
+
+vi.mock('@/features/ledger/components/QuickResourceLogger', () => ({
+  default: () => <div data-testid="quick-resource-logger">QuickResourceLogger</div>,
+}));
+
+vi.mock('@/features/targets/components/TargetQuickStart', () => ({
+  default: () => <div data-testid="target-quick-start">TargetQuickStart</div>,
+}));
+
+vi.mock('@/features/targets/components/TargetSummaryList', () => ({
+  default: () => <div data-testid="target-summary-list">TargetSummaryList</div>,
 }));
 
 vi.mock('@/components/common/GettingStartedChecklist', () => ({
@@ -38,7 +52,7 @@ vi.mock('@/contexts/OnboardingContext', () => ({
       hasImportedCharacters: false,
       hasCreatedTeam: false,
       hasVisitedPlanner: false,
-      hasSetResin: false,
+      hasImportedWishHistory: false,
     },
     checklistProgress: 0,
     checklistTotal: 4,
@@ -47,7 +61,7 @@ vi.mock('@/contexts/OnboardingContext', () => ({
     resetOnboarding: vi.fn(),
     openWizard: vi.fn(),
     closeWizard: vi.fn(),
-    updateChecklist: vi.fn(),
+    updateChecklist: updateChecklistMock,
   }),
 }));
 
@@ -118,6 +132,10 @@ vi.mock('@/features/notes/hooks/useNotes', () => ({
   }),
 }));
 
+vi.mock('@/stores/wishlistStore', () => ({
+  useWishlistStore: () => [],
+}));
+
 // Mock localStorage for resin
 const mockLocalStorage = {
   getItem: vi.fn(),
@@ -156,7 +174,20 @@ const renderPage = () =>
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useLiveQuery).mockReturnValue(mockAvailablePulls);
+    vi.mocked(useLiveQuery)
+      .mockReset()
+      .mockReturnValueOnce(mockAvailablePulls)
+      .mockReturnValueOnce(2)
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce({
+        id: 'import-1',
+        source: 'GOOD',
+        importedAt: new Date().toISOString(),
+        characterCount: 3,
+        artifactCount: 150,
+        weaponCount: 50,
+        materialCount: 0,
+      });
     mockLocalStorage.getItem.mockReturnValue(null);
   });
 
@@ -165,7 +196,7 @@ describe('DashboardPage', () => {
       renderPage();
 
       expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
-      expect(screen.getByText(/your next campaign, farming, and wish priorities/i)).toBeInTheDocument();
+      expect(screen.getByText(/your targets, resources, and next action/i)).toBeInTheDocument();
     });
 
     it('renders all stat cards', () => {
@@ -195,7 +226,16 @@ describe('DashboardPage', () => {
 
       expect(screen.getByTestId('dashboard-campaign-focus')).toBeInTheDocument();
       expect(screen.getByTestId('today-farming-widget')).toBeInTheDocument();
-      expect(screen.getByTestId('quick-notes-widget')).toBeInTheDocument();
+      expect(screen.getByTestId('quick-resource-logger')).toBeInTheDocument();
+      expect(screen.getByTestId('target-quick-start')).toBeInTheDocument();
+      expect(screen.getByTestId('target-summary-list')).toBeInTheDocument();
+    });
+
+    it('shows a visible account freshness link', () => {
+      renderPage();
+
+      expect(screen.getByRole('link', { name: /fresh account data current/i })).toHaveAttribute('href', '/imports');
+      expect(screen.getByText(/last good import was today/i)).toBeInTheDocument();
     });
   });
 
@@ -277,7 +317,7 @@ describe('DashboardPage', () => {
       renderPage();
 
       expect(screen.getByText('Planner').closest('a')).toHaveAttribute('href', '/planner');
-      expect(screen.getByText('Budget').closest('a')).toHaveAttribute('href', '/pulls');
+      expect(screen.getAllByText('Budget')[0]?.closest('a')).toHaveAttribute('href', '/pulls');
     });
 
     it('resin card has link to planner', () => {
@@ -328,20 +368,13 @@ describe('DashboardPage', () => {
       expect(screen.getByText(/fragile resin/i)).toBeInTheDocument();
     });
   });
-});
 
-describe('DashboardPage loading state', () => {
-  it('shows skeleton loading state when data is loading', () => {
-    // Override mocks to show loading
-    vi.doMock('@/features/roster/hooks/useCharacters', () => ({
-      useCharacters: () => ({
-        characters: [],
-        isLoading: true,
-      }),
-    }));
+  describe('onboarding checklist self-healing', () => {
+    it('marks wish history imported when records already exist', () => {
+      renderPage();
 
-    // Note: In a real scenario, we'd need to re-import the component
-    // This test documents the expected behavior
+      expect(updateChecklistMock).toHaveBeenCalledWith({ hasImportedWishHistory: true });
+    });
   });
 });
 
@@ -357,6 +390,15 @@ describe('DashboardPage empty state', () => {
     vi.doMock('@/features/notes/components/QuickNotesWidget', () => ({
       default: () => <div data-testid="quick-notes-widget">QuickNotesWidget</div>,
     }));
+    vi.doMock('@/features/ledger/components/QuickResourceLogger', () => ({
+      default: () => <div data-testid="quick-resource-logger">QuickResourceLogger</div>,
+    }));
+    vi.doMock('@/features/targets/components/TargetQuickStart', () => ({
+      default: () => <div data-testid="target-quick-start">TargetQuickStart</div>,
+    }));
+    vi.doMock('@/features/targets/components/TargetSummaryList', () => ({
+      default: () => <div data-testid="target-summary-list">TargetSummaryList</div>,
+    }));
     vi.doMock('@/components/common/GettingStartedChecklist', () => ({
       default: () => <div data-testid="getting-started-checklist">GettingStartedChecklist</div>,
     }));
@@ -367,7 +409,12 @@ describe('DashboardPage empty state', () => {
       useOnboardingContext: () => ({
         isComplete: true,
         showWizard: false,
-        checklist: { hasImportedCharacters: false, hasCreatedTeam: false, hasVisitedPlanner: false, hasSetResin: false },
+        checklist: {
+          hasImportedCharacters: false,
+          hasCreatedTeam: false,
+          hasVisitedPlanner: false,
+          hasImportedWishHistory: false,
+        },
         checklistProgress: 0,
         checklistTotal: 4,
         isChecklistComplete: false,
@@ -400,7 +447,8 @@ describe('DashboardPage empty state', () => {
     }));
 
     vi.doMock('dexie-react-hooks', () => ({
-      useLiveQuery: vi.fn().mockReturnValue({
+      useLiveQuery: vi.fn()
+        .mockReturnValueOnce({
         availablePulls: 0,
         pullAvailability: {
           eventPulls: 0,
@@ -418,7 +466,9 @@ describe('DashboardPage empty state', () => {
         },
         lastUpdated: null,
         hasSnapshot: false,
-      }),
+        })
+        .mockReturnValueOnce(0)
+        .mockReturnValueOnce([]),
     }));
     vi.doMock('@/lib/services/resourceService', () => ({
       getAvailablePullsFromTracker: vi.fn(),
@@ -428,6 +478,9 @@ describe('DashboardPage empty state', () => {
     }));
     vi.doMock('@/features/notes/hooks/useNotes', () => ({
       useNotes: () => ({ notes: [], allNotes: [], createNote: vi.fn(), updateNote: vi.fn(), deleteNote: vi.fn(), isLoading: false }),
+    }));
+    vi.doMock('@/stores/wishlistStore', () => ({
+      useWishlistStore: () => [],
     }));
 
     // Re-import after mocking
@@ -441,5 +494,66 @@ describe('DashboardPage empty state', () => {
 
     expect(screen.getByText(/get started/i)).toBeInTheDocument();
     expect(screen.getByText(/import your character data/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /import account data/i })).toHaveAttribute(
+      'href',
+      '/roster?import=irminsul'
+    );
+  });
+});
+
+describe('DashboardPage loading state', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('shows skeleton placeholders while dashboard data is loading', async () => {
+    vi.doMock('@/features/roster/hooks/useCharacters', () => ({
+      useCharacters: () => ({ characters: [], isLoading: true }),
+    }));
+    vi.doMock('@/features/artifacts/hooks/useArtifacts', () => ({
+      useArtifacts: () => ({ stats: { total: 0, fiveStar: 0 }, isLoading: false }),
+    }));
+    vi.doMock('@/features/weapons/hooks/useWeapons', () => ({
+      useWeapons: () => ({ stats: { total: 0, fiveStars: 0 }, isLoading: false }),
+    }));
+    vi.doMock('@/features/roster/hooks/useTeams', () => ({
+      useTeams: () => ({ teams: [], isLoading: false }),
+    }));
+    vi.doMock('@/features/campaigns/hooks/useCampaigns', () => ({
+      useCampaigns: () => ({ campaigns: [], activeCampaigns: [], isLoading: false }),
+    }));
+    vi.doMock('@/contexts/OnboardingContext', () => ({
+      useOnboardingContext: () => ({
+        isComplete: true,
+        checklist: {
+          hasImportedCharacters: false,
+          hasCreatedTeam: false,
+          hasVisitedPlanner: false,
+          hasImportedWishHistory: false,
+        },
+        checklistProgress: 0,
+        checklistTotal: 4,
+        updateChecklist: vi.fn(),
+      }),
+    }));
+    vi.doMock('dexie-react-hooks', () => ({
+      useLiveQuery: vi.fn(() => undefined),
+    }));
+    vi.doMock('@/lib/services/resourceService', () => ({
+      getAvailablePullsFromTracker: vi.fn(),
+    }));
+    vi.doMock('@/stores/wishlistStore', () => ({
+      useWishlistStore: () => [],
+    }));
+
+    const { default: DashboardPageLoading } = await import('./DashboardPage');
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardPageLoading />
+      </MemoryRouter>
+    );
+
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('heading', { name: /dashboard/i })).not.toBeInTheDocument();
   });
 });

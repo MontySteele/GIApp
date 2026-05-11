@@ -27,7 +27,7 @@ const IMPORT_OPTIONS = [
   {
     id: 'irminsul',
     title: 'Irminsul Scanner',
-    description: 'Best for campaigns: imports roster, weapons, artifacts, and materials for planning.',
+    description: 'Best for targets: imports roster, weapons, artifacts, and materials for planning.',
     icon: Download,
     recommended: true,
   },
@@ -71,7 +71,7 @@ const FEATURES = [
   },
   {
     id: 'planner',
-    title: 'Campaign Planner',
+    title: 'Target Planner',
     description: 'Turn pulls, builds, materials, and teams into concrete next actions.',
     icon: Calendar,
     color: 'text-purple-400',
@@ -164,7 +164,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
           </h2>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
             Your personal Genshin Impact companion for tracking characters,
-            planning campaigns, managing teams, and optimizing your pulls.
+            planning targets, managing teams, and optimizing your pulls.
           </p>
           <div className="flex flex-col gap-2 text-left max-w-sm mx-auto mb-6">
             <div className="flex items-center gap-3 text-slate-300">
@@ -173,7 +173,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
             </div>
             <div className="flex items-center gap-3 text-slate-300">
               <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
-              <span>Turn goals into campaign next actions</span>
+              <span>Turn goals into target next actions</span>
             </div>
             <div className="flex items-center gap-3 text-slate-300">
               <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
@@ -219,7 +219,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
                       </span>
                       {option.recommended && (
                         <span className="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded">
-                          Recommended for campaigns
+                          Recommended for targets
                         </span>
                       )}
                     </div>
@@ -275,7 +275,7 @@ export default function OnboardingWizard({ isOpen, onClose, onComplete }: Onboar
             You're All Set!
           </h2>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
-            Start with a full account import to make campaigns, farming recommendations, and build readiness useful immediately.
+            Start with a full account import to make targets, farming recommendations, and build readiness useful immediately.
           </p>
           <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 text-left max-w-sm mx-auto">
             <p className="text-sm text-slate-400 mb-2">Quick tip:</p>

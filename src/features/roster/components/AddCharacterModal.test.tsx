@@ -13,7 +13,7 @@ describe('AddCharacterModal', () => {
     );
 
     expect(screen.getByText('Import from Irminsul')).toBeInTheDocument();
-    expect(screen.getByText('Recommended for campaigns')).toBeInTheDocument();
+    expect(screen.getByText('Recommended for targets')).toBeInTheDocument();
     expect(screen.getByText(/roster, weapons, artifacts, and materials/i)).toBeInTheDocument();
 
     expect(screen.getByText('Import GOOD Format')).toBeInTheDocument();

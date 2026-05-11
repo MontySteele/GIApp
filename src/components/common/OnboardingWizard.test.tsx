@@ -14,7 +14,7 @@ describe('OnboardingWizard', () => {
     navigateMock.mockClear();
   });
 
-  it('defaults new users to the campaign-ready Irminsul import path', async () => {
+  it('defaults new users to the target-ready Irminsul import path', async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
 
@@ -25,7 +25,7 @@ describe('OnboardingWizard', () => {
     await user.click(screen.getByRole('button', { name: /next/i }));
 
     expect(screen.getByText('Irminsul Scanner')).toBeInTheDocument();
-    expect(screen.getByText('Recommended for campaigns')).toBeInTheDocument();
+    expect(screen.getByText('Recommended for targets')).toBeInTheDocument();
     expect(screen.getByText(/showcased characters only/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /next/i }));

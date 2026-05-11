@@ -69,7 +69,7 @@ describe('BannersTab', () => {
     expect(screen.getByRole('button', { name: /add banner/i })).toBeInTheDocument();
   });
 
-  it('renders planned banners with campaign and calculator links', () => {
+  it('renders planned banners with target and calculator links', () => {
     mocks.plannedBanners = [makeBanner()];
 
     renderPage();
@@ -78,7 +78,7 @@ describe('BannersTab', () => {
     expect(screen.getByText('Hydro Archon rerun')).toBeInTheDocument();
     expect(screen.getByText('180 pulls')).toBeInTheDocument();
 
-    expect(screen.getByRole('link', { name: /add to campaign/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /start target/i })).toHaveAttribute(
       'href',
       '/campaigns?character=Furina&buildGoal=comfortable&priority=1&budget=180&deadline=2026-06-01&pullPlan=1'
     );

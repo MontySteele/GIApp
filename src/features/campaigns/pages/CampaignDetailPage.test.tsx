@@ -281,7 +281,7 @@ const plan: CampaignPlan = {
       id: 'campaign-1-pulls',
       category: 'pulls',
       label: 'Save 20 more pulls',
-      detail: '100/120 pulls ready for campaign targets.',
+      detail: '100/120 pulls ready for target characters.',
       priority: 1,
     },
     {
@@ -345,22 +345,22 @@ describe('CampaignDetailPage', () => {
       mocks.isLoading = true;
       renderPage();
 
-      expect(screen.getByText('Loading campaign...')).toBeInTheDocument();
+      expect(screen.getByText('Loading target...')).toBeInTheDocument();
     });
 
     it('shows not-found state for a nonexistent campaign', () => {
       mocks.campaigns = [];
       renderPage();
 
-      expect(screen.getByText('Campaign not found')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /back to campaigns/i })).toBeInTheDocument();
+      expect(screen.getByText('Target not found')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back to targets/i })).toBeInTheDocument();
     });
 
     it('shows not-found for mismatched campaign ID', () => {
       mocks.campaigns = [campaign];
       renderPage('/campaigns/nonexistent-id');
 
-      expect(screen.getByText('Campaign not found')).toBeInTheDocument();
+      expect(screen.getByText('Target not found')).toBeInTheDocument();
     });
   });
 
@@ -376,8 +376,8 @@ describe('CampaignDetailPage', () => {
     it('shows breadcrumb navigation', () => {
       renderPage();
 
-      expect(screen.getByText('Campaigns')).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Campaigns' })).toHaveAttribute('href', '/campaigns');
+      expect(screen.getByText('Targets')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Targets' })).toHaveAttribute('href', '/campaigns');
     });
 
     it('shows overall readiness from plan', () => {
@@ -459,7 +459,7 @@ describe('CampaignDetailPage', () => {
       mocks.planError = 'Material service unavailable';
       renderPage();
 
-      expect(screen.getByText('Unable to calculate campaign plan')).toBeInTheDocument();
+      expect(screen.getByText('Unable to calculate target plan')).toBeInTheDocument();
       expect(screen.getByText('Material service unavailable')).toBeInTheDocument();
       expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
     });
@@ -605,7 +605,7 @@ describe('CampaignDetailPage', () => {
         fireEvent.click(screen.getByRole('button', { name: /pause/i }));
       });
 
-      expect(screen.getByText(/failed to update campaign status/i)).toBeInTheDocument();
+      expect(screen.getByText(/failed to update target status/i)).toBeInTheDocument();
     });
   });
 
@@ -665,7 +665,7 @@ describe('CampaignDetailPage', () => {
         fireEvent.click(screen.getByRole('button', { name: /save setup/i }));
       });
 
-      expect(screen.getByText(/failed to save campaign setup/i)).toBeInTheDocument();
+      expect(screen.getByText(/failed to save target setup/i)).toBeInTheDocument();
     });
 
     it('lets team campaigns add wishlist targets to the campaign lineup', async () => {

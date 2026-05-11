@@ -1,13 +1,16 @@
-import { Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from '@/components/common/Header';
 import TabNav from '@/components/common/TabNav';
 import MobileBottomNav from '@/components/common/MobileBottomNav';
+import QuickActionBar from '@/components/common/QuickActionBar';
 import BackupReminderBanner from '@/features/sync/components/BackupReminderBanner';
 import ToastContainer from '@/components/ui/Toast';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import OnboardingWizard from '@/components/common/OnboardingWizard';
 import { useTheme } from '@/hooks/useTheme';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
+import { scrollToHashTarget } from './hashScroll';
 
 /** Skip link component for keyboard navigation */
 function SkipLink() {
@@ -21,6 +24,19 @@ function SkipLink() {
   );
 }
 
+function HashScrollHandler() {
+  const { hash, pathname, search } = useLocation();
+
+  useEffect(() => {
+    if (!hash) return;
+
+    const schedule = window.requestAnimationFrame ?? ((callback: FrameRequestCallback) => window.setTimeout(callback, 0));
+    schedule(() => scrollToHashTarget(hash));
+  }, [hash, pathname, search]);
+
+  return null;
+}
+
 export default function Layout() {
   // Initialize theme on mount
   useTheme();
@@ -29,6 +45,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 dark:bg-slate-950 light:bg-slate-50 text-slate-100 dark:text-slate-100 light:text-slate-900">
+      <HashScrollHandler />
       <SkipLink />
       <Header />
       <nav aria-label="Main navigation">
@@ -45,6 +62,7 @@ export default function Layout() {
         </ErrorBoundary>
       </main>
       <MobileBottomNav />
+      <QuickActionBar />
       <ToastContainer />
       <OnboardingWizard
         isOpen={showWizard}

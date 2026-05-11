@@ -73,7 +73,7 @@ export function getWishDataFreshness(
       lastUpdatedAt: snapshot.lastUpdatedAt,
       daysSinceUpdate,
       label: 'Refresh wish history',
-      detail: `Last ${sourceLabel} was ${ageLabel}. Refresh before trusting current pity or campaign pull odds.`,
+      detail: `Last ${sourceLabel} was ${ageLabel}. Refresh before trusting current pity or target pull odds.`,
     };
   }
 

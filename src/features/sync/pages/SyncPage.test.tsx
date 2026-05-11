@@ -12,7 +12,7 @@ vi.mock('@/contexts/OnboardingContext', () => ({
       hasImportedCharacters: false,
       hasCreatedTeam: false,
       hasVisitedPlanner: false,
-      hasSetResin: false,
+      hasImportedWishHistory: false,
     },
     checklistProgress: 0,
     checklistTotal: 4,

@@ -121,8 +121,8 @@ export default function RosterWishlist({ ownedKeys }: RosterWishlistProps) {
                       <Link
                         to={buildCharacterCampaignUrl(wc.key, wc.targetGoal, true)}
                         className="p-1 text-primary-400 hover:bg-primary-400/10 rounded transition-colors"
-                        title="Start campaign"
-                        aria-label={`Start campaign for ${wc.key}`}
+                        title="Start target"
+                        aria-label={`Start target for ${wc.key}`}
                       >
                         <Target className="w-3.5 h-3.5" aria-hidden="true" />
                       </Link>

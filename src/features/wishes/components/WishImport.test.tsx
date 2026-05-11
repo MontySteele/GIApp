@@ -31,6 +31,7 @@ vi.mock('@/db/schema', async (importOriginal) => {
 
 beforeEach(async () => {
   await db.wishRecords.clear();
+  localStorage.clear();
   campaignMocks.activeCampaigns = [];
   global.fetch = vi.fn(() =>
     Promise.resolve({
@@ -273,6 +274,9 @@ describe('WishImport', () => {
         expect(onImportComplete).toHaveBeenCalled();
         const stored = await wishRepo.getAll();
         expect(stored).toHaveLength(1);
+        expect(JSON.parse(localStorage.getItem('onboarding_checklist') ?? '{}')).toMatchObject({
+          hasImportedWishHistory: true,
+        });
       });
     });
 
@@ -633,7 +637,7 @@ describe('WishImport', () => {
         const stored = await wishRepo.getAll();
         expect(stored).toHaveLength(1);
       });
-      expect(screen.queryByRole('link', { name: /review campaign odds/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /review target odds/i })).not.toBeInTheDocument();
     });
 
     it('shows pity and campaign odds impact after import', async () => {
@@ -693,7 +697,7 @@ describe('WishImport', () => {
         expect(screen.getByText('Import Impact')).toBeInTheDocument();
         expect(screen.getByText('0 → 1')).toBeInTheDocument();
       });
-      expect(screen.getByRole('link', { name: /review campaign odds/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /review target odds/i })).toHaveAttribute(
         'href',
         '/campaigns'
       );

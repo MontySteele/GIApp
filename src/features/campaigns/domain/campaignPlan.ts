@@ -958,7 +958,7 @@ function calculateArtifactEnhancementRequirement(
     required,
     owned,
     deficit,
-    source: 'Equip and level artifacts for campaign targets',
+    source: 'Equip and level artifacts for target characters',
   };
 }
 
@@ -989,7 +989,7 @@ function calculateWeaponEnhancementRequirement(
     required,
     owned,
     deficit,
-    source: 'Level equipped weapons for campaign targets',
+    source: 'Level equipped weapons for target characters',
   };
 }
 
@@ -1147,7 +1147,7 @@ function buildNextActions(
       id: `${campaign.id}-pulls`,
       category: 'pulls',
       label: `Save ${pullReadiness.remainingPulls} more pulls`,
-      detail: `${pullReadiness.availablePulls}/${pullReadiness.targetPulls} event pulls ready for campaign targets.`,
+      detail: `${pullReadiness.availablePulls}/${pullReadiness.targetPulls} event pulls ready for target characters.`,
       priority: 1,
     });
   }

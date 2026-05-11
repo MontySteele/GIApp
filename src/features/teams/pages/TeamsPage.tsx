@@ -210,8 +210,8 @@ function TeamCard({ team, members, onEdit, onDelete, onExport }: TeamCardProps) 
               <Link
                 to={buildTeamCampaignUrl(team.id)}
                 className="p-1.5 text-primary-400 hover:bg-primary-400/10 rounded transition-colors"
-                title="Start team campaign"
-                aria-label="Start team campaign"
+                title="Start team target"
+                aria-label="Start team target"
               >
                 <Target className="w-4 h-4" aria-hidden="true" />
               </Link>

@@ -161,7 +161,7 @@ describe('ActiveCampaignsWidget', () => {
 
     expect(screen.getByText('Recruit Furina')).toBeInTheDocument();
     expect(screen.getByText('Calculating next action...')).toBeInTheDocument();
-    expect(screen.getByLabelText('Campaign readiness loading')).toBeInTheDocument();
+    expect(screen.getByLabelText('Target readiness loading')).toBeInTheDocument();
   });
 
   it('renders an empty state when there are no active campaigns', () => {
@@ -169,7 +169,7 @@ describe('ActiveCampaignsWidget', () => {
 
     renderWidget();
 
-    expect(screen.getByText('No active campaign selected.')).toBeInTheDocument();
+    expect(screen.getByText('No active target selected.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /create/i })).toHaveAttribute('href', '/campaigns');
   });
 
@@ -214,7 +214,7 @@ describe('ActiveCampaignsWidget', () => {
     expect(screen.getByText('Build Neuvillette')).toBeInTheDocument();
     expect(screen.getByText('Polish Hyperbloom')).toBeInTheDocument();
     expect(screen.queryByText('Save for Skirk')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /\+1 more active campaigns/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /\+1 more active targets/i })).toHaveAttribute(
       'href',
       '/campaigns'
     );

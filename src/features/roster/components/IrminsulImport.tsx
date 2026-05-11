@@ -11,6 +11,8 @@ import {
   Settings,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { writeLastImportSummary } from '@/features/sync/domain/lastImportSummary';
+import { buildRosterImportImpactSummary } from '@/features/sync/domain/rosterImportImpact';
 import {
   parseIrminsulJson,
   previewImport,
@@ -101,6 +103,14 @@ export default function IrminsulImport({ onSuccess, onCancel }: IrminsulImportPr
       setImportResult(result);
 
       if (result.success) {
+        writeLastImportSummary(buildRosterImportImpactSummary({
+          source: data.source || 'Irminsul',
+          charactersCreated: result.charactersImported,
+          charactersUpdated: result.charactersUpdated,
+          artifactsChanged: result.artifactsImported,
+          weaponsChanged: result.weaponsImported,
+          materialsChanged: result.materialsImported,
+        }));
         // Auto-close after 2 seconds on success
         setTimeout(() => {
           onSuccess();

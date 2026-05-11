@@ -61,7 +61,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
 // App Navigation
 export const TABS = [
   { id: 'dashboard', label: 'Dashboard', path: '/' },
-  { id: 'campaigns', label: 'Campaigns', path: '/campaigns' },
+  { id: 'campaigns', label: 'Targets', path: '/campaigns' },
   { id: 'roster', label: 'Roster', path: '/roster' },
   { id: 'teams', label: 'Teams', path: '/teams' },
   { id: 'pulls', label: 'Pulls', path: '/pulls' },

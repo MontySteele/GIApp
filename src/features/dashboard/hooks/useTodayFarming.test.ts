@@ -152,7 +152,7 @@ describe('useTodayFarming', () => {
     ]);
   });
 
-  it('uses active campaign targets for the campaign scope', async () => {
+  it('uses active target characters for the campaign scope', async () => {
     mocks.getTodayName.mockReturnValue('Monday');
 
     const { result } = renderHook(() => useTodayFarming({ scope: 'campaign' }));

@@ -176,6 +176,16 @@ test.describe('Navigation', () => {
   });
 
   test.describe('Deep Linking', () => {
+    test('quick actions can deep link to dashboard capture tools', async ({ page }) => {
+      await page.goto('/pulls');
+
+      await page.getByRole('button', { name: /quick actions/i }).click();
+      await page.getByRole('link', { name: /log primos/i }).click();
+
+      await expect(page).toHaveURL(/\/#quick-resource-logger$/);
+      await expect(page.locator('#quick-resource-logger')).toBeInViewport();
+    });
+
     test('should support deep links to character details', async ({ page }) => {
       // First create a character to have a valid ID
       const roster = new RosterPage(page);

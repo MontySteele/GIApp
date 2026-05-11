@@ -7,15 +7,29 @@ export interface OnboardingChecklist {
   hasImportedCharacters: boolean;
   hasCreatedTeam: boolean;
   hasVisitedPlanner: boolean;
-  hasCheckedPulls: boolean;
+  hasImportedWishHistory: boolean;
 }
 
 const DEFAULT_CHECKLIST: OnboardingChecklist = {
   hasImportedCharacters: false,
   hasCreatedTeam: false,
   hasVisitedPlanner: false,
-  hasCheckedPulls: false,
+  hasImportedWishHistory: false,
 };
+
+export function normalizeOnboardingChecklist(value: unknown): OnboardingChecklist {
+  if (typeof value !== 'object' || value === null) {
+    return DEFAULT_CHECKLIST;
+  }
+
+  const partial = value as Partial<OnboardingChecklist>;
+  return {
+    hasImportedCharacters: Boolean(partial.hasImportedCharacters),
+    hasCreatedTeam: Boolean(partial.hasCreatedTeam),
+    hasVisitedPlanner: Boolean(partial.hasVisitedPlanner),
+    hasImportedWishHistory: Boolean(partial.hasImportedWishHistory),
+  };
+}
 
 /**
  * Hook to manage onboarding state
@@ -33,7 +47,7 @@ export function useOnboarding() {
     const savedChecklist = localStorage.getItem(CHECKLIST_KEY);
     if (savedChecklist) {
       try {
-        setChecklist(JSON.parse(savedChecklist));
+        setChecklist(normalizeOnboardingChecklist(JSON.parse(savedChecklist)));
       } catch {
         // ignore parse errors
       }
@@ -105,7 +119,7 @@ export function markChecklistItem(item: keyof OnboardingChecklist) {
   let checklist = DEFAULT_CHECKLIST;
   if (saved) {
     try {
-      checklist = JSON.parse(saved);
+      checklist = normalizeOnboardingChecklist(JSON.parse(saved));
     } catch {
       // ignore
     }

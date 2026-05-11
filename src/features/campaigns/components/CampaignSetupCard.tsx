@@ -211,7 +211,7 @@ export default function CampaignSetupCard({
       await onSave(updates);
       setIsEditing(false);
     } catch {
-      setSaveError('Failed to save campaign setup. Please try again.');
+      setSaveError('Failed to save target setup. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -244,7 +244,7 @@ export default function CampaignSetupCard({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Target className="w-5 h-5 text-primary-400" />
-            <h2 className="text-lg font-semibold">Campaign Setup</h2>
+            <h2 className="text-lg font-semibold">Target Setup</h2>
           </div>
           {isEditing ? (
             <Button type="button" size="sm" variant="ghost" onClick={cancelEditing}>
@@ -288,7 +288,7 @@ export default function CampaignSetupCard({
                 <div>
                   <div className="text-sm font-medium text-slate-300">Target Lineup</div>
                   <p className="mt-1 text-xs text-slate-500">
-                    Campaign targets can include owned and wishlist characters.
+                    Targets can include owned and wishlist characters.
                   </p>
                 </div>
                 {campaign.type === 'team-polish' && (
@@ -414,7 +414,7 @@ export default function CampaignSetupCard({
               ))}
             </div>
             <p className="rounded-lg bg-slate-900/70 p-3 text-sm text-slate-400">
-              {campaign.notes || 'No notes for this campaign yet.'}
+              {campaign.notes || 'No notes for this target yet.'}
             </p>
           </div>
         )}

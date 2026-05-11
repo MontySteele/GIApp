@@ -21,7 +21,7 @@ const CHECKLIST_ITEMS: Array<{
   {
     key: 'hasImportedCharacters',
     title: 'Import full account data',
-    description: 'Use Irminsul or GOOD so campaigns can read roster, weapons, artifacts, and materials.',
+    description: 'Use Irminsul or GOOD so targets can read roster, weapons, artifacts, and materials.',
     link: '/roster?import=irminsul',
     linkLabel: 'Import Data',
   },
@@ -40,7 +40,7 @@ const CHECKLIST_ITEMS: Array<{
     linkLabel: 'Go to Planner',
   },
   {
-    key: 'hasCheckedPulls',
+    key: 'hasImportedWishHistory',
     title: 'Import wish history',
     description: 'Refresh pity, guarantees, and pull odds before planning banners.',
     link: '/pulls/history',

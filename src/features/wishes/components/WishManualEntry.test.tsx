@@ -7,6 +7,7 @@ import { wishRepo } from '../repo/wishRepo';
 
 beforeEach(async () => {
   await db.wishRecords.clear();
+  localStorage.clear();
 });
 
 afterEach(async () => {
@@ -41,6 +42,9 @@ describe('WishManualEntry', () => {
       const stored = await wishRepo.getAll();
       expect(stored).toHaveLength(1);
       expect(onEntrySaved).toHaveBeenCalled();
+      expect(JSON.parse(localStorage.getItem('onboarding_checklist') ?? '{}')).toMatchObject({
+        hasImportedWishHistory: true,
+      });
     });
   });
 });

@@ -559,7 +559,7 @@ export default function CampaignsPage() {
         notes: campaignNotes,
       });
     } catch {
-      setError('Failed to create campaign. Please try again.');
+      setError('Failed to create target. Please try again.');
       return null;
     } finally {
       setIsCreating(false);
@@ -601,7 +601,7 @@ export default function CampaignsPage() {
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">Loading campaigns...</div>
+        <div className="text-slate-400">Loading targets...</div>
       </div>
     );
   }
@@ -610,9 +610,9 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Campaigns</h1>
+          <h1 className="text-3xl font-bold mb-1">Targets</h1>
           <p className="text-slate-400">
-            Plan character pulls, pre-farming, and team polish from one place.
+            Plan who to pull, build, and farm for from one place.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -622,7 +622,7 @@ export default function CampaignsPage() {
           {campaigns.length > 0 && !shouldShowCreateForm && (
             <Button type="button" onClick={() => setShowCreateForm(true)}>
               <Plus className="w-4 h-4" />
-              New Campaign
+              New Target
             </Button>
           )}
         </div>
@@ -657,7 +657,7 @@ export default function CampaignsPage() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Plus className="w-5 h-5 text-primary-400" />
-                <h2 className="text-lg font-semibold">New Campaign</h2>
+                <h2 className="text-lg font-semibold">New Target</h2>
               </div>
               {campaigns.length > 0 && !hasCampaignPrefill && (
                 <Button type="button" size="sm" variant="ghost" onClick={() => setShowCreateForm(false)}>
@@ -670,7 +670,7 @@ export default function CampaignsPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select
-                label="Campaign type"
+                label="Target type"
                 value={campaignType}
                 onChange={(event) => handleCampaignTypeChange(event.target.value as CampaignType)}
                 options={[
@@ -801,7 +801,7 @@ export default function CampaignsPage() {
               }
             >
               <Plus className="w-4 h-4" />
-              Create Campaign
+              Create Target
             </Button>
             </form>
           </CardContent>
@@ -819,9 +819,9 @@ export default function CampaignsPage() {
           <Card className="xl:col-span-2">
             <CardContent className="py-10 text-center">
               <Target className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <h2 className="text-lg font-semibold text-slate-300 mb-1">No campaigns yet</h2>
+              <h2 className="text-lg font-semibold text-slate-300 mb-1">No targets yet</h2>
               <p className="text-slate-400">
-                Create a character, build, or team campaign to turn your account data into next actions.
+                Create a pull, build, or team target to turn your account data into next actions.
               </p>
             </CardContent>
           </Card>
@@ -829,9 +829,9 @@ export default function CampaignsPage() {
           <Card className="xl:col-span-2">
             <CardContent className="py-8 text-center">
               <CheckCircle2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <h2 className="text-lg font-semibold text-slate-300 mb-1">No active campaigns</h2>
+              <h2 className="text-lg font-semibold text-slate-300 mb-1">No active targets</h2>
               <p className="text-slate-400">
-                Start a new campaign or reopen one below when you have a target to chase.
+                Start a new target or reopen one below when you have something to chase.
               </p>
             </CardContent>
           </Card>
@@ -850,7 +850,7 @@ export default function CampaignsPage() {
                   setMutationError('');
                   await deleteCampaign(id);
                 } catch {
-                  setMutationError('Failed to delete campaign.');
+                  setMutationError('Failed to delete target.');
                 }
               }}
             />
@@ -861,7 +861,7 @@ export default function CampaignsPage() {
       {closedCampaigns.length > 0 && (
         <details className="rounded-lg border border-slate-800 bg-slate-900/30">
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-300">
-            Completed and archived campaigns ({closedCampaigns.length})
+            Completed and archived targets ({closedCampaigns.length})
           </summary>
           <div className="grid grid-cols-1 gap-4 border-t border-slate-800 p-4 xl:grid-cols-2">
             {closedCampaigns.map((campaign) => (
@@ -878,7 +878,7 @@ export default function CampaignsPage() {
                     setMutationError('');
                     await deleteCampaign(id);
                   } catch {
-                    setMutationError('Failed to delete campaign.');
+                    setMutationError('Failed to delete target.');
                   }
                 }}
               />

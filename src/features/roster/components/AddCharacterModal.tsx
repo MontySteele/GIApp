@@ -36,7 +36,7 @@ const ADD_OPTIONS: Array<{
   {
     id: 'irminsul',
     title: 'Import from Irminsul',
-    description: 'Best for campaigns: roster, weapons, artifacts, and materials in one planning-ready import.',
+    description: 'Best for targets: roster, weapons, artifacts, and materials in one planning-ready import.',
     icon: Download,
     recommended: true,
   },
@@ -123,7 +123,7 @@ export default function AddCharacterModal({
                       <span className="font-medium text-slate-100">{option.title}</span>
                       {option.recommended && (
                         <span className="rounded bg-green-900/50 px-2 py-0.5 text-xs text-green-400">
-                          Recommended for campaigns
+                          Recommended for targets
                         </span>
                       )}
                     </span>

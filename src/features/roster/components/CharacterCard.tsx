@@ -56,8 +56,8 @@ export default function CharacterCard({ character, onClick, onEdit, onDelete, te
           to={buildCharacterPolishCampaignUrl(character.key, 'comfortable')}
           onClick={(e) => e.stopPropagation()}
           className="p-1.5 bg-primary-700 hover:bg-primary-600 rounded-md transition-colors"
-          title="Start polish campaign"
-          aria-label={`Start polish campaign for ${character.key}`}
+          title="Start polish target"
+          aria-label={`Start polish target for ${character.key}`}
         >
           <Target className="w-3.5 h-3.5 text-white" aria-hidden="true" />
         </Link>

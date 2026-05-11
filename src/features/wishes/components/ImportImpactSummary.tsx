@@ -12,7 +12,7 @@ export default function ImportImpactSummary({ impact }: { impact: WishImportImpa
         <div>
           <h4 className="font-semibold text-primary-100">Import Impact</h4>
           <p className="mt-1 text-sm text-slate-400">
-            Pity and guarantee changes are now available to campaign calculators.
+            Pity and guarantee changes are now available to target calculators.
           </p>
         </div>
         {impact.activePullCampaigns > 0 && (
@@ -20,7 +20,7 @@ export default function ImportImpactSummary({ impact }: { impact: WishImportImpa
             to="/campaigns"
             className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
           >
-            Review Campaign Odds
+            Review Target Odds
           </Link>
         )}
       </div>
@@ -47,7 +47,7 @@ export default function ImportImpactSummary({ impact }: { impact: WishImportImpa
       </div>
       {impact.activePullCampaigns > 0 && (
         <p className="mt-3 text-xs text-slate-500">
-          {impact.activePullCampaigns} active pull campaign
+          {impact.activePullCampaigns} active pull target
           {impact.activePullCampaigns === 1 ? '' : 's'} can use the updated pity state.
         </p>
       )}

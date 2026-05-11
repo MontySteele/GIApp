@@ -201,6 +201,33 @@ test.describe('Campaign flow smoke', () => {
     });
   });
 
+  test('manual dashboard target wizard creates a target without imports', async ({ page }) => {
+    await loadSeededApp(page, {});
+
+    await page.getByRole('button', { name: 'Get', exact: true }).click();
+    await page.getByLabel('Target character').fill('Furina');
+    await page.getByRole('option', { name: /Furina/i }).click();
+    await page.getByLabel('Pulls saved').fill('42');
+    await page.getByLabel('Current pity').fill('10');
+    await page.getByRole('spinbutton', { name: 'Target C' }).fill('1');
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Get Furina' })).toBeVisible();
+    await expect(page.getByText(/more pulls before the banner target/i)).toBeVisible();
+
+    await page
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: 'Get Furina' }) })
+      .getByRole('link', { name: /create target/i })
+      .click();
+    await expect(page).toHaveURL(/\/campaigns\?/);
+    await expect(page.getByText('Chase C1 Furina')).toBeVisible();
+
+    await page.getByRole('button', { name: /create target/i }).click();
+    await expect(page).toHaveURL(/\/campaigns\/.+/);
+    await expect(page.getByRole('heading', { name: /Chase C1 Furina/i })).toBeVisible();
+  });
+
   test('pull campaign routes the dashboard action into a campaign-aware calculator', async ({ page }) => {
     await loadSeededApp(page, {
       campaigns: [pullCampaign()],
@@ -247,8 +274,8 @@ test.describe('Campaign flow smoke', () => {
 
     await expect(page).toHaveURL(/\/planner\/materials\?/);
     await expect(page).toHaveURL(/campaign=campaign-build-furina/);
-    await expect(page.getByText('Campaign material plan for Build Furina')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Campaign Deficits' })).toBeVisible();
+    await expect(page.getByText('Target material plan for Build Furina')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Target Deficits' })).toBeVisible();
   });
 
   test('stale imports become the next action when one active campaign is otherwise ready', async ({ page }) => {
@@ -258,10 +285,11 @@ test.describe('Campaign flow smoke', () => {
     });
 
     await expect(page.getByRole('heading', { name: "Today's Plan" })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
-    await expect(page.getByText(/Last GOOD import was \d+ days ago/)).toBeVisible();
+    const todayPlan = page.getByRole('region', { name: /today's plan/i });
+    await expect(todayPlan.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
+    await expect(todayPlan.getByText(/Last GOOD import was \d+ days ago/)).toBeVisible();
 
-    await page.getByRole('link', { name: /refresh import/i }).first().click();
+    await todayPlan.getByRole('link', { name: /refresh import/i }).click();
 
     await expect(page).toHaveURL(/\/roster$/);
     await expect(page.getByRole('dialog', { name: /import from irminsul/i })).toBeVisible();

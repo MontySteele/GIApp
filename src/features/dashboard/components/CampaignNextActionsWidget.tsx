@@ -100,34 +100,34 @@ export default function CampaignNextActionsWidget({
   }
 
   return (
-    <Card className="border-primary-900/50 bg-primary-950/10">
+    <Card role="region" aria-label="Today's plan" className="border-primary-900/50 bg-primary-950/10">
       <CardHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-primary-400" />
+          <ClipboardList className="h-5 w-5 text-primary-400" aria-hidden="true" />
           <h3 className="font-semibold">Today's Plan</h3>
         </div>
         <Link
           to="/campaigns"
           className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300"
         >
-          Campaigns <ArrowRight className="h-3 w-3" />
+          Targets <ArrowRight className="h-3 w-3" aria-hidden="true" />
         </Link>
       </CardHeader>
       <CardContent>
         {activeCampaigns.length === 0 ? (
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-200">No campaign focus yet.</p>
+              <p className="text-sm font-medium text-slate-200">No target focus yet.</p>
               <p className="mt-1 text-sm text-slate-400">
-                Create a pull, build, or team campaign so the dashboard can choose your next action.
+                Create a pull, build, or team target so the dashboard can choose your next action.
               </p>
             </div>
             <Link
               to="/campaigns"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
             >
-              <Target className="h-4 w-4" />
-              Create Campaign
+              <Target className="h-4 w-4" aria-hidden="true" />
+              Create Target
             </Link>
           </div>
         ) : error && !plansPending && actions.length === 0 ? (
@@ -169,7 +169,7 @@ export default function CampaignNextActionsWidget({
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-primary-300">
                   Open campaign
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
               </Link>
             )}
@@ -199,12 +199,12 @@ export default function CampaignNextActionsWidget({
         ) : (
           <div className="rounded-lg bg-slate-900 p-3">
             <p className="text-sm font-medium text-slate-200">
-              {allActions.length > 0 ? 'All campaign actions handled today.' : 'Campaigns are ready for review.'}
+              {allActions.length > 0 ? 'All target actions handled today.' : 'Targets are ready for review.'}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {allActions.length > 0
                 ? 'Completed and snoozed actions return tomorrow.'
-                : 'Open your active campaigns and mark completed goals when you are happy with them.'}
+                : 'Open your active targets and mark completed goals when you are happy with them.'}
             </p>
             {todayActivities.length > 0 && (
               <ActivityLog activities={todayActivities.slice(0, 3)} />
@@ -263,7 +263,7 @@ function ActionCard({
             )}
           </div>
           <div className="flex items-start gap-3">
-            <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-400" />
+            <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-400" aria-hidden="true" />
             <div className="min-w-0">
               <h4 className="text-base font-semibold text-slate-100">{label}</h4>
               <p className="mt-1 text-sm text-slate-400">{detail}</p>
@@ -278,7 +278,7 @@ function ActionCard({
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
         >
           {item.destination.label}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
         {onSetState && (
           <div className="flex flex-wrap gap-2 sm:justify-end">
@@ -300,7 +300,7 @@ function ActionCard({
       className="flex items-center justify-between gap-3 rounded-lg bg-slate-900/70 px-3 py-2 transition-colors hover:bg-slate-800"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <Icon className="h-4 w-4 flex-shrink-0 text-slate-400" />
+        <Icon className="h-4 w-4 flex-shrink-0 text-slate-400" aria-hidden="true" />
         <div className="min-w-0">
           <div className="truncate text-sm font-medium text-slate-200">{label}</div>
           <div className="truncate text-xs text-slate-500">{campaignName} - {item.why}</div>
@@ -308,7 +308,7 @@ function ActionCard({
       </div>
       <div className="flex flex-shrink-0 items-center gap-2">
         <Badge variant={badge}>{category === 'freshness' ? 'refresh' : category}</Badge>
-        <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
+        <ArrowRight className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
       </div>
     </Link>
   );
