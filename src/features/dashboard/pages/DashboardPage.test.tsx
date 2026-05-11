@@ -77,6 +77,17 @@ vi.mock('@/features/weapons/hooks/useWeapons', () => ({
   }),
 }));
 
+vi.mock('@/features/campaigns/hooks/useCampaigns', () => ({
+  useCampaigns: () => ({
+    campaigns: [],
+    activeCampaigns: [],
+    createCampaign: vi.fn(),
+    updateCampaign: vi.fn(),
+    deleteCampaign: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
 vi.mock('dexie-react-hooks', () => ({
   useLiveQuery: vi.fn(),
 }));

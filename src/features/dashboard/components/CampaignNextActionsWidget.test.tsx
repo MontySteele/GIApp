@@ -1,10 +1,25 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import CampaignNextActionsWidget from './CampaignNextActionsWidget';
 import type { CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
 import type { Campaign } from '@/types';
+
+const mocks = vi.hoisted(() => ({
+  dataFreshness: {
+    status: 'fresh',
+    isLoading: false,
+    latestImport: null,
+    daysSinceImport: 0,
+    label: 'Account data current',
+    detail: 'Last Irminsul import was today.',
+  },
+}));
+
+vi.mock('@/features/sync', () => ({
+  useAccountDataFreshness: () => mocks.dataFreshness,
+}));
 
 const campaign: Campaign = {
   id: 'campaign-1',
@@ -96,6 +111,17 @@ function renderWidget(
 }
 
 describe('CampaignNextActionsWidget', () => {
+  beforeEach(() => {
+    mocks.dataFreshness = {
+      status: 'fresh',
+      isLoading: false,
+      latestImport: null,
+      daysSinceImport: 0,
+      label: 'Account data current',
+      detail: 'Last Irminsul import was today.',
+    };
+  });
+
   it('points users to campaign creation when there is no active focus', () => {
     renderWidget({ activeCampaigns: [], plans: {} });
 
@@ -143,8 +169,10 @@ describe('CampaignNextActionsWidget', () => {
     renderWidget();
 
     expect(screen.getByText("Today's Plan")).toBeInTheDocument();
+    expect(screen.getByText('Current focus')).toBeInTheDocument();
     expect(screen.getByText('Farm Mora')).toBeInTheDocument();
     expect(screen.getByText('120,000 still needed.')).toBeInTheDocument();
+    expect(screen.getByText(/why this/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
       'href',
       '/planner?character=Furina&goal=comfortable&campaign=campaign-1&material=Mora'
@@ -211,5 +239,24 @@ describe('CampaignNextActionsWidget', () => {
       expect.stringContaining('/pulls/calculator?')
     );
     expect(screen.getByText('Save 20 more pulls')).toBeInTheDocument();
+  });
+
+  it('adds account refresh to the ranked action queue when campaign data is stale', () => {
+    mocks.dataFreshness = {
+      status: 'stale',
+      isLoading: false,
+      latestImport: null,
+      daysSinceImport: 14,
+      label: 'Refresh account data',
+      detail: 'Last GOOD import was 14 days ago.',
+    };
+
+    renderWidget();
+
+    expect(screen.getByText('Refresh account data')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /refresh account data/i })).toHaveAttribute(
+      'href',
+      '/roster?import=irminsul'
+    );
   });
 });

@@ -20,6 +20,7 @@ import { useWeapons } from '@/features/weapons/hooks/useWeapons';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
+import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
 import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
 import DashboardCampaignFocus from '../components/DashboardCampaignFocus';
 import TodayFarmingWidget from '../components/TodayFarmingWidget';
@@ -51,6 +52,7 @@ export default function DashboardPage() {
   const availablePulls = useLiveQuery(() => getAvailablePullsFromTracker(), []);
   const loadingResources = availablePulls === undefined;
   const { teams } = useTeams();
+  const { activeCampaigns, isLoading: loadingCampaigns } = useCampaigns();
   const { checklist, checklistProgress, checklistTotal, updateChecklist, isComplete: onboardingComplete } = useOnboardingContext();
 
   // Persist checklist dismiss state in localStorage
@@ -96,7 +98,8 @@ export default function DashboardPage() {
     }
   }, [characters.length, teams.length, checklist, updateChecklist]);
 
-  const isLoading = loadingChars || loadingArtifacts || loadingWeapons || loadingResources;
+  const isLoading = loadingChars || loadingArtifacts || loadingWeapons || loadingResources || loadingCampaigns;
+  const hasActiveCampaigns = activeCampaigns.length > 0;
   const primogems = availablePulls?.resources.primogems ?? 0;
   const genesisCrystals = availablePulls?.resources.genesisCrystals ?? 0;
   const intertwined = availablePulls?.resources.intertwined ?? 0;
@@ -148,40 +151,52 @@ export default function DashboardPage() {
       <DashboardCampaignFocus />
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Users className="w-5 h-5" />}
-          label="Characters"
-          value={charStats.total}
-          subtext={`${charStats.maxLevel} at Lv.90`}
-          color="text-blue-400"
-          to="/roster"
-        />
-        <StatCard
-          icon={<Gem className="w-5 h-5" />}
-          label="Artifacts"
-          value={artifactStats.total}
-          subtext={`${artifactStats.fiveStar} 5-star`}
-          color="text-purple-400"
-          to="/roster/artifacts"
-        />
-        <StatCard
-          icon={<Sword className="w-5 h-5" />}
-          label="Weapons"
-          value={weaponStats.total}
-          subtext={`${weaponStats.fiveStars} 5-star`}
-          color="text-yellow-400"
-          to="/roster/weapons"
-        />
-        <StatCard
-          icon={<Sparkles className="w-5 h-5" />}
-          label="Event Pulls"
-          value={eventPulls}
-          subtext={pullSubtext}
-          color="text-green-400"
-          to="/pulls"
-        />
-      </div>
+      <section className={hasActiveCampaigns ? 'space-y-3 opacity-80' : 'space-y-3'}>
+        {hasActiveCampaigns && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Account snapshot
+            </h2>
+            <p className="text-xs text-slate-600">
+              Secondary context; campaign actions above are the recommended path.
+            </p>
+          </div>
+        )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            icon={<Users className="w-5 h-5" />}
+            label="Characters"
+            value={charStats.total}
+            subtext={`${charStats.maxLevel} at Lv.90`}
+            color="text-blue-400"
+            to="/roster"
+          />
+          <StatCard
+            icon={<Gem className="w-5 h-5" />}
+            label="Artifacts"
+            value={artifactStats.total}
+            subtext={`${artifactStats.fiveStar} 5-star`}
+            color="text-purple-400"
+            to="/roster/artifacts"
+          />
+          <StatCard
+            icon={<Sword className="w-5 h-5" />}
+            label="Weapons"
+            value={weaponStats.total}
+            subtext={`${weaponStats.fiveStars} 5-star`}
+            color="text-yellow-400"
+            to="/roster/weapons"
+          />
+          <StatCard
+            icon={<Sparkles className="w-5 h-5" />}
+            label="Event Pulls"
+            value={eventPulls}
+            subtext={pullSubtext}
+            color="text-green-400"
+            to="/pulls"
+          />
+        </div>
+      </section>
 
       {/* Resources Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
