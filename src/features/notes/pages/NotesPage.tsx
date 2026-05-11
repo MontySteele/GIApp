@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Plus, Pin, PinOff, Search, Tag, X, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -11,6 +10,8 @@ import { useNotes } from '../hooks/useNotes';
 import type { Goal, Note } from '@/types';
 
 type NoteDraft = Omit<Note, 'id' | 'createdAt' | 'updatedAt'>;
+
+const MarkdownContent = lazy(() => import('../components/MarkdownContent'));
 
 // Sticky colors for visual variety
 const STICKY_COLORS = [
@@ -31,6 +32,14 @@ function getColorForId(id: string) {
   }
   const index = Math.abs(hash) % STICKY_COLORS.length;
   return STICKY_COLORS[index]!;
+}
+
+function MarkdownLoadingFallback({ label }: { label: string }) {
+  return (
+    <p className="text-slate-500" role="status" aria-live="polite">
+      {label}
+    </p>
+  );
 }
 
 interface StickyNoteProps {
@@ -249,7 +258,9 @@ function NoteModal({ isOpen, onClose, onSave, initialNote }: NoteModalProps) {
             <Card className="h-full max-h-96 overflow-auto">
               <CardContent className="prose prose-invert max-w-none">
                 {form.content ? (
-                  <ReactMarkdown>{form.content}</ReactMarkdown>
+                  <Suspense fallback={<MarkdownLoadingFallback label="Loading preview..." />}>
+                    <MarkdownContent>{form.content}</MarkdownContent>
+                  </Suspense>
                 ) : (
                   <p className="text-slate-500">Write some markdown to see preview.</p>
                 )}
@@ -328,7 +339,9 @@ function NoteCard({ note, searchQuery, onEdit, onDelete, onTogglePin }: NoteCard
       </CardHeader>
       <CardContent className="flex-1 prose prose-invert prose-sm max-w-none text-slate-300 overflow-hidden">
         <div className="line-clamp-6">
-          <ReactMarkdown>{note.content}</ReactMarkdown>
+          <Suspense fallback={<MarkdownLoadingFallback label="Loading note..." />}>
+            <MarkdownContent>{note.content}</MarkdownContent>
+          </Suspense>
         </div>
       </CardContent>
     </Card>

@@ -1,4 +1,10 @@
-import { parseISO, format, addDays, isBefore, isAfter, startOfDay, differenceInDays } from 'date-fns';
+import { addDays } from 'date-fns/addDays';
+import { differenceInDays } from 'date-fns/differenceInDays';
+import { format } from 'date-fns/format';
+import { isAfter } from 'date-fns/isAfter';
+import { isBefore } from 'date-fns/isBefore';
+import { parseISO } from 'date-fns/parseISO';
+import { startOfDay } from 'date-fns/startOfDay';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry, BannerType } from '@/types';
 import { SPENDING_SOURCES, PURCHASE_SOURCE } from './resourceCalculations';
 import { PRIMOS_PER_PULL } from '@/lib/constants';

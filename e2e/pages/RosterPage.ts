@@ -6,6 +6,19 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
+const DEFAULT_WEAPON_BY_CHARACTER: Record<string, string> = {
+  Amber: 'Favonius Warbow',
+  Bennett: 'Favonius Sword',
+  Furina: 'Favonius Sword',
+  Kazuha: 'Favonius Sword',
+  Lisa: 'Favonius Codex',
+  Xiangling: 'Favonius Lance',
+};
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export class RosterPage extends BasePage {
   readonly characterGrid: Locator;
   readonly addCharacterButton: Locator;
@@ -121,9 +134,8 @@ export class RosterPage extends BasePage {
   }): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
 
-    // Character name is a text input
-    const nameInput = modal.getByPlaceholder(/furina|neuvillette/i)
-      .or(modal.locator('input').first());
+    const nameInput = modal.getByRole('combobox', { name: /character name/i });
+    await expect(nameInput).toBeVisible();
     await nameInput.fill(data.name);
 
     // Fill level - use first spinbutton with name "Level" (character level, not weapon level)
@@ -145,11 +157,11 @@ export class RosterPage extends BasePage {
       await modal.getByLabel(/burst/i).fill(String(data.talents.burst));
     }
 
-    // Fill weapon if provided
-    if (data.weapon) {
-      const weaponInput = modal.getByLabel(/weapon name/i)
-        .or(modal.getByPlaceholder(/weapon/i));
-      await weaponInput.fill(data.weapon);
+    const weapon = data.weapon ?? DEFAULT_WEAPON_BY_CHARACTER[data.name];
+    if (weapon) {
+      const weaponInput = modal.getByRole('combobox', { name: /weapon name/i });
+      await expect(weaponInput).toBeVisible();
+      await weaponInput.fill(weapon);
     }
 
     if (data.weaponLevel) {
@@ -209,6 +221,7 @@ export class RosterPage extends BasePage {
       .first()
       .click();
     await this.page.waitForURL(/\/roster\/.+/);
+    await expect(this.page.getByRole('heading', { name: new RegExp(`^${escapeRegex(characterName)}$`, 'i') })).toBeVisible();
   }
 
   /**

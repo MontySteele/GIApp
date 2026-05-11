@@ -133,7 +133,7 @@ test.describe('Character CRUD', () => {
       await expect(page).toHaveURL(/\/roster\/.+/);
 
       // Should display character info
-      await expect(page.locator('text=Bennett')).toBeVisible();
+      await expect(page.getByRole('heading', { name: /^Bennett$/i })).toBeVisible();
     });
   });
 
@@ -166,7 +166,7 @@ test.describe('Character CRUD', () => {
       await page.getByRole('button', { name: /save|update/i }).click();
 
       // Verify changes persisted
-      await expect(page.locator('text=/80|Lv\\.? ?80/i')).toBeVisible();
+      await expect(page.getByText(/Level 80\/20/i)).toBeVisible();
     });
   });
 
@@ -224,14 +224,14 @@ test.describe('Character CRUD', () => {
       await page.getByRole('button', { name: /delete/i }).click();
 
       // Confirmation modal should appear
-      const confirmModal = page.locator('[role="dialog"]').or(page.locator('[role="alertdialog"]'));
-      await expect(confirmModal.or(page.locator('text=/confirm|are you sure/i'))).toBeVisible();
+      const confirmModal = page.getByRole('dialog', { name: /delete character/i });
+      await expect(confirmModal).toBeVisible();
 
       // Cancel deletion
-      await page.getByRole('button', { name: /cancel|no/i }).click();
+      await confirmModal.getByRole('button', { name: /cancel/i }).click();
 
       // Should still be on detail page
-      await expect(page.locator('text=Lisa')).toBeVisible();
+      await expect(page.getByRole('heading', { name: /^Lisa$/i })).toBeVisible();
     });
   });
 

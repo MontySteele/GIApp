@@ -11,7 +11,16 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { format, parseISO, startOfDay, startOfWeek, startOfMonth, addDays, addWeeks, addMonths, isBefore, isEqual } from 'date-fns';
+import { addDays } from 'date-fns/addDays';
+import { addMonths } from 'date-fns/addMonths';
+import { addWeeks } from 'date-fns/addWeeks';
+import { format } from 'date-fns/format';
+import { isBefore } from 'date-fns/isBefore';
+import { isEqual } from 'date-fns/isEqual';
+import { parseISO } from 'date-fns/parseISO';
+import { startOfDay } from 'date-fns/startOfDay';
+import { startOfMonth } from 'date-fns/startOfMonth';
+import { startOfWeek } from 'date-fns/startOfWeek';
 import Select from '@/components/ui/Select';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import type { BannerType } from '@/types';

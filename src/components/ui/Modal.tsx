@@ -34,15 +34,24 @@ export default function Modal({
   'aria-label': ariaLabel,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const handleClose = useCallback(() => {
+    onCloseRef.current();
+  }, []);
 
   // Handle ESC key to close modal
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        handleClose();
       }
 
       // Focus trap: Tab and Shift+Tab
@@ -68,7 +77,7 @@ export default function Modal({
         }
       }
     },
-    [onClose]
+    [handleClose]
   );
 
   useEffect(() => {
@@ -126,7 +135,7 @@ export default function Modal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
@@ -142,7 +151,7 @@ export default function Modal({
             <h2 id={titleId} className="text-xl font-bold text-slate-50">
               {title}
             </h2>
-            <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close modal">
+            <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Close modal">
               <X className="w-5 h-5" aria-hidden="true" />
             </Button>
           </div>

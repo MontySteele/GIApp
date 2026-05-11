@@ -1,11 +1,7 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useCallback, useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle2, Download, Edit3, Eye, type LucideIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import CharacterForm from './CharacterForm';
-import GOODImport from './GOODImport';
-import IrminsulImport from './IrminsulImport';
-import EnkaImport from './EnkaImport';
 import type { Character } from '@/types';
 
 export type AddModalView = 'options' | 'manual' | 'enka' | 'good' | 'irminsul';
@@ -25,6 +21,11 @@ const VIEW_TITLES: Record<AddModalView, string> = {
   good: 'Import GOOD Format',
   irminsul: 'Import from Irminsul',
 };
+
+const CharacterForm = lazy(() => import('./CharacterForm'));
+const GOODImport = lazy(() => import('./GOODImport'));
+const IrminsulImport = lazy(() => import('./IrminsulImport'));
+const EnkaImport = lazy(() => import('./EnkaImport'));
 
 const ADD_OPTIONS: Array<{
   id: AddModalView;
@@ -60,6 +61,18 @@ const ADD_OPTIONS: Array<{
   },
 ];
 
+function ImportViewFallback({ label }: { label: string }) {
+  return (
+    <div
+      className="flex min-h-40 items-center justify-center text-sm text-slate-400"
+      role="status"
+      aria-live="polite"
+    >
+      {label}
+    </div>
+  );
+}
+
 export default function AddCharacterModal({
   isOpen,
   onClose,
@@ -75,15 +88,15 @@ export default function AddCharacterModal({
     }
   }, [isOpen, initialView]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onClose();
     // Reset view after modal closes
     setTimeout(() => setView('options'), 200);
-  };
+  }, [onClose]);
 
-  const handleSuccess = () => {
+  const handleSuccess = useCallback(() => {
     handleClose();
-  };
+  }, [handleClose]);
 
   const BackButton = () => (
     <Button
@@ -142,34 +155,42 @@ export default function AddCharacterModal({
       {view === 'manual' && (
         <div>
           <BackButton />
-          <CharacterForm
-            onSubmit={async (data) => {
-              await onCreateCharacter(data);
-              handleSuccess();
-            }}
-            onCancel={handleClose}
-          />
+          <Suspense fallback={<ImportViewFallback label="Loading character form..." />}>
+            <CharacterForm
+              onSubmit={async (data) => {
+                await onCreateCharacter(data);
+                handleSuccess();
+              }}
+              onCancel={handleClose}
+            />
+          </Suspense>
         </div>
       )}
 
       {view === 'enka' && (
         <div>
           <BackButton />
-          <EnkaImport onSuccess={handleSuccess} onCancel={handleClose} />
+          <Suspense fallback={<ImportViewFallback label="Loading Enka import tools..." />}>
+            <EnkaImport onSuccess={handleSuccess} onCancel={handleClose} />
+          </Suspense>
         </div>
       )}
 
       {view === 'good' && (
         <div>
           <BackButton />
-          <GOODImport onSuccess={handleSuccess} onCancel={handleClose} />
+          <Suspense fallback={<ImportViewFallback label="Loading GOOD import tools..." />}>
+            <GOODImport onSuccess={handleSuccess} onCancel={handleClose} />
+          </Suspense>
         </div>
       )}
 
       {view === 'irminsul' && (
         <div>
           <BackButton />
-          <IrminsulImport onSuccess={handleSuccess} onCancel={handleClose} />
+          <Suspense fallback={<ImportViewFallback label="Loading Irminsul import tools..." />}>
+            <IrminsulImport onSuccess={handleSuccess} onCancel={handleClose} />
+          </Suspense>
         </div>
       )}
     </Modal>

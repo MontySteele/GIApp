@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, X, Pencil, Trash2 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns/format';
+import { parseISO } from 'date-fns/parseISO';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import type { PrimogemEntry, PrimogemSource } from '@/types';
