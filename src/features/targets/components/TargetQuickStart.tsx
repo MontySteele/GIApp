@@ -76,7 +76,7 @@ export default function TargetQuickStart() {
   );
 
   const preview = useMemo(() => buildTargetWizardPreview(state), [state]);
-  const selectedMode = MODE_OPTIONS.find((mode) => mode.value === state.mode) ?? MODE_OPTIONS[0];
+  const selectedMode = MODE_OPTIONS.find((mode) => mode.value === state.mode) ?? MODE_OPTIONS[0]!;
   const SelectedIcon = selectedMode.icon;
   const hasInvalidConstellation = state.targetConstellation.trim().length > 0 &&
     !/^[0-6]$/.test(state.targetConstellation.trim());
