@@ -216,7 +216,7 @@ describe('TodayFarmingWidget', () => {
     it('shows info message on non-Sunday days when no characters', () => {
       renderWidget();
 
-      expect(screen.getByText(/create or activate a campaign to see focused recommendations/i)).toBeInTheDocument();
+      expect(screen.getByText(/create or activate a target to see focused recommendations/i)).toBeInTheDocument();
     });
 
     it('shows rotation info when characters are processed', () => {
@@ -231,7 +231,7 @@ describe('TodayFarmingWidget', () => {
 
       renderWidget();
 
-      expect(screen.getByText(/5 campaign targets analyzed/i)).toBeInTheDocument();
+      expect(screen.getByText(/5 target characters analyzed/i)).toBeInTheDocument();
       expect(screen.getByText(/talent book domains rotate daily/i)).toBeInTheDocument();
     });
 
@@ -304,7 +304,7 @@ describe('TodayFarmingWidget', () => {
       renderWidget();
 
       // Should show personalized header
-      expect(screen.getByText(/campaign targets need/i)).toBeInTheDocument();
+      expect(screen.getByText(/target characters need/i)).toBeInTheDocument();
       // Should show the book series
       expect(screen.getByText('Freedom')).toBeInTheDocument();
       // Should show character names
@@ -363,7 +363,7 @@ describe('TodayFarmingWidget', () => {
       renderWidget();
 
       // Should show message about no books needed today
-      expect(screen.getByText(/none of your campaign targets need today's books/i)).toBeInTheDocument();
+      expect(screen.getByText(/none of your target characters need today's books/i)).toBeInTheDocument();
       // Should show next farming day
       expect(screen.getByText(/wednesday/i)).toBeInTheDocument();
     });

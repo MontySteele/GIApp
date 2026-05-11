@@ -49,7 +49,7 @@ export default function QuickResourceLogger() {
   const logRepeat = async () => {
     if (!repeatEntry) return;
     await logEntry({
-      label: repeatEntry.notes || repeatEntry.source.replaceAll('_', ' '),
+      label: repeatEntry.notes || repeatEntry.source.replace(/_/g, ' '),
       amount: repeatEntry.amount,
       source: repeatEntry.source,
       notes: repeatEntry.notes || 'Repeated entry',

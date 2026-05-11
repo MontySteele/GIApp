@@ -59,10 +59,9 @@ export default function DashboardPage() {
   const availablePulls = useLiveQuery(() => getAvailablePullsFromTracker(), []);
   const wishHistoryCount = useLiveQuery(() => db.wishRecords.count(), []);
   const plannedBannersResult = useLiveQuery(() => upcomingWishRepo.getAll(), []);
-  const plannedBanners = Array.isArray(plannedBannersResult) ? plannedBannersResult : [];
   const loadingResources = availablePulls === undefined;
   const { teams } = useTeams();
-  const { campaigns, activeCampaigns, isLoading: loadingCampaigns } = useCampaigns();
+  const { campaigns, isLoading: loadingCampaigns } = useCampaigns();
   const { checklist, checklistProgress, checklistTotal, updateChecklist, isComplete: onboardingComplete } = useOnboardingContext();
   const wishlistCharacters = useWishlistStore((state) => state.characters);
 
@@ -125,14 +124,15 @@ export default function DashboardPage() {
   const pullSubtext = genesisCrystals > 0
     ? `${formatPrimos(primogems)} primos + ${formatPrimos(genesisCrystals)} crystals`
     : `${formatPrimos(primogems)} primogems`;
-  const targetSummaries = useMemo(
-    () => buildTargetSummaries({
+  const targetSummaries = useMemo(() => {
+    const plannedBanners = Array.isArray(plannedBannersResult) ? plannedBannersResult : [];
+
+    return buildTargetSummaries({
       campaigns,
       plannedBanners,
       wishlist: wishlistCharacters,
-    }),
-    [campaigns, plannedBanners, wishlistCharacters]
-  );
+    });
+  }, [campaigns, plannedBannersResult, wishlistCharacters]);
 
   if (isLoading) {
     return (
