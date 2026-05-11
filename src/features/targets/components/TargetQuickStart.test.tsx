@@ -97,6 +97,23 @@ describe('TargetQuickStart', () => {
     });
   });
 
+  it('shows already-met constellation targets without creating pull needs', async () => {
+    const user = userEvent.setup();
+    renderQuickStart();
+
+    await goToDetails(user, 'Get');
+    await chooseCharacter(user, 'Furina');
+    await user.type(screen.getByLabelText(/^current c$/i), '2');
+    await user.type(screen.getByLabelText(/^target c$/i), '1');
+    await goToPreview(user);
+
+    expect(screen.getByText('Target already met')).toBeInTheDocument();
+    expect(screen.getByText(/already have c2 furina/i)).toBeInTheDocument();
+    expect(screen.getByText('0 pulls')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /create target/i })).toBeDisabled();
+    expect(screen.queryByRole('link', { name: /check odds/i })).not.toBeInTheDocument();
+  });
+
   it('supports a build-character path without odds actions', async () => {
     const user = userEvent.setup();
     renderQuickStart();

@@ -99,9 +99,9 @@ export default function TargetQuickStart() {
     setStep(1);
   };
 
-  const canPreview = preview.canCreate && !hasInvalidConstellation;
-  const canAdvance = step === 0 || (step === 1 && canPreview);
-  const canOpenStep = (targetStep: number) => targetStep < 2 || canPreview;
+  const canOpenPreview = preview.canPreview && !hasInvalidConstellation;
+  const canAdvance = step === 0 || (step === 1 && canOpenPreview);
+  const canOpenStep = (targetStep: number) => targetStep < 2 || canOpenPreview;
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">

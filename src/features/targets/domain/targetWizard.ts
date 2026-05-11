@@ -20,6 +20,7 @@ export interface TargetWizardState {
 }
 
 export interface TargetWizardPreview {
+  canPreview: boolean;
   canCreate: boolean;
   title: string;
   summary: string;
@@ -96,8 +97,14 @@ export function buildTargetWizardPreview(
   const now = options.now ?? new Date();
   const constellation = parseConstellationInput(state.targetConstellation);
   const currentConstellation = parseConstellationInput(state.currentConstellation);
+  const targetAlreadyMet = state.mode === 'get-character' &&
+    constellation !== null &&
+    currentConstellation !== null &&
+    currentConstellation >= constellation;
   const desiredCopies = state.mode === 'get-character' && constellation !== null
-    ? Math.max(1, currentConstellation === null ? constellation + 1 : constellation - currentConstellation)
+    ? targetAlreadyMet
+      ? 0
+      : Math.max(1, currentConstellation === null ? constellation + 1 : constellation - currentConstellation)
     : 1;
   const savedPulls = nonNegativeInteger(state.savedPulls);
   const currentPity = Math.min(89, nonNegativeInteger(state.currentPity));
@@ -105,38 +112,46 @@ export function buildTargetWizardPreview(
   const daysRemaining = daysUntil(state.deadline, now);
   const hardPityTarget = 90 * desiredCopies;
   const pullProgress = savedPulls + currentPity;
-  const pullShortfall = state.mode === 'get-character'
+  const pullShortfall = state.mode === 'get-character' && !targetAlreadyMet
     ? Math.max(0, hardPityTarget - pullProgress)
     : 0;
   const pullsPerDay = daysRemaining && pullShortfall > 0
     ? Number((pullShortfall / daysRemaining).toFixed(1))
     : null;
-  const readinessPercent = state.mode === 'get-character'
+  const readinessPercent = targetAlreadyMet
+    ? 100
+    : state.mode === 'get-character'
     ? Math.min(100, Math.round((pullProgress / hardPityTarget) * 100))
     : null;
   const hasCharacter = Boolean(state.characterKey.trim());
   const hasTeam = Boolean(state.teamId.trim());
-  const canCreate = state.mode === 'polish-team' ? hasTeam : hasCharacter;
+  const canPreview = state.mode === 'polish-team' ? hasTeam : hasCharacter;
+  const canCreate = canPreview && !targetAlreadyMet;
   const displayName = characterLabel(state.characterKey);
   const adviceRows: string[] = [];
 
   if (state.mode === 'get-character') {
-    if (pullShortfall === 0) {
-      adviceRows.push('Worst case: you cover hard pity with current pulls and pity.');
+    if (targetAlreadyMet) {
+      adviceRows.push(`You already have C${currentConstellation} ${displayName}, which covers this C${constellation} target.`);
+      adviceRows.push('Pick a higher constellation or switch to Build if you want a polish target.');
     } else {
-      adviceRows.push(`Worst case: you need ${pullShortfall} more ${pullShortfall === 1 ? 'pull' : 'pulls'} before the banner target.`);
-    }
+      if (pullShortfall === 0) {
+        adviceRows.push('Worst case: you cover hard pity with current pulls and pity.');
+      } else {
+        adviceRows.push(`Worst case: you need ${pullShortfall} more ${pullShortfall === 1 ? 'pull' : 'pulls'} before the banner target.`);
+      }
 
-    if (pullsPerDay !== null) {
-      adviceRows.push(`${pullsPerDay} pulls/day until your deadline.`);
-    }
+      if (pullsPerDay !== null) {
+        adviceRows.push(`${pullsPerDay} pulls/day until your deadline.`);
+      }
 
-    if (state.guaranteed) {
-      adviceRows.push('Guarantee is active, so the next character five-star is featured.');
-    }
+      if (state.guaranteed) {
+        adviceRows.push('Guarantee is active, so the next character five-star is featured.');
+      }
 
-    if (!state.useWishHistory) {
-      adviceRows.push('Manual mode is enough to start; importing wish history can refine the odds later.');
+      if (!state.useWishHistory) {
+        adviceRows.push('Manual mode is enough to start; importing wish history can refine the odds later.');
+      }
     }
   } else if (state.mode === 'build-character') {
     adviceRows.push(`Create a build target for ${displayName} and let imports fill in material gaps.`);
@@ -158,25 +173,28 @@ export function buildTargetWizardPreview(
       campaignType: state.mode === 'get-character' ? 'character-acquisition' : 'character-polish',
       characterKey: state.characterKey,
       buildGoal: state.buildGoal,
-      includePullTarget: state.mode === 'get-character',
+      includePullTarget: state.mode === 'get-character' && !targetAlreadyMet,
       ...(state.deadline ? { deadline: state.deadline } : {}),
       ...(pullBudget > 0 ? { maxPullBudget: pullBudget } : {}),
-      ...(state.mode === 'get-character' ? { desiredCopies } : {}),
+      ...(state.mode === 'get-character' && !targetAlreadyMet ? { desiredCopies } : {}),
       ...(constellation !== null && state.mode === 'get-character' ? { targetConstellation: constellation } : {}),
     });
 
   return {
+    canPreview,
     canCreate,
     title: state.mode === 'get-character'
       ? `Get ${displayName}`
       : state.mode === 'build-character'
         ? `Build ${displayName}`
         : 'Polish a team',
-    summary: state.mode === 'get-character'
+    summary: targetAlreadyMet
+      ? 'Target already met'
+      : state.mode === 'get-character'
       ? `${readinessPercent}% hard-pity coverage`
       : 'Ready to create a planning target',
     createHref,
-    ...(state.mode === 'get-character' && hasCharacter
+    ...(state.mode === 'get-character' && hasCharacter && !targetAlreadyMet
       ? { calculatorHref: buildCalculatorHref(state.characterKey, desiredCopies, savedPulls, currentPity) }
       : {}),
     desiredCopies,

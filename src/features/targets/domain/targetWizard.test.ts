@@ -78,6 +78,35 @@ describe('target wizard preview', () => {
     expect(preview.adviceRows).toContain('Budget warning: 80 pulls is below the current hard-pity shortfall.');
   });
 
+  it('detects constellation targets the user already has', () => {
+    const preview = buildTargetWizardPreview({
+      ...baseState,
+      currentConstellation: '2',
+      targetConstellation: '1',
+      savedPulls: '0',
+      currentPity: '0',
+      pullBudget: '80',
+    }, {
+      now: new Date('2026-05-11T12:00:00.000Z'),
+    });
+
+    expect(preview).toMatchObject({
+      canPreview: true,
+      canCreate: false,
+      summary: 'Target already met',
+      desiredCopies: 0,
+      pullShortfall: 0,
+      pullsPerDay: null,
+      readinessPercent: 100,
+    });
+    expect(preview.calculatorHref).toBeUndefined();
+    expect(preview.createHref).not.toContain('copies=');
+    expect(preview.adviceRows).toEqual([
+      'You already have C2 Furina, which covers this C1 target.',
+      'Pick a higher constellation or switch to Build if you want a polish target.',
+    ]);
+  });
+
   it('builds character polish and team polish previews', () => {
     const characterPreview = buildTargetWizardPreview({
       ...baseState,
