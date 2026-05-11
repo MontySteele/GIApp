@@ -1,7 +1,7 @@
 /**
  * Resource Service
  *
- * Shared service for calculating available pulls across features.
+ * Shared service for calculating event-banner pulls across features.
  * Consolidates logic from calculator and ledger to avoid duplication.
  *
  * This service aggregates data from:
@@ -15,15 +15,18 @@ import {
   fateEntryRepo,
   primogemEntryRepo,
   resourceSnapshotRepo,
-  calculateAvailablePulls,
+  calculatePullAvailability,
   calculateWishSpending,
   type LedgerResourceSnapshot,
+  type PullAvailability,
 } from '@/features/ledger';
 import { wishRepo } from '@/features/wishes';
 import type { FateType } from '@/types';
 
 export interface AvailablePullsResult {
+  /** Event-banner pulls available for character, weapon, and chronicled targets. */
   availablePulls: number;
+  pullAvailability?: PullAvailability;
   resources: LedgerResourceSnapshot;
   lastUpdated: string | null;
   hasSnapshot: boolean;
@@ -50,14 +53,14 @@ function sumPrimogems(entries: Awaited<ReturnType<typeof primogemEntryRepo.getAl
 }
 
 /**
- * Get available pulls from tracker data
+ * Get event-banner pulls from tracker data
  *
  * Aggregates:
  * - Latest resource snapshot
  * - Primogem/fate entries since snapshot
  * - Wish spending since snapshot
  *
- * Returns current available pulls and resource counts
+ * Returns current event-banner pulls and resource counts
  */
 export async function getAvailablePullsFromTracker(): Promise<AvailablePullsResult> {
   const [snapshot, wishes] = await Promise.all([
@@ -113,8 +116,11 @@ export async function getAvailablePullsFromTracker(): Promise<AvailablePullsResu
     starglitter: Math.max(0, resources.starglitter),
   };
 
+  const pullAvailability = calculatePullAvailability(safeResources);
+
   return {
-    availablePulls: calculateAvailablePulls(safeResources),
+    availablePulls: pullAvailability.eventPulls,
+    pullAvailability,
     resources: safeResources,
     lastUpdated: snapshot?.timestamp ?? null,
     hasSnapshot: !!snapshot,

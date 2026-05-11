@@ -76,7 +76,7 @@ export default function SingleTargetCalculator() {
             />
 
             <Input
-              label="Available Pulls"
+              label="Event Pulls"
               type="number"
               min="0"
               value={availablePulls}

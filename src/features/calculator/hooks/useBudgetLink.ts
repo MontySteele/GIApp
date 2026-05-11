@@ -15,8 +15,12 @@ import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
 export interface BudgetLinkData {
   // Current state
   currentPrimogems: number;
+  currentGenesisCrystals: number;
   currentFates: number;
   currentPulls: number;
+  starglitterPulls: number;
+  standardPulls: number;
+  allWishes: number;
 
   // Projection
   dailyRate: number;
@@ -48,8 +52,12 @@ export function useBudgetLink(rateLookbackDays: number = 30): BudgetLinkData {
     if (isLoading) {
       return {
         currentPrimogems: 0,
+        currentGenesisCrystals: 0,
         currentFates: 0,
         currentPulls: 0,
+        starglitterPulls: 0,
+        standardPulls: 0,
+        allWishes: 0,
         dailyRate: 0,
         projectedPrimogems30Days: 0,
         projectedPrimogems60Days: 0,
@@ -65,8 +73,19 @@ export function useBudgetLink(rateLookbackDays: number = 30): BudgetLinkData {
 
     // Current resources
     const currentPrimogems = availablePullsResult.resources.primogems;
+    const currentGenesisCrystals = availablePullsResult.resources.genesisCrystals;
     const currentFates = availablePullsResult.resources.intertwined;
     const currentPulls = availablePullsResult.availablePulls;
+    const pullAvailability = availablePullsResult.pullAvailability ?? {
+      eventPulls: currentPulls,
+      standardPulls: 0,
+      allWishes: currentPulls,
+      currencyPulls: 0,
+      starglitterPulls: 0,
+    };
+    const starglitterPulls = pullAvailability.starglitterPulls;
+    const standardPulls = pullAvailability.standardPulls;
+    const allWishes = pullAvailability.allWishes;
 
     // Calculate daily rate from wish history
     const dailyRate = calculateDailyRateFromWishes(wishes ?? [], rateLookbackDays);
@@ -84,8 +103,12 @@ export function useBudgetLink(rateLookbackDays: number = 30): BudgetLinkData {
 
     return {
       currentPrimogems,
+      currentGenesisCrystals,
       currentFates,
       currentPulls,
+      starglitterPulls,
+      standardPulls,
+      allWishes,
       dailyRate,
       projectedPrimogems30Days,
       projectedPrimogems60Days,

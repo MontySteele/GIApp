@@ -250,7 +250,7 @@ export function MultiTargetCalculator() {
       const result = await getAvailablePullsFromTracker();
       setAvailablePulls(result.availablePulls);
     } catch (error) {
-      console.error('Failed to load available pulls:', error);
+      console.error('Failed to load event pulls:', error);
     } finally {
       setIsLoadingPulls(false);
     }
@@ -569,7 +569,7 @@ export function MultiTargetCalculator() {
       <Card>
         <CardHeader><h3 className="font-semibold">Available Resources</h3></CardHeader>
         <CardContent className="space-y-3">
-          <Input label="Available Pulls" type="number" value={availablePulls}
+          <Input label="Event Pulls" type="number" value={availablePulls}
             onChange={(e) => setAvailablePulls(Number(e.target.value))} min={0} />
           <Button size="sm" variant="secondary" onClick={importAvailablePulls}
             disabled={isLoadingPulls} className="w-full">
@@ -581,7 +581,7 @@ export function MultiTargetCalculator() {
             Use Current Pity
           </Button>
           <p className="text-xs text-slate-400">
-            Import pulls from resources, then apply current pity/guarantees from wish history.
+            Import event pulls from resources, then apply current pity/guarantees from wish history.
           </p>
         </CardContent>
       </Card>

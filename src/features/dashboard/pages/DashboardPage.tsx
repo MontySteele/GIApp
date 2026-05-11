@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Users,
   Gem,
@@ -16,9 +17,9 @@ import GettingStartedChecklist from '@/components/common/GettingStartedChecklist
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import { useArtifacts } from '@/features/artifacts/hooks/useArtifacts';
 import { useWeapons } from '@/features/weapons/hooks/useWeapons';
-import { useResources } from '@/features/ledger/hooks/useResources';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
+import { getAvailablePullsFromTracker } from '@/lib/services/resourceService';
 import QuickNotesWidget from '@/features/notes/components/QuickNotesWidget';
 import DashboardCampaignFocus from '../components/DashboardCampaignFocus';
 import TodayFarmingWidget from '../components/TodayFarmingWidget';
@@ -47,7 +48,8 @@ export default function DashboardPage() {
   const { characters, isLoading: loadingChars } = useCharacters();
   const { stats: artifactStats, isLoading: loadingArtifacts } = useArtifacts();
   const { stats: weaponStats, isLoading: loadingWeapons } = useWeapons();
-  const { primogems, intertwined, totalPulls, isLoading: loadingResources } = useResources();
+  const availablePulls = useLiveQuery(() => getAvailablePullsFromTracker(), []);
+  const loadingResources = availablePulls === undefined;
   const { teams } = useTeams();
   const { checklist, checklistProgress, checklistTotal, updateChecklist, isComplete: onboardingComplete } = useOnboardingContext();
 
@@ -95,6 +97,14 @@ export default function DashboardPage() {
   }, [characters.length, teams.length, checklist, updateChecklist]);
 
   const isLoading = loadingChars || loadingArtifacts || loadingWeapons || loadingResources;
+  const primogems = availablePulls?.resources.primogems ?? 0;
+  const genesisCrystals = availablePulls?.resources.genesisCrystals ?? 0;
+  const intertwined = availablePulls?.resources.intertwined ?? 0;
+  const eventPulls = Math.floor(availablePulls?.availablePulls ?? 0);
+  const starglitterPulls = availablePulls?.pullAvailability?.starglitterPulls ?? 0;
+  const pullSubtext = genesisCrystals > 0
+    ? `${formatPrimos(primogems)} primos + ${formatPrimos(genesisCrystals)} crystals`
+    : `${formatPrimos(primogems)} primogems`;
 
   if (isLoading) {
     return (
@@ -165,9 +175,9 @@ export default function DashboardPage() {
         />
         <StatCard
           icon={<Sparkles className="w-5 h-5" />}
-          label="Available Pulls"
-          value={totalPulls}
-          subtext={`${formatPrimos(primogems)} primogems`}
+          label="Event Pulls"
+          value={eventPulls}
+          subtext={pullSubtext}
           color="text-green-400"
           to="/pulls"
         />
@@ -241,12 +251,15 @@ export default function DashboardPage() {
             <div className="flex items-end justify-between">
               <div>
                 <div className="text-3xl font-bold text-yellow-400">{formatPrimos(primogems)}</div>
-                <div className="text-sm text-slate-400">+ {intertwined} Fates</div>
+                <div className="text-sm text-slate-400">
+                  + {intertwined} Intertwined
+                  {starglitterPulls > 0 && `, ${starglitterPulls} via Starglitter`}
+                </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-slate-400">Available Pulls</div>
+                <div className="text-sm text-slate-400">Event Pulls</div>
                 <div className="text-lg font-medium text-slate-200">
-                  {totalPulls}
+                  {eventPulls}
                 </div>
               </div>
             </div>

@@ -338,7 +338,7 @@ export default function CampaignDetailPage() {
               <CardContent>
                 {plan.pullReadiness.hasTargets ? (
                   <div className="space-y-3">
-                    <PullRow label="Available" value={formatCount(plan.pullReadiness.availablePulls)} />
+                    <PullRow label="Event available" value={formatCount(plan.pullReadiness.availablePulls)} />
                     <PullRow label="Target" value={formatCount(plan.pullReadiness.targetPulls)} />
                     <PullRow label="Remaining" value={formatCount(plan.pullReadiness.remainingPulls)} />
                     <div className="h-2 bg-slate-900 rounded-full overflow-hidden">

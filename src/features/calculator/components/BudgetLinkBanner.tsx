@@ -62,7 +62,8 @@ export default function BudgetLinkBanner({
   const daysProjection = projectionDays;
   const projectedIncome = Math.floor(budget.dailyRate * daysProjection);
   const projectedPulls = Math.floor(projectedIncome / PRIMOS_PER_PULL);
-  const totalProjectedPulls = budget.currentPulls + projectedPulls;
+  const currentEventPulls = Math.floor(budget.currentPulls);
+  const totalProjectedPulls = currentEventPulls + projectedPulls;
 
   const formatNumber = (n: number) => n.toLocaleString();
 
@@ -81,16 +82,31 @@ export default function BudgetLinkBanner({
                   {formatNumber(budget.currentPrimogems)}
                 </span>
                 <Sparkles className="w-4 h-4 text-amber-400" />
+                {budget.currentGenesisCrystals > 0 && (
+                  <>
+                    <span className="text-slate-400">+</span>
+                    <span className="text-lg font-semibold text-slate-100">
+                      {formatNumber(budget.currentGenesisCrystals)}
+                    </span>
+                    <span className="text-sm text-slate-400">crystals</span>
+                  </>
+                )}
                 <span className="text-slate-400">+</span>
                 <span className="text-lg font-semibold text-slate-100">
                   {budget.currentFates}
                 </span>
-                <span className="text-sm text-slate-400">fates</span>
+                <span className="text-sm text-slate-400">intertwined</span>
               </div>
               <p className="text-sm text-slate-400">
-                <span className="text-primary-400 font-medium">{budget.currentPulls}</span> pulls
-                available now
+                <span className="text-primary-400 font-medium">{currentEventPulls}</span>{' '}
+                event pulls available now
+                {budget.starglitterPulls > 0 && `, including ${budget.starglitterPulls} from starglitter`}
               </p>
+              {budget.standardPulls > 0 && (
+                <p className="text-xs text-slate-500">
+                  {Math.floor(budget.allWishes)} all wishes incl. {budget.standardPulls} standard
+                </p>
+              )}
             </div>
           </div>
 
@@ -122,10 +138,10 @@ export default function BudgetLinkBanner({
             <Button
               variant="primary"
               size="sm"
-              onClick={() => onUseBudget(budget.currentPulls)}
+              onClick={() => onUseBudget(currentEventPulls)}
               className="whitespace-nowrap"
             >
-              Use Current ({budget.currentPulls})
+              Use Current ({currentEventPulls})
             </Button>
             {budget.dailyRate > 0 && (
               <Button

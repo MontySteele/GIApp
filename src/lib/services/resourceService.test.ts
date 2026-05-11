@@ -34,13 +34,24 @@ vi.mock('@/features/wishes/repo/wishRepo', () => ({
 }));
 
 vi.mock('@/features/ledger/domain/resourceCalculations', () => ({
-  calculateAvailablePulls: vi.fn(),
+  calculatePullAvailability: vi.fn(),
   calculateWishSpending: vi.fn(),
 }));
+
+function mockPullAvailability(eventPulls: number, allWishes = eventPulls) {
+  vi.mocked(resourceCalculations.calculatePullAvailability).mockReturnValue({
+    eventPulls,
+    standardPulls: Math.max(0, allWishes - eventPulls),
+    allWishes,
+    currencyPulls: 0,
+    starglitterPulls: 0,
+  });
+}
 
 describe('resourceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPullAvailability(0);
   });
 
   describe('getAvailablePullsFromTracker', () => {
@@ -50,7 +61,6 @@ describe('resourceService', () => {
         vi.mocked(wishRepo.getAll).mockResolvedValue([]);
         vi.mocked(primogemEntryRepo.getAll).mockResolvedValue([]);
         vi.mocked(fateEntryRepo.getAll).mockResolvedValue([]);
-        vi.mocked(resourceCalculations.calculateAvailablePulls).mockReturnValue(0);
       });
 
       it('returns zero resources when no data', async () => {
@@ -79,7 +89,7 @@ describe('resourceService', () => {
           { id: '1', amount: 100, source: 'daily', date: '2024-01-01', createdAt: '', updatedAt: '' },
           { id: '2', amount: 200, source: 'event', date: '2024-01-02', createdAt: '', updatedAt: '' },
         ]);
-        vi.mocked(resourceCalculations.calculateAvailablePulls).mockReturnValue(1);
+        mockPullAvailability(1);
 
         const result = await getAvailablePullsFromTracker();
 
@@ -119,7 +129,7 @@ describe('resourceService', () => {
         vi.mocked(primogemEntryRepo.getByDateRange).mockResolvedValue([]);
         vi.mocked(fateEntryRepo.getByDateRange).mockResolvedValue([]);
         vi.mocked(resourceCalculations.calculateWishSpending).mockReturnValue(undefined);
-        vi.mocked(resourceCalculations.calculateAvailablePulls).mockReturnValue(16);
+        mockPullAvailability(16);
       });
 
       it('uses snapshot as base values', async () => {
@@ -169,6 +179,7 @@ describe('resourceService', () => {
 
       it('subtracts wish spending from resources', async () => {
         vi.mocked(resourceCalculations.calculateWishSpending).mockReturnValue({
+          totalPulls: 1,
           primogemEquivalent: 160,
           pullsByFate: { intertwined: 1, acquaint: 0 },
         });
@@ -181,6 +192,7 @@ describe('resourceService', () => {
 
       it('ensures resources are never negative', async () => {
         vi.mocked(resourceCalculations.calculateWishSpending).mockReturnValue({
+          totalPulls: 30,
           primogemEquivalent: 2000, // More than snapshot
           pullsByFate: { intertwined: 20, acquaint: 10 },
         });
@@ -194,7 +206,7 @@ describe('resourceService', () => {
     });
 
     describe('available pulls calculation', () => {
-      it('calls calculateAvailablePulls with safe resources', async () => {
+      it('calls calculatePullAvailability with safe resources', async () => {
         vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(null);
         vi.mocked(wishRepo.getAll).mockResolvedValue([]);
         vi.mocked(primogemEntryRepo.getAll).mockResolvedValue([
@@ -203,11 +215,11 @@ describe('resourceService', () => {
         vi.mocked(fateEntryRepo.getAll).mockResolvedValue([
           { id: '1', amount: 5, fateType: 'intertwined', source: 'shop', date: '2024-01-01', createdAt: '', updatedAt: '' },
         ]);
-        vi.mocked(resourceCalculations.calculateAvailablePulls).mockReturnValue(8);
+        mockPullAvailability(8);
 
         const result = await getAvailablePullsFromTracker();
 
-        expect(resourceCalculations.calculateAvailablePulls).toHaveBeenCalledWith({
+        expect(resourceCalculations.calculatePullAvailability).toHaveBeenCalledWith({
           primogems: 480,
           genesisCrystals: 0,
           intertwined: 5,
@@ -217,16 +229,17 @@ describe('resourceService', () => {
         expect(result.availablePulls).toBe(8);
       });
 
-      it('returns the calculated pull count', async () => {
+      it('returns the event pull count from the pull availability breakdown', async () => {
         vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(null);
         vi.mocked(wishRepo.getAll).mockResolvedValue([]);
         vi.mocked(primogemEntryRepo.getAll).mockResolvedValue([]);
         vi.mocked(fateEntryRepo.getAll).mockResolvedValue([]);
-        vi.mocked(resourceCalculations.calculateAvailablePulls).mockReturnValue(42);
+        mockPullAvailability(42, 68);
 
         const result = await getAvailablePullsFromTracker();
 
         expect(result.availablePulls).toBe(42);
+        expect(result.pullAvailability.allWishes).toBe(68);
       });
     });
   });

@@ -75,7 +75,7 @@ function renderCalculatorWithRouter() {
 
 // NOTE: Many tests in this file need updating to match the current component structure.
 // The component UI has evolved (e.g., "Add Target" -> "Add Character", different field layouts).
-// Working tests: Initial render, basic add/edit flow, available pulls, some validation
+// Working tests: Initial render, basic add/edit flow, event pulls, some validation
 // Tests needing update: Multiple targets, removing targets, reorder buttons, banner selection, some results display
 describe('MultiTargetCalculator', () => {
   beforeEach(() => {
@@ -153,7 +153,7 @@ describe('MultiTargetCalculator', () => {
       expect(screen.getByText('Recruit Furina pull plan loaded')).toBeInTheDocument();
       expect(screen.getByText(/1 target with 69 pulls available/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/character name/i)).toHaveValue('Furina');
-      expect(screen.getByLabelText('Available Pulls')).toHaveValue(69);
+      expect(screen.getByLabelText('Event Pulls')).toHaveValue(69);
       expect(screen.getByRole('link', { name: /back to campaign/i })).toHaveAttribute(
         'href',
         '/campaigns/campaign-1'
@@ -402,17 +402,17 @@ describe('MultiTargetCalculator', () => {
   });
 
   describe('Available pulls input', () => {
-    it('should show available pulls input field', () => {
+    it('should show event pulls input field', () => {
       render(<MultiTargetCalculator />);
 
-      expect(screen.getByLabelText(/available pulls/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/event pulls/i)).toBeInTheDocument();
     });
 
-    it('should allow setting available pulls', async () => {
+    it('should allow setting event pulls', async () => {
       const user = userEvent.setup();
       render(<MultiTargetCalculator />);
 
-      const pullsInput = screen.getByLabelText(/available pulls/i);
+      const pullsInput = screen.getByLabelText(/event pulls/i);
       await user.clear(pullsInput);
       await user.type(pullsInput, '200');
 
@@ -438,7 +438,7 @@ describe('MultiTargetCalculator', () => {
       await user.click(screen.getByRole('button', { name: /reset/i }));
 
       expect(screen.queryByText('Recruit Furina pull plan loaded')).not.toBeInTheDocument();
-      expect(screen.getByLabelText('Available Pulls')).toHaveValue(0);
+      expect(screen.getByLabelText('Event Pulls')).toHaveValue(0);
     });
   });
 
@@ -482,7 +482,7 @@ describe('MultiTargetCalculator', () => {
 
       await user.click(screen.getByRole('button', { name: /add character/i }));
       await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
-      await user.type(screen.getByLabelText(/available pulls/i), '100');
+      await user.type(screen.getByLabelText(/event pulls/i), '100');
 
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
@@ -590,14 +590,14 @@ describe('MultiTargetCalculator', () => {
   });
 
   describe('Edge cases', () => {
-    it('should handle calculation with 0 available pulls', async () => {
+    it('should handle calculation with 0 event pulls', async () => {
       const user = userEvent.setup();
       render(<MultiTargetCalculator />);
 
       await user.click(screen.getByRole('button', { name: /add character/i }));
       await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
 
-      const pullsInput = screen.getByLabelText(/available pulls/i);
+      const pullsInput = screen.getByLabelText(/event pulls/i);
       await user.clear(pullsInput);
       await user.type(pullsInput, '0');
 
@@ -632,7 +632,7 @@ describe('MultiTargetCalculator', () => {
       await user.click(screen.getByRole('button', { name: /add character/i }));
       await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
 
-      const pullsInput = screen.getByLabelText(/available pulls/i);
+      const pullsInput = screen.getByLabelText(/event pulls/i);
       await user.clear(pullsInput);
       await user.type(pullsInput, '120');
 
@@ -712,7 +712,7 @@ describe('MultiTargetCalculator', () => {
       await user.click(screen.getByRole('button', { name: /add character/i }));
       await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
 
-      const pullsInput = screen.getByLabelText(/available pulls/i);
+      const pullsInput = screen.getByLabelText(/event pulls/i);
       await user.clear(pullsInput);
       await user.type(pullsInput, '160');
 

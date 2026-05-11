@@ -12,7 +12,7 @@ import { IncomeRateTrendChart } from '../components/IncomeRateTrendChart';
 import { TransactionLog } from '../components/TransactionLog';
 import { PurchaseLedger } from '../components/PurchaseLedger';
 import {
-  calculateAvailablePulls,
+  calculatePullAvailability,
   calculateWishSpending,
 } from '../domain/resourceCalculations';
 import { markChecklistItem } from '@/hooks/useOnboarding';
@@ -149,9 +149,9 @@ export default function LedgerPage() {
   const effectiveGenesis = latestSnapshot?.genesisCrystals ?? 0;
   const effectiveStarglitter = latestSnapshot?.starglitter ?? 0;
 
-  const wishesAvailable = useMemo(
+  const pullAvailability = useMemo(
     () =>
-      calculateAvailablePulls({
+      calculatePullAvailability({
         primogems: effectivePrimogems,
         genesisCrystals: effectiveGenesis,
         intertwined: effectiveIntertwined,
@@ -222,11 +222,20 @@ export default function LedgerPage() {
           </p>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-400">Wishes Available</p>
-          <p className="text-3xl font-bold text-amber-400">{Math.floor(wishesAvailable)}</p>
+          <p className="text-sm text-slate-400">Event Pulls Available</p>
+          <p className="text-3xl font-bold text-amber-400">{Math.floor(pullAvailability.eventPulls)}</p>
           <div className="text-xs text-slate-500 mt-1 space-y-0.5">
-            <p>{Math.floor(effectivePrimogems / 160)} from primogems</p>
-            <p>{effectiveIntertwined} intertwined + {effectiveAcquaint} acquaint fates</p>
+            <p>
+              {Math.floor(pullAvailability.currencyPulls)} from primos + crystals
+            </p>
+            <p>
+              {effectiveIntertwined} intertwined
+              {pullAvailability.starglitterPulls > 0 &&
+                ` + ${pullAvailability.starglitterPulls} from starglitter`}
+            </p>
+            <p>
+              All wishes: {Math.floor(pullAvailability.allWishes)} incl. {effectiveAcquaint} acquaint
+            </p>
           </div>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">

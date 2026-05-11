@@ -195,7 +195,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       const response = await fetch(scriptPath);
       const script = await response.text();
       await navigator.clipboard.writeText(script);
-    } catch (error) {
+    } catch {
       // Failed to copy script - silently ignore
     }
   }, []);
@@ -217,7 +217,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       // Failed to download script - silently ignore
     }
   }, []);

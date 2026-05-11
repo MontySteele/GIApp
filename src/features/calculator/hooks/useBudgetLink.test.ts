@@ -33,8 +33,22 @@ const mockResourceSnapshot = {
   genesisCrystals: 0,
 };
 
+const mockPullAvailability = {
+  eventPulls: Math.floor(mockResourceSnapshot.primogems / PRIMOS_PER_PULL)
+    + mockResourceSnapshot.intertwined
+    + Math.floor(mockResourceSnapshot.starglitter / 5),
+  standardPulls: mockResourceSnapshot.acquaint,
+  allWishes: Math.floor(mockResourceSnapshot.primogems / PRIMOS_PER_PULL)
+    + mockResourceSnapshot.intertwined
+    + Math.floor(mockResourceSnapshot.starglitter / 5)
+    + mockResourceSnapshot.acquaint,
+  currencyPulls: mockResourceSnapshot.primogems / PRIMOS_PER_PULL,
+  starglitterPulls: Math.floor(mockResourceSnapshot.starglitter / 5),
+};
+
 const mockAvailablePullsResult = {
-  availablePulls: Math.floor(mockResourceSnapshot.primogems / PRIMOS_PER_PULL) + mockResourceSnapshot.intertwined,
+  availablePulls: mockPullAvailability.eventPulls,
+  pullAvailability: mockPullAvailability,
   resources: {
     primogems: mockResourceSnapshot.primogems,
     genesisCrystals: mockResourceSnapshot.genesisCrystals,
@@ -86,6 +100,13 @@ describe('useBudgetLink', () => {
     useLiveQuery
       .mockReturnValueOnce({
         availablePulls: 0,
+        pullAvailability: {
+          eventPulls: 0,
+          standardPulls: 0,
+          allWishes: 0,
+          currencyPulls: 0,
+          starglitterPulls: 0,
+        },
         resources: {
           primogems: 0,
           genesisCrystals: 0,
@@ -105,7 +126,7 @@ describe('useBudgetLink', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('calculates current pulls from primogems and fates', async () => {
+  it('calculates current event pulls from primogems, intertwined fates, and starglitter', async () => {
     const { useLiveQuery } = vi.mocked(await import('dexie-react-hooks'));
     const { calculateDailyRateFromWishes } = vi.mocked(
       await import('@/features/ledger/domain/historicalReconstruction')
@@ -118,11 +139,13 @@ describe('useBudgetLink', () => {
 
     const { result } = renderHook(() => useBudgetLink());
 
-    // 16000 primos / 160 per pull = 100 pulls + 10 fates = 110 pulls
-    const expectedPulls = Math.floor(16000 / PRIMOS_PER_PULL) + 10;
+    // 16000 primos / 160 per pull = 100 pulls + 10 intertwined + 20 from starglitter.
+    const expectedPulls = mockPullAvailability.eventPulls;
     expect(result.current.currentPulls).toBe(expectedPulls);
     expect(result.current.currentPrimogems).toBe(16000);
     expect(result.current.currentFates).toBe(10);
+    expect(result.current.starglitterPulls).toBe(20);
+    expect(result.current.standardPulls).toBe(5);
   });
 
   it('calculates projections based on daily rate', async () => {
@@ -163,10 +186,10 @@ describe('useBudgetLink', () => {
 
     const { result } = renderHook(() => useBudgetLink());
 
-    // Current: 100 + 10 = 110 pulls
+    // Current: 100 + 10 + 20 = 130 event pulls
     // Projected 30d: 30 pulls
-    // Total 30d: 140 pulls
-    const currentPulls = Math.floor(16000 / PRIMOS_PER_PULL) + 10;
+    // Total 30d: 160 pulls
+    const currentPulls = mockPullAvailability.eventPulls;
     expect(result.current.totalPulls30Days).toBe(currentPulls + 30);
     expect(result.current.totalPulls60Days).toBe(currentPulls + 60);
   });
@@ -228,12 +251,19 @@ describe('useBudgetLink', () => {
 
     const emptyPullsResult = {
       availablePulls: 0,
+      pullAvailability: {
+        eventPulls: 0,
+        standardPulls: 0,
+        allWishes: 0,
+        currencyPulls: 0,
+        starglitterPulls: 0,
+      },
       resources: {
         primogems: 0,
         genesisCrystals: mockResourceSnapshot.genesisCrystals,
         intertwined: 0,
         acquaint: mockResourceSnapshot.acquaint,
-        starglitter: mockResourceSnapshot.starglitter,
+        starglitter: 0,
       },
       lastUpdated: mockResourceSnapshot.timestamp,
       hasSnapshot: true,

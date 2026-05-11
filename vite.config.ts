@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { pwaConfig } from './pwa.config'
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(() => ({
   plugins: [
     react(),
     VitePWA(pwaConfig)

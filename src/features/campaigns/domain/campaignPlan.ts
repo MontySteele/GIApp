@@ -1147,7 +1147,7 @@ function buildNextActions(
       id: `${campaign.id}-pulls`,
       category: 'pulls',
       label: `Save ${pullReadiness.remainingPulls} more pulls`,
-      detail: `${pullReadiness.availablePulls}/${pullReadiness.targetPulls} pulls ready for campaign targets.`,
+      detail: `${pullReadiness.availablePulls}/${pullReadiness.targetPulls} event pulls ready for campaign targets.`,
       priority: 1,
     });
   }

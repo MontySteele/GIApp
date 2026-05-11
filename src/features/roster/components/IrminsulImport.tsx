@@ -83,7 +83,7 @@ export default function IrminsulImport({ onSuccess, onCancel }: IrminsulImportPr
         const data = parseIrminsulJson(text);
         const result = previewImport(data);
         setPreview(result);
-      } catch (err) {
+      } catch {
         // Don't show error while typing, only on import
       }
     }

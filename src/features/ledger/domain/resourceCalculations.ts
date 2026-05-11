@@ -38,6 +38,19 @@ export interface LedgerResourceSnapshot {
   starglitter: number;
 }
 
+export interface PullAvailability {
+  /** Character, weapon, and chronicled banner pulls. */
+  eventPulls: number;
+  /** Standard banner pulls from Acquaint Fates only. */
+  standardPulls: number;
+  /** All wishes if every convertible resource is spent once. */
+  allWishes: number;
+  /** Pulls from primogems + genesis crystals before fate/starglitter counts. */
+  currencyPulls: number;
+  /** Starglitter converted at 5 starglitter per wish. */
+  starglitterPulls: number;
+}
+
 export type IncomeInterval = 'week' | 'month';
 
 export interface IncomeBucketFilters {
@@ -95,10 +108,26 @@ export function calculateWishSpending(wishes: WishRecord[], sinceTimestamp?: str
 }
 
 export function calculateAvailablePulls(resources: LedgerResourceSnapshot): number {
-  const primogemWishes = (resources.primogems + resources.genesisCrystals) / PRIMOGEMS_PER_PULL;
-  const starglitterWishes = Math.floor(resources.starglitter / 5);
+  return calculatePullAvailability(resources).allWishes;
+}
 
-  return primogemWishes + resources.intertwined + resources.acquaint + starglitterWishes;
+export function calculateEventPulls(resources: LedgerResourceSnapshot): number {
+  return calculatePullAvailability(resources).eventPulls;
+}
+
+export function calculatePullAvailability(resources: LedgerResourceSnapshot): PullAvailability {
+  const currencyPulls = (resources.primogems + resources.genesisCrystals) / PRIMOGEMS_PER_PULL;
+  const starglitterPulls = Math.floor(resources.starglitter / 5);
+  const eventPulls = currencyPulls + resources.intertwined + starglitterPulls;
+  const standardPulls = resources.acquaint;
+
+  return {
+    eventPulls,
+    standardPulls,
+    allWishes: eventPulls + standardPulls,
+    currencyPulls,
+    starglitterPulls,
+  };
 }
 
 export function splitPrimogemIncome(entries: PrimogemEntry[]) {
