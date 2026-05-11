@@ -13,6 +13,12 @@ function renderWithRouter(ui: React.ReactElement, initialEntries = ['/']) {
   );
 }
 
+async function waitForPlannerPersistence() {
+  await waitFor(() => {
+    expect(localStorage.getItem('plannerState')).toContain('"singleGoalType"');
+  });
+}
+
 // Mock characters
 const mockCharacters = [
   {
@@ -237,21 +243,25 @@ describe('PlannerPage', () => {
   });
 
   describe('domain schedule', () => {
-    it('shows today day name', () => {
+    it('shows today day name', async () => {
       renderWithRouter(<PlannerPage />);
 
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const today = days[new Date().getDay()];
       expect(screen.getByText(today!)).toBeInTheDocument();
+
+      await waitForPlannerPersistence();
     });
 
-    it('shows schedule reference', () => {
+    it('shows schedule reference', async () => {
       renderWithRouter(<PlannerPage />);
 
       expect(screen.getByText(/schedule/i)).toBeInTheDocument();
       expect(screen.getByText(/mon\/thu/i)).toBeInTheDocument();
       expect(screen.getByText(/tue\/fri/i)).toBeInTheDocument();
       expect(screen.getByText(/wed\/sat/i)).toBeInTheDocument();
+
+      await waitForPlannerPersistence();
     });
   });
 });
@@ -290,6 +300,7 @@ describe('PlannerPage loading state', () => {
 describe('PlannerPage without materials', () => {
   beforeEach(() => {
     vi.resetModules();
+    localStorage.clear();
   });
 
   it('shows warning when no materials imported', async () => {
@@ -315,5 +326,6 @@ describe('PlannerPage without materials', () => {
     renderWithRouter(<PlannerPageNoMats />);
 
     expect(screen.getByText(/import from irminsul or good to track materials/i)).toBeInTheDocument();
+    await waitForPlannerPersistence();
   });
 });

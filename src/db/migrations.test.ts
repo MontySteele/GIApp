@@ -1,13 +1,18 @@
 import Dexie from 'dexie';
 import 'fake-indexeddb/auto';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { initializeDatabase, LATEST_SCHEMA_VERSION } from './migrations';
 import { GenshinTrackerDB, SCHEMA_STORES } from './schema';
 
 const createdDatabases: string[] = [];
 
+beforeEach(() => {
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+});
+
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(createdDatabases.map((name) => Dexie.delete(name)));
   createdDatabases.length = 0;
 });
@@ -30,6 +35,8 @@ describe('database migrations', () => {
 
     const schemaVersion = await trackerDb.appMeta.get('schemaVersion');
     expect(schemaVersion?.value).toBe(LATEST_SCHEMA_VERSION);
+
+    trackerDb.close();
   });
 
   it('initializes appMeta for new installs at the latest schema version', async () => {
@@ -42,5 +49,7 @@ describe('database migrations', () => {
 
     const schemaVersion = await trackerDb.appMeta.get('schemaVersion');
     expect(schemaVersion?.value).toBe(LATEST_SCHEMA_VERSION);
+
+    trackerDb.close();
   });
 });

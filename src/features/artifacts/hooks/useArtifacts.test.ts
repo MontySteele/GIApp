@@ -120,10 +120,14 @@ describe('useArtifacts', () => {
   });
 
   describe('data loading', () => {
-    it('starts with loading state', () => {
+    it('starts with loading state', async () => {
       const { result } = renderHook(() => useArtifacts());
 
       expect(result.current.isLoading).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
     });
 
     it('loads artifacts from repository', async () => {

@@ -77,6 +77,11 @@ vi.mock('../components/CharacterForm', () => ({
   ),
 }));
 
+vi.mock('../components/CharacterProgression', () => ({
+  __esModule: true,
+  default: () => <div data-testid="character-progression">Character progression</div>,
+}));
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/roster/1']}>

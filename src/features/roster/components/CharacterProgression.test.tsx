@@ -51,12 +51,16 @@ vi.mock('@/features/planner/domain/ascensionCalculator', () => ({
   }),
 }));
 
-vi.mock('@/features/planner/hooks/useMaterials', () => ({
-  useMaterials: () => ({
-    materials: { Mora: 1000000 },
-    isLoading: false,
-  }),
-}));
+vi.mock('@/features/planner/hooks/useMaterials', () => {
+  const materials = { Mora: 1000000 };
+
+  return {
+    useMaterials: () => ({
+      materials,
+      isLoading: false,
+    }),
+  };
+});
 
 vi.mock('@/features/planner/domain/materialConstants', () => ({
   RESIN_REGEN: { minutesPerResin: 8, maxResin: 200, fragileResin: 60, resinPerDay: 180 },
@@ -85,40 +89,58 @@ const renderProgression = (character = mockCharacter) =>
     </MemoryRouter>
   );
 
+async function waitForProgressionCalculation() {
+  await screen.findByText('Guide to Justice');
+}
+
 describe('CharacterProgression', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the progression card header', () => {
+  it('renders the progression card header', async () => {
     renderProgression();
     expect(screen.getByText('Progression')).toBeInTheDocument();
+    await waitForProgressionCalculation();
   });
 
-  it('renders goal preset buttons', () => {
+  it('renders goal preset buttons', async () => {
     renderProgression();
     expect(screen.getByText('Next Ascension')).toBeInTheDocument();
     expect(screen.getByText('Functional')).toBeInTheDocument();
     expect(screen.getByText('Comfortable')).toBeInTheDocument();
     expect(screen.getByText('Full Build')).toBeInTheDocument();
+    await waitForProgressionCalculation();
   });
 
-  it('defaults to comfortable preset', () => {
+  it('defaults to comfortable preset', async () => {
     renderProgression();
     const comfortableBtn = screen.getByText('Comfortable');
     expect(comfortableBtn.className).toContain('bg-primary-600');
+    await waitForProgressionCalculation();
   });
 
-  it('switches goal presets on click', () => {
+  it('switches goal presets on click', async () => {
+    const { calculateAscensionSummary } = await import('@/features/planner/domain/ascensionCalculator');
+
     renderProgression();
+    await waitFor(() => {
+      expect(calculateAscensionSummary).toHaveBeenCalledTimes(1);
+    });
+
     const fullBtn = screen.getByText('Full Build');
     fireEvent.click(fullBtn);
     expect(fullBtn.className).toContain('bg-primary-600');
+
+    await waitFor(() => {
+      expect(calculateAscensionSummary).toHaveBeenCalledTimes(2);
+    });
   });
 
-  it('shows target state summary', () => {
+  it('shows target state summary', async () => {
     renderProgression();
     expect(screen.getByText(/Lv\.70/)).toBeInTheDocument();
+    await waitForProgressionCalculation();
   });
 
   it('displays materials after calculation', async () => {
@@ -146,10 +168,11 @@ describe('CharacterProgression', () => {
     });
   });
 
-  it('shows progression link', () => {
+  it('shows progression link', async () => {
     renderProgression();
     const link = screen.getByText('Open Progression');
     expect(link.closest('a')).toHaveAttribute('href', '/roster/planner?character=Furina');
+    await waitForProgressionCalculation();
   });
 
   it('shows complete state when character meets goal', async () => {

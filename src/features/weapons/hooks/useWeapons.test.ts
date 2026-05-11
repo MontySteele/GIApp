@@ -85,10 +85,14 @@ describe('useWeapons', () => {
   });
 
   describe('data loading', () => {
-    it('starts with loading state', () => {
+    it('starts with loading state', async () => {
       const { result } = renderHook(() => useWeapons());
 
       expect(result.current.isLoading).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
     });
 
     it('loads weapons from repository', async () => {
