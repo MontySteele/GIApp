@@ -1,31 +1,57 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate, useLocation, useParams } from 'react-router-dom';
 import Layout from './Layout';
 import RouteErrorPage, { NotFoundPage } from './RouteErrorPage';
-import DashboardPage from '@/features/dashboard/pages/DashboardPage';
-import RosterLayout from '@/features/roster/pages/RosterLayout';
-import RosterPage from '@/features/roster/pages/RosterPage';
-import CharacterDetailPage from '@/features/roster/pages/CharacterDetailPage';
-import WeaponsTab from '@/features/roster/pages/WeaponsTab';
-import ArtifactsTab from '@/features/roster/pages/ArtifactsTab';
-import PullsLayout from '@/features/wishes/pages/PullsLayout';
-import HistoryTab from '@/features/wishes/pages/HistoryTab';
-import CalculatorTab from '@/features/wishes/pages/CalculatorTab';
-import BudgetTab from '@/features/wishes/pages/BudgetTab';
-import BannersTab from '@/features/wishes/pages/BannersTab';
-import { CampaignDetailPage, CampaignsLayout, CampaignsPage } from '@/features/campaigns';
-import {
-  TeamsPage,
-  TeamDetailPage,
-  TemplatesTab,
-  BossesTab,
-} from '@/features/teams';
-import PlannerPage from '@/features/planner/pages/PlannerPage';
-import MaterialsTab from '@/features/planner/pages/MaterialsTab';
-import DomainsTab from '@/features/planner/pages/DomainsTab';
-import MorePage from '@/features/more/pages/MorePage';
-import NotesPage from '@/features/notes/pages/NotesPage';
-import SyncPage from '@/features/sync/pages/SyncPage';
-import ImportHubPage from '@/features/sync/pages/ImportHubPage';
+
+const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'));
+const CampaignsLayout = lazy(() => import('@/features/campaigns/pages/CampaignsLayout'));
+const CampaignsPage = lazy(() => import('@/features/campaigns/pages/CampaignsPage'));
+const CampaignDetailPage = lazy(() => import('@/features/campaigns/pages/CampaignDetailPage'));
+const RosterLayout = lazy(() => import('@/features/roster/pages/RosterLayout'));
+const RosterPage = lazy(() => import('@/features/roster/pages/RosterPage'));
+const CharacterDetailPage = lazy(() => import('@/features/roster/pages/CharacterDetailPage'));
+const WeaponsTab = lazy(() => import('@/features/roster/pages/WeaponsTab'));
+const ArtifactsTab = lazy(() => import('@/features/roster/pages/ArtifactsTab'));
+const PullsLayout = lazy(() => import('@/features/wishes/pages/PullsLayout'));
+const HistoryTab = lazy(() => import('@/features/wishes/pages/HistoryTab'));
+const CalculatorTab = lazy(() => import('@/features/wishes/pages/CalculatorTab'));
+const BudgetTab = lazy(() => import('@/features/wishes/pages/BudgetTab'));
+const BannersTab = lazy(() => import('@/features/wishes/pages/BannersTab'));
+const TeamsPage = lazy(() => import('@/features/teams/pages/TeamsPage'));
+const TeamDetailPage = lazy(() => import('@/features/teams/pages/TeamDetailPage'));
+const TemplatesTab = lazy(() => import('@/features/teams/pages/TemplatesTab'));
+const BossesTab = lazy(() => import('@/features/teams/pages/BossesTab'));
+const PlannerPage = lazy(() => import('@/features/planner/pages/PlannerPage'));
+const MaterialsTab = lazy(() => import('@/features/planner/pages/MaterialsTab'));
+const DomainsTab = lazy(() => import('@/features/planner/pages/DomainsTab'));
+const MorePage = lazy(() => import('@/features/more/pages/MorePage'));
+const NotesPage = lazy(() => import('@/features/notes/pages/NotesPage'));
+const SyncPage = lazy(() => import('@/features/sync/pages/SyncPage'));
+const ImportHubPage = lazy(() => import('@/features/sync/pages/ImportHubPage'));
+
+function RouteLoadingFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center" role="status" aria-live="polite">
+      <span
+        className="h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-primary-500"
+        aria-hidden="true"
+      />
+      <span className="sr-only">Loading page</span>
+    </div>
+  );
+}
+
+function RouteSuspense({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<RouteLoadingFallback />}>
+      {children}
+    </Suspense>
+  );
+}
+
+function routeElement(children: ReactNode) {
+  return <RouteSuspense>{children}</RouteSuspense>;
+}
 
 function RedirectPreserveSearch({ pathname }: { pathname: string }) {
   const location = useLocation();
@@ -50,81 +76,81 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <DashboardPage />,
+        element: routeElement(<DashboardPage />),
       },
       {
         path: 'campaigns',
-        element: <CampaignsLayout />,
+        element: routeElement(<CampaignsLayout />),
         children: [
           {
             index: true,
-            element: <CampaignsPage />,
+            element: routeElement(<CampaignsPage />),
           },
           {
             path: 'materials',
-            element: <MaterialsTab />,
+            element: routeElement(<MaterialsTab />),
           },
           {
             path: ':id',
-            element: <CampaignDetailPage />,
+            element: routeElement(<CampaignDetailPage />),
           },
         ],
       },
       // Roster with nested routes for Characters, Weapons, Artifacts, Builds
       {
         path: 'roster',
-        element: <RosterLayout />,
+        element: routeElement(<RosterLayout />),
         children: [
           {
             index: true,
-            element: <RosterPage />,
+            element: routeElement(<RosterPage />),
           },
           {
             path: 'weapons',
-            element: <WeaponsTab />,
+            element: routeElement(<WeaponsTab />),
           },
           {
             path: 'artifacts',
-            element: <ArtifactsTab />,
+            element: routeElement(<ArtifactsTab />),
           },
           {
             path: 'builds',
-            element: <TemplatesTab />,
+            element: routeElement(<TemplatesTab />),
           },
           {
             path: 'teams',
-            element: <TeamsPage />,
+            element: routeElement(<TeamsPage />),
           },
           {
             path: 'teams/:id',
-            element: <TeamDetailPage />,
+            element: routeElement(<TeamDetailPage />),
           },
           {
             path: 'planner',
-            element: <PlannerPage />,
+            element: routeElement(<PlannerPage />),
           },
           {
             path: 'domains',
-            element: <DomainsTab />,
+            element: routeElement(<DomainsTab />),
           },
           {
             path: 'bosses',
-            element: <BossesTab />,
+            element: routeElement(<BossesTab />),
           },
         ],
       },
       {
         path: 'roster/:id',
-        element: <CharacterDetailPage />,
+        element: routeElement(<CharacterDetailPage />),
       },
       // Pulls (renamed from Wishes) with nested routes for Budget, Calculator, History, Banners
       {
         path: 'pulls',
-        element: <PullsLayout />,
+        element: routeElement(<PullsLayout />),
         children: [
           {
             index: true,
-            element: <BudgetTab />,
+            element: routeElement(<BudgetTab />),
           },
           {
             path: 'budget',
@@ -132,15 +158,15 @@ export const router = createBrowserRouter([
           },
           {
             path: 'calculator',
-            element: <CalculatorTab />,
+            element: routeElement(<CalculatorTab />),
           },
           {
             path: 'history',
-            element: <HistoryTab />,
+            element: routeElement(<HistoryTab />),
           },
           {
             path: 'banners',
-            element: <BannersTab />,
+            element: routeElement(<BannersTab />),
           },
         ],
       },
@@ -222,19 +248,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'notes',
-        element: <NotesPage />,
+        element: routeElement(<NotesPage />),
       },
       {
         path: 'more',
-        element: <MorePage />,
+        element: routeElement(<MorePage />),
       },
       {
         path: 'imports',
-        element: <ImportHubPage />,
+        element: routeElement(<ImportHubPage />),
       },
       {
         path: 'settings',
-        element: <SyncPage />,
+        element: routeElement(<SyncPage />),
       },
       {
         path: '*',
