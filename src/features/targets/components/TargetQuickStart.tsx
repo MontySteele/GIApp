@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calculator, Hammer, Sparkles, Target } from 'lucide-react';
+import { Calculator, CheckCircle2, Hammer, Sparkles, Target, UsersRound } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import Select from '@/components/ui/Select';
-import { buildCampaignPrefillUrl } from '@/features/campaigns/lib/campaignLinks';
+import { useTeams } from '@/features/roster/hooks/useTeams';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import type { CampaignBuildGoal } from '@/types';
-
-type TargetMode = 'pull' | 'build';
+import {
+  buildTargetWizardPreview,
+  type TargetWizardMode,
+  type TargetWizardState,
+} from '../domain/targetWizard';
 
 const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
   { value: 'functional', label: 'Functional' },
@@ -17,30 +21,40 @@ const BUILD_GOAL_OPTIONS: { value: CampaignBuildGoal; label: string }[] = [
   { value: 'full', label: 'Full build' },
 ];
 
-function buildCalculatorHref(characterKey: string, copies: number, savedPulls: string): string {
-  const params = new URLSearchParams();
-  params.set('mode', 'multi');
-  params.append('target', JSON.stringify({
-    name: characterKey,
-    banner: 'character',
-    copies,
-  }));
+const MODE_OPTIONS: { value: TargetWizardMode; label: string; icon: LucideIcon }[] = [
+  { value: 'get-character', label: 'Get', icon: Sparkles },
+  { value: 'build-character', label: 'Build', icon: Hammer },
+  { value: 'polish-team', label: 'Team', icon: UsersRound },
+];
 
-  if (savedPulls) {
-    params.set('pulls', savedPulls);
-  }
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
-  return `/pulls/calculator?${params.toString()}`;
+function getInitialState(): TargetWizardState {
+  return {
+    mode: 'get-character',
+    characterKey: '',
+    teamId: '',
+    buildGoal: 'comfortable',
+    deadline: todayIso(),
+    savedPulls: '0',
+    currentPity: '0',
+    targetConstellation: '',
+    pullBudget: '',
+    guaranteed: false,
+    useWishHistory: false,
+  };
+}
+
+function getStepLabel(step: number): string {
+  return ['Goal', 'Details', 'Preview'][step] ?? 'Preview';
 }
 
 export default function TargetQuickStart() {
-  const [mode, setMode] = useState<TargetMode>('pull');
-  const [characterKey, setCharacterKey] = useState('');
-  const [buildGoal, setBuildGoal] = useState<CampaignBuildGoal>('comfortable');
-  const [deadline, setDeadline] = useState('');
-  const [pullBudget, setPullBudget] = useState('');
-  const [targetConstellation, setTargetConstellation] = useState('');
-  const [savedPulls, setSavedPulls] = useState('');
+  const { teams } = useTeams();
+  const [step, setStep] = useState(0);
+  const [state, setState] = useState<TargetWizardState>(() => getInitialState());
 
   const characterOptions = useMemo(
     () =>
@@ -53,31 +67,36 @@ export default function TargetQuickStart() {
         .sort((a, b) => a.label.localeCompare(b.label)),
     []
   );
+  const teamOptions = useMemo(
+    () => [
+      { value: '', label: teams.length > 0 ? 'Select a team...' : 'No teams yet' },
+      ...teams.map((team) => ({ value: team.id, label: team.name })),
+    ],
+    [teams]
+  );
 
-  const trimmedConstellation = targetConstellation.trim();
-  const targetConstellationValue = Number(trimmedConstellation);
-  const hasConstellationTarget = mode === 'pull' &&
-    trimmedConstellation.length > 0 &&
-    Number.isInteger(targetConstellationValue) &&
-    targetConstellationValue >= 0 &&
-    targetConstellationValue <= 6;
-  const hasInvalidConstellationTarget = mode === 'pull' &&
-    trimmedConstellation.length > 0 &&
-    !hasConstellationTarget;
-  const desiredCopies = hasConstellationTarget
-    ? Math.max(1, targetConstellationValue + 1)
-    : 1;
-  const targetHref = buildCampaignPrefillUrl({
-    campaignType: mode === 'pull' ? 'character-acquisition' : 'character-polish',
-    characterKey,
-    buildGoal,
-    includePullTarget: mode === 'pull',
-    ...(deadline ? { deadline } : {}),
-    ...(pullBudget ? { maxPullBudget: Number(pullBudget) } : {}),
-    ...(hasConstellationTarget ? { targetConstellation: targetConstellationValue, desiredCopies } : {}),
-  });
-  const calculatorHref = characterKey ? buildCalculatorHref(characterKey, desiredCopies, savedPulls) : '/pulls/calculator';
-  const canStart = characterKey.trim().length > 0 && !hasInvalidConstellationTarget;
+  const preview = useMemo(() => buildTargetWizardPreview(state), [state]);
+  const selectedMode = MODE_OPTIONS.find((mode) => mode.value === state.mode) ?? MODE_OPTIONS[0];
+  const SelectedIcon = selectedMode.icon;
+  const hasInvalidConstellation = state.targetConstellation.trim().length > 0 &&
+    !/^[0-6]$/.test(state.targetConstellation.trim());
+
+  const updateState = (patch: Partial<TargetWizardState>) => {
+    setState((current) => ({ ...current, ...patch }));
+  };
+
+  const handleModeChange = (mode: TargetWizardMode) => {
+    updateState({
+      mode,
+      ...(mode !== 'polish-team' ? { teamId: '' } : { characterKey: '' }),
+      ...(mode !== 'get-character'
+        ? { savedPulls: '0', currentPity: '0', targetConstellation: '', pullBudget: '', guaranteed: false }
+        : {}),
+    });
+    setStep(1);
+  };
+
+  const canAdvance = step === 0 || (step === 1 && preview.canCreate && !hasInvalidConstellation);
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
@@ -85,121 +104,225 @@ export default function TargetQuickStart() {
         <div>
           <h2 className="text-lg font-semibold text-slate-100">Start a Target</h2>
           <p className="text-sm text-slate-400">
-            Pick a character, then jump straight into a target draft or odds check.
+            {getStepLabel(step)}: {step === 2 ? preview.title : selectedMode.label}
           </p>
         </div>
-        <div className="flex rounded-lg bg-slate-800 p-1">
-          <button
-            type="button"
-            onClick={() => setMode('pull')}
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
-              mode === 'pull' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            <Sparkles className="h-4 w-4" />
-            Get
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('build')}
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
-              mode === 'build' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            <Hammer className="h-4 w-4" />
-            Build
-          </button>
+        <div className="flex items-center gap-1 rounded-lg bg-slate-800 p-1">
+          {[0, 1, 2].map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setStep(item)}
+              className={`h-2.5 w-8 rounded-full transition-colors ${
+                item <= step ? 'bg-primary-500' : 'bg-slate-700'
+              }`}
+              aria-label={`Go to ${getStepLabel(item)} step`}
+            />
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7">
-        <div className="xl:col-span-2">
-          <SearchableSelect
-            label="Character"
-            placeholder="Search character..."
-            options={characterOptions}
-            value={characterKey}
-            onChange={setCharacterKey}
-          />
+      {step === 0 && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {MODE_OPTIONS.map((mode) => {
+            const Icon = mode.icon;
+            const active = mode.value === state.mode;
+
+            return (
+              <button
+                key={mode.value}
+                type="button"
+                onClick={() => handleModeChange(mode.value)}
+                className={`flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${
+                  active
+                    ? 'border-primary-500 bg-primary-950/30 text-primary-100'
+                    : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-slate-500'
+                }`}
+              >
+                <Icon className="h-5 w-5" aria-hidden="true" />
+                <span className="font-medium">{mode.label}</span>
+              </button>
+            );
+          })}
         </div>
-        <Select
-          label="Build goal"
-          value={buildGoal}
-          onChange={(event) => setBuildGoal(event.target.value as CampaignBuildGoal)}
-          options={BUILD_GOAL_OPTIONS}
-        />
-        {mode === 'pull' ? (
-          <>
-            <Input
-              label="Target C"
-              type="number"
-              min="0"
-              max="6"
-              value={targetConstellation}
-              onChange={(event) => setTargetConstellation(event.target.value)}
-              placeholder="0"
-              error={hasInvalidConstellationTarget ? 'Use C0-C6' : undefined}
+      )}
+
+      {step === 1 && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {state.mode === 'polish-team' ? (
+              <Select
+                label="Target team"
+                value={state.teamId}
+                onChange={(event) => updateState({ teamId: event.target.value })}
+                options={teamOptions}
+                disabled={teams.length === 0}
+              />
+            ) : (
+              <SearchableSelect
+                label="Target character"
+                placeholder="Search character..."
+                options={characterOptions}
+                value={state.characterKey}
+                onChange={(characterKey) => updateState({ characterKey })}
+              />
+            )}
+            <Select
+              label="Build goal"
+              value={state.buildGoal}
+              onChange={(event) => updateState({ buildGoal: event.target.value as CampaignBuildGoal })}
+              options={BUILD_GOAL_OPTIONS}
             />
             <Input
-              label="Pulls saved"
-              type="number"
-              min="0"
-              value={savedPulls}
-              onChange={(event) => setSavedPulls(event.target.value)}
-              placeholder="0"
-            />
-            <Input
-              label="Banner deadline"
+              label={state.mode === 'get-character' ? 'Banner deadline' : 'Deadline'}
               type="date"
-              value={deadline}
-              onChange={(event) => setDeadline(event.target.value)}
+              value={state.deadline}
+              onChange={(event) => updateState({ deadline: event.target.value })}
             />
-            <Input
-              label="Pull budget"
-              type="number"
-              min="0"
-              value={pullBudget}
-              onChange={(event) => setPullBudget(event.target.value)}
-              placeholder="optional"
-            />
-          </>
-        ) : (
-          <Input
-            label="Deadline"
-            type="date"
-            value={deadline}
-            onChange={(event) => setDeadline(event.target.value)}
-          />
-        )}
-      </div>
+          </div>
+
+          {state.mode === 'get-character' && (
+            <>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Input
+                  label="Pulls saved"
+                  type="number"
+                  min="0"
+                  value={state.savedPulls}
+                  onChange={(event) => updateState({ savedPulls: event.target.value })}
+                />
+                <Input
+                  label="Current pity"
+                  type="number"
+                  min="0"
+                  max="89"
+                  value={state.currentPity}
+                  onChange={(event) => updateState({ currentPity: event.target.value })}
+                />
+                <Input
+                  label="Target C"
+                  type="number"
+                  min="0"
+                  max="6"
+                  value={state.targetConstellation}
+                  onChange={(event) => updateState({ targetConstellation: event.target.value })}
+                  placeholder="0"
+                  error={hasInvalidConstellation ? 'Use C0-C6' : undefined}
+                />
+                <Input
+                  label="Pull budget"
+                  type="number"
+                  min="0"
+                  value={state.pullBudget}
+                  onChange={(event) => updateState({ pullBudget: event.target.value })}
+                  placeholder="optional"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-4 text-sm text-slate-300">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={state.guaranteed}
+                    onChange={(event) => updateState({ guaranteed: event.target.checked })}
+                    className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-primary-600 focus:ring-primary-500"
+                  />
+                  Guaranteed
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={state.useWishHistory}
+                    onChange={(event) => updateState({ useWishHistory: event.target.checked })}
+                    className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-primary-600 focus:ring-primary-500"
+                  />
+                  Use tracker
+                </label>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <SelectedIcon className="h-5 w-5 text-primary-300" aria-hidden="true" />
+              <div>
+                <h3 className="font-semibold text-slate-100">{preview.title}</h3>
+                <p className="text-sm text-slate-400">{preview.summary}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <PreviewStat label="Copies" value={String(preview.desiredCopies)} />
+              <PreviewStat label="Shortfall" value={`${preview.pullShortfall} pulls`} />
+              <PreviewStat label="Daily pace" value={preview.pullsPerDay === null ? 'Set' : `${preview.pullsPerDay}/day`} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {preview.adviceRows.map((row) => (
+              <div key={row} className="flex items-start gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm text-slate-300">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary-300" aria-hidden="true" />
+                <span>{row}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {canStart ? (
+        {step > 0 && (
+          <Button type="button" variant="ghost" onClick={() => setStep((current) => Math.max(0, current - 1))}>
+            Back
+          </Button>
+        )}
+        {step < 2 ? (
+          <Button
+            type="button"
+            onClick={() => setStep((current) => Math.min(2, current + 1))}
+            disabled={!canAdvance}
+          >
+            Next
+          </Button>
+        ) : (
           <>
-            <Link
-              to={targetHref}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-            >
-              <Target className="h-4 w-4" />
-              Start Target
-            </Link>
-            {mode === 'pull' && (
+            {preview.canCreate && !hasInvalidConstellation ? (
               <Link
-                to={calculatorHref}
+                to={preview.createHref}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+              >
+                <Target className="h-4 w-4" aria-hidden="true" />
+                Create Target
+              </Link>
+            ) : (
+              <Button disabled>
+                <Target className="h-4 w-4" aria-hidden="true" />
+                Create Target
+              </Button>
+            )}
+            {preview.calculatorHref && (
+              <Link
+                to={preview.calculatorHref}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-600"
               >
-                <Calculator className="h-4 w-4" />
+                <Calculator className="h-4 w-4" aria-hidden="true" />
                 Check Odds
               </Link>
             )}
           </>
-        ) : (
-          <Button disabled>
-            <Target className="h-4 w-4" />
-            Start Target
-          </Button>
         )}
       </div>
     </section>
+  );
+}
+
+function PreviewStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-slate-900 p-3">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="text-sm font-semibold text-slate-100">{value}</div>
+    </div>
   );
 }
