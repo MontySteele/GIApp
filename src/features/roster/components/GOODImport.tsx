@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Upload, FileJson, CheckCircle, AlertCircle, Package } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { fromGOODWithInventory, validateGOOD, type GOODFormat } from '@/mappers/good';
+import { writeLastImportSummary } from '@/features/sync/domain/lastImportSummary';
+import { buildRosterImportImpactSummary } from '@/features/sync/domain/rosterImportImpact';
 import { characterRepo } from '../repo/characterRepo';
 import { artifactRepo } from '@/features/artifacts/repo/artifactRepo';
 import { weaponRepo } from '@/features/weapons/repo/weaponRepo';
@@ -87,6 +89,12 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
         artifactCount: result.inventoryArtifacts.length,
         weaponCount: result.inventoryWeapons.length,
       });
+      writeLastImportSummary(buildRosterImportImpactSummary({
+        source: goodData.source || 'GOOD',
+        charactersCreated: result.characters.length,
+        artifactsChanged: result.inventoryArtifacts.length,
+        weaponsChanged: result.inventoryWeapons.length,
+      }));
 
       // Auto-close after 2 seconds
       setTimeout(() => {
