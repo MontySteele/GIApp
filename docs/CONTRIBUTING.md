@@ -26,6 +26,10 @@ npm run test:coverage
 
 # Run specific test file
 npx vitest run src/features/planner/domain/ascensionCalculator.test.ts
+
+# Focused E2E smoke for goal/dashboard routing work
+npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
+npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 ```
 
 ### Coverage Targets
@@ -146,5 +150,7 @@ Types: `feat`, `fix`, `refactor`, `test`, `docs`, `style`, `chore`
 2. Write tests first (TDD)
 3. Implement feature
 4. Ensure all tests pass: `npm run test:run`
-5. Check for type errors: `npm run build`
-6. Submit PR with clear description
+5. Run lint: `npm run lint`
+6. Check for type errors and production build issues: `npm run build`
+7. Run focused E2E smoke when changing routes, dashboard flows, imports, or target creation
+8. Submit PR with clear description

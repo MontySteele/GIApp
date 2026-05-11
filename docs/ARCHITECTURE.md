@@ -2,130 +2,157 @@
 
 ## Tech Stack
 
-- **React 18+** with TypeScript
-- **Vite** (build tooling)
-- **Dexie.js** (IndexedDB wrapper)
-- **Zustand** (UI state management)
-- **Tailwind CSS** + **Recharts** + **Lucide React**
-- **Web Workers** (for Monte Carlo simulations)
-- **PWA capabilities**
+- **React 18** with TypeScript
+- **Vite** for development and production builds
+- **Dexie.js** for IndexedDB persistence
+- **Zustand** for lightweight UI state
+- **Tailwind CSS**, **Recharts**, and **Lucide React** for UI
+- **Web Workers** for Monte Carlo pull simulations
+- **PWA** support through Vite PWA
 
 ## Data Flow
 
+```text
+React Components -> Hooks -> Repository Layer -> Dexie (IndexedDB)
+                 -> Domain Selectors / Services
+                 -> Zustand UI State
+                 -> Web Workers for heavy probability work
 ```
-React Components → Hooks → Repository Layer → Dexie (IndexedDB)
-                ↘ Zustand (UI State)
-                ↘ Shared Services (lib/services)
-```
 
-## Key Patterns
+The app is local-first. Most data changes go through feature repositories, reactive reads use `useLiveQuery`, and product-level summaries are computed in domain modules rather than in page components.
 
-- **Feature-based organization** with `/domain`, `/repo`, `/hooks`, `/components`, `/pages`
-- **Repository pattern** for data access (Dexie → repo → hooks → components)
-- **Reactive patterns** using `useLiveQuery` for automatic database reactivity
-- **Shared services layer** for cross-feature logic (e.g., resource calculations)
-- **Performance optimization** via `useCallback`, `useMemo`, `useReducer`
+## Product Model
 
----
+The user-facing planning concept is **Targets**. The storage and route layer still uses `campaigns` for compatibility, but UI copy should prefer Targets or Goals when the user is making a plan.
 
-## File Structure
+Target summaries are a facade over existing tables:
 
-```
+- Active campaigns in `campaigns`
+- Planned banners in `plannedBanners`
+- Wishlist entries in Zustand
+- Owned character build/polish shortcuts from `characters`
+
+The dashboard consumes those summaries to choose resume actions, today's plan, and target wizard defaults.
+
+## Feature Boundaries
+
+```text
 src/
-├── app/                    # App shell, routing, layout
-├── components/             # Shared UI components
-│   ├── ui/                # Primitives (Button, Card, Modal, Input, Select, Badge)
-│   └── common/            # Layout (Header, TabNav)
-├── db/
-│   └── schema.ts          # Dexie schema + migrations
-├── features/              # Feature modules (domain-driven)
-│   ├── artifacts/         # Artifact inventory (standalone)
-│   │   └── repo/          # artifactRepo
-│   ├── calculator/        # Pull probability calculator
-│   │   ├── components/    # SingleTarget, MultiTarget, ReverseCalculator
-│   │   ├── domain/        # Monte Carlo, DP probability
-│   │   ├── hooks/         # useCalculator
-│   │   └── store/         # calculatorStore (Zustand)
-│   ├── ledger/            # Primogem tracking
-│   │   ├── components/    # UnifiedChart, TransactionLog, PurchaseLedger
-│   │   ├── domain/        # resourceCalculations, historicalReconstruction
-│   │   ├── hooks/         # useResources (reactive pattern)
-│   │   ├── pages/         # LedgerPage
-│   │   └── repo/          # primogemEntryRepo, resourceSnapshotRepo, etc.
-│   ├── planner/           # Ascension planner
-│   │   ├── domain/        # ascensionCalculator, materialConstants, characterMaterials
-│   │   ├── components/    # ResinTracker
-│   │   ├── hooks/         # useMaterials
-│   │   └── pages/         # PlannerPage
-│   ├── roster/            # Character management
-│   │   ├── components/    # CharacterCard, CharacterForm, EnkaImport, GOODExport
-│   │   ├── hooks/         # useCharacters, useTeams
-│   │   ├── pages/         # CharacterListPage, CharacterDetailPage
-│   │   └── repo/          # characterRepo, teamRepo, inventoryRepo (materials)
-│   ├── weapons/           # Weapon inventory
-│   │   └── repo/          # weaponRepo (standalone inventory)
-│   ├── wishes/            # Wish history
-│   │   ├── components/    # WishImport, WishTable, WishStatistics, etc.
-│   │   ├── domain/        # wishAnalyzer, pityEngine, gachaRules, replayEngine
-│   │   ├── pages/         # WishPage
-│   │   └── repo/          # wishRepo (minimal raw storage)
-│   ├── calendar/          # Events & Timers
-│   │   ├── components/    # EventList, ResetTimers, BannerCountdown
-│   │   ├── domain/        # resetTimers, eventTypes
-│   │   ├── hooks/         # useEvents
-│   │   └── pages/         # CalendarPage
-│   ├── notes/             # Goals & Notes
-│   └── sync/              # Settings & Sync
-├── lib/
-│   ├── constants.ts       # Game constants, gacha rules
-│   ├── gameData.ts        # Character data, icon mappings
-│   ├── services/          # Shared cross-feature services
-│   │   ├── resourceService.ts  # Pull calculation logic
-│   │   └── genshinDbService.ts # Genshin-DB API client with caching
-│   └── utils/             # Utility functions
-│       └── materialNormalization.ts  # Material key matching
-├── mappers/               # External format mappers (GOOD, Enka)
-├── stores/                # Global Zustand stores
-├── types/                 # TypeScript types
-└── workers/               # Web Workers (Monte Carlo)
+├── app/                    # Router, layout shell, hash scrolling
+├── components/
+│   ├── ui/                 # Primitives: Button, Card, Modal, Input, Select, Badge
+│   └── common/             # Header, desktop nav, mobile nav, quick actions, onboarding
+├── db/                     # Dexie schema, migrations, app metadata
+├── features/
+│   ├── artifacts/          # Standalone artifact inventory and scoring
+│   ├── bosses/             # Weekly boss data and trackers
+│   ├── builds/             # Build templates and gcsim/wfpsim parsing
+│   ├── calculator/         # Pull probability calculators and worker integration
+│   ├── calendar/           # Reset timers and event/domain schedule helpers
+│   ├── campaigns/          # Target storage, target control center, campaign planning
+│   ├── dashboard/          # Command center, resume logic, today actions
+│   ├── ledger/             # Primogem/fate/resource entries and projections
+│   ├── more/               # Mobile secondary navigation hub
+│   ├── notes/              # Notes and quick note widgets
+│   ├── planner/            # Material planning, farming schedule, target deficits
+│   ├── roster/             # Characters, teams hooks, GOOD/Irminsul/Enka import UI
+│   ├── sync/               # Import Hub, backup/restore, app metadata, freshness
+│   ├── targets/            # Product-level target facade and Start Target wizard
+│   ├── teams/              # Team hub, team detail, bosses, wfpsim export
+│   ├── weapons/            # Standalone weapon inventory
+│   └── wishes/             # Wish records, pity, import, banners, freshness
+├── lib/                    # Constants, game data, shared services, utilities
+├── mappers/                # External format mappers: GOOD, Enka, Irminsul
+├── stores/                 # Global Zustand stores
+├── types/                  # Shared TypeScript types
+└── workers/                # Monte Carlo worker
 ```
 
----
+## Routing and IA
 
-## Database Schema (Dexie v3)
+Primary routes:
+
+- `/` - Dashboard command center
+- `/campaigns` and `/campaigns/:id` - Targets control center and target detail
+- `/roster`, `/roster/weapons`, `/roster/artifacts`, `/roster/builds`, `/roster/:id`
+- `/teams`, `/teams/bosses`, `/teams/:id`
+- `/pulls`, `/pulls/calculator`, `/pulls/history`, `/pulls/banners`
+- `/planner`, `/planner/materials`, `/planner/domains`
+- `/imports` - Import Hub
+- `/more` - Mobile More page
+- `/notes`
+- `/settings` - Sync and backup settings
+
+Compatibility redirects:
+
+- `/wishes` -> `/pulls`
+- `/wishes/calculator` -> `/pulls/calculator`
+- `/calculator` -> `/pulls/calculator`
+- `/ledger` -> `/pulls/budget`
+- `/calendar` -> `/planner/domains`
+- `/builds` -> `/roster/builds`
+- `/bosses` -> `/teams/bosses`
+
+Hash links are handled in the app shell so SPA navigation such as `/#quick-resource-logger` scrolls after route changes.
+
+## Database Schema (Dexie v5)
 
 ### Core Tables
-- `characters` - Character builds and progression
-- `teams` - Team compositions
-- `wishes` - Raw wish records (minimal data)
-- `primogemEntries` - Transaction log
-- `fateEntries` - Fate transaction log
-- `resourceSnapshots` - Point-in-time resource captures
-- `goals` - User goals (simplified notes)
-- `notes` - Markdown notes
-- `plannedBanners` - Future pull targets
-- `abyssRuns` - Spiral Abyss history
-- `externalCache` - API response cache (Enka, genshin-db)
-- `calculatorScenarios` - Saved pull scenarios
 
-### Inventory Tables
+- `characters` - Character builds, progression, priority, notes
+- `teams` - Team compositions
+- `wishRecords` - Raw wish history records
+- `primogemEntries` - Primogem ledger entries
+- `fateEntries` - Fate ledger entries
+- `resourceSnapshots` - Point-in-time resource captures
+- `abyssRuns` - Spiral Abyss history
+- `goals` - Legacy simplified goal records
+- `notes` - Markdown notes
+- `plannedBanners` - Future pull intent
+- `externalCache` - API response cache
+- `appMeta` - Schema version, backup metadata, app metadata
+- `calculatorScenarios` - Saved pull scenarios
+- `campaigns` - Target plans for pulls, builds, and teams
+
+### Inventory and Import Tables
+
 - `inventoryArtifacts` - Standalone artifact inventory
 - `inventoryWeapons` - Standalone weapon inventory
 - `materialInventory` - Material counts
+- `importRecords` - Import source and timestamp history
+- `buildTemplates` - Character build templates
 
----
+## Key Patterns
+
+- **Feature modules own their domain logic.** Prefer `features/*/domain` for calculations and selectors, then consume those from hooks/components.
+- **Repositories hide Dexie details.** UI code should not call `db.table` directly unless it is a small page-level live count or a focused migration/import surface.
+- **Target facade avoids schema churn.** Product-level Target logic lives in `features/targets` while storage remains in `campaigns`, `plannedBanners`, and existing stores.
+- **Manual fast paths matter.** Pull odds and target creation should work with user-entered pity/pulls even when imports are incomplete.
+- **Import freshness is product data.** `useAccountDataFreshness` and Import Hub summaries feed dashboard guidance, not just settings screens.
+- **Workers own expensive simulations.** Monte Carlo and heavy probability work must stay off the main thread.
 
 ## Design Guidelines
 
 ### Performance
-- Use `useLiveQuery` from dexie-react-hooks for reactive database queries
-- Avoid manual useEffect + useState patterns when useLiveQuery is available
-- Web Workers mandatory for heavy simulations (don't block UI)
 
-### Security
-- Authkeys are session-only by default
-- No sensitive data stored permanently
+- Use `useLiveQuery` for reactive database queries.
+- Memoize expensive selectors and plan calculations.
+- Keep dashboard widgets high-signal and avoid duplicating large page surfaces.
+- Run pull simulations in workers.
+
+### Accessibility
+
+- Icon-only buttons need labels.
+- Decorative icons should use `aria-hidden="true"`.
+- E2E selectors should prefer roles, names, and scoped regions over positional selectors.
+
+### Security and Privacy
+
+- Authkeys are session-only by default.
+- User data stays local unless explicitly exported or backed up by the user.
 
 ### Versioning
-- Schema migrations via Dexie versions
-- Gacha rules versioned for post-5.0 mechanics
+
+- Schema migrations use Dexie versions.
+- Current schema version is v5.
+- Static game-data patching follows `CLAUDE_UPDATE.md`.

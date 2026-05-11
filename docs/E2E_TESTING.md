@@ -1,310 +1,149 @@
 # E2E Testing Guide
 
-This document covers Playwright E2E testing setup, troubleshooting, and best practices for containerized environments.
+This document covers Playwright E2E testing for GIApp.
 
 ## Quick Start
 
 ```bash
-# Install Playwright and browsers
-npm install -D @playwright/test
+# Install Playwright browser binaries when needed
 npx playwright install chromium
 
-# Run tests
-npm run test:e2e              # All tests
-npm run test:e2e:ui           # Interactive UI mode
-npm run test:e2e -- --project=chromium  # Chromium only
+# Run all E2E tests
+npm run test:e2e
+
+# Run Chromium only
+npm run test:e2e -- --project=chromium
+
+# Run focused smoke suites
+npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
+npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 ```
 
-## Test Structure
+The Playwright config starts `npm run dev` automatically at `http://localhost:5173` and reuses an existing dev server outside CI.
 
-```
+## Current Test Files
+
+```text
 e2e/
 ├── fixtures/
-│   └── test-data.ts          # Database helpers, sample data
-├── pages/                    # Page Object Models
-│   ├── BasePage.ts           # Common page methods
+│   └── test-data.ts
+├── pages/
+│   ├── BasePage.ts
 │   ├── DashboardPage.ts
+│   ├── PullsPage.ts
 │   ├── RosterPage.ts
-│   ├── TeamsPage.ts
-│   └── WishesPage.ts
+│   └── TeamsPage.ts
 └── tests/
-    ├── # Tier 1 - Critical Paths
+    ├── campaign-flow.spec.ts          # Target creation, dashboard action handoffs
     ├── character-crud.spec.ts
     ├── character-import.spec.ts
-    ├── navigation.spec.ts
+    ├── data-export.spec.ts
+    ├── modal-navigation.spec.ts
+    ├── multi-character-planner.spec.ts
+    ├── navigation.spec.ts             # Main nav, redirects, quick action hash links
+    ├── planner.spec.ts
+    ├── pull-calculators.spec.ts
     ├── team-management.spec.ts
-    ├── good-import.spec.ts
-    ├── wish-display.spec.ts
-    │
-    ├── # Tier 2 - Feature Flows (Sprint 17)
-    ├── multi-character-planner.spec.ts  # Multi-char selection, material aggregation
-    ├── pull-calculators.spec.ts         # Pity calc, multi-target planning
-    ├── wfpsim-export.spec.ts            # Team export, config generation
-    └── modal-navigation.spec.ts         # Modal state, accessibility
+    ├── wfpsim-export.spec.ts
+    └── wish-tracking.spec.ts
 ```
 
-### Test Tiers
+## Important Smoke Suites
 
-| Tier | Focus | Tests |
-|------|-------|-------|
-| Tier 1 | Critical user paths | 8 tests (character CRUD, import, navigation, teams, wishes) |
-| Tier 2 | Feature workflows | 4 tests (planner, calculators, export, modals) |
-| Tier 3 | Edge cases | Planned for future sprints |
-
----
-
-## Troubleshooting
-
-### Browser Crashes in Containers
-
-**Symptom:** `Target page, context or browser has been closed`
-
-**Cause:** Chrome requires Linux kernel features often unavailable in containers:
-- D-Bus system bus (`/run/dbus/system_bus_socket`)
-- inotify file watchers (`/proc/sys/fs/inotify/max_user_watches`)
-- NETLINK socket permissions
-- Shared memory (`/dev/shm`)
-
-**Solution:** The `playwright.config.ts` includes stability flags:
-
-```typescript
-launchOptions: {
-  args: [
-    // Core stability flags
-    '--disable-gpu',
-    '--disable-dev-shm-usage',
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    // Process isolation for containers
-    '--single-process',
-    '--no-zygote',
-    // Disable unnecessary features
-    '--disable-extensions',
-    '--disable-background-networking',
-    '--disable-features=IsolateOrigins,site-per-process',
-  ],
-}
-```
-
-### Flaky Tests
-
-**Symptom:** Tests pass sometimes, fail others
-
-**Solution:** The config enables retries (`retries: 2`) and serial execution (`workers: 1`). Tests marked "flaky" in reports passed on retry.
-
-For individual tests with timing issues, add explicit timeouts:
-
-```typescript
-test('slow test', async ({ page }) => {
-  test.setTimeout(120000);  // 2 minutes
-  await expect(page).toHaveURL(/\/route/, { timeout: 15000 });
-});
-```
-
-### IndexedDB / Dexie Crashes
-
-**Symptom:** Browser crashes when clearing database between tests
-
-**Cause:** Deleting IndexedDB while Dexie.js has active connections crashes the tab.
-
-**Solution:** The `clearDatabase()` function in `e2e/fixtures/test-data.ts` navigates away before clearing:
-
-```typescript
-export async function clearDatabase(page: Page): Promise<void> {
-  // Navigate away to close Dexie connections
-  await page.goto('about:blank');
-  await page.waitForTimeout(300);
-
-  // Now safe to delete
-  await page.evaluate((dbName) => {
-    return indexedDB.deleteDatabase(dbName);
-  }, DB_NAME);
-}
-```
-
----
-
-## Running in Different Environments
-
-### Local Development
-
-Tests run with full parallelism and no retries by default when `CI` env var is not set:
-
-```bash
-npm run test:e2e
-```
-
-### CI/CD (GitHub Actions)
-
-Example workflow configuration:
-
-```yaml
-name: E2E Tests
-on: [push, pull_request]
-
-jobs:
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        run: npm run test:e2e
-        env:
-          CI: true
-
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-```
-
-### Docker
-
-For Docker environments, use the official Playwright image or add these flags:
-
-```dockerfile
-# Option 1: Official image (recommended)
-FROM mcr.microsoft.com/playwright:v1.40.0-jammy
-
-# Option 2: Custom image - add required dependencies
-RUN apt-get update && apt-get install -y \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 \
-    libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
-    libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
-```
-
-Run container with extended permissions:
-
-```bash
-docker run --ipc=host --cap-add=SYS_ADMIN your-image
-```
-
----
+- `campaign-flow.spec.ts` covers the goal-first loop:
+  - dashboard Start Target wizard creates a target without imports
+  - pull targets hand off to the calculator
+  - build targets hand off to target-aware material planning
+  - stale imports become a dashboard next action
+- `navigation.spec.ts` covers:
+  - desktop navigation
+  - legacy route redirects
+  - quick action deep links such as `/#quick-resource-logger`
+  - keyboard skip link behavior
 
 ## Configuration Reference
 
-### playwright.config.ts
+Current `playwright.config.ts` settings:
 
 | Setting | Value | Purpose |
-|---------|-------|---------|
-| `fullyParallel` | `false` | Serial execution for stability |
-| `workers` | `1` | Single worker in containers |
-| `retries` | `2` | Retry flaky tests |
-| `timeout` | `60000` | 60s test timeout |
-| `expect.timeout` | `10000` | 10s assertion timeout |
+|---|---:|---|
+| `fullyParallel` | `true` | Run files in parallel for faster feedback |
+| `workers` | `4` locally, `2` in CI | Keep local runs fast while limiting CI load |
+| `retries` | `0` locally, `1` in CI | Retry only in CI |
+| `timeout` | `30000` | 30s test timeout |
+| `expect.timeout` | `5000` | 5s assertion timeout |
+| `reporter` | `html`, `list` | Human report plus terminal output |
+| `trace` | `on-first-retry` | Capture traces only when useful |
+| `screenshot` | `only-on-failure` | Keep artifacts focused |
+| `video` | `on-first-retry` | Avoid large routine artifacts |
 
-### Chrome Stability Flags
+Chromium is the active browser project. Firefox, WebKit, and mobile projects are present as commented config stubs.
 
-| Flag | Purpose |
-|------|---------|
-| `--no-sandbox` | Required for containers without user namespaces |
-| `--disable-dev-shm-usage` | Use `/tmp` instead of `/dev/shm` |
-| `--single-process` | Run all Chrome processes in one (stability) |
-| `--no-zygote` | Disable process pre-forking |
-| `--disable-gpu` | Disable GPU acceleration |
-| `--disable-setuid-sandbox` | Disable setuid sandbox |
+## Browser Stability Flags
 
----
+Chromium runs with stability flags for restricted environments:
+
+- `--disable-gpu`
+- `--disable-software-rasterizer`
+- `--disable-dev-shm-usage`
+- `--no-sandbox`
+- `--disable-setuid-sandbox`
+- `--disable-extensions`
+- `--disable-background-networking`
+- `--disable-default-apps`
+- `--disable-sync`
+- `--no-first-run`
+- `--disable-translate`
+- `--disable-features=IsolateOrigins,site-per-process`
+- `--disable-breakpad`
+- `--disable-renderer-backgrounding`
+- `--disable-background-timer-throttling`
+- `--disable-backgrounding-occluded-windows`
 
 ## Writing Tests
 
-### Page Object Pattern
+Prefer user-visible locators:
 
-```typescript
-// e2e/pages/RosterPage.ts
-export class RosterPage extends BasePage {
-  readonly addButton = this.page.getByRole('button', { name: /add character/i });
-  readonly characterCards = this.page.locator('[data-testid="character-card"]');
-
-  async goto() {
-    await this.page.goto('/roster');
-    await this.waitForLoad();
-  }
-
-  async getCharacterCount(): Promise<number> {
-    return await this.characterCards.count();
-  }
-}
+```ts
+await page.getByRole('button', { name: /quick actions/i }).click();
+await page.getByRole('link', { name: /log primos/i }).click();
+await expect(page.locator('#quick-resource-logger')).toBeInViewport();
 ```
 
-### Test Structure
+Scope repeated labels with regions or nearby headings:
 
-```typescript
-import { test, expect } from '@playwright/test';
-import { RosterPage } from '../pages';
-import { clearDatabase, waitForAppReady } from '../fixtures/test-data';
-
-test.describe('Character CRUD', () => {
-  test.beforeEach(async ({ page }) => {
-    await clearDatabase(page);
-    await page.goto('/');
-    await waitForAppReady(page);
-  });
-
-  test('should display roster page', async ({ page }) => {
-    const roster = new RosterPage(page);
-    await roster.goto();
-    await expect(roster.addButton).toBeVisible();
-  });
-});
+```ts
+const todayPlan = page.getByRole('region', { name: /today's plan/i });
+await expect(todayPlan.getByRole('heading', { name: 'Refresh account data' })).toBeVisible();
 ```
 
----
+Avoid `.nth()` selectors unless the order itself is the behavior under test.
 
-## Known Limitations
+## IndexedDB Seeding
 
-1. **Container Instability**: Some tests may be flaky in highly restricted environments (Claude Code sandbox, minimal Docker containers). Retries mitigate this.
+Use helper patterns in `e2e/fixtures/test-data.ts` and existing specs. For focused seeded flows, open the app first so Dexie initializes, write records into IndexedDB, then reload:
 
-2. **Enka.network Tests**: Skipped by default - require network access and valid UID.
+```ts
+await page.goto('/');
+await waitForAppReady(page);
+await putRecords(page, { campaigns: [campaign], importRecords: [importRecord] });
+await page.reload();
+await waitForAppReady(page);
+```
 
-3. **Firefox**: Commented out in config - focus on Chromium for reliability.
+For destructive database cleanup, navigate away before deleting IndexedDB so Dexie closes active connections.
 
-4. **Video/Trace**: Only captured on retry to reduce CI storage.
-
----
-
-## Debugging Failed Tests
-
-### View Test Report
+## Debugging
 
 ```bash
 npx playwright show-report
-```
-
-### View Trace
-
-```bash
 npx playwright show-trace test-results/*/trace.zip
-```
-
-### Run Single Test
-
-```bash
 npm run test:e2e -- -g "test name pattern"
-```
-
-### Debug Mode
-
-```bash
 npm run test:e2e -- --debug
 ```
 
----
+## Known Limitations
 
-## Resources
-
-- [Playwright Documentation](https://playwright.dev/docs/intro)
-- [Playwright Docker Guide](https://playwright.dev/docs/docker)
-- [Chrome Headless Flags](https://peter.sh/experiments/chromium-command-line-switches/)
+- Enka/network-dependent paths should be mocked or skipped unless the test explicitly owns network setup.
+- Chromium is the only active browser project.
+- Some low-level browser warnings are expected in local runs and do not indicate test failures.
