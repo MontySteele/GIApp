@@ -45,8 +45,6 @@ describe('calculateAscensionMaterials', () => {
   it('calculates materials for A5 -> A6', () => {
     const result = calculateAscensionMaterials(5, 6);
 
-    console.log('A5 -> A6 result:', JSON.stringify(result, null, 2));
-
     // Index 5 in CHARACTER_ASCENSION_COSTS is { level: 80, mora: 120000, bossMat: 20, ... }
     expect(result.mora).toBe(120000);
     expect(result.bossMat).toBe(20);
@@ -66,8 +64,6 @@ describe('calculateAscensionMaterials', () => {
 describe('calculateTalentMaterials', () => {
   it('calculates materials for talent 3 -> 10', () => {
     const result = calculateTalentMaterials(3, 10);
-
-    console.log('Talent 3 -> 10 result:', JSON.stringify(result, null, 2));
 
     expect(result.mora).toBeGreaterThan(0);
     expect(result.books[2]).toBeGreaterThan(0); // Philosophies
@@ -91,9 +87,6 @@ describe('calculateAscensionSummary', () => {
     const inventory: Record<string, number> = {};
 
     const summary = await calculateAscensionSummary(goal, inventory);
-
-    console.log('Summary materials count:', summary.materials.length);
-    console.log('Summary materials:', summary.materials.map(m => `${m.name}: ${m.required}`));
 
     expect(summary.materials.length).toBeGreaterThan(0);
     expect(summary.totalMora).toBeGreaterThan(0);
@@ -123,10 +116,6 @@ describe('calculateAscensionSummary', () => {
     const inventory: Record<string, number> = {};
 
     const summary = await calculateAscensionSummary(goal, inventory);
-
-    console.log('Null API - Summary materials count:', summary.materials.length);
-    console.log('Null API - Materials:', summary.materials.map(m => `${m.name}: ${m.required}`));
-    console.log('Null API - Error:', summary.error);
 
     // Should still have materials with fallback names
     expect(summary.materials.length).toBeGreaterThan(0);
