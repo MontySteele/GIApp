@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2, Users, Zap, Calendar } from 'lucide-react';
+import { ChevronRight, Pencil, Trash2, Users, Zap, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import type { Character, Team } from '@/types';
@@ -12,12 +12,22 @@ interface TeamCardProps {
   onEdit?: (team: Team) => void;
   onDelete?: (team: Team) => void;
   onExportToWfpsim?: (team: Team) => void;
-  /** Show link to material planner for this team */
+  /** Show link to create a team target. */
   showPlannerLink?: boolean;
+  showDetailsLink?: boolean;
 }
 
-export default function TeamCard({ team, members, onEdit, onDelete, onExportToWfpsim, showPlannerLink = true }: TeamCardProps) {
+export default function TeamCard({
+  team,
+  members,
+  onEdit,
+  onDelete,
+  onExportToWfpsim,
+  showPlannerLink = true,
+  showDetailsLink = true,
+}: TeamCardProps) {
   const plannerUrl = buildTeamCampaignUrl(team.id);
+  const memberLabel = `${members.length} member${members.length === 1 ? '' : 's'}`;
 
   return (
     <Card className="relative">
@@ -65,12 +75,12 @@ export default function TeamCard({ team, members, onEdit, onDelete, onExportToWf
       </div>
 
       <div className="space-y-3 p-4">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-primary-400" />
+        <div className="flex items-start gap-2 pr-32">
+          <Users className="mt-1 w-4 h-4 flex-shrink-0 text-primary-400" aria-hidden="true" />
           <div>
             <h3 className="text-lg font-semibold text-slate-100">{team.name}</h3>
             <p className="text-xs text-slate-500">
-              Updated {new Date(team.updatedAt).toLocaleDateString()}
+              {memberLabel} • Updated {new Date(team.updatedAt).toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -118,6 +128,16 @@ export default function TeamCard({ team, members, onEdit, onDelete, onExportToWf
             <div className="text-xs text-slate-500 mb-1">Notes</div>
             <p className="text-sm text-slate-300 whitespace-pre-line line-clamp-3">{team.rotationNotes}</p>
           </div>
+        )}
+
+        {showDetailsLink && (
+          <Link
+            to={`/roster/teams/${team.id}`}
+            className="flex items-center justify-center gap-2 rounded-lg py-2 text-sm text-primary-400 transition-colors hover:bg-primary-400/10 hover:text-primary-300"
+          >
+            View Details
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
+          </Link>
         )}
       </div>
     </Card>

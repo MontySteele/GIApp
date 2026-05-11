@@ -5,10 +5,11 @@ import userEvent from '@testing-library/user-event';
 import RosterPage from './RosterPage';
 import type { CharacterQuery } from '../selectors/characterSelectors';
 import { MemoryRouter } from 'react-router-dom';
+import type { Team } from '@/types';
 
 const useCharactersSpy = vi.fn<(query?: CharacterQuery) => void>();
 const mockTeamsHook = {
-  teams: [],
+  teams: [] as Team[],
   isLoading: false,
   createTeam: vi.fn(),
   updateTeam: vi.fn(),
@@ -61,6 +62,7 @@ const renderPage = (props?: ComponentProps<typeof RosterPage>) =>
 describe('RosterPage', () => {
   beforeEach(() => {
     useCharactersSpy.mockClear();
+    mockTeamsHook.teams = [];
   });
 
   it('hides filters toggle when feature flag is disabled', () => {
@@ -97,5 +99,25 @@ describe('RosterPage', () => {
         direction: 'asc',
       });
     });
+  });
+
+  it('keeps team management out of the characters tab', () => {
+    mockTeamsHook.teams = [
+      {
+        id: 'team-1',
+        name: 'Furina Core',
+        characterKeys: ['Furina'],
+        rotationNotes: '',
+        tags: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    renderPage();
+
+    expect(screen.getByRole('heading', { name: /character roster/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^teams$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/furina core/i)).not.toBeInTheDocument();
   });
 });

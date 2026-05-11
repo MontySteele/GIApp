@@ -11,16 +11,11 @@ import Modal from '@/components/ui/Modal';
 import CharacterCard from '../components/CharacterCard';
 import CharacterForm from '../components/CharacterForm';
 import CharacterToolbar, { type FilterState } from '../components/CharacterToolbar';
-import TeamSection from '../components/TeamSection';
-import TeamForm from '../components/TeamForm';
 import AddCharacterModal, { type AddModalView } from '../components/AddCharacterModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import EmptyState from '../components/EmptyState';
 import RosterWishlist from '../components/RosterWishlist';
 import GOODExport from '../components/GOODExport';
-import TeamSnapshotExport from '../components/TeamSnapshotExport';
-import WfpsimExportModal from '@/features/teams/components/WfpsimExportModal';
-import type { Team } from '@/types';
 import type { CharacterSortField } from '../selectors/characterSelectors';
 
 interface RosterPageProps {
@@ -67,27 +62,12 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         : undefined,
     });
 
-  const { teams, isLoading: areTeamsLoading, createTeam, updateTeam, deleteTeam } = useTeams();
+  const { teams } = useTeams();
 
   // Memoized lookups
   const teamNameById = useMemo(() => new Map(teams.map((team) => [team.id, team.name])), [teams]);
 
   // Handlers with toast notifications
-  const handleTeamSubmit = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      if (modals.teamModalMode === 'create') {
-        await createTeam(teamData);
-        toast.success('Team Created', `${teamData.name} has been added to your roster.`);
-      } else if (modals.activeTeam) {
-        await updateTeam(modals.activeTeam.id, teamData);
-        toast.success('Team Updated', `${teamData.name} has been updated.`);
-      }
-      modals.closeTeamModal();
-    } catch (err) {
-      toast.error('Error', err instanceof Error ? err.message : 'Failed to save team.');
-    }
-  };
-
   const handleCreateCharacter = async (data: Parameters<typeof createCharacter>[0]) => {
     try {
       const id = await createCharacter(data);
@@ -118,19 +98,6 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         modals.closeDeleteModal();
       } catch (err) {
         toast.error('Error', err instanceof Error ? err.message : 'Failed to delete character.');
-      }
-    }
-  };
-
-  const confirmTeamDelete = async () => {
-    if (modals.deletingTeam) {
-      try {
-        const name = modals.deletingTeam.name;
-        await deleteTeam(modals.deletingTeam.id);
-        toast.success('Team Deleted', `${name} has been removed.`);
-        modals.closeDeleteTeamModal();
-      } catch (err) {
-        toast.error('Error', err instanceof Error ? err.message : 'Failed to delete team.');
       }
     }
   };
@@ -176,18 +143,6 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
           </Button>
         </div>
       </header>
-
-      {/* Teams Section */}
-      <TeamSection
-        teams={teams}
-        allCharacters={allCharacters ?? []}
-        isLoading={areTeamsLoading}
-        onCreateTeam={modals.openCreateTeamModal}
-        onEditTeam={modals.openEditTeamModal}
-        onDeleteTeam={modals.openDeleteTeamModal}
-        onExportTeams={() => modals.openExportModal('teams')}
-        onExportToWfpsim={modals.openWfpsimExportModal}
-      />
 
       {/* Wishlist Section */}
       <RosterWishlist ownedKeys={(allCharacters ?? []).map((c) => c.key)} />
@@ -256,20 +211,6 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
       />
 
       <Modal
-        isOpen={modals.showTeamModal}
-        onClose={modals.closeTeamModal}
-        title={modals.teamModalMode === 'create' ? 'Create Team' : 'Edit Team'}
-        size="lg"
-      >
-        <TeamForm
-          characters={allCharacters}
-          initialData={modals.teamModalMode === 'edit' ? modals.activeTeam ?? undefined : undefined}
-          onSubmit={handleTeamSubmit}
-          onCancel={modals.closeTeamModal}
-        />
-      </Modal>
-
-      <Modal
         isOpen={modals.editingCharacter !== null}
         onClose={modals.closeEditModal}
         title="Edit Character"
@@ -294,34 +235,14 @@ export default function RosterPage({ enableFilters = true, enableSorting = true 
         confirmLabel="Delete Character"
       />
 
-      <DeleteConfirmModal
-        isOpen={modals.deletingTeam !== null}
-        onClose={modals.closeDeleteTeamModal}
-        onConfirm={confirmTeamDelete}
-        title="Delete Team"
-        itemName={modals.deletingTeam?.name ?? ''}
-        description="Linked characters will have this team removed from their profiles."
-        confirmLabel="Delete Team"
-      />
-
       <Modal
-        isOpen={modals.exportModalView !== null}
+        isOpen={modals.exportModalView === 'good'}
         onClose={modals.closeExportModal}
-        title={modals.exportModalView === 'teams' ? 'Export Teams' : 'Export Roster'}
+        title="Export Roster"
         size="lg"
       >
         {modals.exportModalView === 'good' && <GOODExport onClose={modals.closeExportModal} />}
-        {modals.exportModalView === 'teams' && <TeamSnapshotExport onClose={modals.closeExportModal} />}
       </Modal>
-
-      {modals.wfpsimExportTeam && (
-        <WfpsimExportModal
-          team={modals.wfpsimExportTeam}
-          characters={allCharacters ?? []}
-          isOpen={modals.wfpsimExportTeam !== null}
-          onClose={modals.closeWfpsimExportModal}
-        />
-      )}
     </div>
   );
 }

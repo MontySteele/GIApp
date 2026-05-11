@@ -1,16 +1,15 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Users, Zap, Edit2, Trash2, ChevronRight, Target } from 'lucide-react';
+import { Download, Plus, Users } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { TeamCardSkeleton } from '@/components/ui/Skeleton';
 import { useTeams } from '@/features/roster/hooks/useTeams';
 import { useCharacters } from '@/features/roster/hooks/useCharacters';
 import TeamForm from '@/features/roster/components/TeamForm';
+import TeamCard from '@/features/roster/components/TeamCard';
+import TeamSnapshotExport from '@/features/roster/components/TeamSnapshotExport';
 import { WfpsimExportModal } from '@/features/teams';
-import { buildTeamCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
 import type { Team, Character } from '@/types';
 
 export default function TeamsPage() {
@@ -19,6 +18,7 @@ export default function TeamsPage() {
 
   // Modal state
   const [showTeamModal, setShowTeamModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
   const [wfpsimTeam, setWfpsimTeam] = useState<Team | null>(null);
@@ -92,10 +92,18 @@ export default function TeamsPage() {
             {teams.length} team{teams.length !== 1 ? 's' : ''} • Click a team to view details
           </p>
         </div>
-        <Button variant="primary" onClick={handleCreateTeam}>
-          <Plus className="w-4 h-4" />
-          New Team
-        </Button>
+        <div className="flex items-center gap-2">
+          {teams.length > 0 && (
+            <Button variant="ghost" onClick={() => setShowExportModal(true)} aria-label="Export teams">
+              <Download className="w-4 h-4" aria-hidden="true" />
+              Export Teams
+            </Button>
+          )}
+          <Button variant="primary" onClick={handleCreateTeam}>
+            <Plus className="w-4 h-4" />
+            New Team
+          </Button>
+        </div>
       </div>
 
       {/* Teams Grid */}
@@ -125,9 +133,9 @@ export default function TeamsPage() {
                 key={team.id}
                 team={team}
                 members={members}
-                onEdit={() => handleEditTeam(team)}
-                onDelete={() => setDeletingTeam(team)}
-                onExport={() => setWfpsimTeam(team)}
+                onEdit={handleEditTeam}
+                onDelete={setDeletingTeam}
+                onExportToWfpsim={setWfpsimTeam}
               />
             );
           })}
@@ -146,6 +154,15 @@ export default function TeamsPage() {
           onSubmit={handleSaveTeam}
           onCancel={handleCloseTeamModal}
         />
+      </Modal>
+
+      <Modal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Teams"
+        size="lg"
+      >
+        <TeamSnapshotExport onClose={() => setShowExportModal(false)} />
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -182,115 +199,5 @@ export default function TeamsPage() {
         />
       )}
     </div>
-  );
-}
-
-interface TeamCardProps {
-  team: Team;
-  members: Character[];
-  onEdit: () => void;
-  onDelete: () => void;
-  onExport: () => void;
-}
-
-function TeamCard({ team, members, onEdit, onDelete, onExport }: TeamCardProps) {
-  return (
-    <Card className="hover:border-slate-700 transition-colors">
-      <CardContent className="p-4">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-100 truncate">{team.name}</h3>
-            <p className="text-sm text-slate-500">
-              {members.length} member{members.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            {team.characterKeys.length > 0 && (
-              <Link
-                to={buildTeamCampaignUrl(team.id)}
-                className="p-1.5 text-primary-400 hover:bg-primary-400/10 rounded transition-colors"
-                title="Start team target"
-                aria-label="Start team target"
-              >
-                <Target className="w-4 h-4" aria-hidden="true" />
-              </Link>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); onExport(); }}
-              className="p-1.5 text-yellow-400 hover:bg-yellow-400/10 rounded transition-colors"
-              title="Export to wfpsim"
-              aria-label="Export to wfpsim"
-            >
-              <Zap className="w-4 h-4" aria-hidden="true" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors"
-              title="Edit team"
-              aria-label="Edit team"
-            >
-              <Edit2 className="w-4 h-4" aria-hidden="true" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
-              title="Delete team"
-              aria-label="Delete team"
-            >
-              <Trash2 className="w-4 h-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
-        {/* Members */}
-        <div className="flex gap-2 mb-3">
-          {members.length > 0 ? (
-            members.map((char) => (
-              <div
-                key={char.id}
-                className="flex-1 bg-slate-800 rounded-lg p-2 text-center"
-              >
-                <div className="text-xs font-medium text-slate-300 truncate">
-                  {char.key}
-                </div>
-                <div className="text-xs text-slate-500">
-                  Lv.{char.level}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="flex-1 bg-slate-800 rounded-lg p-3 text-center text-slate-500 text-sm">
-              No members
-            </div>
-          )}
-        </div>
-
-        {/* Tags */}
-        {team.tags && team.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {team.tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="default" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-            {team.tags.length > 3 && (
-              <Badge variant="default" className="text-xs">
-                +{team.tags.length - 3}
-              </Badge>
-            )}
-          </div>
-        )}
-
-        {/* View Details Link */}
-        <Link
-          to={`/roster/teams/${team.id}`}
-          className="flex items-center justify-center gap-2 w-full py-2 mt-2 text-sm text-primary-400 hover:text-primary-300 hover:bg-primary-400/10 rounded-lg transition-colors"
-        >
-          View Details
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </CardContent>
-    </Card>
   );
 }

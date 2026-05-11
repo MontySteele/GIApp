@@ -86,7 +86,7 @@ Compatibility redirects:
 - `/wishes` -> `/pulls`
 - `/wishes/calculator` -> `/pulls/calculator`
 - `/calculator` -> `/pulls/calculator`
-- `/ledger` -> `/pulls/budget`
+- `/ledger` -> `/pulls`
 - `/planner` -> `/roster/planner`
 - `/planner/materials` -> `/campaigns/materials`
 - `/planner/domains` -> `/roster/domains`
