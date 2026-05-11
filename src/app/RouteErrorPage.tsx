@@ -7,7 +7,15 @@ interface RouteErrorViewProps {
   fallbackStatus?: number;
 }
 
-function getErrorDetails(error: unknown, fallbackStatus: number) {
+const GENERIC_ROUTE_ERROR_MESSAGE = 'An unexpected error occurred while loading this page.';
+
+export function getRouteErrorDetails(
+  error: unknown,
+  fallbackStatus: number,
+  options: { showErrorMessage?: boolean } = {}
+) {
+  const showErrorMessage = options.showErrorMessage ?? import.meta.env.DEV;
+
   if (isRouteErrorResponse(error)) {
     return {
       status: error.status,
@@ -20,7 +28,7 @@ function getErrorDetails(error: unknown, fallbackStatus: number) {
     return {
       status: fallbackStatus,
       title: 'Something went wrong',
-      message: error.message,
+      message: showErrorMessage ? error.message : GENERIC_ROUTE_ERROR_MESSAGE,
     };
   }
 
@@ -34,7 +42,7 @@ function getErrorDetails(error: unknown, fallbackStatus: number) {
 }
 
 function RouteErrorView({ error, fallbackStatus = 404 }: RouteErrorViewProps) {
-  const details = getErrorDetails(error, fallbackStatus);
+  const details = getRouteErrorDetails(error, fallbackStatus);
 
   return (
     <section
