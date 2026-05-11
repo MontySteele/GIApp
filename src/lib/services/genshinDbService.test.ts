@@ -231,6 +231,159 @@ describe('genshinDbService', () => {
         expect(result.data?.talentMaterials.crown.totalCount).toBe(1);
       });
 
+      it('recognizes newer Nod-Krai local specialties and warrant drops', async () => {
+        mockFetch.mockReset();
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({
+              name: 'Linnea',
+              element: 'Geo',
+              costs: {
+                ascend1: [
+                  { name: 'Prithiva Topaz Sliver', count: 1 },
+                  { name: 'Tattered Warrant', count: 3 },
+                  { name: 'Etherwing Moth', count: 3 },
+                ],
+                ascend2: [
+                  { name: 'Prithiva Topaz Fragment', count: 3 },
+                  { name: 'Tattered Warrant', count: 15 },
+                  { name: 'Etherwing Moth', count: 10 },
+                  { name: 'Plume of the Fallen Watcher', count: 2 },
+                ],
+                ascend3: [
+                  { name: 'Prithiva Topaz Fragment', count: 6 },
+                  { name: 'Immaculate Warrant', count: 12 },
+                  { name: 'Etherwing Moth', count: 20 },
+                  { name: 'Plume of the Fallen Watcher', count: 4 },
+                ],
+                ascend4: [
+                  { name: 'Prithiva Topaz Chunk', count: 3 },
+                  { name: 'Immaculate Warrant', count: 18 },
+                  { name: 'Etherwing Moth', count: 30 },
+                  { name: 'Plume of the Fallen Watcher', count: 8 },
+                ],
+                ascend5: [
+                  { name: 'Prithiva Topaz Chunk', count: 6 },
+                  { name: 'Frost-Etched Warrant', count: 12 },
+                  { name: 'Etherwing Moth', count: 45 },
+                  { name: 'Plume of the Fallen Watcher', count: 12 },
+                ],
+                ascend6: [
+                  { name: 'Prithiva Topaz Gemstone', count: 6 },
+                  { name: 'Frost-Etched Warrant', count: 24 },
+                  { name: 'Etherwing Moth', count: 60 },
+                  { name: 'Plume of the Fallen Watcher', count: 20 },
+                ],
+              },
+            }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({
+              name: 'Linnea',
+              costs: {
+                lvl2: [
+                  { name: 'Teachings of Vagrancy', count: 3 },
+                  { name: 'Tattered Warrant', count: 6 },
+                ],
+                lvl3: [
+                  { name: 'Guide to Vagrancy', count: 2 },
+                  { name: 'Immaculate Warrant', count: 3 },
+                ],
+                lvl7: [
+                  { name: 'Philosophies of Vagrancy', count: 4 },
+                  { name: 'Frost-Etched Warrant', count: 4 },
+                  { name: 'Elixir of the Heretic', count: 1 },
+                ],
+                lvl10: [
+                  { name: 'Philosophies of Vagrancy', count: 16 },
+                  { name: 'Frost-Etched Warrant', count: 12 },
+                  { name: 'Elixir of the Heretic', count: 2 },
+                  { name: 'Crown of Insight', count: 1 },
+                ],
+              },
+            }),
+          });
+
+        const result = await getCharacterMaterials('Linnea', { forceRefresh: true });
+
+        expect(result.data?.ascensionMaterials.localSpecialty.name).toBe('Etherwing Moth');
+        expect(result.data?.ascensionMaterials.localSpecialty.totalCount).toBe(168);
+        expect(result.data?.ascensionMaterials.boss.name).toBe('Plume of the Fallen Watcher');
+        expect(result.data?.ascensionMaterials.common.tierNames.gray).toBe('Tattered Warrant');
+        expect(result.data?.ascensionMaterials.common.tierNames.green).toBe('Immaculate Warrant');
+        expect(result.data?.ascensionMaterials.common.tierNames.blue).toBe('Frost-Etched Warrant');
+        expect(result.data?.talentMaterials.books.region).toBe('Nod-Krai');
+        expect(result.data?.talentMaterials.weekly.name).toBe('Elixir of the Heretic');
+      });
+
+      it('recognizes newer drive shaft drops from API data', async () => {
+        mockFetch.mockReset();
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({
+              name: 'Aino',
+              element: 'Hydro',
+              costs: {
+                ascend1: [
+                  { name: 'Varunada Lazurite Sliver', count: 1 },
+                  { name: 'Broken Drive Shaft', count: 3 },
+                  { name: 'Portable Bearing', count: 3 },
+                ],
+                ascend2: [
+                  { name: 'Varunada Lazurite Fragment', count: 3 },
+                  { name: 'Broken Drive Shaft', count: 15 },
+                  { name: 'Portable Bearing', count: 10 },
+                  { name: 'Precision Kuuvahki Stamping Die', count: 2 },
+                ],
+                ascend3: [
+                  { name: 'Varunada Lazurite Fragment', count: 6 },
+                  { name: 'Reinforced Drive Shaft', count: 12 },
+                  { name: 'Portable Bearing', count: 20 },
+                  { name: 'Precision Kuuvahki Stamping Die', count: 4 },
+                ],
+                ascend5: [
+                  { name: 'Varunada Lazurite Chunk', count: 6 },
+                  { name: 'Precision Drive Shaft', count: 12 },
+                  { name: 'Portable Bearing', count: 45 },
+                  { name: 'Precision Kuuvahki Stamping Die', count: 12 },
+                ],
+              },
+            }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({
+              name: 'Aino',
+              costs: {
+                lvl2: [
+                  { name: 'Teachings of Elysium', count: 3 },
+                  { name: 'Broken Drive Shaft', count: 6 },
+                ],
+                lvl3: [
+                  { name: 'Guide to Elysium', count: 2 },
+                  { name: 'Reinforced Drive Shaft', count: 3 },
+                ],
+                lvl7: [
+                  { name: 'Philosophies of Elysium', count: 4 },
+                  { name: 'Precision Drive Shaft', count: 4 },
+                  { name: 'Silken Feather', count: 1 },
+                ],
+              },
+            }),
+          });
+
+        const result = await getCharacterMaterials('Aino', { forceRefresh: true });
+
+        expect(result.data?.ascensionMaterials.localSpecialty.name).toBe('Portable Bearing');
+        expect(result.data?.ascensionMaterials.common.tierNames.gray).toBe('Broken Drive Shaft');
+        expect(result.data?.ascensionMaterials.common.tierNames.green).toBe('Reinforced Drive Shaft');
+        expect(result.data?.ascensionMaterials.common.tierNames.blue).toBe('Precision Drive Shaft');
+        expect(result.data?.talentMaterials.books.region).toBe('Nod-Krai');
+      });
+
       it('caches data in IndexedDB', async () => {
         await getCharacterMaterials('HuTao');
 
@@ -273,7 +426,7 @@ describe('genshinDbService', () => {
           cacheKey: 'genshin-character:hutao',
           data: {
             data: cachedMaterials,
-            schemaVersion: 5, // Current schema version
+            schemaVersion: 6, // Current schema version
           },
           fetchedAt: new Date().toISOString(),
           expiresAt: futureDate,
@@ -494,7 +647,7 @@ describe('genshinDbService', () => {
               rarity: 5,
               ascensionMaterials: {},
             },
-            schemaVersion: 5,
+            schemaVersion: 6,
           },
           fetchedAt: new Date().toISOString(),
           expiresAt: futureDate,

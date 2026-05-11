@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getStaticCharacterMaterials, hasStaticMaterialData } from './characterMaterialMap';
+import { ALL_CHARACTERS } from '@/lib/constants/characterList';
+import { CHARACTER_METADATA } from '@/features/roster/data/characterMetadata';
+import {
+  findStaticMaterialCoverageGaps,
+  getStaticCharacterMaterials,
+  hasStaticMaterialData,
+} from './characterMaterialMap';
 
 describe('characterMaterialMap', () => {
   describe('getStaticCharacterMaterials', () => {
@@ -25,6 +31,15 @@ describe('characterMaterialMap', () => {
       const data = getStaticCharacterMaterials('KaedeharaKazuha');
       expect(data).not.toBeNull();
       expect(data!.element).toBe('Anemo');
+    });
+
+    it('returns material data for display-name aliases', () => {
+      expect(getStaticCharacterMaterials('Kamisato Ayaka')?.characterKey).toBe('KamisatoAyaka');
+      expect(getStaticCharacterMaterials('Raiden Shogun')?.characterKey).toBe('RaidenShogun');
+      expect(getStaticCharacterMaterials('Sangonomiya Kokomi')?.characterKey).toBe('Kokomi');
+      expect(getStaticCharacterMaterials('Yumemizuki Mizuki')?.characterKey).toBe('Mizuki');
+      expect(getStaticCharacterMaterials('Lumine')?.characterKey).toBe('TravelerAnemo');
+      expect(getStaticCharacterMaterials('Olorun')?.characterKey).toBe('Ororon');
     });
 
     it('is case-insensitive', () => {
@@ -89,6 +104,32 @@ describe('characterMaterialMap', () => {
       expect(data!.ascensionMaterials.localSpecialty.name).toBeTruthy();
       expect(data!.talentMaterials.books.series).toBeTruthy();
       expect(data!.talentMaterials.weekly.name).toBeTruthy();
+    });
+
+    it('scans all planner characters and display names for fallback material gaps', () => {
+      const plannerKeys = ALL_CHARACTERS.flatMap((character) => [character.key, character.name]);
+      expect(findStaticMaterialCoverageGaps(plannerKeys)).toEqual([]);
+    });
+
+    it('scans released roster metadata while documenting metadata-only placeholders', () => {
+      const metadataOnlyPlaceholders = new Set(['Avero', 'Iljane', 'Manekin', 'Manekina']);
+      const releasedOrResolvableKeys = CHARACTER_METADATA
+        .map((character) => character.key)
+        .filter((key) => !metadataOnlyPlaceholders.has(key));
+
+      expect(findStaticMaterialCoverageGaps(releasedOrResolvableKeys)).toEqual([]);
+    });
+
+    it('reports missing static data with a machine-readable reason', () => {
+      expect(findStaticMaterialCoverageGaps(['TotallyFakeCharacter'])).toEqual([
+        { characterKey: 'TotallyFakeCharacter', reasons: ['missing-entry'] },
+      ]);
+    });
+
+    it('keeps corrected Sethos material assignments', () => {
+      const data = getStaticCharacterMaterials('Sethos');
+      expect(data?.ascensionMaterials.boss.name).toBe('Cloudseam Scale');
+      expect(data?.ascensionMaterials.localSpecialty.name).toBe('Trishiraite');
     });
   });
 });
