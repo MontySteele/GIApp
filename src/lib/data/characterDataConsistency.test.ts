@@ -103,6 +103,7 @@ function buildCharacterLookup(): Map<string, string> {
 }
 
 const CHARACTER_LOOKUP = buildCharacterLookup();
+const CHARACTER_LIST_KEYS = new Set(ALL_CHARACTERS.map((character) => character.key));
 
 function resolveCharacterListKey(value: string): string | undefined {
   return CHARACTER_LOOKUP.get(normalizeCharacterIdentity(value));
@@ -133,6 +134,18 @@ function hasAvatarPortrait(character: CharacterInfo): boolean {
 }
 
 describe('character data consistency scanner', () => {
+  it('keeps expected characterList gap keys current', () => {
+    const staleExpectedCharacterListGaps = sorted(
+      [
+        ...EXPECTED_CHARACTER_LIST_METADATA_GAPS,
+        ...EXPECTED_CHARACTER_LIST_AVATAR_GAPS,
+        ...EXPECTED_GCSIM_EXPORT_GAPS,
+      ].filter((key) => !CHARACTER_LIST_KEYS.has(key))
+    );
+
+    expect(staleExpectedCharacterListGaps).toEqual([]);
+  });
+
   it('keeps characterList identities unique', () => {
     const seenKeys = new Map<string, string>();
     const seenNames = new Map<string, string>();

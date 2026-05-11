@@ -184,6 +184,51 @@ function getTeamMemberTargets(
   return team.characterKeys.map((key) => buildCharacterTarget(key, ownedKeys, buildGoal));
 }
 
+function getCampaignDraftTitle(
+  campaignType: CampaignType,
+  characterKey: string,
+  selectedTeam: Team | undefined,
+  targetConstellation: number | null
+): string {
+  if (campaignType === 'team-polish') {
+    return `Polish ${selectedTeam?.name ?? 'selected team'}`;
+  }
+
+  if (campaignType === 'character-polish') {
+    return `Polish ${getDisplayName(characterKey)}`;
+  }
+
+  return targetConstellation !== null
+    ? `Chase C${targetConstellation} ${getDisplayName(characterKey)}`
+    : `Recruit ${getDisplayName(characterKey)}`;
+}
+
+function getCampaignDraftTargetLabel(
+  campaignType: CampaignType,
+  characterKey: string,
+  selectedTeam: Team | undefined
+): string {
+  return campaignType === 'team-polish'
+    ? `${selectedTeam?.characterKeys.length ?? 0} members`
+    : getDisplayName(characterKey);
+}
+
+function getCampaignDraftPullLabel(
+  campaignType: CampaignType,
+  includePullTarget: boolean,
+  desiredCopies: string,
+  maxPullBudget: string
+): string {
+  if (campaignType !== 'character-acquisition' || !includePullTarget) {
+    return 'No pull plan';
+  }
+
+  const copyCount = Math.max(1, Number(desiredCopies) || 1);
+  return `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}${
+    maxPullBudget ? `, ${maxPullBudget} pull budget` : ''
+  }`;
+}
+
 function isOpenCampaign(campaign: Campaign): boolean {
   return campaign.status === 'active' || campaign.status === 'paused';
 }
@@ -384,6 +429,27 @@ export default function CampaignsPage() {
     ),
     [campaigns, campaignType, selectedCharacterKey, selectedTeamId, targetConstellationValue]
   );
+  const campaignDraftTitle = getCampaignDraftTitle(
+    campaignType,
+    selectedCharacterKey,
+    selectedTeam,
+    targetConstellationValue
+  );
+  const campaignDraftTargetLabel = getCampaignDraftTargetLabel(
+    campaignType,
+    selectedCharacterKey,
+    selectedTeam
+  );
+  const campaignDraftPullLabel = getCampaignDraftPullLabel(
+    campaignType,
+    includePullTarget,
+    desiredCopies,
+    maxPullBudget
+  );
+  const campaignDraftConstellationLabel =
+    campaignType === 'character-acquisition' && targetConstellationValue !== null
+      ? `C${targetConstellationValue} target`
+      : null;
 
   const resetForm = () => {
     setDeadline('');
@@ -567,14 +633,12 @@ export default function CampaignsPage() {
       {hasCampaignPrefill && (
         <CampaignDraftCard
           campaignType={campaignType}
-          characterKey={selectedCharacterKey}
-          selectedTeam={selectedTeam}
+          title={campaignDraftTitle}
+          targetLabel={campaignDraftTargetLabel}
+          constellationLabel={campaignDraftConstellationLabel}
           buildGoalLabel={formatBuildGoal(buildGoal)}
           priority={toPriority(priority)}
-          includePullTarget={includePullTarget}
-          desiredCopies={desiredCopies}
-          targetConstellationValue={targetConstellationValue}
-          maxPullBudget={maxPullBudget}
+          pullLabel={campaignDraftPullLabel}
           matchingCampaign={matchingOpenCampaign}
           isCreating={isCreating}
           onCreate={async () => {

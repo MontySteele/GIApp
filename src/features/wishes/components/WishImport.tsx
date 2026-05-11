@@ -12,10 +12,14 @@ import {
 import { markWishHistoryImportComplete } from '../services/wishDataFreshness';
 import {
   getPityByBanner,
-  type BannerPitySnapshot,
 } from '../selectors/pitySelectors';
 import { resolveIsFeatured } from '../data/standardPool';
-import ImportImpactSummary, { type WishImportImpact } from './ImportImpactSummary';
+import {
+  buildImportImpact,
+  WISH_BANNER_LABELS,
+  type WishImportImpact,
+} from '../domain/importImpact';
+import ImportImpactSummary from './ImportImpactSummary';
 
 // Check if running in Tauri
 const isTauri = '__TAURI__' in window;
@@ -38,13 +42,6 @@ const GACHA_TYPES_BY_BANNER: Record<BannerType, string[]> = {
   weapon: ['302'],
   standard: ['200'],
   chronicled: ['500'],
-};
-
-const BANNER_NAMES: Record<BannerType, string> = {
-  character: 'Character Event',
-  weapon: 'Weapon Event',
-  standard: 'Standard',
-  chronicled: 'Chronicled Wish',
 };
 
 interface WishApiItem {
@@ -133,27 +130,6 @@ function wishImportReducer(state: WishImportState, action: WishImportAction): Wi
     default:
       return state;
   }
-}
-
-function buildImportImpact(
-  before: Record<BannerType, BannerPitySnapshot>,
-  after: Record<BannerType, BannerPitySnapshot>,
-  importedSummary: Record<BannerType, number>,
-  activePullCampaigns: number
-): WishImportImpact {
-  const rows = (Object.keys(importedSummary) as BannerType[])
-    .filter((banner) => importedSummary[banner] > 0)
-    .map((banner) => ({
-      banner,
-      pityBefore: before[banner].pity,
-      pityAfter: after[banner].pity,
-      guaranteedBefore: before[banner].guaranteed,
-      guaranteedAfter: after[banner].guaranteed,
-      fatePointsBefore: before[banner].fatePoints,
-      fatePointsAfter: after[banner].fatePoints,
-    }));
-
-  return { rows, activePullCampaigns };
 }
 
 export function WishImport({ onImportComplete }: WishImportProps) {
@@ -394,7 +370,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
 
         for (const bannerType of bannersToFetch) {
           for (const gachaType of GACHA_TYPES_BY_BANNER[bannerType]) {
-            dispatch({ type: 'SET_CURRENT_BANNER', payload: `Fetching ${BANNER_NAMES[bannerType]} banner...` });
+            dispatch({ type: 'SET_CURRENT_BANNER', payload: `Fetching ${WISH_BANNER_LABELS[bannerType]} banner...` });
             const wishes = await fetchBannerHistory(baseUrl, gachaType);
             allWishes.push(...wishes);
           }
@@ -623,7 +599,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
                 onChange={() => toggleBanner(banner)}
                 disabled={state.isImporting}
               />
-              <span>{BANNER_NAMES[banner]}</span>
+              <span>{WISH_BANNER_LABELS[banner]}</span>
             </label>
           ))}
         </div>
@@ -682,7 +658,7 @@ export function WishImport({ onImportComplete }: WishImportProps) {
             {Object.entries(state.importSummary).map(([banner, count]) => (
               count > 0 && (
                 <li key={banner}>
-                  {BANNER_NAMES[banner as BannerType]}: {count} wishes
+                  {WISH_BANNER_LABELS[banner as BannerType]}: {count} wishes
                 </li>
               )
             ))}

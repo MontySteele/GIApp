@@ -9,23 +9,19 @@ import {
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { getDisplayName } from '@/lib/gameData';
 import type {
   Campaign,
   CampaignType,
-  Team,
 } from '@/types';
 
 interface CampaignDraftCardProps {
   campaignType: CampaignType;
-  characterKey: string;
-  selectedTeam: Team | undefined;
+  title: string;
+  targetLabel: string;
+  constellationLabel: string | null;
   buildGoalLabel: string;
   priority: Campaign['priority'];
-  includePullTarget: boolean;
-  desiredCopies: string;
-  targetConstellationValue: number | null;
-  maxPullBudget: string;
+  pullLabel: string;
   matchingCampaign: Campaign | undefined;
   isCreating: boolean;
   onCreate: () => Promise<void>;
@@ -34,14 +30,12 @@ interface CampaignDraftCardProps {
 
 export default function CampaignDraftCard({
   campaignType,
-  characterKey,
-  selectedTeam,
+  title,
+  targetLabel,
+  constellationLabel,
   buildGoalLabel,
   priority,
-  includePullTarget,
-  desiredCopies,
-  targetConstellationValue,
-  maxPullBudget,
+  pullLabel,
   matchingCampaign,
   isCreating,
   onCreate,
@@ -49,21 +43,7 @@ export default function CampaignDraftCard({
 }: CampaignDraftCardProps) {
   const isTeamCampaign = campaignType === 'team-polish';
   const isCharacterPolishCampaign = campaignType === 'character-polish';
-  const title = isTeamCampaign
-    ? `Polish ${selectedTeam?.name ?? 'selected team'}`
-    : isCharacterPolishCampaign
-      ? `Polish ${getDisplayName(characterKey)}`
-      : targetConstellationValue !== null
-        ? `Chase C${targetConstellationValue} ${getDisplayName(characterKey)}`
-        : `Recruit ${getDisplayName(characterKey)}`;
   const Icon = isTeamCampaign ? UsersRound : isCharacterPolishCampaign ? Target : Sparkles;
-  const copyCount = Math.max(1, Number(desiredCopies) || 1);
-  const pullLabel = campaignType === 'character-acquisition' && includePullTarget
-    ? `${copyCount} ${copyCount === 1 ? 'copy' : 'copies'}${maxPullBudget ? `, ${maxPullBudget} pull budget` : ''}`
-    : 'No pull plan';
-  const targetLabel = isTeamCampaign
-    ? `${selectedTeam?.characterKeys.length ?? 0} members`
-    : getDisplayName(characterKey);
 
   return (
     <Card className="border-primary-900/60 bg-primary-950/20">
@@ -81,8 +61,8 @@ export default function CampaignDraftCard({
               <h2 className="truncate text-lg font-semibold text-slate-100">{title}</h2>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge variant="outline">{targetLabel}</Badge>
-                {targetConstellationValue !== null && (
-                  <Badge variant="outline">C{targetConstellationValue} target</Badge>
+                {constellationLabel && (
+                  <Badge variant="outline">{constellationLabel}</Badge>
                 )}
                 <Badge variant="outline">{buildGoalLabel}</Badge>
                 <Badge variant="outline">P{priority}</Badge>

@@ -1,32 +1,9 @@
 import { Link } from 'react-router-dom';
 import Badge from '@/components/ui/Badge';
-import type { BannerType } from '@/types';
-
-const BANNER_NAMES: Record<BannerType, string> = {
-  character: 'Character Event',
-  weapon: 'Weapon Event',
-  standard: 'Standard',
-  chronicled: 'Chronicled Wish',
-};
-
-export interface BannerImportImpact {
-  banner: BannerType;
-  pityBefore: number;
-  pityAfter: number;
-  guaranteedBefore: boolean;
-  guaranteedAfter: boolean;
-  fatePointsBefore?: number;
-  fatePointsAfter?: number;
-}
-
-export interface WishImportImpact {
-  rows: BannerImportImpact[];
-  activePullCampaigns: number;
-}
-
-function bannerLabel(banner: BannerType): string {
-  return BANNER_NAMES[banner];
-}
+import {
+  getWishBannerLabel,
+  type WishImportImpact,
+} from '../domain/importImpact';
 
 export default function ImportImpactSummary({ impact }: { impact: WishImportImpact }) {
   return (
@@ -51,7 +28,7 @@ export default function ImportImpactSummary({ impact }: { impact: WishImportImpa
         {impact.rows.map((row) => (
           <div key={row.banner} className="rounded-lg bg-slate-950/50 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-slate-100">{bannerLabel(row.banner)}</span>
+              <span className="text-sm font-medium text-slate-100">{getWishBannerLabel(row.banner)}</span>
               <Badge variant={row.guaranteedAfter ? 'success' : 'outline'}>
                 {row.guaranteedAfter ? 'Guaranteed' : 'Not guaranteed'}
               </Badge>
