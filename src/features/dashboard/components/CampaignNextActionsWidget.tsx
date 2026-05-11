@@ -11,8 +11,10 @@ import {
   UserPlus,
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useAccountDataFreshness } from '@/features/sync';
+import { useCampaignActionStates, type CampaignActionState } from '@/features/campaigns/hooks/useCampaignActionStates';
 import { getActionDestination } from '@/features/campaigns/lib/campaignActionLinks';
 import type {
   CampaignActionCategory,
@@ -171,6 +173,7 @@ export default function CampaignNextActionsWidget({
   error,
 }: CampaignNextActionsWidgetProps) {
   const dataFreshness = useAccountDataFreshness();
+  const { todayActivities, getActionState, setActionState } = useCampaignActionStates();
   const campaignActions = buildDashboardActions(activeCampaigns, plans);
   const freshnessAction: FreshnessDashboardAction | null =
     activeCampaigns.length > 0 && !dataFreshness.isLoading && dataFreshness.status !== 'fresh'
@@ -187,9 +190,11 @@ export default function CampaignNextActionsWidget({
           why: 'Campaign plans depend on current roster, artifact, weapon, material, and wish data.',
         }
       : null;
-  const actions = freshnessAction
+  const allActions = freshnessAction
     ? [...campaignActions, freshnessAction].sort((a, b) => a.priority - b.priority)
     : campaignActions;
+  const actions = allActions.filter((action) => !getActionState(getActionKey(action)));
+  const handledActionCount = allActions.length - actions.length;
   const [focusAction, ...secondaryActions] = actions;
   const focusedCampaign = getFocusedCampaign(activeCampaigns, plans, focusAction);
   const focusedPlan = focusedCampaign ? plans[focusedCampaign.id] : undefined;
@@ -279,13 +284,18 @@ export default function CampaignNextActionsWidget({
                 </span>
               </Link>
             )}
-            <ActionCard item={focusAction} prominent />
+            <ActionCard
+              item={focusAction}
+              prominent
+              onSetState={(state) => setActionState(state, getActionActivityInput(focusAction))}
+            />
             {secondaryActions.slice(0, 2).map((item) => (
               <ActionCard key={getActionKey(item)} item={item} />
             ))}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3 text-xs text-slate-500">
               <span>
-                Ranked by blocker severity, campaign priority, deadline, and data freshness.
+                {actions.length} action{actions.length === 1 ? '' : 's'} left today
+                {handledActionCount > 0 && `, ${handledActionCount} handled`}.
               </span>
               {actions.length > 3 && (
                 <Link to="/campaigns" className="text-primary-400 hover:text-primary-300">
@@ -293,13 +303,23 @@ export default function CampaignNextActionsWidget({
                 </Link>
               )}
             </div>
+            {todayActivities.length > 0 && (
+              <ActivityLog activities={todayActivities.slice(0, 3)} />
+            )}
           </div>
         ) : (
           <div className="rounded-lg bg-slate-900 p-3">
-            <p className="text-sm font-medium text-slate-200">Campaigns are ready for review.</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Open your active campaigns and mark completed goals when you are happy with them.
+            <p className="text-sm font-medium text-slate-200">
+              {allActions.length > 0 ? 'All campaign actions handled today.' : 'Campaigns are ready for review.'}
             </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {allActions.length > 0
+                ? 'Completed, skipped, and snoozed actions return tomorrow.'
+                : 'Open your active campaigns and mark completed goals when you are happy with them.'}
+            </p>
+            {todayActivities.length > 0 && (
+              <ActivityLog activities={todayActivities.slice(0, 3)} />
+            )}
           </div>
         )}
       </CardContent>
@@ -333,7 +353,30 @@ function getActionCampaignName(item: DashboardAction): string {
   return item.kind === 'freshness' ? 'Account data' : item.campaign.name;
 }
 
-function ActionCard({ item, prominent = false }: { item: DashboardAction; prominent?: boolean }) {
+function getActionActivityInput(item: DashboardAction) {
+  return {
+    actionKey: getActionKey(item),
+    campaignId: item.kind === 'freshness' ? null : item.campaign.id,
+    actionId: item.kind === 'freshness' ? item.id : item.action.id,
+    actionLabel: getActionLabel(item),
+  };
+}
+
+function getStateLabel(state: CampaignActionState): string {
+  if (state === 'done') return 'Done today';
+  if (state === 'skipped') return 'Skipped';
+  return 'Snoozed';
+}
+
+function ActionCard({
+  item,
+  prominent = false,
+  onSetState,
+}: {
+  item: DashboardAction;
+  prominent?: boolean;
+  onSetState?: (state: CampaignActionState) => void;
+}) {
   const category = getActionCategory(item);
   const Icon = getCategoryIcon(category);
   const label = getActionLabel(item);
@@ -370,6 +413,19 @@ function ActionCard({ item, prominent = false }: { item: DashboardAction; promin
           {item.destination.label}
           <ArrowRight className="h-4 w-4" />
         </Link>
+        {onSetState && (
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <Button size="sm" variant="secondary" onClick={() => onSetState('done')}>
+              Done Today
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onSetState('skipped')}>
+              Skip
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onSetState('snoozed')}>
+              Snooze
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -391,5 +447,25 @@ function ActionCard({ item, prominent = false }: { item: DashboardAction; promin
         <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
       </div>
     </Link>
+  );
+}
+
+function ActivityLog({ activities }: { activities: Array<{ state: CampaignActionState; actionLabel: string }> }) {
+  return (
+    <div className="rounded-lg bg-slate-950/50 p-3">
+      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+        Today&apos;s activity
+      </div>
+      <div className="space-y-1">
+        {activities.map((activity, index) => (
+          <div key={`${activity.actionLabel}-${index}`} className="flex items-center justify-between gap-2 text-xs">
+            <span className="truncate text-slate-400">{activity.actionLabel}</span>
+            <Badge variant={activity.state === 'done' ? 'success' : activity.state === 'skipped' ? 'secondary' : 'warning'}>
+              {getStateLabel(activity.state)}
+            </Badge>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
@@ -112,6 +113,7 @@ function renderWidget(
 
 describe('CampaignNextActionsWidget', () => {
   beforeEach(() => {
+    localStorage.clear();
     mocks.dataFreshness = {
       status: 'fresh',
       isLoading: false,
@@ -258,5 +260,36 @@ describe('CampaignNextActionsWidget', () => {
       'href',
       '/roster?import=irminsul'
     );
+  });
+
+  it('lets the top action disappear for today when it is marked done', async () => {
+    const user = userEvent.setup();
+    renderWidget();
+
+    await user.click(screen.getByRole('button', { name: /done today/i }));
+
+    expect(screen.queryByRole('heading', { name: 'Farm Mora' })).not.toBeInTheDocument();
+    expect(screen.getByText('Improve Furina')).toBeInTheDocument();
+    expect(screen.getByText("Today's activity")).toBeInTheDocument();
+    expect(screen.getByText('Done today')).toBeInTheDocument();
+    expect(screen.getByText(/1 action left today, 1 handled/i)).toBeInTheDocument();
+  });
+
+  it('shows an all-handled state when every campaign action is handled today', async () => {
+    const user = userEvent.setup();
+    renderWidget({
+      plans: {
+        [campaign.id]: {
+          ...plan,
+          nextActions: [plan.nextActions[0]!],
+        },
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /snooze/i }));
+
+    expect(screen.getByText('All campaign actions handled today.')).toBeInTheDocument();
+    expect(screen.getByText(/return tomorrow/i)).toBeInTheDocument();
+    expect(screen.getByText('Snoozed')).toBeInTheDocument();
   });
 });
