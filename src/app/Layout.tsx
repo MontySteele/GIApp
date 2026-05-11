@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Header from '@/components/common/Header';
 import TabNav from '@/components/common/TabNav';
 import MobileBottomNav from '@/components/common/MobileBottomNav';
+import QuickActionBar from '@/components/common/QuickActionBar';
 import BackupReminderBanner from '@/features/sync/components/BackupReminderBanner';
 import ToastContainer from '@/components/ui/Toast';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
@@ -45,6 +46,7 @@ export default function Layout() {
         </ErrorBoundary>
       </main>
       <MobileBottomNav />
+      <QuickActionBar />
       <ToastContainer />
       <OnboardingWizard
         isOpen={showWizard}

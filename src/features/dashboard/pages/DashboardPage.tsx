@@ -28,9 +28,12 @@ import QuickResourceLogger from '@/features/ledger/components/QuickResourceLogge
 import TargetQuickStart from '@/features/targets/components/TargetQuickStart';
 import TargetSummaryList from '@/features/targets/components/TargetSummaryList';
 import { buildTargetSummaries } from '@/features/targets/domain/targetSummary';
+import { useAccountDataFreshness } from '@/features/sync/hooks/useAccountDataFreshness';
 import { useWishlistStore } from '@/stores/wishlistStore';
+import ResumeNextCard from '../components/ResumeNextCard';
 import DashboardCampaignFocus from '../components/DashboardCampaignFocus';
 import TodayFarmingWidget from '../components/TodayFarmingWidget';
+import { buildDashboardResumeAction } from '../domain/dashboardResume';
 import {
   calculateCurrentResin,
   timeUntilFull,
@@ -62,6 +65,7 @@ export default function DashboardPage() {
   const loadingResources = availablePulls === undefined;
   const { teams } = useTeams();
   const { campaigns, isLoading: loadingCampaigns } = useCampaigns();
+  const accountFreshness = useAccountDataFreshness();
   const {
     checklist,
     checklistProgress,
@@ -140,6 +144,15 @@ export default function DashboardPage() {
       characters,
     });
   }, [campaigns, characters, plannedBannersResult, wishlistCharacters]);
+  const resumeAction = useMemo(
+    () => buildDashboardResumeAction({
+      targets: targetSummaries,
+      accountFreshness,
+      characterCount: charStats.total,
+      wishHistoryCount: typeof wishHistoryCount === 'number' ? wishHistoryCount : 0,
+    }),
+    [accountFreshness, charStats.total, targetSummaries, wishHistoryCount]
+  );
 
   if (isLoading) {
     return (
@@ -198,6 +211,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
+          <ResumeNextCard action={resumeAction} />
           <DashboardCampaignFocus />
           <TargetQuickStart />
         </div>
