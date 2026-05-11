@@ -32,6 +32,7 @@ Mobile keeps daily-use routes in the bottom nav: Home, Targets, Roster, Pulls, a
 - `/imports` - Import Hub for roster, wish history, manual fallback, backup status, and last import summaries.
 - `/roster?import=irminsul` - Opens the Irminsul/GOOD roster import flow.
 - `/#quick-resource-logger` - Opens the dashboard and scrolls to the quick primogem/resource logger.
+- `/pulls#resource-snapshot` - Opens Pulls and scrolls to the resource snapshot form.
 - `/pulls/calculator` - Manual odds fast path and campaign handoff destination.
 - `/campaigns?character=Furina&pullPlan=1` - Target draft prefill for one-click "make this a target" flows.
 
@@ -42,8 +43,10 @@ Legacy routes such as `/wishes`, `/calculator`, `/ledger`, `/planner`, `/teams`,
 Recent UX work reframed the old Campaigns concept around Targets while preserving the `/campaigns` route for storage and route compatibility.
 
 - The dashboard owns "what should I do now?" through a single Next Up system, plus quick resource capture and a compact account snapshot.
+- First Target Setup guides new users through roster import, resource/pull setup, target choice, and target review.
 - The Start a Target wizard supports Get character, Build character, and Polish team modes.
 - Start Target is contextual: the full wizard appears when there are no real targets, while existing targets get a compact entry point.
+- Planned banners, wishlist characters, and campaigns all count as target surfaces, so setup cards disappear once a user has expressed target intent.
 - Missing or stale imports are promoted into Next Up and the contextual target entry before suggesting another target.
 - Manual mode works without imports: users can enter saved pulls, current pity, guarantee, current constellation, target constellation, and deadline.
 - Preview math shows hard-pity coverage, worst-case pull shortfall, daily pace, and guards against already-met constellation targets.
@@ -74,9 +77,10 @@ npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 - [Architecture](docs/ARCHITECTURE.md) - Tech stack, feature boundaries, schema, and routing.
 - [Contributing](docs/CONTRIBUTING.md) - Development workflow, TDD, TypeScript, and PR guidance.
 - [E2E Testing](docs/E2E_TESTING.md) - Playwright setup, current test files, and debugging.
-- [Changelog](docs/CHANGELOG.md) - Recent changes and sprint history.
+- [Changelog](docs/CHANGELOG.md) - Recent changes and release history.
 - [Test Coverage Plan](TEST_COVERAGE_PLAN.md) - Current test metrics and coverage priorities.
 - [Testing Checklist](TESTING_CHECKLIST.md) - Manual smoke checks for core flows.
+- [Archive](docs/archive/README.md) - Historical sprint plans and retired design docs.
 
 ## Database Migrations
 

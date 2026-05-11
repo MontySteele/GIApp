@@ -12,10 +12,10 @@
 
 ### Current Metrics
 
-Last verified after the goal-first UX hygiene pass:
+Latest verified after the first-target setup pass:
 
-- **Test files:** 148 passing
-- **Tests:** 2060 passing
+- **Test files:** 150 passing
+- **Tests:** 2075 passing
 - **Coverage baseline:** 72.37% statements, 65.44% branches, 68.63% functions, 73.73% lines
 - **Enforced coverage floor:** 70% statements, 60% branches, 65% functions, 70% lines
 - **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`, `team-management.spec.ts`
@@ -27,9 +27,9 @@ Use `npm run test:coverage` as a regression guard against the current baseline; 
 
 | Area | Status | Notes |
 |---|---|---|
-| Targets / Campaigns | Good | Target summaries, wizard math, campaign links, campaign pages, target material handoffs |
-| Dashboard | Good | Next Up states, contextual target entry, loading states, freshness behavior, capture/snapshot panel, mobile viewport smoke |
-| Imports / Sync | Good | Import Hub, backup/restore, app metadata, import impact summaries, freshness |
+| Targets / Campaigns | Good | Target summaries, first-target setup, wizard math, campaign links, campaign pages, target material handoffs |
+| Dashboard | Good | Next Up states, first-target setup gating, contextual target entry, loading states, freshness behavior, capture/snapshot panel, mobile viewport smoke |
+| Imports / Sync | Good | Import Hub setup gating, backup/restore, app metadata, import impact summaries, freshness |
 | Pulls / Wishes | Excellent | Wish import, history, pity selectors, replay, import impact, calculators |
 | Calculator | Excellent | Single, multi-target, reverse calculator, worker integration |
 | Roster | Excellent | Characters, forms, wishlist, progression, import components, selectors |
@@ -53,12 +53,13 @@ Goal-first UX work added or hardened tests for:
 - Dashboard loading skeleton branch
 - Dashboard Next Up priorities and stale/missing import promotion
 - Dashboard contextual Start Target states and Capture + Snapshot panel
+- First Target Setup domain transitions, card rendering, Dashboard/Import Hub visibility gates, and Ledger resource handoff links
 - Import Hub status and persisted impact summaries
 - GOOD and Irminsul component-level import summary writes
 - Quick Resource Logger presets and undo
 - Quick Action Bar routes
 - Mobile navigation active states
-- Hash-link scrolling for quick actions
+- Hash-link scrolling for quick actions and the Pulls resource snapshot anchor
 - Campaign-flow, navigation, and team-management Playwright smokes
 
 ## Standard Verification

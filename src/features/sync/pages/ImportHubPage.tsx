@@ -17,6 +17,9 @@ import type { LucideIcon } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { db } from '@/db/schema';
+import FirstTargetSetupCard from '@/features/targets/components/FirstTargetSetupCard';
+import { buildFirstTargetSetupState } from '@/features/targets/domain/firstTargetSetup';
+import { useWishlistStore } from '@/stores/wishlistStore';
 import { useAccountDataFreshness } from '../hooks/useAccountDataFreshness';
 import { useAppMetaStatus } from '../hooks/useAppMetaStatus';
 import { readLastImportSummary, type LastImportSummary } from '../domain/lastImportSummary';
@@ -53,9 +56,31 @@ export default function ImportHubPage() {
   const wishCount = useLiveQuery(() => db.wishRecords.count(), []);
   const resourceSnapshotCount = useLiveQuery(() => db.resourceSnapshots.count(), []);
   const campaignCount = useLiveQuery(() => db.campaigns.count(), []);
+  const plannedBannerCount = useLiveQuery(() => db.plannedBanners.count(), []);
+  const wishlistCharacters = useWishlistStore((state) => state.characters);
   const accountFreshness = useAccountDataFreshness();
   const { status: appMeta } = useAppMetaStatus();
   const [lastSummary] = useState<LastImportSummary | null>(() => readLastImportSummary());
+  const safeCampaignCount = campaignCount ?? 0;
+  const safePlannedBannerCount = plannedBannerCount ?? 0;
+  const wishlistCount = wishlistCharacters.length;
+  const targetSurfaceCount = safeCampaignCount + safePlannedBannerCount + wishlistCount;
+  const firstTargetSetup = useMemo(() => buildFirstTargetSetupState({
+    characterCount: characterCount ?? 0,
+    wishHistoryCount: wishCount ?? 0,
+    resourceSnapshotCount: resourceSnapshotCount ?? 0,
+    targetCount: targetSurfaceCount > 0 ? 1 : 0,
+    accountFreshnessStatus: accountFreshness.status,
+    accountFreshnessDetail: accountFreshness.detail,
+  }), [
+    accountFreshness.detail,
+    accountFreshness.status,
+    characterCount,
+    resourceSnapshotCount,
+    targetSurfaceCount,
+    wishCount,
+  ]);
+  const showFirstTargetSetup = targetSurfaceCount === 0 && firstTargetSetup.activeStep !== 'review-plan';
 
   const cards = useMemo<HubStatusCard[]>(() => [
     {
@@ -120,8 +145,10 @@ export default function ImportHubPage() {
         <Snapshot label="Characters" value={characterCount ?? 0} icon={Users} />
         <Snapshot label="Wish records" value={wishCount ?? 0} icon={History} />
         <Snapshot label="Resource snapshots" value={resourceSnapshotCount ?? 0} icon={Database} />
-        <Snapshot label="Targets" value={campaignCount ?? 0} icon={Target} />
+        <Snapshot label="Targets" value={targetSurfaceCount} icon={Target} />
       </div>
+
+      {showFirstTargetSetup && <FirstTargetSetupCard setup={firstTargetSetup} />}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {cards.map((card) => {
