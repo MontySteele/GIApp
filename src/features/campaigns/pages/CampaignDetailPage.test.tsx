@@ -281,7 +281,7 @@ const plan: CampaignPlan = {
       id: 'campaign-1-pulls',
       category: 'pulls',
       label: 'Save 20 more pulls',
-      detail: '100/120 pulls ready for campaign targets.',
+      detail: '100/120 pulls ready for target characters.',
       priority: 1,
     },
     {

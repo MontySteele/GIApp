@@ -17,6 +17,14 @@ const target: TargetSummary = {
   actionLabel: 'Open Target',
   characterKeys: ['Furina'],
   readinessPercent: 72,
+  nextAction: {
+    id: 'materials:Mora',
+    category: 'materials',
+    label: 'Farm Mora',
+    detail: '800 Mora still needed.',
+    priority: 1,
+    materialKey: 'Mora',
+  },
 };
 
 describe('TargetSummaryList', () => {
@@ -29,7 +37,25 @@ describe('TargetSummaryList', () => {
 
     expect(screen.getByText('Recruit Furina')).toBeInTheDocument();
     expect(screen.getByText('72% ready')).toBeInTheDocument();
+    expect(screen.getByText('Next: Farm Mora')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open target/i })).toHaveAttribute('href', '/campaigns/1');
+  });
+
+  it('limits visible targets when maxItems is provided', () => {
+    render(
+      <MemoryRouter>
+        <TargetSummaryList
+          targets={[
+            target,
+            { ...target, id: 'campaign:2', title: 'Build Neuvillette' },
+          ]}
+          maxItems={1}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Recruit Furina')).toBeInTheDocument();
+    expect(screen.queryByText('Build Neuvillette')).not.toBeInTheDocument();
   });
 
   it('renders an empty state', () => {

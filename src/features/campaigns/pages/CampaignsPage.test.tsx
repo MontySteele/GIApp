@@ -207,7 +207,7 @@ function renderPage(initialEntry = '/campaigns') {
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/campaigns" element={<CampaignsPage />} />
-        <Route path="/campaigns/:id" element={<div>Campaign detail</div>} />
+        <Route path="/campaigns/:id" element={<div>Target detail</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -514,7 +514,7 @@ describe('CampaignsPage', () => {
           pullTargets: [],
         })
       );
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
 
     it('creates a prefilled character campaign from the draft card', async () => {
@@ -544,7 +544,7 @@ describe('CampaignsPage', () => {
           ],
         })
       );
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
 
     it('preserves unreleased character names from banner prefill links', async () => {
@@ -659,7 +659,7 @@ describe('CampaignsPage', () => {
           pullTargets: [],
         })
       );
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
 
     it('applies team campaign prefill from the URL', () => {
@@ -724,7 +724,7 @@ describe('CampaignsPage', () => {
 
       await user.click(screen.getByRole('button', { name: /create target/i }));
 
-      expect(await screen.findByText('Campaign detail')).toBeInTheDocument();
+      expect(await screen.findByText('Target detail')).toBeInTheDocument();
     });
   });
 });

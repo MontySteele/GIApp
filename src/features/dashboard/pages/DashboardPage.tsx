@@ -62,7 +62,13 @@ export default function DashboardPage() {
   const loadingResources = availablePulls === undefined;
   const { teams } = useTeams();
   const { campaigns, isLoading: loadingCampaigns } = useCampaigns();
-  const { checklist, checklistProgress, checklistTotal, updateChecklist, isComplete: onboardingComplete } = useOnboardingContext();
+  const {
+    checklist,
+    checklistProgress,
+    checklistTotal,
+    updateChecklist,
+    isComplete: hasCompletedOnboardingWizard,
+  } = useOnboardingContext();
   const wishlistCharacters = useWishlistStore((state) => state.characters);
 
   // Persist checklist dismiss state in localStorage
@@ -160,7 +166,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
-          <p className="text-slate-400">Your target, resources, and next action in one place.</p>
+          <p className="text-slate-400">Your targets, resources, and next action in one place.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -180,7 +186,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Getting Started Checklist - shown for new users */}
-      {onboardingComplete && showChecklist && checklistProgress < checklistTotal && (
+      {hasCompletedOnboardingWizard && showChecklist && checklistProgress < checklistTotal && (
         <GettingStartedChecklist
           checklist={checklist}
           progress={checklistProgress}
@@ -273,17 +279,17 @@ function AccountSnapshotCard({
     <Card>
       <CardHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <LayoutDashboard className="h-5 w-5 text-primary-400" />
+          <LayoutDashboard className="h-5 w-5 text-primary-400" aria-hidden="true" />
           <h2 className="font-semibold">Account Snapshot</h2>
         </div>
         <Link to="/pulls" className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300">
-          Budget <ArrowRight className="h-3 w-3" />
+          Budget <ArrowRight className="h-3 w-3" aria-hidden="true" />
         </Link>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <SnapshotTile
-            icon={<Users className="h-4 w-4" />}
+            icon={<Users className="h-4 w-4" aria-hidden="true" />}
             label="Characters"
             value={charStats.total}
             subtext={`${charStats.maxLevel} at Lv.90`}
@@ -291,7 +297,7 @@ function AccountSnapshotCard({
             to="/roster"
           />
           <SnapshotTile
-            icon={<Sparkles className="h-4 w-4" />}
+            icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
             label="Event Pulls"
             value={eventPulls}
             subtext={pullSubtext}
@@ -299,7 +305,7 @@ function AccountSnapshotCard({
             to="/pulls"
           />
           <SnapshotTile
-            icon={<Gem className="h-4 w-4" />}
+            icon={<Gem className="h-4 w-4" aria-hidden="true" />}
             label="Artifacts"
             value={artifactStats.total}
             subtext={`${artifactStats.fiveStar} 5-star`}
@@ -307,7 +313,7 @@ function AccountSnapshotCard({
             to="/roster/artifacts"
           />
           <SnapshotTile
-            icon={<Sword className="h-4 w-4" />}
+            icon={<Sword className="h-4 w-4" aria-hidden="true" />}
             label="Weapons"
             value={weaponStats.total}
             subtext={`${weaponStats.fiveStars} 5-star`}
@@ -320,7 +326,7 @@ function AccountSnapshotCard({
           <Link to="/planner" className="rounded-lg bg-slate-900 p-3 transition-colors hover:bg-slate-800">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                <Zap className="h-4 w-4 text-blue-400" />
+                <Zap className="h-4 w-4 text-blue-400" aria-hidden="true" />
                 Resin
               </span>
               <span className="text-xs text-primary-400">Planner</span>
@@ -353,7 +359,7 @@ function AccountSnapshotCard({
           <Link to="/pulls" className="rounded-lg bg-slate-900 p-3 transition-colors hover:bg-slate-800">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                <Sparkles className="h-4 w-4 text-yellow-400" />
+                <Sparkles className="h-4 w-4 text-yellow-400" aria-hidden="true" />
                 Primogems
               </span>
               <span className="text-xs text-primary-400">Budget</span>

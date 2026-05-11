@@ -23,6 +23,7 @@ type MobileNavItem = {
   icon: LucideIcon;
   end?: boolean;
   activePaths?: readonly string[];
+  inactivePaths?: readonly string[];
 };
 
 function pathMatches(pathname: string, path: string): boolean {
@@ -32,14 +33,14 @@ function pathMatches(pathname: string, path: string): boolean {
 const MOBILE_NAV_ITEMS: readonly MobileNavItem[] = [
   { id: 'dashboard', label: 'Home', path: '/', icon: LayoutDashboard, end: true },
   { id: 'campaigns', label: 'Targets', path: '/campaigns', icon: Target },
-  { id: 'roster', label: 'Roster', path: '/roster', icon: Users },
+  { id: 'roster', label: 'Roster', path: '/roster', icon: Users, inactivePaths: ['/roster/builds'] },
   { id: 'pulls', label: 'Pulls', path: '/pulls', icon: Sparkles },
   {
     id: 'more',
     label: 'More',
     path: '/more',
     icon: Menu,
-    activePaths: ['/more', '/teams', '/planner', '/notes', '/settings'],
+    activePaths: ['/more', '/teams', '/planner', '/notes', '/settings', '/roster/builds'],
   },
 ] as const;
 
@@ -55,6 +56,7 @@ export default function MobileBottomNav() {
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isSecondaryRouteActive = item.activePaths?.some((path) => pathMatches(location.pathname, path)) ?? false;
+          const isActiveSuppressed = item.inactivePaths?.some((path) => pathMatches(location.pathname, path)) ?? false;
           return (
             <NavLink
               key={item.id}
@@ -62,7 +64,7 @@ export default function MobileBottomNav() {
               end={item.end}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center py-2 px-1.5 min-w-0 flex-1 transition-colors ${
-                  isActive || isSecondaryRouteActive
+                  (isActive || isSecondaryRouteActive) && !isActiveSuppressed
                     ? 'text-primary-400'
                     : 'text-slate-400 active:text-slate-200'
                 }`

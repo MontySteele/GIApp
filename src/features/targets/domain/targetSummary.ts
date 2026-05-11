@@ -1,5 +1,5 @@
 import { buildCharacterCampaignUrl, buildPlannedBannerCampaignUrl } from '@/features/campaigns/lib/campaignLinks';
-import type { CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
+import type { CampaignNextAction, CampaignPlan } from '@/features/campaigns/domain/campaignPlan';
 import { getDisplayName } from '@/lib/gameData';
 import type { WishlistCharacter } from '@/stores/wishlistStore';
 import type { Campaign, PlannedBanner } from '@/types';
@@ -22,6 +22,10 @@ export interface TargetSummary {
   characterKeys: string[];
   deadline?: string;
   readinessPercent?: number;
+  pullReadinessPercent?: number;
+  buildReadinessPercent?: number;
+  materialReadinessPercent?: number;
+  nextAction?: CampaignNextAction;
   pullBudget?: number | null;
   createdAt?: string;
   updatedAt?: string;
@@ -90,7 +94,13 @@ export function campaignToTargetSummary(
     actionLabel: 'Open Target',
     characterKeys,
     ...(campaign.deadline ? { deadline: campaign.deadline } : {}),
-    ...(plan ? { readinessPercent: plan.overallPercent } : {}),
+    ...(plan ? {
+      readinessPercent: plan.overallPercent,
+      pullReadinessPercent: plan.pullReadiness.percent,
+      buildReadinessPercent: plan.buildReadiness.percent,
+      materialReadinessPercent: plan.materialReadiness.percent,
+      ...(plan.nextActions[0] ? { nextAction: plan.nextActions[0] } : {}),
+    } : {}),
     pullBudget: campaign.pullTargets[0]?.maxPullBudget ?? null,
     createdAt: campaign.createdAt,
     updatedAt: campaign.updatedAt,

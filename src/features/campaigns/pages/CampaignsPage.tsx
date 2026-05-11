@@ -612,7 +612,7 @@ export default function CampaignsPage() {
         <div>
           <h1 className="text-3xl font-bold mb-1">Targets</h1>
           <p className="text-slate-400">
-            Plan who you are getting, building, and farming for from one place.
+            Plan who to pull, build, and farm for from one place.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

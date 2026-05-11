@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import DashboardPage from './DashboardPage';
 
+const updateChecklistMock = vi.hoisted(() => vi.fn());
+
 // Mock child widgets that have their own async hooks
 vi.mock('../components/TodayFarmingWidget', () => ({
   default: () => <div data-testid="today-farming-widget">TodayFarmingWidget</div>,
@@ -59,7 +61,7 @@ vi.mock('@/contexts/OnboardingContext', () => ({
     resetOnboarding: vi.fn(),
     openWizard: vi.fn(),
     closeWizard: vi.fn(),
-    updateChecklist: vi.fn(),
+    updateChecklist: updateChecklistMock,
   }),
 }));
 
@@ -172,7 +174,11 @@ const renderPage = () =>
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useLiveQuery).mockReturnValue(mockAvailablePulls);
+    vi.mocked(useLiveQuery)
+      .mockReset()
+      .mockReturnValueOnce(mockAvailablePulls)
+      .mockReturnValueOnce(2)
+      .mockReturnValueOnce([]);
     mockLocalStorage.getItem.mockReturnValue(null);
   });
 
@@ -181,7 +187,7 @@ describe('DashboardPage', () => {
       renderPage();
 
       expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
-      expect(screen.getByText(/your target, resources, and next action/i)).toBeInTheDocument();
+      expect(screen.getByText(/your targets, resources, and next action/i)).toBeInTheDocument();
     });
 
     it('renders all stat cards', () => {
@@ -346,20 +352,13 @@ describe('DashboardPage', () => {
       expect(screen.getByText(/fragile resin/i)).toBeInTheDocument();
     });
   });
-});
 
-describe('DashboardPage loading state', () => {
-  it('shows skeleton loading state when data is loading', () => {
-    // Override mocks to show loading
-    vi.doMock('@/features/roster/hooks/useCharacters', () => ({
-      useCharacters: () => ({
-        characters: [],
-        isLoading: true,
-      }),
-    }));
+  describe('onboarding checklist self-healing', () => {
+    it('marks wish history imported when records already exist', () => {
+      renderPage();
 
-    // Note: In a real scenario, we'd need to re-import the component
-    // This test documents the expected behavior
+      expect(updateChecklistMock).toHaveBeenCalledWith({ hasImportedWishHistory: true });
+    });
   });
 });
 
@@ -432,7 +431,8 @@ describe('DashboardPage empty state', () => {
     }));
 
     vi.doMock('dexie-react-hooks', () => ({
-      useLiveQuery: vi.fn().mockReturnValue({
+      useLiveQuery: vi.fn()
+        .mockReturnValueOnce({
         availablePulls: 0,
         pullAvailability: {
           eventPulls: 0,
@@ -450,7 +450,9 @@ describe('DashboardPage empty state', () => {
         },
         lastUpdated: null,
         hasSnapshot: false,
-      }),
+        })
+        .mockReturnValueOnce(0)
+        .mockReturnValueOnce([]),
     }));
     vi.doMock('@/lib/services/resourceService', () => ({
       getAvailablePullsFromTracker: vi.fn(),

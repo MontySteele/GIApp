@@ -29,18 +29,33 @@ export default function QuickResourceLogger() {
   const repeatEntry = useMemo(() => getRepeatableEntry(entries), [entries]);
   const [customAmount, setCustomAmount] = useState('');
   const [customNotes, setCustomNotes] = useState('');
-  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<{ id: string; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const logEntry = async (entry: PresetEntry) => {
     setIsSaving(true);
     try {
-      await primogemEntryRepo.create({
+      const id = await primogemEntryRepo.create({
         amount: entry.amount,
         source: entry.source,
         notes: entry.notes,
       });
-      setLastSaved(`Logged ${entry.amount} primogems from ${entry.label}.`);
+      setLastSaved({
+        id,
+        message: `Logged ${entry.amount} primogems from ${entry.label}.`,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const undoLast = async () => {
+    if (!lastSaved) return;
+
+    setIsSaving(true);
+    try {
+      await primogemEntryRepo.delete(lastSaved.id);
+      setLastSaved(null);
     } finally {
       setIsSaving(false);
     }
@@ -117,8 +132,11 @@ export default function QuickResourceLogger() {
       </div>
 
       {lastSaved && (
-        <div className="mt-3 rounded-lg border border-green-900/50 bg-green-950/20 px-3 py-2 text-sm text-green-200">
-          {lastSaved}
+        <div className="mt-3 flex flex-col gap-2 rounded-lg border border-green-900/50 bg-green-950/20 px-3 py-2 text-sm text-green-200 sm:flex-row sm:items-center sm:justify-between">
+          <span>{lastSaved.message}</span>
+          <Button type="button" size="sm" variant="ghost" onClick={undoLast} disabled={isSaving}>
+            Undo
+          </Button>
         </div>
       )}
     </section>

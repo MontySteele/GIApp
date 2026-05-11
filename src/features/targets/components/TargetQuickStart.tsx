@@ -61,6 +61,9 @@ export default function TargetQuickStart() {
     Number.isInteger(targetConstellationValue) &&
     targetConstellationValue >= 0 &&
     targetConstellationValue <= 6;
+  const hasInvalidConstellationTarget = mode === 'pull' &&
+    trimmedConstellation.length > 0 &&
+    !hasConstellationTarget;
   const desiredCopies = hasConstellationTarget
     ? Math.max(1, targetConstellationValue + 1)
     : 1;
@@ -74,7 +77,7 @@ export default function TargetQuickStart() {
     ...(hasConstellationTarget ? { targetConstellation: targetConstellationValue, desiredCopies } : {}),
   });
   const calculatorHref = characterKey ? buildCalculatorHref(characterKey, desiredCopies, savedPulls) : '/pulls/calculator';
-  const canStart = characterKey.trim().length > 0;
+  const canStart = characterKey.trim().length > 0 && !hasInvalidConstellationTarget;
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900 p-4">
@@ -109,15 +112,14 @@ export default function TargetQuickStart() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7">
+        <div className="xl:col-span-2">
           <SearchableSelect
             label="Character"
             placeholder="Search character..."
             options={characterOptions}
             value={characterKey}
             onChange={setCharacterKey}
-            allowFreeText
           />
         </div>
         <Select
@@ -136,6 +138,7 @@ export default function TargetQuickStart() {
               value={targetConstellation}
               onChange={(event) => setTargetConstellation(event.target.value)}
               placeholder="0"
+              error={hasInvalidConstellationTarget ? 'Use C0-C6' : undefined}
             />
             <Input
               label="Pulls saved"
@@ -145,46 +148,30 @@ export default function TargetQuickStart() {
               onChange={(event) => setSavedPulls(event.target.value)}
               placeholder="0"
             />
-          </>
-        ) : (
-          <>
             <Input
-              label="Deadline"
+              label="Banner deadline"
               type="date"
               value={deadline}
               onChange={(event) => setDeadline(event.target.value)}
             />
             <Input
-              label="Budget"
+              label="Pull budget"
               type="number"
               min="0"
               value={pullBudget}
               onChange={(event) => setPullBudget(event.target.value)}
               placeholder="optional"
-              disabled
             />
           </>
-        )}
-      </div>
-
-      {mode === 'pull' && (
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        ) : (
           <Input
-            label="Banner deadline"
+            label="Deadline"
             type="date"
             value={deadline}
             onChange={(event) => setDeadline(event.target.value)}
           />
-          <Input
-            label="Pull budget"
-            type="number"
-            min="0"
-            value={pullBudget}
-            onChange={(event) => setPullBudget(event.target.value)}
-            placeholder="optional"
-          />
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {canStart ? (

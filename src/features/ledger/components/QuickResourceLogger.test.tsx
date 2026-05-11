@@ -74,4 +74,22 @@ describe('QuickResourceLogger', () => {
       });
     });
   });
+
+  it('undoes the last quick log entry', async () => {
+    const user = userEvent.setup();
+    render(<QuickResourceLogger />);
+
+    await user.click(screen.getByRole('button', { name: /welkin \+90/i }));
+
+    await waitFor(async () => {
+      expect(await primogemEntryRepo.getAll()).toHaveLength(1);
+    });
+
+    await user.click(screen.getByRole('button', { name: /undo/i }));
+
+    await waitFor(async () => {
+      expect(await primogemEntryRepo.getAll()).toHaveLength(0);
+      expect(screen.queryByText(/logged 90 primogems/i)).not.toBeInTheDocument();
+    });
+  });
 });

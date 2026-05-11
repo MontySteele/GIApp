@@ -57,6 +57,11 @@ export default function TargetSummaryList({ targets, maxItems = 4 }: TargetSumma
                   {target.kind === 'pull' ? <Sparkles className="h-3.5 w-3.5" /> : <Calendar className="h-3.5 w-3.5" />}
                   <span className="truncate">{target.subtitle}</span>
                 </div>
+                {target.nextAction && (
+                  <div className="mt-1 truncate text-xs text-primary-300">
+                    Next: {target.nextAction.label}
+                  </div>
+                )}
               </Link>
               <Link
                 to={target.actionHref}
