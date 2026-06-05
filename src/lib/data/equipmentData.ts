@@ -53,6 +53,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'UrakuMisugiri', name: 'Uraku Misugiri', type: 'Sword', rarity: 5 },
   { key: 'Absolution', name: 'Absolution', type: 'Sword', rarity: 5 },
   { key: 'PeakPatrolSong', name: 'Peak Patrol Song', type: 'Sword', rarity: 5 },
+  { key: 'AthameArtis', name: 'Athame Artis', type: 'Sword', rarity: 5 },
 
   // 4-Star Swords
   { key: 'TheBlackSword', name: 'The Black Sword', type: 'Sword', rarity: 4 },
@@ -120,6 +121,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'StaffOfTheScarletSands', name: 'Staff of the Scarlet Sands', type: 'Polearm', rarity: 5 },
   { key: 'CrimsonMoonsSemblance', name: "Crimson Moon's Semblance", type: 'Polearm', rarity: 5 },
   { key: 'LumidouceElegy', name: 'Lumidouce Elegy', type: 'Polearm', rarity: 5 },
+  { key: 'DisasterAndRemorse', name: 'Disaster and Remorse', type: 'Polearm', rarity: 5 },
 
   // 4-Star Polearms
   { key: 'DragonsBane', name: "Dragon's Bane", type: 'Polearm', rarity: 4 },
@@ -192,6 +194,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'CashflowSupervision', name: 'Cashflow Supervision', type: 'Catalyst', rarity: 5 },
   { key: 'SurfsUp', name: "Surf's Up", type: 'Catalyst', rarity: 5 },
   { key: 'CranesEchoingCall', name: "Crane's Echoing Call", type: 'Catalyst', rarity: 5 },
+  { key: 'AngelosHeptades', name: "Angelos' Heptades", type: 'Catalyst', rarity: 5 },
 
   // 4-Star Catalysts
   { key: 'SacrificialFragments', name: 'Sacrificial Fragments', type: 'Catalyst', rarity: 4 },
@@ -488,6 +491,22 @@ export const ARTIFACT_SETS: ArtifactSetData[] = [
     maxRarity: 5,
     twoPiece: 'When not in Nightsoul Blessing, Nightsoul-aligned DMG +15%',
     fourPiece: 'When Nightsoul Blessing active, CRIT Rate +40% and Phlogiston consumption for hits -40%',
+  },
+
+  // Nod-Krai Sets (6.6)
+  {
+    key: 'DisenchantmentInDeepShadow',
+    name: 'Disenchantment in Deep Shadow',
+    maxRarity: 5,
+    twoPiece: 'ATK +18%',
+    fourPiece: 'Superconduct DMG +80%; attacking Superconduct-affected enemies grants CRIT Rate +16%',
+  },
+  {
+    key: 'CelestialGift',
+    name: 'Celestial Gift',
+    maxRarity: 5,
+    twoPiece: 'Energy Recharge +20%',
+    fourPiece: 'After Elemental Skill, grant party Elemental DMG Bonus matching the wearer (upgraded under Hexerei: Secret Rite)',
   },
 
   // Early Game Sets (4-star max)

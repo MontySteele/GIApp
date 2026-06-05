@@ -118,6 +118,11 @@ const CHARACTER_ICON_NAMES: Record<number, string> = {
   10000127: 'Illuga',
   10000128: 'Varka',
   10000129: 'Linnea',
+  // Version 6.6 — avatarIds extrapolated from the sequential pattern (Enka
+  // docs repo still lags at 10000124); icon names verified HTTP 200 on Enka's CDN.
+  10000130: 'Nicole',
+  10000131: 'Lohen',
+  10000132: 'Prune',
 };
 
 // Reverse mapping: Character key (GOOD format) to avatarId
@@ -265,6 +270,9 @@ const CHARACTER_KEY_TO_ID: Record<string, number> = {
   'illuga': 10000127,
   'varka': 10000128,
   'linnea': 10000129,
+  'nicole': 10000130,
+  'lohen': 10000131,
+  'prune': 10000132,
 };
 
 /**

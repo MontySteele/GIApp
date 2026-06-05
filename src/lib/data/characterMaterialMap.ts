@@ -914,6 +914,27 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
     weeklyBoss: 'Elixir of the Heretic',
   },
+  Nicole: {
+    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Remnant of the Dreadwing', localSpecialty: 'Pine Amber',
+    commonAscension: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    talentBook: 'Elysium', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Tattered Warrant', 'Immaculate Warrant', 'Frost-Etched Warrant'],
+    weeklyBoss: 'Counterfeit Resin',
+  },
+  Lohen: {
+    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Prismatic Severed Tail', localSpecialty: 'Etherwing Moth',
+    commonAscension: ['Firm Arrowhead', 'Sharp Arrowhead', 'Weathered Arrowhead'],
+    talentBook: 'Resistance', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Firm Arrowhead', 'Sharp Arrowhead', 'Weathered Arrowhead'],
+    weeklyBoss: 'Ascended Sample: Knight',
+  },
+  Prune: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Radiant Antler', localSpecialty: 'Winter Icelea',
+    commonAscension: ['Treasure Hoarder Insignia', 'Silver Raven Insignia', 'Golden Raven Insignia'],
+    talentBook: 'Resistance', talentBookRegion: 'Mondstadt',
+    commonTalent: ['Treasure Hoarder Insignia', 'Silver Raven Insignia', 'Golden Raven Insignia'],
+    weeklyBoss: 'Mask of the Virtuous Doctor',
+  },
 };
 
 const NORMALIZED_MATERIAL_KEY_TO_KEY = Object.keys(CHARACTER_MATERIALS).reduce<Record<string, string>>(
