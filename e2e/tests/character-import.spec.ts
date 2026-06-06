@@ -59,11 +59,10 @@ test.describe('Character Import', () => {
       await roster.importFromGOOD('{ invalid json }');
 
       // Should show error
-      const hasError = await page.locator('text=/invalid|error|failed/i').isVisible();
-      expect(hasError).toBeTruthy();
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal.getByText(/^invalid json format$/i)).toBeVisible();
 
       // Modal should stay open or show error state
-      const modal = page.locator('[role="dialog"]');
       const isOpen = await modal.isVisible();
       expect(isOpen).toBeTruthy();
     });
@@ -85,8 +84,8 @@ test.describe('Character Import', () => {
       await roster.importFromGOOD(JSON.stringify(invalidFormat));
 
       // Should show validation error
-      const hasError = await page.locator('text=/invalid|unsupported|format/i').isVisible();
-      expect(hasError).toBeTruthy();
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal.getByText(/^not a valid good format file$/i)).toBeVisible();
     });
 
     test('should merge with existing characters on re-import', async ({ page }) => {
@@ -189,7 +188,7 @@ test.describe('Character Import', () => {
       await expect(modal.locator('textarea')).toBeVisible();
 
       // Go back to options
-      await modal.getByRole('button', { name: /back|cancel/i }).click();
+      await modal.getByRole('button', { name: /^back to import options$/i }).click();
 
       // Should return to options menu
       await expect(modal.getByRole('button', { name: /enka/i })).toBeVisible();

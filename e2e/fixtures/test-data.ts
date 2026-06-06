@@ -173,6 +173,52 @@ export async function seedCharacters(page: Page): Promise<void> {
 }
 
 /**
+ * Mark imported characters as priority characters for material planning tests.
+ */
+export async function markAllCharactersPriority(
+  page: Page,
+  priority: 'main' | 'secondary' | 'bench' | 'unbuilt' = 'main'
+): Promise<void> {
+  await page.evaluate(
+    ({ dbName, nextPriority }) => new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open(dbName);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction('characters', 'readwrite');
+        const store = transaction.objectStore('characters');
+        const cursorRequest = store.openCursor();
+
+        cursorRequest.onerror = () => reject(cursorRequest.error);
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+
+          const value = cursor.value;
+          cursor.update({
+            ...value,
+            priority: nextPriority,
+            updatedAt: new Date().toISOString(),
+          });
+          cursor.continue();
+        };
+
+        transaction.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        transaction.onerror = () => {
+          db.close();
+          reject(transaction.error);
+        };
+      };
+    }),
+    { dbName: DB_NAME, nextPriority: priority }
+  );
+}
+
+/**
  * Dismiss the welcome tutorial modal if it appears
  */
 export async function dismissWelcomeModal(page: Page): Promise<void> {

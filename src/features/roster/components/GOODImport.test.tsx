@@ -15,7 +15,7 @@ vi.mock('@/mappers/good', () => ({
 
 vi.mock('../repo/characterRepo', () => ({
   characterRepo: {
-    bulkCreate: vi.fn().mockResolvedValue(undefined),
+    bulkUpsert: vi.fn().mockResolvedValue({ created: 1, updated: 0 }),
   },
 }));
 

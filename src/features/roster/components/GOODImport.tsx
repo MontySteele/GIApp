@@ -68,10 +68,9 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
         throw new Error('No characters or artifacts found in GOOD file');
       }
 
-      // Import characters
-      if (result.characters.length > 0) {
-        await characterRepo.bulkCreate(result.characters);
-      }
+      const characterCounts = result.characters.length > 0
+        ? await characterRepo.bulkUpsert(result.characters)
+        : { created: 0, updated: 0 };
 
       // Import inventory artifacts
       if (result.inventoryArtifacts.length > 0) {
@@ -85,13 +84,14 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
 
       setImportResult({
         success: true,
-        characterCount: result.characters.length,
+        characterCount: characterCounts.created + characterCounts.updated,
         artifactCount: result.inventoryArtifacts.length,
         weaponCount: result.inventoryWeapons.length,
       });
       writeLastImportSummary(buildRosterImportImpactSummary({
         source: goodData.source || 'GOOD',
-        charactersCreated: result.characters.length,
+        charactersCreated: characterCounts.created,
+        charactersUpdated: characterCounts.updated,
         artifactsChanged: result.inventoryArtifacts.length,
         weaponsChanged: result.inventoryWeapons.length,
       }));

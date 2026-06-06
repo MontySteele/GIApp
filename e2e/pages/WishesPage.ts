@@ -16,10 +16,10 @@ export class PullsPage extends BasePage {
   constructor(page: Page) {
     super(page);
     // Sub-navigation tabs/links
-    this.calculatorTab = page.getByRole('link', { name: /calculator/i });
-    this.budgetTab = page.getByRole('link', { name: /budget/i });
-    this.historyTab = page.getByRole('link', { name: /history/i });
-    this.bannersTab = page.getByRole('link', { name: /banners/i });
+    this.calculatorTab = page.getByRole('link', { name: /^calculator$/i });
+    this.budgetTab = page.getByRole('link', { name: /^budget$/i });
+    this.historyTab = page.getByRole('link', { name: /^history$/i });
+    this.bannersTab = page.getByRole('link', { name: /^banners$/i });
     this.emptyState = page.locator('text=/no pulls|no wishes|get started/i');
   }
 
@@ -61,6 +61,21 @@ export class PullsPage extends BasePage {
   }
 
   /**
+   * Select a banner summary on the history page.
+   */
+  async selectBanner(type: 'character' | 'weapon' | 'standard' | 'chronicled'): Promise<void> {
+    const labels = {
+      character: 'Character',
+      weapon: 'Weapon',
+      standard: 'Standard',
+      chronicled: 'Chronicled',
+    };
+    const banner = this.page.getByText(new RegExp(`^${labels[type]}$`, 'i')).first();
+    await expect(banner).toBeVisible();
+    await banner.click();
+  }
+
+  /**
    * Check if there are any pulls displayed
    */
   async hasPulls(): Promise<boolean> {
@@ -81,6 +96,8 @@ export class CalculatorPage extends BasePage {
   // Single target form inputs
   readonly currentPityInput: Locator;
   readonly availablePullsInput: Locator;
+  readonly pityInput: Locator;
+  readonly primogemInput: Locator;
   readonly guaranteeStatusSelect: Locator;
   readonly radiantStreakInput: Locator;
   readonly useCurrentPityButton: Locator;
@@ -99,15 +116,13 @@ export class CalculatorPage extends BasePage {
     this.multiTargetTab = page.getByRole('button', { name: /multi-target/i });
     this.reverseTab = page.getByRole('button', { name: /reverse calculator/i });
 
-    // Form inputs - based on actual UI labels
-    this.currentPityInput = page.getByLabel(/current pity/i)
-      .or(page.locator('input[type="number"]').first());
-    this.availablePullsInput = page.getByLabel(/available pulls/i)
-      .or(page.locator('input[type="number"]').nth(1));
-    this.guaranteeStatusSelect = page.getByLabel(/guarantee/i)
-      .or(page.locator('select').first());
-    this.radiantStreakInput = page.getByLabel(/radiant streak/i)
-      .or(page.locator('input[type="number"]').nth(2));
+    // Form inputs - exact names avoid hidden multi-target controls in strict mode.
+    this.currentPityInput = page.getByRole('spinbutton', { name: /^current pity$/i }).first();
+    this.availablePullsInput = page.getByRole('spinbutton', { name: /^event pulls$/i }).first();
+    this.pityInput = this.currentPityInput;
+    this.primogemInput = this.availablePullsInput;
+    this.guaranteeStatusSelect = page.getByRole('combobox', { name: /^guarantee status$/i }).first();
+    this.radiantStreakInput = page.getByRole('spinbutton', { name: /^radiant streak$/i }).first();
     this.useCurrentPityButton = page.getByRole('button', { name: /use current pity/i });
 
     // Results
@@ -127,19 +142,22 @@ export class CalculatorPage extends BasePage {
    * Calculate probability for a single target
    */
   async calculateSingleTarget(data: {
-    pulls: number;
+    pulls?: number;
+    primogems?: number;
     pity: number;
     guaranteed?: boolean;
   }): Promise<void> {
+    const pulls = data.pulls ?? Math.floor((data.primogems ?? 0) / 160);
+
     // Fill pity
     await this.currentPityInput.fill(String(data.pity));
 
     // Fill available pulls
-    await this.availablePullsInput.fill(String(data.pulls));
+    await this.availablePullsInput.fill(String(pulls));
 
     // Set guarantee status if needed
     if (data.guaranteed) {
-      await this.guaranteeStatusSelect.selectOption({ label: /guaranteed/i });
+      await this.guaranteeStatusSelect.selectOption('guaranteed');
     }
 
     // Click calculate

@@ -5,7 +5,12 @@
 
 import { test, expect } from '@playwright/test';
 import { PlannerPage, RosterPage } from '../pages';
-import { clearDatabase, waitForAppReady, sampleGOODData } from '../fixtures/test-data';
+import {
+  clearDatabase,
+  markAllCharactersPriority,
+  sampleGOODData,
+  waitForAppReady,
+} from '../fixtures/test-data';
 
 test.describe('Material Planner', () => {
   test.beforeEach(async ({ page }) => {
@@ -80,28 +85,19 @@ test.describe('Material Planner', () => {
   });
 
   test.describe('Multi Character Planning', () => {
-    test('should switch to multi mode', async ({ page }) => {
-      const planner = new PlannerPage(page);
-      await planner.goto();
+    test('should show priority material planning page', async ({ page }) => {
+      await page.goto('/campaigns/materials?scope=priority');
 
-      await planner.selectMultiMode();
-
-      // Should show multi-select UI
-      await expect(planner.selectAllButton).toBeVisible();
+      await expect(page.getByRole('heading', { name: /^material inventory$/i })).toBeVisible();
+      await expect(page.getByText(/no priority characters/i)).toBeVisible();
     });
 
-    test('should select all characters', async ({ page }) => {
-      const planner = new PlannerPage(page);
-      await planner.goto();
+    test('should aggregate priority character materials', async ({ page }) => {
+      await markAllCharactersPriority(page);
+      await page.goto('/campaigns/materials?scope=priority');
 
-      await planner.selectMultiMode();
-
-      // Click select all
-      await planner.toggleSelectAll();
-
-      // Should aggregate materials
-      const hasMaterials = await planner.hasMaterials();
-      expect(hasMaterials).toBeTruthy();
+      await expect(page.getByRole('heading', { name: /^priority deficits$/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /^farming priority$/i })).toBeVisible();
     });
   });
 

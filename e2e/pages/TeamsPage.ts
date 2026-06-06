@@ -106,8 +106,8 @@ export class TeamsPage extends BasePage {
       await notesInput.fill(data.notes);
     }
 
-    // Submit the form - button has Save icon
-    await modal.getByRole('button', { name: /save|create/i }).click();
+    await modal.locator('form').getByRole('button', { name: /create team|update team/i }).click();
+    await expect(modal).toBeHidden({ timeout: 10000 });
   }
 
   /**
@@ -162,10 +162,8 @@ export class TeamsPage extends BasePage {
     const teamCard = this.teamCards.filter({ hasText: teamName }).first();
     await teamCard.hover();
 
-    // Click export button (Zap icon, yellow, aria-label="Export to wfpsim")
-    await teamCard.locator('[aria-label="Export to wfpsim"]')
-      .or(teamCard.getByRole('button').filter({ has: this.page.locator('svg') }).first())
-      .click();
+    await expect(teamCard).toBeVisible();
+    await teamCard.getByRole('button', { name: /^export to wfpsim$/i }).click();
 
     const modal = this.page.locator('[role="dialog"]');
     await modal.waitFor({ state: 'visible' });
@@ -230,7 +228,8 @@ export class TeamsPage extends BasePage {
    */
   async saveTeam(): Promise<void> {
     const modal = this.page.locator('[role="dialog"]');
-    await modal.getByRole('button', { name: /save|create/i }).click();
+    await modal.locator('form').getByRole('button', { name: /create team|update team/i }).click();
+    await expect(modal).toBeHidden({ timeout: 10000 });
   }
 
   /**
