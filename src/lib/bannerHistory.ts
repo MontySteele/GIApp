@@ -33,6 +33,47 @@ export interface CharacterBannerHistory {
 // Historical banner data (recent versions)
 // Note: This is a simplified dataset - expand as needed
 export const BANNER_HISTORY: BannerRecord[] = [
+  // Version 6.6 "Luna VII" (released 2026-05-20)
+  {
+    id: '6.6-1-char',
+    version: '6.6',
+    phase: 1,
+    startDate: '2026-05-20',
+    endDate: '2026-06-09',
+    bannerType: 'character',
+    featured5Star: ['Nicole', 'Durin'],
+    featured4Star: ['Prune'],
+  },
+  {
+    id: '6.6-1-weapon',
+    version: '6.6',
+    phase: 1,
+    startDate: '2026-05-20',
+    endDate: '2026-06-09',
+    bannerType: 'weapon',
+    featured5Star: ['AngelosHeptades', 'AthameArtis'],
+    featured4Star: [],
+  },
+  {
+    id: '6.6-2-char',
+    version: '6.6',
+    phase: 2,
+    startDate: '2026-06-09',
+    endDate: '2026-06-30',
+    bannerType: 'character',
+    featured5Star: ['Lohen', 'Mavuika'],
+    featured4Star: ['Prune'],
+  },
+  {
+    id: '6.6-2-weapon',
+    version: '6.6',
+    phase: 2,
+    startDate: '2026-06-09',
+    endDate: '2026-06-30',
+    bannerType: 'weapon',
+    featured5Star: ['DisasterAndRemorse', 'AThousandBlazingSuns'],
+    featured4Star: [],
+  },
   // Version 6.5 "Luna VI" (released 2026-04-08)
   {
     id: '6.5-1-char',
@@ -282,8 +323,8 @@ export const ALL_5_STAR_CHARACTERS = [
   'Baizhu', 'Chasca', 'Chiori', 'Citlali', 'Clorinde', 'Cyno',
   'Dehya', 'Diluc', 'Emilie', 'Eula', 'Furina',
   'Ganyu', 'Hu Tao', 'Jean', 'Kazuha', 'Keqing',
-  'Kinich', 'Klee', 'Kokomi', 'Linnea', 'Lyney', 'Mavuika', 'Mona',
-  'Mualani', 'Nahida', 'Navia', 'Neuvillette', 'Nilou',
+  'Kinich', 'Klee', 'Kokomi', 'Linnea', 'Lohen', 'Lyney', 'Mavuika', 'Mona',
+  'Mualani', 'Nahida', 'Navia', 'Neuvillette', 'Nicole', 'Nilou',
   'Qiqi', 'Raiden', 'Shenhe', 'Sigewinne', 'Tartaglia',
   'Tighnari', 'Venti', 'Wanderer', 'Wriothesley', 'Xiao',
   'Xianyun', 'Xilonen', 'Yae Miko', 'Yelan', 'Yoimiya', 'Zhongli',

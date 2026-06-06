@@ -16,6 +16,16 @@
 ### Verification
 - Current branch verification: 150 Vitest files / 2075 tests passing, plus lint/build verification.
 
+## 2026-06-05 (Patch update 6.6 — Luna VII)
+
+### Static game data
+- Version 6.6 "Luna VII": added 5★ characters Nicole (Pyro Catalyst) and Lohen (Cryo Polearm), and 4★ character Prune (Anemo Catalyst).
+- Added signature weapons Angelos' Heptades (5★ Catalyst) and Disaster and Remorse (5★ Polearm), plus Athame Artis (5★ Sword) for the Durin rerun weapon banner.
+- Added artifact sets Celestial Gift and Disenchantment in Deep Shadow.
+- Added banner history for 6.6 phase 1 (Nicole / Durin) and phase 2 (Lohen / Mavuika), character and weapon banners.
+- Added ascension/talent material mappings for the new characters.
+- Patch pointer: 6.5 → 6.6.
+
 ## 2026-05-11 (Goal-first UX and Targets Reframe)
 
 ### Product IA

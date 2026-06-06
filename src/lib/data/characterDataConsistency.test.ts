@@ -61,7 +61,10 @@ const EXPECTED_GCSIM_EXPORT_GAPS = new Set([
   'Kachina',
   'Lauma',
   'Linnea',
+  'Lohen',
   'Nefer',
+  'Nicole',
+  'Prune',
   'Varka',
   'Zibai',
 ]);

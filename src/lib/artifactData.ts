@@ -51,6 +51,10 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   '15034': 'Scroll of the Hero of Cinder City',
   '15035': 'Obsidian Codex',
 
+  // Nod-Krai (6.6)
+  '15045': 'Celestial Gift',
+  '15046': 'Disenchantment in Deep Shadow',
+
   // Enka.Network Text Map Hashes (from setNameTextMapHash)
   // These are the actual hash IDs used by Enka
   '2051947378': 'Gladiator\'s Finale',
@@ -156,6 +160,8 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   'Unfinished Reverie': 'Unfinished Reverie',
   'Scroll of the Hero of Cinder City': 'Scroll of the Hero of Cinder City',
   'Obsidian Codex': 'Obsidian Codex',
+  'Celestial Gift': 'Celestial Gift',
+  'Disenchantment in Deep Shadow': 'Disenchantment in Deep Shadow',
 };
 
 /**

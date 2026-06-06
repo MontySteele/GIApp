@@ -6,4 +6,4 @@
  * of a patch-update commit; other files (characterList, bannerHistory,
  * equipmentData, etc.) must be updated in lockstep.
  */
-export const CURRENT_PATCH = '6.5';
+export const CURRENT_PATCH = '6.6';
