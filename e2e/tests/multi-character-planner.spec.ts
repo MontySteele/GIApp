@@ -1,11 +1,16 @@
 /**
  * E2E Tests: Multi-Character Planning Flow
- * Tests for multi-character material aggregation and planning
+ * Tests for priority-character material aggregation and planning.
  */
 
-import { test, expect } from '@playwright/test';
-import { PlannerPage, RosterPage } from '../pages';
-import { clearDatabase, waitForAppReady, sampleGOODData } from '../fixtures/test-data';
+import { test, expect, type Page } from '@playwright/test';
+import { RosterPage } from '../pages';
+import {
+  clearDatabase,
+  markAllCharactersPriority,
+  sampleGOODData,
+  waitForAppReady,
+} from '../fixtures/test-data';
 
 // Extended sample data with more characters
 const extendedGOODData = {
@@ -29,139 +34,72 @@ const extendedGOODData = {
   ],
 };
 
+async function gotoPriorityMaterials(page: Page): Promise<void> {
+  await page.goto('/campaigns/materials?scope=priority');
+  await expect(page.getByRole('heading', { name: /^material inventory$/i })).toBeVisible();
+}
+
 test.describe('Multi-Character Planning Flow', () => {
   test.beforeEach(async ({ page }) => {
     await clearDatabase(page);
     await page.goto('/');
     await waitForAppReady(page);
 
-    // Import sample characters
     const roster = new RosterPage(page);
     await roster.goto();
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(extendedGOODData));
-    // Wait for import to complete
     await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+
+    await markAllCharactersPriority(page);
   });
 
-  test('can select multiple characters and see aggregated materials', async ({ page }) => {
-    const planner = new PlannerPage(page);
-    await planner.goto();
+  test('shows aggregated materials for priority characters', async ({ page }) => {
+    await gotoPriorityMaterials(page);
 
-    // Switch to multi-character mode
-    await planner.selectMultiMode();
-    await expect(planner.selectAllButton).toBeVisible();
-
-    // Select all characters
-    await planner.toggleSelectAll();
-
-    // Verify material aggregation is displayed
-    const hasMaterials = await planner.hasMaterials();
-    expect(hasMaterials).toBeTruthy();
-
-    // Should show aggregated resin estimate
-    const resinEstimate = await planner.getResinEstimate();
-    expect(resinEstimate).toBeGreaterThan(0);
+    await expect(page.getByRole('heading', { name: /^priority deficits$/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^farming priority$/i })).toBeVisible();
+    await expect(page.getByText(/need [\d,]+ more|all materials collected/i).first()).toBeVisible();
   });
 
-  test('aggregated materials increase with more characters', async ({ page }) => {
-    const planner = new PlannerPage(page);
-    await planner.goto();
+  test('displays a prioritized farming summary', async ({ page }) => {
+    await gotoPriorityMaterials(page);
 
-    // Select single character first
-    await planner.selectCharacter('Furina');
-    const singleResin = await planner.getResinEstimate();
-
-    // Switch to multi mode and select all
-    await planner.selectMultiMode();
-    await planner.toggleSelectAll();
-
-    // Wait for recalculation
-    await expect(planner.resinEstimate).toBeVisible();
-
-    const multiResin = await planner.getResinEstimate();
-
-    // Multi-character should require more resources
-    expect(multiResin).toBeGreaterThanOrEqual(singleResin);
+    await expect(page.getByRole('heading', { name: /^farming priority$/i })).toBeVisible();
+    await expect(page.getByText(/materials with deficits|all materials collected/i).first()).toBeVisible();
   });
 
-  test('displays resin calculation for selected characters', async ({ page }) => {
-    const planner = new PlannerPage(page);
-    await planner.goto();
+  test('displays material inventory status', async ({ page }) => {
+    await gotoPriorityMaterials(page);
 
-    await planner.selectMultiMode();
-    await planner.toggleSelectAll();
-
-    // Resin estimate should be visible
-    await expect(planner.resinEstimate).toBeVisible();
-
-    const resinValue = await planner.getResinEstimate();
-    expect(resinValue).toBeGreaterThanOrEqual(0);
+    await expect(page.getByText(/types tracked|no materials imported/i).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /mora:/i })).toBeVisible();
   });
 
-  test('shows today\'s farming recommendations for multi-character', async ({ page }) => {
-    const planner = new PlannerPage(page);
-    await planner.goto();
+  test('can update Mora inventory from the priority page', async ({ page }) => {
+    await gotoPriorityMaterials(page);
 
-    await planner.selectMultiMode();
-    await planner.toggleSelectAll();
+    await page.getByRole('button', { name: /mora:/i }).click();
+    const moraInput = page.locator('input[inputmode="numeric"]').first();
+    await moraInput.fill('12345');
+    await moraInput.press('Enter');
 
-    // Check for farming recommendations
-    const hasRecommendations = await planner.hasFarmingRecommendations();
-    // Just verify the check works - recommendations depend on the day
-    expect(typeof hasRecommendations).toBe('boolean');
+    await expect(page.getByRole('button', { name: /mora:\s*12,345/i })).toBeVisible();
   });
 
-  test('can toggle individual characters in multi-mode', async ({ page }) => {
-    const planner = new PlannerPage(page);
-    await planner.goto();
+  test('keeps aggregated planning visible after reload', async ({ page }) => {
+    await gotoPriorityMaterials(page);
+    await page.reload();
 
-    await planner.selectMultiMode();
-
-    // Select all first
-    await planner.toggleSelectAll();
-    await expect(planner.resinEstimate).toBeVisible();
-    const allSelectedResin = await planner.getResinEstimate();
-
-    // Deselect all
-    await planner.toggleSelectAll();
-
-    // Find and click on individual character checkboxes
-    const characterCheckboxes = page.locator('input[type="checkbox"]');
-    const checkboxCount = await characterCheckboxes.count();
-
-    if (checkboxCount > 0) {
-      // Select just one character
-      await characterCheckboxes.first().check();
-      await expect(characterCheckboxes.first()).toBeChecked();
-
-      const singleSelectedResin = await planner.getResinEstimate();
-
-      // Single selection should be less than or equal to all
-      expect(singleSelectedResin).toBeLessThanOrEqual(allSelectedResin);
-    }
+    await expect(page.getByRole('heading', { name: /^priority deficits$/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^farming priority$/i })).toBeVisible();
   });
 
-  test('material counts update when changing goal type in multi-mode', async ({ page }) => {
-    const planner = new PlannerPage(page);
-    await planner.goto();
+  test('shows an empty state when no characters are prioritized', async ({ page }) => {
+    await markAllCharactersPriority(page, 'unbuilt');
+    await gotoPriorityMaterials(page);
 
-    await planner.selectMultiMode();
-    await planner.toggleSelectAll();
-
-    // Wait for initial calculation
-    await expect(planner.resinEstimate).toBeVisible();
-
-    // Get resin for full goal
-    await planner.selectGoalType('full');
-    const fullGoalResin = await planner.getResinEstimate();
-
-    // Get resin for comfortable goal
-    await planner.selectGoalType('comfortable');
-    const comfortableGoalResin = await planner.getResinEstimate();
-
-    // Full goal should require more (or equal) resin
-    expect(fullGoalResin).toBeGreaterThanOrEqual(comfortableGoalResin);
+    await expect(page.getByText(/no priority characters/i)).toBeVisible();
   });
 });

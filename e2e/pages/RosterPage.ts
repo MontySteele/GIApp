@@ -208,8 +208,11 @@ export class RosterPage extends BasePage {
     const importButton = modal.getByRole('button', { name: /^import \(/i })
       .or(modal.getByRole('button', { name: /^import$/i }));
     await importButton.click();
-    // Wait for modal to close on successful import
-    await modal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    // Successful imports close the modal; invalid imports keep it open and show an error.
+    await Promise.race([
+      modal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {}),
+      modal.locator('.text-red-200').waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+    ]);
   }
 
   /**

@@ -3,9 +3,16 @@
  * Tests for exporting data in various formats
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { RosterPage } from '../pages';
 import { clearDatabase, waitForAppReady, sampleGOODData } from '../fixtures/test-data';
+
+async function readExportJson(modal: Locator): Promise<string> {
+  const textarea = modal.locator('textarea').first();
+  await expect(textarea).toBeVisible();
+  await expect.poll(async () => textarea.inputValue(), { timeout: 10000 }).not.toBe('');
+  return textarea.inputValue();
+}
 
 test.describe('Data Export', () => {
   test.beforeEach(async ({ page }) => {
@@ -45,11 +52,11 @@ test.describe('Data Export', () => {
       const modal = page.locator('[role="dialog"]');
 
       // Should show JSON content
-      const jsonContent = modal.locator('pre, code, textarea');
+      const jsonContent = modal.locator('textarea').first();
       await expect(jsonContent).toBeVisible();
 
       // Content should be valid JSON
-      const text = await jsonContent.textContent();
+      const text = await readExportJson(modal);
       expect(() => JSON.parse(text || '')).not.toThrow();
     });
 
@@ -60,8 +67,7 @@ test.describe('Data Export', () => {
       await roster.exportRoster();
 
       const modal = page.locator('[role="dialog"]');
-      const jsonContent = modal.locator('pre, code, textarea');
-      const text = await jsonContent.textContent();
+      const text = await readExportJson(modal);
 
       const data = JSON.parse(text || '{}');
 
@@ -79,8 +85,7 @@ test.describe('Data Export', () => {
       await roster.exportRoster();
 
       const modal = page.locator('[role="dialog"]');
-      const jsonContent = modal.locator('pre, code, textarea');
-      const text = await jsonContent.textContent();
+      const text = await readExportJson(modal);
 
       const data = JSON.parse(text || '{}');
 
@@ -99,14 +104,8 @@ test.describe('Data Export', () => {
       await roster.exportRoster();
       await roster.copyExportData();
 
-      // Should show success feedback
-      const toast = page.locator('[role="alert"]');
-      const toastVisible = await toast.isVisible().catch(() => false);
-
       const modal = page.locator('[role="dialog"]');
-      const copySuccess = await modal.locator('text=/copied|success/i').isVisible().catch(() => false);
-
-      expect(toastVisible || copySuccess).toBeTruthy();
+      await expect(modal.getByRole('button', { name: /copied/i })).toBeVisible();
     });
 
     test('should close modal after export', async ({ page }) => {
@@ -118,7 +117,7 @@ test.describe('Data Export', () => {
       const modal = page.locator('[role="dialog"]');
 
       // Close the modal
-      await modal.getByRole('button', { name: /close|done|cancel/i }).click();
+      await modal.getByRole('button', { name: /^close$/i }).click();
 
       // Modal should close
       await expect(modal).toBeHidden();
@@ -135,16 +134,13 @@ test.describe('Data Export', () => {
       const modal = page.locator('[role="dialog"]');
 
       // Look for inventory toggle
-      const inventoryToggle = modal.locator('text=/inventory|include inventory/i')
-        .or(modal.getByLabel(/inventory/i));
+      const inventoryToggle = modal.getByRole('checkbox', { name: /include inventory data/i });
 
       if (await inventoryToggle.isVisible()) {
-        // Toggle inventory on
-        await inventoryToggle.click();
+        await inventoryToggle.check();
 
         // Export should now include inventory
-        const jsonContent = modal.locator('pre, code, textarea');
-        const text = await jsonContent.textContent();
+        const text = await readExportJson(modal);
         const data = JSON.parse(text || '{}');
 
         // May have artifacts or weapons
@@ -163,11 +159,10 @@ test.describe('Data Export', () => {
       await roster.exportRoster();
 
       const modal = page.locator('[role="dialog"]');
-      const jsonContent = modal.locator('pre, code, textarea');
-      const exportedData = await jsonContent.textContent() || '{}';
+      const exportedData = await readExportJson(modal);
 
       // Close export modal
-      await modal.getByRole('button', { name: /close|done/i }).click();
+      await modal.getByRole('button', { name: /^close$/i }).click();
 
       // Clear database (navigates away first to avoid Dexie crash)
       await clearDatabase(page);

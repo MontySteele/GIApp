@@ -3,7 +3,7 @@
  * Tests for exporting team configurations to wfpsim/gcsim format
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { RosterPage, TeamsPage } from '../pages';
 import { clearDatabase, waitForAppReady, sampleGOODData } from '../fixtures/test-data';
 
@@ -47,6 +47,7 @@ const fourCharacterGOODData = {
       ascension: 6,
       refinement: 1,
       location: 'RaidenShogun',
+      lock: true,
     },
     {
       key: 'SkywardBlade',
@@ -54,6 +55,7 @@ const fourCharacterGOODData = {
       ascension: 6,
       refinement: 1,
       location: 'Bennett',
+      lock: true,
     },
     {
       key: 'TheCatch',
@@ -61,6 +63,7 @@ const fourCharacterGOODData = {
       ascension: 6,
       refinement: 5,
       location: 'Xiangling',
+      lock: true,
     },
     {
       key: 'SacrificialSword',
@@ -68,9 +71,78 @@ const fourCharacterGOODData = {
       ascension: 6,
       refinement: 5,
       location: 'Xingqiu',
+      lock: true,
+    },
+  ],
+  artifacts: [
+    {
+      setKey: 'EmblemOfSeveredFate',
+      slotKey: 'flower',
+      level: 20,
+      rarity: 5,
+      mainStatKey: 'hp',
+      location: 'RaidenShogun',
+      lock: true,
+      substats: [],
+    },
+    {
+      setKey: 'NoblesseOblige',
+      slotKey: 'flower',
+      level: 20,
+      rarity: 5,
+      mainStatKey: 'hp',
+      location: 'Bennett',
+      lock: true,
+      substats: [],
+    },
+    {
+      setKey: 'EmblemOfSeveredFate',
+      slotKey: 'flower',
+      level: 20,
+      rarity: 5,
+      mainStatKey: 'hp',
+      location: 'Xiangling',
+      lock: true,
+      substats: [],
+    },
+    {
+      setKey: 'EmblemOfSeveredFate',
+      slotKey: 'flower',
+      level: 20,
+      rarity: 5,
+      mainStatKey: 'hp',
+      location: 'Xingqiu',
+      lock: true,
+      substats: [],
     },
   ],
 };
+
+async function createFourCharacterTeam(page: Page, teamName: string): Promise<void> {
+  const teams = new TeamsPage(page);
+  await teams.goto();
+  const modal = await teams.openCreateTeamModal();
+  await teams.fillTeamName(teamName);
+
+  const characterCheckboxes = modal.locator('input[type="checkbox"]');
+  const count = await characterCheckboxes.count();
+  for (let i = 0; i < Math.min(4, count); i++) {
+    await characterCheckboxes.nth(i).check();
+  }
+
+  await teams.saveTeam();
+  await expect(teams.teamCards.filter({ hasText: teamName }).first()).toBeVisible({ timeout: 5000 });
+}
+
+async function openWfpsimExport(page: Page, teamName: string) {
+  const teams = new TeamsPage(page);
+  await teams.goto();
+  await teams.exportToWfpsim(teamName);
+
+  const modal = page.locator('[role="dialog"]');
+  await expect(modal.getByRole('heading', { name: /^export to wfpsim$/i })).toBeVisible();
+  return modal;
+}
 
 test.describe('wfpsim Export Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -78,186 +150,52 @@ test.describe('wfpsim Export Flow', () => {
     await page.goto('/');
     await waitForAppReady(page);
 
-    // Import characters first
     const roster = new RosterPage(page);
     await roster.goto();
     await roster.openAddCharacterModal();
     await roster.selectImportMethod('good');
     await roster.importFromGOOD(JSON.stringify(fourCharacterGOODData));
-    // Wait for import to complete
     await expect(page.locator('[role="alert"], [data-testid="import-success"], text=/imported|success/i').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
   });
 
   test('can export team to wfpsim format', async ({ page }) => {
-    // First, create a team
-    const teams = new TeamsPage(page);
-    await teams.goto();
+    await createFourCharacterTeam(page, 'National Raiden');
 
-    // Create a new team
-    await teams.openCreateTeamModal();
-    await teams.fillTeamName('National Raiden');
+    const modal = await openWfpsimExport(page, 'National Raiden');
 
-    // Select characters for the team
-    const characterCheckboxes = page.locator('input[type="checkbox"]');
-    const count = await characterCheckboxes.count();
-    for (let i = 0; i < Math.min(4, count); i++) {
-      await characterCheckboxes.nth(i).check();
-    }
-
-    await teams.saveTeam();
-    // Wait for team to appear
-    await expect(page.locator('text=/National Raiden/i').first()).toBeVisible({ timeout: 5000 });
-
-    // Navigate to team detail or find export button
-    const teamCard = page.locator('text=/National Raiden/i').first();
-    await teamCard.click();
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible();
-
-    // Look for export button
-    const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
-    if (await exportButton.isVisible()) {
-      await exportButton.click();
-
-      // Export modal should appear
-      const exportModal = page.locator('[role="dialog"]').filter({ hasText: /export|gcsim|wfpsim/i });
-      await expect(exportModal).toBeVisible({ timeout: 5000 });
-    }
+    await expect(modal.getByText('Generated Config')).toBeVisible();
+    await expect(modal.locator('pre')).toBeVisible();
   });
 
   test('export modal shows configuration options', async ({ page }) => {
-    const teams = new TeamsPage(page);
-    await teams.goto();
+    await createFourCharacterTeam(page, 'Export Test Team');
 
-    // Create team
-    await teams.openCreateTeamModal();
-    await teams.fillTeamName('Export Test Team');
+    const modal = await openWfpsimExport(page, 'Export Test Team');
 
-    const characterCheckboxes = page.locator('input[type="checkbox"]');
-    const count = await characterCheckboxes.count();
-    for (let i = 0; i < Math.min(4, count); i++) {
-      await characterCheckboxes.nth(i).check();
-    }
-
-    await teams.saveTeam();
-    // Wait for team to appear
-    await expect(page.locator('text=/Export Test Team/i').first()).toBeVisible({ timeout: 5000 });
-
-    // Open team detail
-    const teamCard = page.locator('text=/Export Test Team/i').first();
-    if (await teamCard.isVisible()) {
-      await teamCard.click();
-      const modal = page.locator('[role="dialog"]');
-      await expect(modal).toBeVisible();
-
-      // Open export modal
-      const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
-      if (await exportButton.isVisible()) {
-        await exportButton.click();
-
-        // Should show export options
-        const exportModal = page.locator('[role="dialog"]');
-        if (await exportModal.isVisible()) {
-          // Look for common export options
-          const options = exportModal.locator('input, select, textarea');
-          const optionsCount = await options.count();
-          expect(optionsCount).toBeGreaterThan(0);
-        }
-      }
-    }
+    await expect(modal.getByText(/^iterations$/i)).toBeVisible();
+    await expect(modal.getByText(/^duration \(s\)$/i)).toBeVisible();
+    await expect(modal.getByText(/^target level$/i)).toBeVisible();
+    await expect(modal.getByText(/^resist \(%\)$/i)).toBeVisible();
+    await expect(modal.getByLabel(/include comments/i)).toBeVisible();
   });
 
   test('can copy gcsim config to clipboard', async ({ page }) => {
-    const teams = new TeamsPage(page);
-    await teams.goto();
+    await createFourCharacterTeam(page, 'Clipboard Test Team');
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-    // Create team
-    await teams.openCreateTeamModal();
-    await teams.fillTeamName('Clipboard Test Team');
+    const modal = await openWfpsimExport(page, 'Clipboard Test Team');
+    await modal.getByRole('button', { name: /^copy config$/i }).click();
 
-    const characterCheckboxes = page.locator('input[type="checkbox"]');
-    const count = await characterCheckboxes.count();
-    for (let i = 0; i < Math.min(4, count); i++) {
-      await characterCheckboxes.nth(i).check();
-    }
-
-    await teams.saveTeam();
-    // Wait for team to appear
-    await expect(page.locator('text=/Clipboard Test Team/i').first()).toBeVisible({ timeout: 5000 });
-
-    // Navigate to team
-    const teamCard = page.locator('text=/Clipboard Test Team/i').first();
-    if (await teamCard.isVisible()) {
-      await teamCard.click();
-      const modal = page.locator('[role="dialog"]');
-      await expect(modal).toBeVisible();
-
-      const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
-      if (await exportButton.isVisible()) {
-        await exportButton.click();
-
-        // Find copy button
-        const copyButton = page.getByRole('button', { name: /copy/i });
-        if (await copyButton.isVisible()) {
-          // Grant clipboard permissions (may be blocked in some test environments)
-          try {
-            await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-            await copyButton.click();
-
-            // Should show success feedback
-            const successMessage = page.locator('text=/copied|success/i');
-            await expect(successMessage).toBeVisible({ timeout: 3000 });
-          } catch {
-            // Clipboard may not be available in all test environments
-            expect(await copyButton.isVisible()).toBeTruthy();
-          }
-        }
-      }
-    }
+    await expect(modal.getByRole('button', { name: /^copied!$/i })).toBeVisible({ timeout: 3000 });
   });
 
   test('exported config has valid gcsim structure', async ({ page }) => {
-    const teams = new TeamsPage(page);
-    await teams.goto();
+    await createFourCharacterTeam(page, 'Structure Test Team');
 
-    // Create team
-    await teams.openCreateTeamModal();
-    await teams.fillTeamName('Structure Test Team');
+    const modal = await openWfpsimExport(page, 'Structure Test Team');
+    const configText = await modal.locator('pre').textContent();
 
-    const characterCheckboxes = page.locator('input[type="checkbox"]');
-    const count = await characterCheckboxes.count();
-    for (let i = 0; i < Math.min(4, count); i++) {
-      await characterCheckboxes.nth(i).check();
-    }
-
-    await teams.saveTeam();
-    // Wait for team to appear
-    await expect(page.locator('text=/Structure Test Team/i').first()).toBeVisible({ timeout: 5000 });
-
-    // Navigate to team
-    const teamCard = page.locator('text=/Structure Test Team/i').first();
-    if (await teamCard.isVisible()) {
-      await teamCard.click();
-      const modal = page.locator('[role="dialog"]');
-      await expect(modal).toBeVisible();
-
-      const exportButton = page.getByRole('button', { name: /export|wfpsim|gcsim/i });
-      if (await exportButton.isVisible()) {
-        await exportButton.click();
-
-        // Look for the config preview textarea/code block
-        const configPreview = page.locator('textarea, pre, code').filter({ hasText: /char|weapon|set/i });
-        if (await configPreview.isVisible()) {
-          const configText = await configPreview.textContent();
-
-          // Verify gcsim format markers are present
-          if (configText) {
-            // Should contain character definitions
-            const hasCharDef = configText.includes('char') || configText.includes('level');
-            expect(hasCharDef).toBeTruthy();
-          }
-        }
-      }
-    }
+    expect(configText).toContain('target lvl=');
+    expect(configText).toContain('options iteration=');
   });
 });

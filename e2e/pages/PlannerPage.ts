@@ -39,10 +39,8 @@ export class PlannerPage extends BasePage {
       .locator('xpath=..').locator('button').last();
 
     // Single mode - selects with labels
-    this.characterSelect = page.getByLabel(/^character$/i)
-      .or(page.locator('select').filter({ hasText: /select a character/i }));
-    this.goalSelect = page.getByLabel(/^goal$/i)
-      .or(page.locator('select').filter({ hasText: /next ascension|functional|comfortable|full/i }));
+    this.characterSelect = page.locator('select').first();
+    this.goalSelect = page.locator('select').nth(1);
 
     // Multi mode - tabs for Characters/Weapons
     this.charactersTab = page.getByRole('button', { name: /characters/i });
@@ -52,9 +50,9 @@ export class PlannerPage extends BasePage {
     this.characterCheckboxes = page.locator('input[type="checkbox"]');
 
     // Results
-    this.materialsList = page.locator('text=/materials/i').locator('..');
+    this.materialsList = page.locator('text=/materials required/i').first().locator('..');
     this.resinEstimate = page.locator('text=/resin/i');
-    this.farmingRecommendations = page.locator('text=/today|farming|recommend/i').locator('..');
+    this.farmingRecommendations = page.locator('text=/farming recommendations/i').first().locator('..');
     this.goalSummary = page.locator('text=/goal summary/i').locator('..');
   }
 
@@ -67,6 +65,10 @@ export class PlannerPage extends BasePage {
    * Select single character planning mode
    */
   async selectSingleMode(): Promise<void> {
+    if (await this.page.getByRole('heading', { name: /^ascension planner$/i }).isVisible().catch(() => false)) {
+      return;
+    }
+
     // Click the first mode button (User icon = single mode)
     const modeButtons = this.page.locator('button').filter({
       has: this.page.locator('svg')
@@ -97,9 +99,18 @@ export class PlannerPage extends BasePage {
    * Character select shows "Character (Lv. X)" format
    */
   async selectCharacter(name: string): Promise<void> {
-    const select = this.page.locator('select').first();
-    // Find option containing the character name
-    await select.selectOption({ label: new RegExp(name, 'i') });
+    const value = await this.characterSelect.evaluate((select, optionText) => {
+      const needle = optionText.toLowerCase();
+      return Array.from((select as HTMLSelectElement).options)
+        .find((option) => (option.textContent ?? '').toLowerCase().includes(needle))
+        ?.value ?? null;
+    }, name);
+
+    if (!value) {
+      throw new Error(`Character option not found: ${name}`);
+    }
+
+    await this.characterSelect.selectOption(value);
     // Wait for calculation
     await this.page.waitForTimeout(500);
   }
@@ -110,15 +121,24 @@ export class PlannerPage extends BasePage {
    */
   async selectGoalType(type: 'full' | 'comfortable' | 'functional' | 'next'): Promise<void> {
     const goalLabels = {
-      full: /full build/i,
-      comfortable: /comfortable/i,
-      functional: /functional/i,
-      next: /next ascension/i,
+      full: 'full build',
+      comfortable: 'comfortable',
+      functional: 'functional',
+      next: 'next ascension',
     };
 
-    // Goal is the second select on the page
-    const select = this.page.locator('select').nth(1);
-    await select.selectOption({ label: goalLabels[type] });
+    const value = await this.goalSelect.evaluate((select, optionText) => {
+      const needle = optionText.toLowerCase();
+      return Array.from((select as HTMLSelectElement).options)
+        .find((option) => (option.textContent ?? '').toLowerCase().includes(needle))
+        ?.value ?? null;
+    }, goalLabels[type]);
+
+    if (!value) {
+      throw new Error(`Goal option not found: ${goalLabels[type]}`);
+    }
+
+    await this.goalSelect.selectOption(value);
     // Wait for recalculation
     await this.page.waitForTimeout(500);
   }

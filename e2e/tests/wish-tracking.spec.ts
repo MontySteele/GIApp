@@ -102,11 +102,11 @@ test.describe('Pull Calculator', () => {
       await expect(calculator.mainContent).toBeVisible();
     });
 
-    test('should have primogem input field', async ({ page }) => {
+    test('should have event pulls input field', async ({ page }) => {
       const calculator = new CalculatorPage(page);
       await calculator.goto();
 
-      await expect(calculator.primogemInput).toBeVisible();
+      await expect(calculator.availablePullsInput).toBeVisible();
     });
 
     test('should have pity input field', async ({ page }) => {
@@ -122,7 +122,7 @@ test.describe('Pull Calculator', () => {
 
       // Enter calculation parameters
       await calculator.calculateSingleTarget({
-        primogems: 16000, // 100 pulls worth
+        pulls: 100,
         pity: 0,
         guaranteed: false,
       });
@@ -142,14 +142,14 @@ test.describe('Pull Calculator', () => {
 
       // Calculate with fewer primogems
       await calculator.calculateSingleTarget({
-        primogems: 8000, // 50 pulls
+        pulls: 50,
         pity: 0,
       });
       const lowProbability = await calculator.getProbability();
 
       // Calculate with more primogems
       await calculator.calculateSingleTarget({
-        primogems: 24000, // 150 pulls
+        pulls: 150,
         pity: 0,
       });
       const highProbability = await calculator.getProbability();
@@ -164,14 +164,14 @@ test.describe('Pull Calculator', () => {
 
       // Calculate with no pity
       await calculator.calculateSingleTarget({
-        primogems: 8000,
+        pulls: 50,
         pity: 0,
       });
       const noPityProbability = await calculator.getProbability();
 
       // Calculate with high pity (closer to soft pity)
       await calculator.calculateSingleTarget({
-        primogems: 8000,
+        pulls: 50,
         pity: 70,
       });
       const highPityProbability = await calculator.getProbability();
@@ -186,7 +186,7 @@ test.describe('Pull Calculator', () => {
 
       // Guaranteed with 90 pulls worth (hard pity)
       await calculator.calculateSingleTarget({
-        primogems: 14400, // 90 pulls
+        pulls: 90,
         pity: 0,
         guaranteed: true,
       });
@@ -225,7 +225,7 @@ test.describe('Pull Calculator', () => {
       await calculator.goto();
 
       await calculator.calculateSingleTarget({
-        primogems: 16000,
+        pulls: 100,
         pity: 0,
       });
 

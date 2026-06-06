@@ -7,10 +7,20 @@ import { expect, type Page, test } from '@playwright/test';
 import { waitForAppReady } from '../fixtures/test-data';
 
 const DB_NAME = 'GenshinTracker';
-const NOW = '2026-05-11T12:00:00.000Z';
+const CREATED_AT = '2026-05-11T12:00:00.000Z';
 const FUTURE_DEADLINE = '2099-06-01';
 
 type StoreSeed = Record<string, Array<Record<string, unknown>>>;
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function daysAgoIso(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
+}
 
 async function putRecords(page: Page, recordsByStore: StoreSeed): Promise<void> {
   await page.evaluate(async ({ dbName, recordsByStore }) => {
@@ -51,8 +61,8 @@ async function loadSeededApp(page: Page, recordsByStore: StoreSeed): Promise<voi
   await putRecords(page, {
     appMeta: [
       { key: 'schemaVersion', value: 5 },
-      { key: 'createdAt', value: NOW },
-      { key: 'lastBackupAt', value: NOW },
+      { key: 'createdAt', value: CREATED_AT },
+      { key: 'lastBackupAt', value: nowIso() },
     ],
     ...recordsByStore,
   });
@@ -64,7 +74,7 @@ function freshImport() {
   return {
     id: 'import-fresh',
     source: 'GOOD',
-    importedAt: NOW,
+    importedAt: nowIso(),
   };
 }
 
@@ -72,21 +82,21 @@ function staleImport() {
   return {
     id: 'import-stale',
     source: 'GOOD',
-    importedAt: '2026-04-01T12:00:00.000Z',
+    importedAt: daysAgoIso(35),
   };
 }
 
 function pullResourceSnapshot(pulls: number) {
   return {
     id: `snapshot-${pulls}`,
-    timestamp: NOW,
+    timestamp: nowIso(),
     primogems: pulls * 160,
     genesisCrystals: 0,
     intertwined: 0,
     acquaint: 0,
     starglitter: 0,
     stardust: 0,
-    createdAt: NOW,
+    createdAt: nowIso(),
   };
 }
 
@@ -112,8 +122,8 @@ function furinaCharacter(overrides: Record<string, unknown> = {}) {
     notes: '',
     priority: 'main',
     teamIds: [],
-    createdAt: NOW,
-    updatedAt: NOW,
+    createdAt: CREATED_AT,
+    updatedAt: nowIso(),
     ...overrides,
   };
 }
@@ -149,8 +159,8 @@ function pullCampaign() {
       },
     ],
     notes: '',
-    createdAt: NOW,
-    updatedAt: NOW,
+    createdAt: CREATED_AT,
+    updatedAt: nowIso(),
   };
 }
 
@@ -172,8 +182,8 @@ function buildCampaign() {
       },
     ],
     notes: '',
-    createdAt: NOW,
-    updatedAt: NOW,
+    createdAt: CREATED_AT,
+    updatedAt: nowIso(),
   };
 }
 
@@ -188,8 +198,8 @@ function readyReviewCampaign() {
     pullTargets: [],
     characterTargets: [],
     notes: '',
-    createdAt: NOW,
-    updatedAt: NOW,
+    createdAt: CREATED_AT,
+    updatedAt: nowIso(),
   };
 }
 
@@ -267,7 +277,7 @@ test.describe('Campaign flow smoke', () => {
         }),
       ],
       importRecords: [freshImport()],
-      materialInventory: [{ id: 'materials', materials: {}, updatedAt: NOW }],
+      materialInventory: [{ id: 'materials', materials: {}, updatedAt: nowIso() }],
     });
 
     await expect(page.getByRole('heading', { name: 'Next Up' })).toBeVisible();
