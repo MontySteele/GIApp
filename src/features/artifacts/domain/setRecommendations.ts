@@ -253,6 +253,72 @@ export const CHARACTER_BUILDS: Record<string, CharacterBuild> = {
     notes: 'Full HP build for maximum shield strength',
   },
 
+  lohen: {
+    characterKey: 'Lohen',
+    role: 'dps',
+    recommendedSets: [
+      [{ setKey: 'ADayCarvedFromRisingWinds', pieces: 4, name: 'A Day Carved From Rising Winds' }],
+      [{ setKey: 'BlizzardStrayer', pieces: 4, name: 'Blizzard Strayer' }],
+      [{ setKey: 'ShimenawasReminiscence', pieces: 4, name: 'Shimenawa\'s Reminiscence' }],
+    ],
+    mainStats: {
+      sands: ['atk_'],
+      goblet: ['cryo_dmg_', 'atk_'],
+      circlet: ['critDMG_', 'critRate_'],
+    },
+    substats: ['critDMG_', 'critRate_', 'atk_', 'enerRech_'],
+    notes: 'Wants ~2,000+ ATK; ER needs are low (100-130%)',
+  },
+
+  nicole: {
+    characterKey: 'Nicole',
+    role: 'support',
+    recommendedSets: [
+      [{ setKey: 'CelestialGift', pieces: 4, name: 'Celestial Gift' }],
+      [{ setKey: 'NoblesseOblige', pieces: 4, name: 'Noblesse Oblige' }],
+    ],
+    mainStats: {
+      sands: ['atk_', 'enerRech_'],
+      goblet: ['atk_'],
+      circlet: ['atk_'],
+    },
+    substats: ['atk_', 'enerRech_'],
+    notes: 'Shield and buffs scale with ATK — stack toward ~4,000 ATK, keep ~150-170% ER',
+  },
+
+  prune: {
+    characterKey: 'Prune',
+    role: 'support',
+    recommendedSets: [
+      [{ setKey: 'ViridescentVenerer', pieces: 4, name: 'Viridescent Venerer' }],
+      [{ setKey: 'CelestialGift', pieces: 4, name: 'Celestial Gift' }],
+    ],
+    mainStats: {
+      sands: ['atk_', 'enerRech_'],
+      goblet: ['atk_'],
+      circlet: ['atk_'],
+    },
+    substats: ['atk_', 'enerRech_'],
+    notes: 'Team buff scales with her excess ATK (~4,000 ATK target)',
+  },
+
+  linnea: {
+    characterKey: 'Linnea',
+    role: 'sub-dps',
+    recommendedSets: [
+      [{ setKey: 'AubadeOfMorningstarAndMoon', pieces: 4, name: 'Aubade of Morningstar and Moon' }],
+      [{ setKey: 'HuskOfOpulentDreams', pieces: 4, name: 'Husk of Opulent Dreams' }],
+      [{ setKey: 'SilkenMoonsSerenade', pieces: 4, name: 'Silken Moon\'s Serenade' }],
+    ],
+    mainStats: {
+      sands: ['def_'],
+      goblet: ['def_'],
+      circlet: ['critRate_', 'critDMG_'],
+    },
+    substats: ['critRate_', 'critDMG_', 'def_', 'enerRech_'],
+    notes: 'Lunar-Crystallize scales with DEF — DEF% goblet over Geo DMG%; ~180-200% ER',
+  },
+
   neuvillette: {
     characterKey: 'Neuvillette',
     role: 'dps',
