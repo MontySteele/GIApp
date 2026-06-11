@@ -9,7 +9,7 @@
  * the aggregated substat priorities of all builds using that set,
  * plus universal offset value (high CV, ER, EM).
  *
- * Data source: Community build spreadsheet (March 2026, Varka patch)
+ * Data source: Community build spreadsheet (June 2026, 6.6 "Luna VII" patch)
  * Numbers represent how many character builds use that set+slot+mainStat combo.
  */
 
@@ -35,9 +35,9 @@ type DemandMatrix = Record<string, {
  */
 const ARTIFACT_DEMAND: DemandMatrix = {
   ADayCarvedFromRisingWinds: {
-    sands: { atk_: 44, eleMas: 13, enerRech_: 18 },
-    goblet: { atk_: 10, physical_dmg_: 2, hydro_dmg_: 4, pyro_dmg_: 6, cryo_dmg_: 10, dendro_dmg_: 1, electro_dmg_: 9, anemo_dmg_: 4, geo_dmg_: 3, eleMas: 1 },
-    circlet: { atk_: 4, eleMas: 1, critRate_: 38, critDMG_: 41, heal_: 1 },
+    sands: { atk_: 45, eleMas: 13, enerRech_: 18 },
+    goblet: { atk_: 11, physical_dmg_: 2, hydro_dmg_: 4, pyro_dmg_: 6, cryo_dmg_: 11, dendro_dmg_: 1, electro_dmg_: 9, anemo_dmg_: 4, geo_dmg_: 3, eleMas: 1 },
+    circlet: { atk_: 4, eleMas: 1, critRate_: 39, critDMG_: 42, heal_: 1 },
   },
   ArchaicPetra: {
     sands: { hp_: 1, atk_: 3, def_: 5, enerRech_: 2 },
@@ -45,19 +45,24 @@ const ARTIFACT_DEMAND: DemandMatrix = {
     circlet: { hp_: 1, def_: 2, critRate_: 9, critDMG_: 7, heal_: 1 },
   },
   AubadeOfMorningstarAndMoon: {
-    sands: { hp_: 4, atk_: 16, def_: 1, eleMas: 24, enerRech_: 12 },
-    goblet: { hp_: 2, atk_: 2, def_: 1, eleMas: 8, hydro_dmg_: 2, pyro_dmg_: 4, cryo_dmg_: 3, dendro_dmg_: 3, electro_dmg_: 6, anemo_dmg_: 1 },
-    circlet: { hp_: 2, eleMas: 9, critRate_: 23, critDMG_: 23 },
+    sands: { hp_: 4, atk_: 16, def_: 2, eleMas: 24, enerRech_: 12 },
+    goblet: { hp_: 2, atk_: 2, def_: 2, eleMas: 8, hydro_dmg_: 2, pyro_dmg_: 4, cryo_dmg_: 3, dendro_dmg_: 3, electro_dmg_: 6, anemo_dmg_: 1 },
+    circlet: { hp_: 2, eleMas: 9, critRate_: 24, critDMG_: 24 },
   },
   BlizzardStrayer: {
-    sands: { hp_: 1, atk_: 14, eleMas: 3, enerRech_: 5 },
-    goblet: { hp_: 1, atk_: 1, hydro_dmg_: 3, cryo_dmg_: 12 },
-    circlet: { hp_: 1, atk_: 1, critRate_: 10, critDMG_: 15 },
+    sands: { hp_: 1, atk_: 15, eleMas: 3, enerRech_: 5 },
+    goblet: { hp_: 1, atk_: 1, hydro_dmg_: 3, cryo_dmg_: 13 },
+    circlet: { hp_: 1, atk_: 1, critRate_: 11, critDMG_: 16 },
   },
   BloodstainedChivalry: {
     sands: { atk_: 2 },
     goblet: { physical_dmg_: 2 },
     circlet: { critRate_: 2, critDMG_: 2 },
+  },
+  CelestialGift: {
+    sands: { atk_: 3, enerRech_: 3, def_: 1 },
+    goblet: { atk_: 3, def_: 1, electro_dmg_: 1 },
+    circlet: { atk_: 3, critRate_: 2, critDMG_: 2, def_: 1 },
   },
   CrimsonWitchOfFlames: {
     sands: { hp_: 1, atk_: 7, eleMas: 7, enerRech_: 3 },
@@ -73,6 +78,11 @@ const ARTIFACT_DEMAND: DemandMatrix = {
     sands: { atk_: 7, def_: 1, eleMas: 2, enerRech_: 1 },
     goblet: { atk_: 3, pyro_dmg_: 2, cryo_dmg_: 1, electro_dmg_: 1, anemo_dmg_: 3, geo_dmg_: 1 },
     circlet: { critRate_: 9, critDMG_: 9 },
+  },
+  DisenchantmentInDeepShadow: {
+    sands: { atk_: 2 },
+    goblet: { physical_dmg_: 2, atk_: 1 },
+    circlet: { critRate_: 2, critDMG_: 2 },
   },
   EchoesOfAnOffering: {
     sands: { atk_: 42, eleMas: 13, enerRech_: 18 },
@@ -125,9 +135,9 @@ const ARTIFACT_DEMAND: DemandMatrix = {
     circlet: { hp_: 2, eleMas: 1, critRate_: 3, critDMG_: 3 },
   },
   HuskOfOpulentDreams: {
-    sands: { atk_: 2, def_: 6, enerRech_: 1 },
-    goblet: { def_: 3, geo_dmg_: 5 },
-    circlet: { atk_: 1, def_: 1, critRate_: 7, critDMG_: 6 },
+    sands: { atk_: 2, def_: 7, enerRech_: 1 },
+    goblet: { def_: 4, geo_dmg_: 5 },
+    circlet: { atk_: 1, def_: 1, critRate_: 8, critDMG_: 7 },
   },
   Instructor: {
     sands: { hp_: 12, atk_: 20, def_: 1, eleMas: 27, enerRech_: 24 },
@@ -165,9 +175,9 @@ const ARTIFACT_DEMAND: DemandMatrix = {
     circlet: { atk_: 4, eleMas: 1, critRate_: 32, critDMG_: 35, heal_: 1 },
   },
   NoblesseOblige: {
-    sands: { hp_: 10, atk_: 37, def_: 3, eleMas: 15, enerRech_: 43 },
-    goblet: { hp_: 10, atk_: 11, def_: 4, eleMas: 6, hydro_dmg_: 7, pyro_dmg_: 6, cryo_dmg_: 8, dendro_dmg_: 2, electro_dmg_: 7, anemo_dmg_: 4, geo_dmg_: 4 },
-    circlet: { hp_: 9, atk_: 5, def_: 4, eleMas: 7, critRate_: 42, critDMG_: 37, heal_: 9 },
+    sands: { hp_: 10, atk_: 38, def_: 3, eleMas: 15, enerRech_: 44 },
+    goblet: { hp_: 10, atk_: 12, def_: 4, eleMas: 6, hydro_dmg_: 7, pyro_dmg_: 6, cryo_dmg_: 8, dendro_dmg_: 2, electro_dmg_: 7, anemo_dmg_: 4, geo_dmg_: 4 },
+    circlet: { hp_: 9, atk_: 6, def_: 4, eleMas: 7, critRate_: 42, critDMG_: 37, heal_: 9 },
   },
   NymphsDream: {
     sands: { hp_: 1, atk_: 3, enerRech_: 2 },
@@ -200,14 +210,14 @@ const ARTIFACT_DEMAND: DemandMatrix = {
     circlet: { hp_: 7, atk_: 5, def_: 2, eleMas: 2, critRate_: 17, critDMG_: 12, heal_: 6 },
   },
   ShimenawasReminiscence: {
-    sands: { hp_: 1, atk_: 43, eleMas: 16, enerRech_: 18 },
-    goblet: { atk_: 8, eleMas: 1, physical_dmg_: 2, hydro_dmg_: 4, pyro_dmg_: 6, cryo_dmg_: 11, dendro_dmg_: 1, electro_dmg_: 8, anemo_dmg_: 4, geo_dmg_: 3 },
-    circlet: { atk_: 4, eleMas: 1, critRate_: 38, critDMG_: 41, heal_: 1 },
+    sands: { hp_: 1, atk_: 44, eleMas: 16, enerRech_: 18 },
+    goblet: { atk_: 8, eleMas: 1, physical_dmg_: 2, hydro_dmg_: 4, pyro_dmg_: 6, cryo_dmg_: 12, dendro_dmg_: 1, electro_dmg_: 8, anemo_dmg_: 4, geo_dmg_: 3 },
+    circlet: { atk_: 4, eleMas: 1, critRate_: 39, critDMG_: 42, heal_: 1 },
   },
   SilkenMoonsSerenade: {
-    sands: { hp_: 1, atk_: 3, eleMas: 2, enerRech_: 5 },
-    goblet: { hp_: 1, atk_: 3, def_: 1, eleMas: 2, geo_dmg_: 1 },
-    circlet: { atk_: 1, def_: 1, eleMas: 2, critRate_: 5, critDMG_: 3, heal_: 1 },
+    sands: { hp_: 1, atk_: 3, def_: 1, eleMas: 2, enerRech_: 5 },
+    goblet: { hp_: 1, atk_: 3, def_: 2, eleMas: 2, geo_dmg_: 1 },
+    circlet: { atk_: 1, def_: 1, eleMas: 2, critRate_: 6, critDMG_: 3, heal_: 1 },
   },
   SongOfDaysPast: {
     sands: { hp_: 3, atk_: 4, eleMas: 1, enerRech_: 7 },
@@ -240,9 +250,9 @@ const ARTIFACT_DEMAND: DemandMatrix = {
     circlet: { atk_: 4, eleMas: 1, critRate_: 32, critDMG_: 35, heal_: 1 },
   },
   ViridescentVenerer: {
-    sands: { atk_: 11, eleMas: 6, enerRech_: 11 },
-    goblet: { atk_: 8, eleMas: 6, anemo_dmg_: 6 },
-    circlet: { atk_: 4, eleMas: 6, critRate_: 10, critDMG_: 8, heal_: 3 },
+    sands: { atk_: 12, eleMas: 6, enerRech_: 12 },
+    goblet: { atk_: 9, eleMas: 6, anemo_dmg_: 6 },
+    circlet: { atk_: 5, eleMas: 6, critRate_: 10, critDMG_: 8, heal_: 3 },
   },
   VourukashasGlow: {
     sands: { hp_: 15, eleMas: 1, enerRech_: 10 },
@@ -292,6 +302,7 @@ const SET_DESIRED_SUBSTATS: Record<string, Record<string, number>> = {
   LongNightsOath: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 3 },
   ObsidianCodex: { critRate_: 5, critDMG_: 5, atk_: 3, eleMas: 1, enerRech_: 1 },
   FinaleOfTheDeepGalleries: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
+  DisenchantmentInDeepShadow: { critRate_: 5, critDMG_: 5, atk_: 3, enerRech_: 1 },
 
   // HP-scaling DPS sets
   MarechausseeHunter: { critRate_: 5, critDMG_: 5, hp_: 3, atk_: 1, enerRech_: 3, eleMas: 1 },
@@ -315,6 +326,7 @@ const SET_DESIRED_SUBSTATS: Record<string, Record<string, number>> = {
   SongOfDaysPast: { hp_: 5, enerRech_: 5, atk_: 1, critRate_: 1 },
   SilkenMoonsSerenade: { enerRech_: 5, eleMas: 3, critRate_: 3, critDMG_: 1, atk_: 1 },
   ScrollOfTheHeroOfCinderCity: { enerRech_: 5, hp_: 3, critRate_: 3, critDMG_: 1, atk_: 1 },
+  CelestialGift: { enerRech_: 5, atk_: 5, critRate_: 3, critDMG_: 1, def_: 1 },
 
   // Dendro support
   DeepwoodMemories: { enerRech_: 5, hp_: 3, eleMas: 3, critRate_: 3, critDMG_: 1 },

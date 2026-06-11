@@ -260,7 +260,7 @@ describe('artifactQualityFilter', () => {
         mainStatKey: 'cryo_dmg_',
       }));
       expect(result.isUseless).toBe(false);
-      expect(result.buildDemand).toBe(12);
+      expect(result.buildDemand).toBe(13);
 
       // Blizzard Strayer pyro goblet should have 0 demand
       const result2 = checkArtifactQuality(makeArtifact({
