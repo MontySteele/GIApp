@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { toGOOD, fromGOOD, fromGOODWithInventory, toGOODWithInventory, validateGOOD, type GOODFormat } from './good';
+import { toGOOD, fromGOOD, toGOODWithInventory, validateGOOD, type GOODFormat } from './good';
+import { validateIrminsulFormat, fromIrminsul } from './irminsul';
 import { toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 import type { Character, InventoryArtifact, InventoryWeapon } from '@/types';
 
@@ -578,153 +579,129 @@ describe('GOOD Mapper', () => {
     });
   });
 
-  describe('fromGOODWithInventory', () => {
-    it('should extract both characters and inventory artifacts', () => {
-      const goodData: GOODFormat = {
-        format: 'GOOD',
-        version: 3,
-        source: 'Genshin Progress Tracker',
-        characters: [
-          {
-            key: 'Furina',
-            level: 90,
-            ascension: 6,
-            constellation: 2,
-            talent: { auto: 9, skill: 10, burst: 10 },
-          },
-        ],
-        weapons: [
-          {
-            key: 'SplendorOfTranquilWaters',
-            level: 90,
-            ascension: 6,
-            refinement: 1,
-            location: 'Furina',
-            lock: true,
-          },
-        ],
+  describe('toGOODWithInventory', () => {
+    const makeInventoryArtifact = (overrides: Partial<InventoryArtifact> = {}): InventoryArtifact => ({
+      id: 'inv-artifact-1',
+      setKey: 'GoldenTroupe',
+      slotKey: 'flower',
+      level: 20,
+      rarity: 5,
+      mainStatKey: 'hp',
+      substats: [
+        { key: 'critRate_', value: 3.9 },
+        { key: 'critDMG_', value: 14.8 },
+        { key: 'hp_', value: 10.5 },
+        { key: 'def', value: 16 },
+      ],
+      location: 'Furina',
+      lock: true,
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+      ...overrides,
+    });
+
+    it('exports inventory artifacts as the single source of truth', () => {
+      // The character carries a stale embedded copy (+16) of a piece that the
+      // inventory table has at +20. The old dedup key (which ignored substats
+      // and matched on level) exported BOTH copies in this situation, creating
+      // a phantom artifact. Only the inventory copy may be exported.
+      const staleCharacter = {
+        ...mockCharacter,
         artifacts: [
-          // Equipped on Furina
-          {
-            setKey: 'GoldenTroupe',
-            slotKey: 'flower',
-            level: 20,
-            rarity: 5,
-            mainStatKey: 'hp',
-            location: 'Furina',
-            lock: true,
-            substats: [
-              { key: 'critRate_', value: 3.9 },
-              { key: 'critDMG_', value: 14.8 },
-            ],
-          },
-          // Unequipped artifact (should go into inventory)
-          {
-            setKey: 'EmblemOfSeveredFate',
-            slotKey: 'sands',
-            level: 20,
-            rarity: 5,
-            mainStatKey: 'enerRech_',
-            location: '',
-            lock: false,
-            substats: [
-              { key: 'critRate_', value: 10.5 },
-              { key: 'critDMG_', value: 21.0 },
-              { key: 'atk_', value: 11.7 },
-              { key: 'hp', value: 299 },
-            ],
-          },
+          { ...mockCharacter.artifacts[0], level: 16 },
         ],
       };
+      const freshInventoryCopy = makeInventoryArtifact({ level: 20 });
 
-      const result = fromGOODWithInventory(goodData);
+      const exported = toGOODWithInventory({
+        characters: [staleCharacter as Character],
+        inventoryArtifacts: [freshInventoryCopy],
+        inventoryWeapons: [],
+        materials: {},
+      });
 
-      // Should have 1 character
-      expect(result.characters).toHaveLength(1);
-      expect(result.characters[0].key).toBe('Furina');
-
-      // Should have 2 inventory artifacts (both equipped and unequipped)
-      expect(result.inventoryArtifacts).toHaveLength(2);
-
-      // The unequipped one should have empty location
-      const unequipped = result.inventoryArtifacts.find(
-        (a) => a.setKey === 'EmblemOfSeveredFate'
-      );
-      expect(unequipped).toBeDefined();
-      expect(unequipped!.location).toBe('');
-      expect(unequipped!.substats).toHaveLength(4);
+      expect(exported.artifacts).toHaveLength(1);
+      expect(exported.artifacts![0].level).toBe(20);
+      expect(exported.artifacts![0].location).toBe('Furina');
     });
 
-    it('should handle GOOD v3 with materials', () => {
-      const goodData: GOODFormat = {
-        format: 'GOOD',
-        version: 3,
-        source: 'Test',
-        materials: { 'MoraItem': 1000000, 'HeroWit': 200 },
+    it('does not export a stale embedded copy when inventory has the same key', () => {
+      // Same set/slot/mainStat/level but different substats: previously the
+      // embedded (stale) copy shadowed the fresh inventory copy.
+      const embeddedSubstats = [{ key: 'atk_', value: 5.0 }];
+      const staleCharacter = {
+        ...mockCharacter,
+        artifacts: [{ ...mockCharacter.artifacts[0], substats: embeddedSubstats }],
+      };
+      const freshInventoryCopy = makeInventoryArtifact();
+
+      const exported = toGOODWithInventory({
+        characters: [staleCharacter as Character],
+        inventoryArtifacts: [freshInventoryCopy],
+        inventoryWeapons: [],
+        materials: {},
+      });
+
+      expect(exported.artifacts).toHaveLength(1);
+      expect(exported.artifacts![0].substats).toHaveLength(4);
+      expect(exported.artifacts![0].substats[0]).toEqual({ key: 'critRate_', value: 3.9 });
+    });
+
+    it('falls back to character-embedded artifacts when inventory is empty', () => {
+      const exported = toGOODWithInventory({
+        characters: [mockCharacter as Character],
+        inventoryArtifacts: [],
+        inventoryWeapons: [],
+        materials: { MoraItem: 100 },
+      });
+
+      expect(exported.artifacts).toHaveLength(2);
+      expect(exported.artifacts!.every((a) => a.location === 'Furina')).toBe(true);
+    });
+
+    it('exports inventory weapons as the source of truth when present', () => {
+      const inventoryWeapon: InventoryWeapon = {
+        id: 'inv-weapon-1',
+        key: 'FavoniusSword',
+        level: 90,
+        ascension: 6,
+        refinement: 5,
+        location: '',
+        lock: false,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
       };
 
-      const result = fromGOODWithInventory(goodData);
+      const exported = toGOODWithInventory({
+        characters: [mockCharacter as Character],
+        inventoryArtifacts: [],
+        inventoryWeapons: [inventoryWeapon],
+        materials: {},
+      });
 
-      expect(result.materials).toEqual({ 'MoraItem': 1000000, 'HeroWit': 200 });
+      expect(exported.weapons).toHaveLength(1);
+      expect(exported.weapons![0].key).toBe('FavoniusSword');
     });
 
-    it('should generate deterministic IDs for artifacts', () => {
-      const goodData: GOODFormat = {
-        format: 'GOOD',
-        version: 3,
-        source: 'Test',
-        artifacts: [
-          {
-            setKey: 'EmblemOfSeveredFate',
-            slotKey: 'sands',
-            level: 20,
-            rarity: 5,
-            mainStatKey: 'enerRech_',
-            location: '',
-            lock: false,
-            substats: [{ key: 'critRate_', value: 10.5 }],
-          },
-        ],
-      };
+    it('falls back to character-embedded weapons when inventory is empty', () => {
+      const exported = toGOODWithInventory({
+        characters: [mockCharacter as Character],
+        inventoryArtifacts: [],
+        inventoryWeapons: [],
+        materials: {},
+      });
 
-      const result1 = fromGOODWithInventory(goodData);
-      const result2 = fromGOODWithInventory(goodData);
-
-      // Same input should produce same ID (for dedup on re-import)
-      expect(result1.inventoryArtifacts[0].id).toBe(result2.inventoryArtifacts[0].id);
+      expect(exported.weapons).toHaveLength(1);
+      expect(exported.weapons![0].location).toBe('Furina');
     });
 
-    it('should extract unequipped weapons into inventory', () => {
-      const goodData: GOODFormat = {
-        format: 'GOOD',
-        version: 3,
-        source: 'Test',
-        weapons: [
-          {
-            key: 'FavoniusSword',
-            level: 90,
-            ascension: 6,
-            refinement: 5,
-            location: '',
-            lock: false,
-          },
-        ],
-      };
-
-      const result = fromGOODWithInventory(goodData);
-
-      expect(result.inventoryWeapons).toHaveLength(1);
-      expect(result.inventoryWeapons[0].key).toBe('FavoniusSword');
-      expect(result.inventoryWeapons[0].location).toBe('');
-    });
-
-    it('should round-trip through toGOODWithInventory and back', () => {
-      const unequippedArtifact: InventoryArtifact = {
+    it('round-trips through the Irminsul import pipeline', () => {
+      // Cross-device sync path: GOOD export on one device, imported on
+      // another through the (single) Irminsul/GOOD import pipeline.
+      const unequippedArtifact = makeInventoryArtifact({
         id: 'test-artifact-1',
         setKey: 'CrimsonWitchOfFlames',
         slotKey: 'goblet',
-        level: 20,
-        rarity: 5,
         mainStatKey: 'pyro_dmg_',
         substats: [
           { key: 'critRate_', value: 7.8 },
@@ -734,36 +711,33 @@ describe('GOOD Mapper', () => {
         ],
         location: '',
         lock: false,
-        createdAt: '2026-01-01',
-        updatedAt: '2026-01-01',
-      };
+      });
 
       const exported = toGOODWithInventory({
         characters: [mockCharacter as Character],
         inventoryArtifacts: [unequippedArtifact],
         inventoryWeapons: [],
-        materials: {},
+        materials: { MoraItem: 1000000 },
       });
 
-      const imported = fromGOODWithInventory(exported);
+      expect(validateIrminsulFormat(exported)).toBe(true);
+      const imported = fromIrminsul(exported);
 
-      // Characters should survive round-trip
       expect(imported.characters).toHaveLength(1);
+      expect(imported.materials).toEqual({ MoraItem: 1000000 });
 
-      // Should find the unequipped CW goblet in inventory
-      const cwGoblet = imported.inventoryArtifacts.find(
+      const cwGoblet = imported.artifacts.find(
         (a) => a.setKey === 'CrimsonWitchOfFlames' && a.slotKey === 'goblet'
       );
       expect(cwGoblet).toBeDefined();
       expect(cwGoblet!.mainStatKey).toBe('pyro_dmg_');
-      expect(cwGoblet!.substats).toHaveLength(4);
       expect(cwGoblet!.location).toBe('');
-    });
-
-    it('should throw error for invalid format', () => {
-      expect(() => fromGOODWithInventory({ format: 'INVALID' } as GOODFormat)).toThrow(
-        'Invalid format: expected GOOD format'
-      );
+      // Substat display order must survive the round-trip (matches game UI)
+      expect(cwGoblet!.substats.map((s) => s.key)).toEqual([
+        'critRate_', 'critDMG_', 'atk_', 'eleMas',
+      ]);
+      // IDs come from the shared Irminsul namespace, not a separate scheme
+      expect(cwGoblet!.id.startsWith('artifact:')).toBe(true);
     });
   });
 });

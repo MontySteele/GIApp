@@ -215,7 +215,7 @@ describe('importService', () => {
       expect(stored?.materials.mora).toBe(1000000);
     });
 
-    it('does not clear inventory when backup has no inventory data', async () => {
+    it('keeps local inventory and warns when backup omits the inventory tables', async () => {
       // Pre-populate
       await db.inventoryArtifacts.bulkPut([makeArtifact({ id: 'keep-me' })]);
 
@@ -223,9 +223,33 @@ describe('importService', () => {
       const result = await importBackup(makeBackup({}), 'replace');
       expect(result.success).toBe(true);
 
-      // Existing artifacts should be untouched
+      // Existing artifacts should be untouched, but the user must be told
+      // their local inventory may now be stale.
       expect(await db.inventoryArtifacts.count()).toBe(1);
       expect(await db.inventoryArtifacts.get('keep-me')).toBeDefined();
+      expect(result.warnings).toContainEqual(expect.stringContaining('artifact inventory'));
+    });
+
+    it('does not warn about missing inventory tables when local inventory is empty', async () => {
+      const result = await importBackup(makeBackup({}), 'replace');
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('clears local inventory when backup includes an empty inventory table', async () => {
+      // A backup exported from a device with zero artifacts is a faithful
+      // snapshot: importing it must replace (empty) local inventory too.
+      await db.inventoryArtifacts.bulkPut([
+        makeArtifact({ id: 'stale-1' }),
+        makeArtifact({ id: 'stale-2' }),
+      ]);
+
+      const result = await importBackup(makeBackup({ inventoryArtifacts: [] }), 'replace');
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+      expect(await db.inventoryArtifacts.count()).toBe(0);
     });
   });
 

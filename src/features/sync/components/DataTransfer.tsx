@@ -384,7 +384,9 @@ export default function DataTransfer({ onTransferComplete }: DataTransferProps) 
           </Button>
 
           <p className="text-xs text-slate-500">
-            Uses "Newer Wins" merge strategy by default. For more control, use the file import option.
+            Characters, wishes, notes, and other records merge using "Newer Wins".
+            Artifact, weapon, and material inventories are always replaced entirely
+            by the imported snapshot. For more control, use the file import option.
           </p>
         </div>
       )}

@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { Upload, FileJson, CheckCircle, AlertCircle, Package } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { fromGOODWithInventory, validateGOOD, type GOODFormat } from '@/mappers/good';
 import { writeLastImportSummary } from '@/features/sync/domain/lastImportSummary';
 import { buildRosterImportImpactSummary } from '@/features/sync/domain/rosterImportImpact';
-import { characterRepo } from '../repo/characterRepo';
-import { artifactRepo } from '@/features/artifacts/repo/artifactRepo';
-import { weaponRepo } from '@/features/weapons/repo/weaponRepo';
+import { parseIrminsulJson, importIrminsul } from '../services/irminsulImport';
 
 interface GOODImportProps {
   onSuccess: () => void;
@@ -15,6 +12,7 @@ interface GOODImportProps {
 
 export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
   const [jsonText, setJsonText] = useState('');
+  const [filename, setFilename] = useState<string | undefined>(undefined);
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
@@ -32,6 +30,7 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       setJsonText(text);
+      setFilename(file.name);
       setError('');
     };
     reader.onerror = () => {
@@ -46,54 +45,33 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
     setImportResult(null);
 
     try {
-      // Parse JSON
-      let data: unknown;
-      try {
-        data = JSON.parse(jsonText);
-      } catch {
-        throw new Error('Invalid JSON format');
-      }
+      const data = parseIrminsulJson(jsonText);
 
-      // Validate GOOD format
-      if (!validateGOOD(data)) {
-        throw new Error('Not a valid GOOD format file');
-      }
-
-      const goodData = data as GOODFormat;
-
-      // Convert to internal format (characters + inventory)
-      const result = fromGOODWithInventory(goodData);
-
-      if (result.characters.length === 0 && result.inventoryArtifacts.length === 0) {
+      if (!data.characters?.length && !data.artifacts?.length) {
         throw new Error('No characters or artifacts found in GOOD file');
       }
 
-      const characterCounts = result.characters.length > 0
-        ? await characterRepo.bulkUpsert(result.characters)
-        : { created: 0, updated: 0 };
+      // Shared import pipeline (same as the Irminsul importer): merges
+      // characters and reconciles artifact/weapon inventories against the
+      // snapshot so stale entries are removed instead of accumulating.
+      const result = await importIrminsul(data, {}, filename);
 
-      // Import inventory artifacts
-      if (result.inventoryArtifacts.length > 0) {
-        await artifactRepo.bulkUpsert(result.inventoryArtifacts);
-      }
-
-      // Import inventory weapons
-      if (result.inventoryWeapons.length > 0) {
-        await weaponRepo.bulkUpsert(result.inventoryWeapons);
+      if (!result.success) {
+        throw new Error(result.error || 'Import failed');
       }
 
       setImportResult({
         success: true,
-        characterCount: characterCounts.created + characterCounts.updated,
-        artifactCount: result.inventoryArtifacts.length,
-        weaponCount: result.inventoryWeapons.length,
+        characterCount: result.charactersImported + result.charactersUpdated,
+        artifactCount: result.artifactsImported,
+        weaponCount: result.weaponsImported,
       });
       writeLastImportSummary(buildRosterImportImpactSummary({
-        source: goodData.source || 'GOOD',
-        charactersCreated: characterCounts.created,
-        charactersUpdated: characterCounts.updated,
-        artifactsChanged: result.inventoryArtifacts.length,
-        weaponsChanged: result.inventoryWeapons.length,
+        source: data.source || 'GOOD',
+        charactersCreated: result.charactersImported,
+        charactersUpdated: result.charactersUpdated,
+        artifactsChanged: result.artifactsImported,
+        weaponsChanged: result.weaponsImported,
       }));
 
       // Auto-close after 2 seconds
@@ -152,6 +130,7 @@ export default function GOODImport({ onSuccess, onCancel }: GOODImportProps) {
             value={jsonText}
             onChange={(e) => {
               setJsonText(e.target.value);
+              setFilename(undefined);
               setError('');
             }}
           />
