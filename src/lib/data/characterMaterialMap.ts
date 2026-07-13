@@ -935,6 +935,13 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Treasure Hoarder Insignia', 'Silver Raven Insignia', 'Golden Raven Insignia'],
     weeklyBoss: 'Mask of the Virtuous Doctor',
   },
+  Sandrone: {
+    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Plume of the Fallen Watcher', localSpecialty: 'Subdetection Unit',
+    commonAscension: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    talentBook: 'Vagrancy', talentBookRegion: 'Nod-Krai',
+    commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
+    weeklyBoss: 'Madman\'s Restraint',
+  },
 };
 
 const NORMALIZED_MATERIAL_KEY_TO_KEY = Object.keys(CHARACTER_MATERIALS).reduce<Record<string, string>>(

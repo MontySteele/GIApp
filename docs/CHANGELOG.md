@@ -16,6 +16,15 @@
 ### Verification
 - Current branch verification: 150 Vitest files / 2075 tests passing, plus lint/build verification.
 
+## 2026-07-13 (Patch update 6.7 — Luna VIII)
+
+### Static game data
+- Version 6.7 "Luna VIII": added 5★ character Sandrone (Cryo Claymore). No new 4★ characters or artifact sets this patch.
+- Added signature weapon A Teaspoon of Transcendence (5★ Claymore), plus the previously missing Starcaller's Watch (5★ Catalyst) featured on the Citlali rerun weapon banner.
+- Added banner history for 6.7 phase 1 (Sandrone / Citlali) character and weapon banners, and phase 2 (Columbina / Raiden Shogun) character banner. Phase 2 featured 4★s and weapon banner are not yet announced.
+- Added ascension/talent material mappings for Sandrone (Vagrancy talent books, Plume of the Fallen Watcher boss material).
+- Patch pointer: 6.6 → 6.7.
+
 ## 2026-06-05 (Patch update 6.6 — Luna VII)
 
 ### Static game data

@@ -33,6 +33,39 @@ export interface CharacterBannerHistory {
 // Historical banner data (recent versions)
 // Note: This is a simplified dataset - expand as needed
 export const BANNER_HISTORY: BannerRecord[] = [
+  // Version 6.7 "Luna VIII" (released 2026-07-01)
+  {
+    id: '6.7-1-char',
+    version: '6.7',
+    phase: 1,
+    startDate: '2026-07-01',
+    endDate: '2026-07-21',
+    bannerType: 'character',
+    featured5Star: ['Sandrone', 'Citlali'],
+    featured4Star: ['Beidou', 'Diona', 'Freminet'],
+  },
+  {
+    id: '6.7-1-weapon',
+    version: '6.7',
+    phase: 1,
+    startDate: '2026-07-01',
+    endDate: '2026-07-21',
+    bannerType: 'weapon',
+    featured5Star: ['ATeaspoonOfTranscendence', 'StarcallersWatch'],
+    featured4Star: [],
+  },
+  // 6.7 phase 2 featured 4-stars and weapon banner not yet announced (end date
+  // estimated from the usual 3-week cadence).
+  {
+    id: '6.7-2-char',
+    version: '6.7',
+    phase: 2,
+    startDate: '2026-07-21',
+    endDate: '2026-08-11',
+    bannerType: 'character',
+    featured5Star: ['Columbina', 'RaidenShogun'],
+    featured4Star: [],
+  },
   // Version 6.6 "Luna VII" (released 2026-05-20)
   {
     id: '6.6-1-char',
@@ -320,12 +353,12 @@ export const BANNER_HISTORY: BannerRecord[] = [
 // All known 5-star characters for tracking
 export const ALL_5_STAR_CHARACTERS = [
   'Albedo', 'Alhaitham', 'Arataki Itto', 'Ayaka', 'Ayato',
-  'Baizhu', 'Chasca', 'Chiori', 'Citlali', 'Clorinde', 'Cyno',
+  'Baizhu', 'Chasca', 'Chiori', 'Citlali', 'Clorinde', 'Columbina', 'Cyno',
   'Dehya', 'Diluc', 'Emilie', 'Eula', 'Furina',
   'Ganyu', 'Hu Tao', 'Jean', 'Kazuha', 'Keqing',
   'Kinich', 'Klee', 'Kokomi', 'Linnea', 'Lohen', 'Lyney', 'Mavuika', 'Mona',
   'Mualani', 'Nahida', 'Navia', 'Neuvillette', 'Nicole', 'Nilou',
-  'Qiqi', 'Raiden', 'Shenhe', 'Sigewinne', 'Tartaglia',
+  'Qiqi', 'Raiden', 'Sandrone', 'Shenhe', 'Sigewinne', 'Tartaglia',
   'Tighnari', 'Venti', 'Wanderer', 'Wriothesley', 'Xiao',
   'Xianyun', 'Xilonen', 'Yae Miko', 'Yelan', 'Yoimiya', 'Zhongli',
 ] as const;

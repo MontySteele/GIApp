@@ -273,6 +273,9 @@ const CHARACTER_KEY_TO_ID: Record<string, number> = {
   'nicole': 10000130,
   'lohen': 10000131,
   'prune': 10000132,
+  // Version 6.7: Sandrone has no entry yet. Enka's docs repo still lags at
+  // 10000124 and the CDN serves no side icon for her under any known name, so
+  // an avatarId cannot be verified. Add her mapping once Enka publishes it.
 };
 
 /**
