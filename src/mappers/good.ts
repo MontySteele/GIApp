@@ -362,118 +362,10 @@ export interface InventoryExportData {
   materials: Record<string, number>;
 }
 
-/**
- * Result of importing GOOD format with inventory data
- */
-export interface GOODImportResult {
-  characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[];
-  inventoryArtifacts: Omit<InventoryArtifact, 'createdAt' | 'updatedAt'>[];
-  inventoryWeapons: Omit<InventoryWeapon, 'createdAt' | 'updatedAt'>[];
-  materials: Record<string, number>;
-}
-
-/**
- * Convert GOOD format to internal format including inventory artifacts/weapons.
- * Unlike fromGOOD(), this also extracts unequipped artifacts and weapons
- * that were exported via toGOODWithInventory().
- */
-export function fromGOODWithInventory(good: GOODFormat): GOODImportResult {
-  if (good.format !== 'GOOD') {
-    throw new Error('Invalid format: expected GOOD format');
-  }
-
-  const characters = fromGOOD(good);
-
-  const goodArtifacts = good.artifacts || [];
-  const goodWeapons = good.weapons || [];
-  const goodCharacters = good.characters || [];
-
-  // Build a set of character keys for location validation
-  const characterKeys = new Set(goodCharacters.map((c) => c.key));
-
-  // Track which artifacts are already embedded in characters (equipped artifacts)
-  // so we don't duplicate them in the inventory
-  const equippedArtifactKeys = new Set<string>();
-  for (const char of characters) {
-    for (const artifact of char.artifacts) {
-      equippedArtifactKeys.add(
-        `${char.key}:${artifact.setKey}:${artifact.slotKey}:${artifact.mainStatKey}:${artifact.level}`
-      );
-    }
-  }
-
-  // Extract ALL artifacts into inventory format (both equipped and unequipped)
-  // Track occurrences so that artifacts with identical visible properties
-  // get distinct IDs instead of silently colliding.
-  const inventoryArtifacts: Omit<InventoryArtifact, 'createdAt' | 'updatedAt'>[] = [];
-  const artifactKeyOccurrences = new Map<string, number>();
-
-  for (const a of goodArtifacts) {
-    // Generate deterministic ID from artifact properties
-    const substatStr = a.substats
-      .map((s) => `${s.key}:${s.value}`)
-      .sort()
-      .join('|');
-    const baseId = `good-${a.setKey}-${a.slotKey}-${a.mainStatKey}-${a.level}-${a.rarity}-${substatStr}`.replace(
-      /[^a-zA-Z0-9-_|:]/g,
-      ''
-    );
-
-    const occurrence = artifactKeyOccurrences.get(baseId) || 0;
-    artifactKeyOccurrences.set(baseId, occurrence + 1);
-    const id = occurrence === 0 ? baseId : `${baseId}-${occurrence}`;
-
-    // Only include location if the character exists in this export
-    const location = a.location && characterKeys.has(a.location) ? a.location : '';
-
-    inventoryArtifacts.push({
-      id,
-      setKey: a.setKey,
-      slotKey: toSlotKey(a.slotKey),
-      level: a.level,
-      rarity: a.rarity,
-      mainStatKey: a.mainStatKey,
-      substats: a.substats
-        .filter((s) => s.key !== '' && s.key !== undefined)
-        .map((s) => ({ key: s.key, value: s.value })),
-      location,
-      lock: a.lock,
-    });
-  }
-
-  // Extract unequipped weapons into inventory format
-  const equippedWeaponKeys = new Set<string>();
-  for (const char of characters) {
-    equippedWeaponKeys.add(`${char.key}:${char.weapon.key}`);
-  }
-
-  const inventoryWeapons: Omit<InventoryWeapon, 'createdAt' | 'updatedAt'>[] = [];
-
-  for (const w of goodWeapons) {
-    const location = w.location && characterKeys.has(w.location) ? w.location : '';
-    const id = `good-${w.key}-${w.level}-${w.ascension}-${w.refinement}-${location}`.replace(
-      /[^a-zA-Z0-9-_]/g,
-      ''
-    );
-
-    inventoryWeapons.push({
-      id,
-      key: w.key,
-      level: w.level,
-      ascension: w.ascension,
-      refinement: w.refinement,
-      location,
-      lock: w.lock,
-    });
-  }
-
-  return {
-    characters,
-    inventoryArtifacts,
-    inventoryWeapons,
-    materials: good.materials || {},
-  };
-}
+// NOTE: GOOD-format ingestion lives in src/mappers/irminsul.ts (fromIrminsul)
+// and src/features/roster/services/irminsulImport.ts. There is intentionally
+// no separate import path here: a second importer with its own ID scheme
+// caused duplicate/ghost inventory entries that could never reconcile.
 
 /**
  * Convert all data (characters + standalone inventory) to GOOD format for full export
@@ -481,20 +373,10 @@ export function fromGOODWithInventory(good: GOODFormat): GOODImportResult {
  */
 export function toGOODWithInventory(data: InventoryExportData): GOODFormat {
   const goodCharacters: GOODCharacter[] = [];
-  const goodWeapons: GOODWeapon[] = [];
-  const goodArtifacts: GOODArtifact[] = [];
 
-  // Track which artifacts and weapons are embedded in characters
-  const embeddedArtifactKeys = new Set<string>();
-  const embeddedWeaponKeys = new Set<string>();
-
-  // First, process characters and their equipped items
   for (const char of data.characters) {
-    const characterKey = toGoodCharacterKey(char.key);
-
-    // Add character
     goodCharacters.push({
-      key: characterKey,
+      key: toGoodCharacterKey(char.key),
       level: char.level,
       constellation: char.constellation,
       ascension: char.ascension,
@@ -504,87 +386,63 @@ export function toGOODWithInventory(data: InventoryExportData): GOODFormat {
         burst: char.talent.burst,
       },
     });
-
-    // Add weapon (from character's embedded weapon)
-    goodWeapons.push({
-      key: toGoodWeaponKey(char.weapon.key),
-      level: char.weapon.level,
-      ascension: char.weapon.ascension,
-      refinement: char.weapon.refinement,
-      location: characterKey,
-      lock: true,
-    });
-
-    // Mark this weapon as embedded
-    embeddedWeaponKeys.add(`${characterKey}:${char.weapon.key}`);
-
-    // Add artifacts from character's embedded artifacts
-    for (const artifact of char.artifacts) {
-      const maxLevel = getMaxArtifactLevel(artifact.rarity);
-      goodArtifacts.push({
-        setKey: toGoodArtifactSetKey(artifact.setKey),
-        slotKey: artifact.slotKey,
-        level: Math.min(artifact.level, maxLevel),
-        rarity: artifact.rarity,
-        mainStatKey: toGoodStatKey(artifact.mainStatKey),
-        location: characterKey,
-        lock: true,
-        substats: artifact.substats.map((substat) => ({
-          key: toGoodStatKey(substat.key),
-          value: substat.value,
-        })),
-      });
-    }
-
-    // Mark embedded artifacts
-    for (const artifact of char.artifacts) {
-      embeddedArtifactKeys.add(
-        `${characterKey}:${artifact.setKey}:${artifact.slotKey}:${artifact.mainStatKey}:${artifact.level}`
-      );
-    }
   }
 
-  // Add standalone inventory artifacts (unequipped ones)
-  for (const artifact of data.inventoryArtifacts) {
-    // Skip if already exported via character embedding
-    const artifactKey = `${artifact.location}:${artifact.setKey}:${artifact.slotKey}:${artifact.mainStatKey}:${artifact.level}`;
-    if (artifact.location && embeddedArtifactKeys.has(artifactKey)) {
-      continue;
-    }
+  // The inventory tables come from full account scans and already contain
+  // equipped items (with `location` set), so they are the source of truth.
+  // Character-embedded copies go stale between imports; merging them in by a
+  // substat-less dedup key used to export phantom duplicates whenever the two
+  // tables drifted. Only fall back to embedded copies when a table is empty
+  // (e.g., manually maintained rosters with no scan data).
+  const goodArtifacts: GOODArtifact[] =
+    data.inventoryArtifacts.length > 0
+      ? data.inventoryArtifacts.map((artifact) => ({
+          setKey: toGoodArtifactSetKey(artifact.setKey),
+          slotKey: artifact.slotKey,
+          level: Math.min(artifact.level, getMaxArtifactLevel(artifact.rarity)),
+          rarity: artifact.rarity,
+          mainStatKey: toGoodStatKey(artifact.mainStatKey),
+          location: artifact.location || '',
+          lock: artifact.lock,
+          substats: artifact.substats.map((substat) => ({
+            key: toGoodStatKey(substat.key),
+            value: substat.value,
+          })),
+        }))
+      : data.characters.flatMap((char) =>
+          char.artifacts.map((artifact) => ({
+            setKey: toGoodArtifactSetKey(artifact.setKey),
+            slotKey: artifact.slotKey,
+            level: Math.min(artifact.level, getMaxArtifactLevel(artifact.rarity)),
+            rarity: artifact.rarity,
+            mainStatKey: toGoodStatKey(artifact.mainStatKey),
+            location: toGoodCharacterKey(char.key),
+            lock: true,
+            substats: artifact.substats.map((substat) => ({
+              key: toGoodStatKey(substat.key),
+              value: substat.value,
+            })),
+          }))
+        );
 
-    const maxLevel = getMaxArtifactLevel(artifact.rarity);
-    goodArtifacts.push({
-      setKey: toGoodArtifactSetKey(artifact.setKey),
-      slotKey: artifact.slotKey,
-      level: Math.min(artifact.level, maxLevel),
-      rarity: artifact.rarity,
-      mainStatKey: toGoodStatKey(artifact.mainStatKey),
-      location: artifact.location || '',
-      lock: artifact.lock,
-      substats: artifact.substats.map((substat) => ({
-        key: toGoodStatKey(substat.key),
-        value: substat.value,
-      })),
-    });
-  }
-
-  // Add standalone inventory weapons (unequipped ones)
-  for (const weapon of data.inventoryWeapons) {
-    // Skip if already exported via character embedding
-    const weaponKey = `${weapon.location}:${weapon.key}`;
-    if (weapon.location && embeddedWeaponKeys.has(weaponKey)) {
-      continue;
-    }
-
-    goodWeapons.push({
-      key: toGoodWeaponKey(weapon.key),
-      level: weapon.level,
-      ascension: weapon.ascension,
-      refinement: weapon.refinement,
-      location: weapon.location || '',
-      lock: weapon.lock,
-    });
-  }
+  const goodWeapons: GOODWeapon[] =
+    data.inventoryWeapons.length > 0
+      ? data.inventoryWeapons.map((weapon) => ({
+          key: toGoodWeaponKey(weapon.key),
+          level: weapon.level,
+          ascension: weapon.ascension,
+          refinement: weapon.refinement,
+          location: weapon.location || '',
+          lock: weapon.lock,
+        }))
+      : data.characters.map((char) => ({
+          key: toGoodWeaponKey(char.weapon.key),
+          level: char.weapon.level,
+          ascension: char.weapon.ascension,
+          refinement: char.weapon.refinement,
+          location: toGoodCharacterKey(char.key),
+          lock: true,
+        }));
 
   const active = goodCharacters[0]?.key;
   const targets: GOODTarget[] =

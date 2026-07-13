@@ -391,31 +391,48 @@ export async function importBackup(
       }
       stageIndex++;
 
-      // Inventory Artifacts — replace wholesale since these represent a
-      // point-in-time snapshot, not individually authored records.
-      if (data.inventoryArtifacts?.length) {
+      // Inventory tables represent a point-in-time snapshot, not individually
+      // authored records, so the merge strategy does not apply: whenever the
+      // backup includes the table (even empty), replace local data wholesale.
+      // A backup that omits the table entirely leaves local data untouched,
+      // with a warning so stale inventories can't linger silently.
+
+      // Inventory Artifacts
+      if (data.inventoryArtifacts) {
         onProgress?.('Importing inventory artifacts...', (stageIndex / stages.length) * 100);
         await db.inventoryArtifacts.clear();
         await db.inventoryArtifacts.bulkPut(data.inventoryArtifacts);
         result.stats.inventoryArtifacts = { created: data.inventoryArtifacts.length, updated: 0, skipped: 0 };
+      } else if (await db.inventoryArtifacts.count() > 0) {
+        result.warnings.push(
+          'Backup did not include artifact inventory - existing local artifacts were kept and may be stale.'
+        );
       }
       stageIndex++;
 
-      // Inventory Weapons — same: replace wholesale.
-      if (data.inventoryWeapons?.length) {
+      // Inventory Weapons
+      if (data.inventoryWeapons) {
         onProgress?.('Importing inventory weapons...', (stageIndex / stages.length) * 100);
         await db.inventoryWeapons.clear();
         await db.inventoryWeapons.bulkPut(data.inventoryWeapons);
         result.stats.inventoryWeapons = { created: data.inventoryWeapons.length, updated: 0, skipped: 0 };
+      } else if (await db.inventoryWeapons.count() > 0) {
+        result.warnings.push(
+          'Backup did not include weapon inventory - existing local weapons were kept and may be stale.'
+        );
       }
       stageIndex++;
 
-      // Material Inventory — same: replace wholesale.
-      if (data.materialInventory?.length) {
+      // Material Inventory
+      if (data.materialInventory) {
         onProgress?.('Importing material inventory...', (stageIndex / stages.length) * 100);
         await db.materialInventory.clear();
         await db.materialInventory.bulkPut(data.materialInventory);
         result.stats.materialInventory = { created: data.materialInventory.length, updated: 0, skipped: 0 };
+      } else if (await db.materialInventory.count() > 0) {
+        result.warnings.push(
+          'Backup did not include material inventory - existing local materials were kept and may be stale.'
+        );
       }
       stageIndex++;
 
