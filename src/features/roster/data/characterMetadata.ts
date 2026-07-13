@@ -145,6 +145,8 @@ export const CHARACTER_METADATA: CharacterMetadata[] = [
   { key: 'Nicole', element: 'Pyro', weaponType: 'Catalyst', rarity: 5 },
   { key: 'Lohen', element: 'Cryo', weaponType: 'Polearm', rarity: 5 },
   { key: 'Prune', element: 'Anemo', weaponType: 'Catalyst', rarity: 4 },
+  // Version 6.7 (Luna VIII)
+  { key: 'Sandrone', element: 'Cryo', weaponType: 'Claymore', rarity: 5 },
 ];
 
 const metadataByKey = new Map<string, CharacterMetadata>();

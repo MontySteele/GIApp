@@ -88,6 +88,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'Verdict', name: 'Verdict', type: 'Claymore', rarity: 5 },
   { key: 'FangOfTheMountainKing', name: 'Fang of the Mountain King', type: 'Claymore', rarity: 5 },
   { key: 'AThousandBlazingSuns', name: 'A Thousand Blazing Suns', type: 'Claymore', rarity: 5 },
+  { key: 'ATeaspoonOfTranscendence', name: 'A Teaspoon of Transcendence', type: 'Claymore', rarity: 5 },
 
   // 4-Star Claymores
   { key: 'SerpentSpine', name: 'Serpent Spine', type: 'Claymore', rarity: 4 },
@@ -195,6 +196,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'SurfsUp', name: "Surf's Up", type: 'Catalyst', rarity: 5 },
   { key: 'CranesEchoingCall', name: "Crane's Echoing Call", type: 'Catalyst', rarity: 5 },
   { key: 'AngelosHeptades', name: "Angelos' Heptades", type: 'Catalyst', rarity: 5 },
+  { key: 'StarcallersWatch', name: "Starcaller's Watch", type: 'Catalyst', rarity: 5 },
 
   // 4-Star Catalysts
   { key: 'SacrificialFragments', name: 'Sacrificial Fragments', type: 'Catalyst', rarity: 4 },

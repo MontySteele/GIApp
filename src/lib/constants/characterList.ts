@@ -11,7 +11,7 @@ export interface CharacterInfo {
   weapon: 'Sword' | 'Claymore' | 'Polearm' | 'Bow' | 'Catalyst';
 }
 
-// Last updated for version 6.6
+// Last updated for version 6.7
 // See src/lib/constants/patchVersion.ts for the single source of truth.
 export const ALL_CHARACTERS: CharacterInfo[] = [
   // Traveler (special - can use multiple elements)
@@ -88,6 +88,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Varka', name: 'Varka', rarity: 5, element: 'Anemo', weapon: 'Claymore' },
   { key: 'Nicole', name: 'Nicole', rarity: 5, element: 'Pyro', weapon: 'Catalyst' },
   { key: 'Lohen', name: 'Lohen', rarity: 5, element: 'Cryo', weapon: 'Polearm' },
+  { key: 'Sandrone', name: 'Sandrone', rarity: 5, element: 'Cryo', weapon: 'Claymore' },
 
   // 4-Star Characters
   { key: 'Amber', name: 'Amber', rarity: 4, element: 'Pyro', weapon: 'Bow' },

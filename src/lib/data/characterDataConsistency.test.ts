@@ -45,6 +45,8 @@ const EXPECTED_CHARACTER_LIST_AVATAR_GAPS = new Set([
   // Element-specific Traveler rows intentionally resolve to the generic
   // Aether/Lumine avatar only when imported from account data.
   ...TRAVELER_ELEMENT_KEYS,
+  // Released in 6.7, but Enka has not published her avatarId/icon yet.
+  'Sandrone',
 ]);
 
 const EXPECTED_GCSIM_EXPORT_GAPS = new Set([
@@ -65,6 +67,7 @@ const EXPECTED_GCSIM_EXPORT_GAPS = new Set([
   'Nefer',
   'Nicole',
   'Prune',
+  'Sandrone',
   'Varka',
   'Zibai',
 ]);
