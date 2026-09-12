@@ -1,3 +1,4 @@
+import { normalizeCharacterKey } from '@/lib/constants/characterList';
 /**
  * Banner History Data
  *
@@ -147,7 +148,7 @@ export const BANNER_HISTORY: BannerRecord[] = [
     endDate: '2025-01-21',
     bannerType: 'character',
     featured5Star: ['Mavuika'],
-    featured4Star: ['Lan Yan', 'Bennett', 'Chevreuse'],
+    featured4Star: ['LanYan', 'Bennett', 'Chevreuse'],
   },
   {
     id: '5.3-2-char',
@@ -198,7 +199,7 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2024-10-29',
     endDate: '2024-11-19',
     bannerType: 'character',
-    featured5Star: ['Hu Tao', 'Nahida'],
+    featured5Star: ['HuTao', 'Nahida'],
     featured4Star: ['Xingqiu', 'Diona', 'Collei'],
   },
   // Version 5.0
@@ -209,8 +210,8 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2024-08-28',
     endDate: '2024-09-17',
     bannerType: 'character',
-    featured5Star: ['Mualani', 'Kazuha'],
-    featured4Star: ['Kachina', 'Bennett', 'Heizou'],
+    featured5Star: ['Mualani', 'KaedeharaKazuha'],
+    featured4Star: ['Kachina', 'Bennett', 'ShikanoinHeizou'],
   },
   {
     id: '5.0-2-char',
@@ -219,7 +220,7 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2024-09-17',
     endDate: '2024-10-08',
     bannerType: 'character',
-    featured5Star: ['Kinich', 'Raiden'],
+    featured5Star: ['Kinich', 'RaidenShogun'],
     featured4Star: ['Thoma', 'Sayu', 'Sucrose'],
   },
   // Version 4.8
@@ -293,8 +294,8 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2024-03-13',
     endDate: '2024-04-02',
     bannerType: 'character',
-    featured5Star: ['Chiori', 'Arataki Itto'],
-    featured4Star: ['Gorou', 'Yun Jin', 'Dori'],
+    featured5Star: ['Chiori', 'AratakiItto'],
+    featured4Star: ['Gorou', 'YunJin', 'Dori'],
   },
   {
     id: '4.5-2-char',
@@ -303,7 +304,7 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2024-04-02',
     endDate: '2024-04-23',
     bannerType: 'character',
-    featured5Star: ['Neuvillette', 'Kazuha'],
+    featured5Star: ['Neuvillette', 'KaedeharaKazuha'],
     featured4Star: ['Faruzan', 'Xiangling', 'Noelle'],
   },
   // Version 4.4
@@ -324,7 +325,7 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2024-02-20',
     endDate: '2024-03-12',
     bannerType: 'character',
-    featured5Star: ['Xiao', 'Yae Miko'],
+    featured5Star: ['Xiao', 'YaeMiko'],
     featured4Star: ['Yaoyao', 'Ningguang', 'Xinyan'],
   },
   // Version 4.3
@@ -335,7 +336,7 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2023-12-20',
     endDate: '2024-01-09',
     bannerType: 'character',
-    featured5Star: ['Navia', 'Ayaka'],
+    featured5Star: ['Navia', 'KamisatoAyaka'],
     featured4Star: ['Chevreuse', 'Sucrose', 'Diona'],
   },
   {
@@ -345,22 +346,22 @@ export const BANNER_HISTORY: BannerRecord[] = [
     startDate: '2024-01-09',
     endDate: '2024-01-30',
     bannerType: 'character',
-    featured5Star: ['Raiden', 'Yoimiya'],
+    featured5Star: ['RaidenShogun', 'Yoimiya'],
     featured4Star: ['Chevreuse', 'Bennett', 'Xiangling'],
   },
 ];
 
 // All known 5-star characters for tracking
 export const ALL_5_STAR_CHARACTERS = [
-  'Albedo', 'Alhaitham', 'Arataki Itto', 'Ayaka', 'Ayato',
+  'Albedo', 'Alhaitham', 'AratakiItto', 'KamisatoAyaka', 'KamisatoAyato',
   'Baizhu', 'Chasca', 'Chiori', 'Citlali', 'Clorinde', 'Columbina', 'Cyno',
   'Dehya', 'Diluc', 'Emilie', 'Eula', 'Furina',
-  'Ganyu', 'Hu Tao', 'Jean', 'Kazuha', 'Keqing',
-  'Kinich', 'Klee', 'Kokomi', 'Linnea', 'Lohen', 'Lyney', 'Mavuika', 'Mona',
+  'Ganyu', 'HuTao', 'Jean', 'KaedeharaKazuha', 'Keqing',
+  'Kinich', 'Klee', 'SangonomiyaKokomi', 'Linnea', 'Lohen', 'Lyney', 'Mavuika', 'Mona',
   'Mualani', 'Nahida', 'Navia', 'Neuvillette', 'Nicole', 'Nilou',
-  'Qiqi', 'Raiden', 'Sandrone', 'Shenhe', 'Sigewinne', 'Tartaglia',
+  'Qiqi', 'RaidenShogun', 'Sandrone', 'Shenhe', 'Sigewinne', 'Tartaglia',
   'Tighnari', 'Venti', 'Wanderer', 'Wriothesley', 'Xiao',
-  'Xianyun', 'Xilonen', 'Yae Miko', 'Yelan', 'Yoimiya', 'Zhongli',
+  'Xianyun', 'Xilonen', 'YaeMiko', 'Yelan', 'Yoimiya', 'Zhongli',
 ] as const;
 
 /**
@@ -371,7 +372,7 @@ export function getCharacterBannerHistory(characterKey: string): CharacterBanner
     .filter(
       (b) =>
         b.bannerType === 'character' &&
-        b.featured5Star.some((c) => c.toLowerCase() === characterKey.toLowerCase())
+        b.featured5Star.some((c) => normalizeCharacterKey(c) === normalizeCharacterKey(characterKey))
     )
     .map((b) => ({
       version: b.version,

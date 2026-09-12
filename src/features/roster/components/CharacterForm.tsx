@@ -1,3 +1,4 @@
+import { normalizeCharacterKey } from '@/lib/characterKeys';
 import { useState, useMemo } from 'react';
 import { Save, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -73,7 +74,7 @@ export default function CharacterForm({ onSubmit, onCancel, initialData }: Chara
 
     try {
       await onSubmit({
-        key: formData.key,
+        key: normalizeCharacterKey(formData.key),
         level: formData.level,
         ascension: formData.ascension,
         constellation: formData.constellation,

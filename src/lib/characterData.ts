@@ -1,3 +1,5 @@
+import { normalizeCharacterKey, getCharacterByKey } from '@/lib/constants/characterList';
+
 // Character avatar ID to icon name mapping (for Enka CDN)
 // Maps avatarId to the internal icon name used in Enka's CDN
 // Source: https://github.com/EnkaNetwork/API-docs/blob/master/store/characters.json
@@ -343,18 +345,15 @@ function toPascalCase(value: string): string {
 }
 
 /**
- * Formats a character key to a GOOD/GO-compatible key
+ * Formats a character key to a GOOD/GO-compatible key.
+ * Delegates to normalizeCharacterKey so legacy short keys ("Ayaka") become real
+ * GOOD keys ("KamisatoAyaka") instead of being passed through unchanged.
  */
 export function toGoodCharacterKey(characterKey: string): string {
   if (!characterKey) {
     return characterKey;
   }
-
-  if (/[^A-Za-z0-9]/.test(characterKey)) {
-    return toPascalCase(characterKey);
-  }
-
-  return characterKey;
+  return normalizeCharacterKey(characterKey);
 }
 
 /**
@@ -379,6 +378,10 @@ export function toGoodWeaponKey(weaponKey: string): string {
  */
 export function getDisplayName(key: string): string {
   if (!key) return key;
+
+  // Known characters: use the real name (handles "HuTao" → "Hu Tao", "Ayaka" → "Kamisato Ayaka")
+  const known = getCharacterByKey(key);
+  if (known) return known.name;
 
   // If the key already contains spaces, return as-is
   if (key.includes(' ')) return key;

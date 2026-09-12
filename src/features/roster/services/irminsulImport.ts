@@ -10,6 +10,7 @@
  * 6. Record the import for tracking
  */
 
+import { normalizeCharacterKey } from '@/lib/characterKeys';
 import { db } from '@/db/schema';
 import {
   validateIrminsulFormat,
@@ -126,11 +127,13 @@ export async function importIrminsul(
               charactersImported++;
             }
           } else {
-            // Merge with existing characters
+            // Merge with existing characters (matched on the canonical key so an
+            // Enka/GOOD/manual row for the same character is one row)
             const existingCharacters = await db.characters.toArray();
-            const existingByKey = new Map(existingCharacters.map((c) => [c.key, c]));
+            const existingByKey = new Map(existingCharacters.map((c) => [normalizeCharacterKey(c.key), c]));
 
             for (const importedChar of result.characters) {
+              importedChar.key = normalizeCharacterKey(importedChar.key);
               const existing = existingByKey.get(importedChar.key);
 
               if (existing) {

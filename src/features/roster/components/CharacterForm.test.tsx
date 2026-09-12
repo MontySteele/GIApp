@@ -4,7 +4,8 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import CharacterForm from './CharacterForm';
 
 // Mock the character and weapon lists so the SearchableSelect has known options
-vi.mock('@/lib/constants/characterList', () => ({
+vi.mock('@/lib/constants/characterList', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/constants/characterList')>()),
   ALL_CHARACTERS: [
     { key: 'Furina', name: 'Furina', rarity: 5, element: 'Hydro', weapon: 'Sword' },
     { key: 'HuTao', name: 'Hu Tao', rarity: 5, element: 'Pyro', weapon: 'Polearm' },

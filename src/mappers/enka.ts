@@ -1,3 +1,4 @@
+import { normalizeCharacterKey } from '@/lib/characterKeys';
 import { db } from '@/db/schema';
 import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry';
 import type { Character, SlotKey } from '@/types';
@@ -530,6 +531,31 @@ export function resolveEnkaTalents(
   };
 }
 
+/** Traveler skill depots: 50x (Aether) / 70x (Lumine); the last digit is the element. */
+const TRAVELER_DEPOT_ELEMENT: Record<number, string> = {
+  1: 'Pyro',
+  2: 'Cryo',
+  3: 'Hydro',
+  4: 'Anemo',
+  6: 'Geo',
+  7: 'Electro',
+  8: 'Dendro',
+};
+
+/**
+ * Canonical GOOD key for an Enka avatar. Traveler resolves to the element-specific
+ * key this app uses (TravelerAnemo, …) from the skill depot.
+ */
+export function resolveEnkaCharacterKey(avatarId: number, skillDepotId?: number): string {
+  const mapped = CHARACTER_ID_MAP[avatarId];
+  if (!mapped) return `Unknown_${avatarId}`;
+  if (mapped === 'Traveler') {
+    const element = skillDepotId !== undefined ? TRAVELER_DEPOT_ELEMENT[skillDepotId % 100] : undefined;
+    return element ? `Traveler${element}` : 'TravelerAnemo';
+  }
+  return normalizeCharacterKey(mapped);
+}
+
 /**
  * Convert Enka.network response to internal Character format
  */
@@ -542,7 +568,7 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
 
   for (const avatar of enkaResponse.avatarInfoList) {
     try {
-      const characterKey = CHARACTER_ID_MAP[avatar.avatarId] || `Unknown_${avatar.avatarId}`;
+      const characterKey = resolveEnkaCharacterKey(avatar.avatarId, avatar.skillDepotId);
 
       // Extract level and ascension
       const level = parseInt(avatar.propMap[PROP_TYPES.LEVEL]?.ival || '1');

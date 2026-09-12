@@ -4,6 +4,7 @@
  */
 
 export interface CharacterInfo {
+  /** Canonical GOOD-format key (PascalCase of the full name, e.g. "KamisatoAyaka", "HuTao"). */
   key: string;
   name: string;
   rarity: 4 | 5;
@@ -25,9 +26,9 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   // 5-Star Characters
   { key: 'Albedo', name: 'Albedo', rarity: 5, element: 'Geo', weapon: 'Sword' },
   { key: 'Alhaitham', name: 'Alhaitham', rarity: 5, element: 'Dendro', weapon: 'Sword' },
-  { key: 'Arataki Itto', name: 'Arataki Itto', rarity: 5, element: 'Geo', weapon: 'Claymore' },
-  { key: 'Ayaka', name: 'Kamisato Ayaka', rarity: 5, element: 'Cryo', weapon: 'Sword' },
-  { key: 'Ayato', name: 'Kamisato Ayato', rarity: 5, element: 'Hydro', weapon: 'Sword' },
+  { key: 'AratakiItto', name: 'Arataki Itto', rarity: 5, element: 'Geo', weapon: 'Claymore' },
+  { key: 'KamisatoAyaka', name: 'Kamisato Ayaka', rarity: 5, element: 'Cryo', weapon: 'Sword' },
+  { key: 'KamisatoAyato', name: 'Kamisato Ayato', rarity: 5, element: 'Hydro', weapon: 'Sword' },
   { key: 'Baizhu', name: 'Baizhu', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
   { key: 'Chasca', name: 'Chasca', rarity: 5, element: 'Anemo', weapon: 'Bow' },
   { key: 'Chiori', name: 'Chiori', rarity: 5, element: 'Geo', weapon: 'Sword' },
@@ -41,13 +42,13 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Eula', name: 'Eula', rarity: 5, element: 'Cryo', weapon: 'Claymore' },
   { key: 'Furina', name: 'Furina', rarity: 5, element: 'Hydro', weapon: 'Sword' },
   { key: 'Ganyu', name: 'Ganyu', rarity: 5, element: 'Cryo', weapon: 'Bow' },
-  { key: 'Hu Tao', name: 'Hu Tao', rarity: 5, element: 'Pyro', weapon: 'Polearm' },
+  { key: 'HuTao', name: 'Hu Tao', rarity: 5, element: 'Pyro', weapon: 'Polearm' },
   { key: 'Jean', name: 'Jean', rarity: 5, element: 'Anemo', weapon: 'Sword' },
   { key: 'KaedeharaKazuha', name: 'Kaedehara Kazuha', rarity: 5, element: 'Anemo', weapon: 'Sword' },
   { key: 'Keqing', name: 'Keqing', rarity: 5, element: 'Electro', weapon: 'Sword' },
   { key: 'Kinich', name: 'Kinich', rarity: 5, element: 'Dendro', weapon: 'Claymore' },
   { key: 'Klee', name: 'Klee', rarity: 5, element: 'Pyro', weapon: 'Catalyst' },
-  { key: 'Kokomi', name: 'Sangonomiya Kokomi', rarity: 5, element: 'Hydro', weapon: 'Catalyst' },
+  { key: 'SangonomiyaKokomi', name: 'Sangonomiya Kokomi', rarity: 5, element: 'Hydro', weapon: 'Catalyst' },
   { key: 'Lyney', name: 'Lyney', rarity: 5, element: 'Pyro', weapon: 'Bow' },
   { key: 'Mavuika', name: 'Mavuika', rarity: 5, element: 'Pyro', weapon: 'Claymore' },
   { key: 'Mona', name: 'Mona', rarity: 5, element: 'Hydro', weapon: 'Catalyst' },
@@ -78,7 +79,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Flins', name: 'Flins', rarity: 5, element: 'Electro', weapon: 'Polearm' },
   { key: 'Lauma', name: 'Lauma', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
   { key: 'Linnea', name: 'Linnea', rarity: 5, element: 'Geo', weapon: 'Bow' },
-  { key: 'Mizuki', name: 'Yumemizuki Mizuki', rarity: 5, element: 'Anemo', weapon: 'Catalyst' },
+  { key: 'YumemizukiMizuki', name: 'Yumemizuki Mizuki', rarity: 5, element: 'Anemo', weapon: 'Catalyst' },
   { key: 'Nefer', name: 'Nefer', rarity: 5, element: 'Dendro', weapon: 'Catalyst' },
   { key: 'Skirk', name: 'Skirk', rarity: 5, element: 'Cryo', weapon: 'Sword' },
   { key: 'Varesa', name: 'Varesa', rarity: 5, element: 'Electro', weapon: 'Catalyst' },
@@ -107,13 +108,13 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Freminet', name: 'Freminet', rarity: 4, element: 'Cryo', weapon: 'Claymore' },
   { key: 'Gaming', name: 'Gaming', rarity: 4, element: 'Pyro', weapon: 'Claymore' },
   { key: 'Gorou', name: 'Gorou', rarity: 4, element: 'Geo', weapon: 'Bow' },
-  { key: 'Heizou', name: 'Shikanoin Heizou', rarity: 4, element: 'Anemo', weapon: 'Catalyst' },
+  { key: 'ShikanoinHeizou', name: 'Shikanoin Heizou', rarity: 4, element: 'Anemo', weapon: 'Catalyst' },
   { key: 'Kachina', name: 'Kachina', rarity: 4, element: 'Geo', weapon: 'Polearm' },
   { key: 'Kaeya', name: 'Kaeya', rarity: 4, element: 'Cryo', weapon: 'Sword' },
   { key: 'Kaveh', name: 'Kaveh', rarity: 4, element: 'Dendro', weapon: 'Claymore' },
   { key: 'Kirara', name: 'Kirara', rarity: 4, element: 'Dendro', weapon: 'Sword' },
-  { key: 'Kujou Sara', name: 'Kujou Sara', rarity: 4, element: 'Electro', weapon: 'Bow' },
-  { key: 'Kuki Shinobu', name: 'Kuki Shinobu', rarity: 4, element: 'Electro', weapon: 'Sword' },
+  { key: 'KujouSara', name: 'Kujou Sara', rarity: 4, element: 'Electro', weapon: 'Bow' },
+  { key: 'KukiShinobu', name: 'Kuki Shinobu', rarity: 4, element: 'Electro', weapon: 'Sword' },
   { key: 'LanYan', name: 'Lan Yan', rarity: 4, element: 'Anemo', weapon: 'Catalyst' },
   { key: 'Layla', name: 'Layla', rarity: 4, element: 'Cryo', weapon: 'Sword' },
   { key: 'Lisa', name: 'Lisa', rarity: 4, element: 'Electro', weapon: 'Catalyst' },
@@ -162,8 +163,96 @@ export function searchCharacters(query: string): CharacterInfo[] {
 }
 
 /**
- * Get character info by key
+ * Get character info by key. Accepts legacy/display-name variants (see normalizeCharacterKey).
  */
 export function getCharacterByKey(key: string): CharacterInfo | undefined {
-  return CHARACTER_BY_KEY.get(key);
+  return CHARACTER_BY_KEY.get(key) ?? CHARACTER_BY_KEY.get(normalizeCharacterKey(key));
+}
+
+// ---------------------------------------------------------------------------
+// Canonical key normalisation
+//
+// Three conventions used to coexist: GOOD keys ("KamisatoAyaka"), display names
+// ("Kamisato Ayaka", emitted by the Enka mapper) and short list keys ("Ayaka").
+// Imports merged by exact key, so one character could exist three times. Every
+// write path now goes through normalizeCharacterKey, and a startup data fix
+// rewrites rows created before this existed.
+// ---------------------------------------------------------------------------
+
+function collapseKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/** PascalCase a display name the way GOOD does ("Hu Tao" → "HuTao", "Traveler (Anemo)" → "TravelerAnemo"). */
+export function toPascalCharacterKey(value: string): string {
+  return value
+    .replace(/[''\u2019]s\b/g, 's')
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+}
+
+const EXTRA_CHARACTER_ALIASES: Record<string, string> = {
+  // Legacy short keys used by older versions of this app
+  ayaka: 'KamisatoAyaka',
+  ayato: 'KamisatoAyato',
+  itto: 'AratakiItto',
+  aratakiitto: 'AratakiItto',
+  kokomi: 'SangonomiyaKokomi',
+  heizou: 'ShikanoinHeizou',
+  mizuki: 'YumemizukiMizuki',
+  sara: 'KujouSara',
+  shinobu: 'KukiShinobu',
+  kuki: 'KukiShinobu',
+  // Common community short forms
+  kazuha: 'KaedeharaKazuha',
+  raiden: 'RaidenShogun',
+  shogun: 'RaidenShogun',
+  ei: 'RaidenShogun',
+  yae: 'YaeMiko',
+  miko: 'YaeMiko',
+  childe: 'Tartaglia',
+  scaramouche: 'Wanderer',
+  olorun: 'Ororon',
+  // Traveler variants without an element
+  traveler: 'TravelerAnemo',
+  aether: 'TravelerAnemo',
+  lumine: 'TravelerAnemo',
+};
+
+const CANONICAL_KEY_INDEX: Map<string, string> = (() => {
+  const index = new Map<string, string>();
+  for (const character of ALL_CHARACTERS) {
+    index.set(collapseKey(character.key), character.key);
+    index.set(collapseKey(character.name), character.key);
+  }
+  for (const [alias, key] of Object.entries(EXTRA_CHARACTER_ALIASES)) {
+    if (!index.has(alias)) index.set(alias, key);
+  }
+  return index;
+})();
+
+/**
+ * Returns the canonical GOOD key for any known character spelling: canonical key,
+ * display name, legacy short key, or common alias, in any casing/spacing.
+ * Unknown characters are returned in GOOD (PascalCase) form so a brand-new character
+ * still imports consistently from every source. Placeholder keys ("Unknown_10000130")
+ * pass through untouched.
+ */
+export function normalizeCharacterKey(input: string): string {
+  const trimmed = (input ?? '').trim();
+  if (!trimmed) return trimmed;
+  if (CHARACTER_BY_KEY.has(trimmed)) return trimmed;
+  if (/^Unknown_/i.test(trimmed)) return trimmed;
+  const canonical = CANONICAL_KEY_INDEX.get(collapseKey(trimmed));
+  if (canonical) return canonical;
+  return toPascalCharacterKey(trimmed);
+}
+
+/** True when the key (after normalisation) is a character this app knows about. */
+export function isKnownCharacterKey(input: string): boolean {
+  return CHARACTER_BY_KEY.has(normalizeCharacterKey(input));
 }

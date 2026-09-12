@@ -1,3 +1,4 @@
+import { normalizeCharacterKey } from '@/lib/characterKeys';
 import { describe, expect, it } from 'vitest';
 import { CHARACTER_METADATA, getCharacterMetadata } from '@/features/roster/data/characterMetadata';
 import { CHARACTER_KEY_MAP } from '@/features/teams/domain/gcsimKeyMappings';
@@ -35,14 +36,12 @@ const EXPECTED_CHARACTER_LIST_METADATA_GAPS = new Set([
 
 const EXPECTED_METADATA_ONLY_KEYS = new Set([
   // Generic or internal avatar identities, not wishlist/planner targets.
-  'Aether',
-  'Lumine',
+  // (Aether/Lumine/Olorun now resolve through normalizeCharacterKey aliases.)
   'Manekin',
   'Manekina',
   // Tracked as metadata only until they are added to planning/wishlist flows.
   'Avero',
   'Iljane',
-  'Olorun',
 ]);
 
 const EXPECTED_CHARACTER_LIST_AVATAR_GAPS = new Set([
@@ -115,7 +114,10 @@ const CHARACTER_LOOKUP = buildCharacterLookup();
 const CHARACTER_LIST_KEYS = new Set(ALL_CHARACTERS.map((character) => character.key));
 
 function resolveCharacterListKey(value: string): string | undefined {
-  return CHARACTER_LOOKUP.get(normalizeCharacterIdentity(value));
+  return (
+    CHARACTER_LOOKUP.get(normalizeCharacterIdentity(value)) ??
+    CHARACTER_LOOKUP.get(normalizeCharacterIdentity(normalizeCharacterKey(value)))
+  );
 }
 
 function characterAliases(character: CharacterInfo): string[] {

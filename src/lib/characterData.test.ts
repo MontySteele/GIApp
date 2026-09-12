@@ -272,7 +272,14 @@ describe('getDisplayName', () => {
     expect(getDisplayName('Furina')).toBe('Furina');
     expect(getDisplayName('Bennett')).toBe('Bennett');
     expect(getDisplayName('Xiao')).toBe('Xiao');
-    expect(getDisplayName('Itto')).toBe('Itto');
+    expect(getDisplayName('Zephyrion')).toBe('Zephyrion'); // unknown key passes through
+  });
+
+  it('resolves legacy short keys and aliases to the real name', () => {
+    expect(getDisplayName('Itto')).toBe('Arataki Itto');
+    expect(getDisplayName('Ayaka')).toBe('Kamisato Ayaka');
+    expect(getDisplayName('HuTao')).toBe('Hu Tao');
+    expect(getDisplayName('KamisatoAyaka')).toBe('Kamisato Ayaka');
   });
 
   it('handles special character names from metadata lookup', () => {

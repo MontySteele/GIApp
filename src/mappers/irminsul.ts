@@ -9,6 +9,7 @@
  * - Materials (counts)
  */
 
+import { normalizeCharacterKey } from '@/lib/characterKeys';
 import type {
   Character,
   InventoryArtifact,
@@ -259,14 +260,16 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
 
   // Process characters
   for (const char of data.characters || []) {
+    const canonicalKey = normalizeCharacterKey(char.key);
+    const isLocatedHere = (location: string | undefined) =>
+      !!location && (location === char.key || normalizeCharacterKey(location) === canonicalKey);
+
     // Find equipped weapon for this character
-    const equippedWeapon = (data.weapons || []).find(
-      (w) => w.location === char.key
-    );
+    const equippedWeapon = (data.weapons || []).find((w) => isLocatedHere(w.location));
 
     // Find equipped artifacts for this character
     const equippedArtifacts = (data.artifacts || [])
-      .filter((a) => a.location === char.key)
+      .filter((a) => isLocatedHere(a.location))
       .map((a) => ({
         setKey: a.setKey,
         slotKey: a.slotKey as SlotKey,
@@ -280,7 +283,7 @@ export function fromIrminsul(data: IrminsulFormat): IrminsulImportResult {
       }));
 
     characters.push({
-      key: char.key,
+      key: canonicalKey,
       level: char.level,
       ascension: char.ascension,
       constellation: char.constellation,

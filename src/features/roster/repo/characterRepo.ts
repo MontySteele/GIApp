@@ -1,3 +1,4 @@
+import { normalizeCharacterKey } from '@/lib/characterKeys';
 import { db } from '@/db/schema';
 import type { Character, Team } from '@/types';
 import { getAvatarIdFromKey } from '@/lib/characterData';
@@ -12,23 +13,41 @@ export const characterRepo = {
   },
 
   async getByKey(key: string): Promise<Character | undefined> {
-    return db.characters.where('key').equals(key).first();
+    return db.characters.where('key').equals(normalizeCharacterKey(key)).first();
   },
 
-  async create(character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  /**
+   * Create a character. If a row for the same character already exists (matched on
+   * the canonical key), it is updated in place and its id returned, so adding
+   * "Ayaka" by hand after an Enka import of "Kamisato Ayaka" never makes a duplicate.
+   */
+  async create(input: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const character = { ...input, key: normalizeCharacterKey(input.key) };
     const now = new Date().toISOString();
-    const id = crypto.randomUUID();
     const avatarId = character.avatarId ?? getAvatarIdFromKey(character.key);
 
-    await db.characters.add({
-      ...character,
-      ...(avatarId !== undefined ? { avatarId } : {}),
-      id,
-      createdAt: now,
-      updatedAt: now,
-    });
+    return db.transaction('rw', db.characters, async () => {
+      const existing = await db.characters.where('key').equals(character.key).first();
+      if (existing) {
+        await db.characters.update(existing.id, {
+          ...character,
+          ...(avatarId !== undefined ? { avatarId } : {}),
+          teamIds: Array.from(new Set([...(existing.teamIds ?? []), ...(character.teamIds ?? [])])),
+          updatedAt: now,
+        });
+        return existing.id;
+      }
 
-    return id;
+      const id = crypto.randomUUID();
+      await db.characters.add({
+        ...character,
+        ...(avatarId !== undefined ? { avatarId } : {}),
+        id,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return id;
+    });
   },
 
   async update(id: string, updates: Partial<Omit<Character, 'id' | 'createdAt'>>): Promise<void> {
@@ -126,7 +145,8 @@ export const characterRepo = {
       let created = 0;
       let updated = 0;
 
-      for (const char of characters) {
+      for (const input of characters) {
+        const char = { ...input, key: normalizeCharacterKey(input.key) };
         const existing = await db.characters.where('key').equals(char.key).first();
 
         if (existing) {

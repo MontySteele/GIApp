@@ -1,5 +1,6 @@
 import { db as defaultDb, type GenshinTrackerDB } from './schema';
 import { SCHEMA_VERSION } from './schemaVersion';
+import { runPendingDataFixes } from './dataFixes';
 
 // Migration guardrails:
 // - Schema versions (and any future `.upgrade()` transforms) live in schema.ts. All current
@@ -37,6 +38,9 @@ export async function initializeDatabase(database: GenshinTrackerDB = defaultDb)
 
     // Ensure app metadata is set up
     await ensureMetadata(database);
+
+    // Idempotent row-level repairs (e.g. canonical character keys)
+    await runPendingDataFixes(database);
 
     // Track schema version for debugging/diagnostics
     const schemaVersion = await database.appMeta.get('schemaVersion');
