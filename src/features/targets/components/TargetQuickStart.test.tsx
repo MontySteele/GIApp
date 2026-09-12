@@ -58,7 +58,7 @@ describe('TargetQuickStart', () => {
     await goToPreview(user);
 
     expect(screen.getByText('Get Furina')).toBeInTheDocument();
-    expect(screen.getByText(/hard-pity coverage/i)).toBeInTheDocument();
+    expect(screen.getByText(/worst-case coverage/i)).toBeInTheDocument();
     expect(screen.getByText(/more pulls before the banner target/i)).toBeInTheDocument();
     expect(screen.getByText(/manual mode is enough/i)).toBeInTheDocument();
 

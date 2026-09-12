@@ -19,6 +19,7 @@ const STANDARD_WEAPONS = new Set(
     "amos' bow",
     'aquila favonia',
     'lost prayer to the sacred winds',
+    'primordial jade winged-spear',
     'skyward atlas',
     'skyward blade',
     'skyward harp',

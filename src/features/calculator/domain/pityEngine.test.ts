@@ -56,15 +56,10 @@ describe('pityEngine', () => {
   });
 
   describe('getFeaturedProbability', () => {
-    it('should return 0.55 for normal 50/50 (base rate)', () => {
-      const prob = getFeaturedProbability(0, characterRules);
-      expect(prob).toBe(0.55);
-
-      const prob1Loss = getFeaturedProbability(1, characterRules);
-      expect(prob1Loss).toBe(0.55);
-
-      const prob2Losses = getFeaturedProbability(2, characterRules);
-      expect(prob2Losses).toBe(0.55);
+    it('follows the Capturing Radiance state machine (50% / 50% / 75% / 100%)', () => {
+      expect(getFeaturedProbability(0, characterRules)).toBe(0.5);
+      expect(getFeaturedProbability(1, characterRules)).toBe(0.5);
+      expect(getFeaturedProbability(2, characterRules)).toBe(0.75);
     });
 
     it('should return 1.0 with Capturing Radiance (3+ losses)', () => {
@@ -75,10 +70,10 @@ describe('pityEngine', () => {
       expect(prob4Losses).toBe(1.0);
     });
 
-    it('should return 0.5 for banners without Capturing Radiance', () => {
-      const weaponRules = GACHA_RULES.weapon;
-      const prob = getFeaturedProbability(5, weaponRules);
-      expect(prob).toBe(0.5); // Weapon banner doesn't have Capturing Radiance
+    it('uses the banner featured rate for banners without Capturing Radiance', () => {
+      expect(getFeaturedProbability(5, GACHA_RULES.weapon!)).toBe(0.75); // 75/25
+      expect(getFeaturedProbability(5, GACHA_RULES.chronicled!)).toBe(0.5);
+      expect(getFeaturedProbability(5, GACHA_RULES.standard!)).toBe(1); // any 5★ counts
     });
   });
 
@@ -241,7 +236,7 @@ describe('pityEngine', () => {
 
       expect(softPityStartProb).toBeGreaterThan(earlyPityProb);
       expect(hardPityProb).toBeGreaterThan(softPityStartProb);
-      expect(hardPityProb).toBeCloseTo(0.55, 2); // 100% 5-star * 55% featured
+      expect(hardPityProb).toBeCloseTo(0.5, 2); // 100% 5-star * 50% featured (streak 0)
     });
   });
 

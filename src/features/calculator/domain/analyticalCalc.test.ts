@@ -135,12 +135,13 @@ describe('analyticalCalc', () => {
     });
 
     it('should categorize feasibility as "possible" for moderate requirements', () => {
-      const result = calculateRequiredIncome(1, 0.8, 45, 0, false, 0, characterRules, 0, 0);
+      // 1 target at 50% over 120 days from zero pity: the 50% point of the featured
+      // distribution is ~75-80 pulls, i.e. roughly 100-110 primos/day: above F2P, below Welkin.
+      const result = calculateRequiredIncome(1, 0.5, 120, 0, false, 0, characterRules, 0, 0);
 
-      // This should require more than F2P but achievable with Welkin
-      if (result.requiredPrimosPerDay > 60 && result.requiredPrimosPerDay <= 150) {
-        expect(result.feasibility).toBe('possible');
-      }
+      expect(result.requiredPrimosPerDay).toBeGreaterThan(60);
+      expect(result.requiredPrimosPerDay).toBeLessThanOrEqual(150);
+      expect(result.feasibility).toBe('possible');
     });
 
     it('should categorize feasibility as "unlikely" for very high requirements', () => {

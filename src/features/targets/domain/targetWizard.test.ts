@@ -25,17 +25,17 @@ describe('target wizard preview', () => {
     expect(preview).toMatchObject({
       canCreate: true,
       title: 'Get Furina',
-      summary: '58% hard-pity coverage',
+      summary: '29% worst-case coverage',
       desiredCopies: 1,
-      pullShortfall: 38,
-      pullsPerDay: 1.3,
-      readinessPercent: 58,
+      pullShortfall: 128, // 180 worst case - (42 saved + 10 pity)
+      pullsPerDay: 4.3,
+      readinessPercent: 29,
       createHref: '/campaigns?type=character-acquisition&character=Furina&buildGoal=comfortable&copies=1&deadline=2026-06-10&pullPlan=1',
     });
     expect(preview.calculatorHref).toContain('/pulls/calculator?');
     expect(preview.adviceRows).toEqual([
-      'Worst case: you need 38 more pulls before the banner target.',
-      '1.3 pulls/day until your deadline.',
+      'Worst case (lose the 50/50, hit hard pity twice): you need 128 more pulls before the banner target.',
+      '4.3 pulls/day until your deadline.',
       'Manual mode is enough to start; importing wish history can refine the odds later.',
     ]);
   });
@@ -55,7 +55,7 @@ describe('target wizard preview', () => {
     });
 
     expect(preview.desiredCopies).toBe(1);
-    expect(preview.pullShortfall).toBe(65);
+    expect(preview.pullShortfall).toBe(65); // guaranteed: one hard pity (90) - 25
     expect(preview.createHref).toContain('constellation=1');
     expect(preview.createHref).toContain('budget=80');
     expect(preview.adviceRows).toContain('Guarantee is active, so the next character five-star is featured.');
@@ -74,8 +74,8 @@ describe('target wizard preview', () => {
     });
 
     expect(preview.desiredCopies).toBe(2);
-    expect(preview.pullShortfall).toBe(155);
-    expect(preview.adviceRows).toContain('Budget warning: 80 pulls is below the current hard-pity shortfall.');
+    expect(preview.pullShortfall).toBe(335); // 2 copies x 180 worst case - 25
+    expect(preview.adviceRows).toContain('Budget warning: 80 pulls is below the current worst-case shortfall.');
   });
 
   it('detects constellation targets the user already has', () => {

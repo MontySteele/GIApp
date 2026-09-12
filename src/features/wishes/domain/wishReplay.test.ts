@@ -169,7 +169,7 @@ describe('replayWishHistory', () => {
     expect(result.pityState.character.radiantStreak).toBe(0);
   });
 
-  it('accrues and spends weapon fate points against charted weapon', () => {
+  it('accrues and spends weapon fate points against charted weapon (1 fate point since 5.0)', () => {
     const wishes: TestWish[] = [
       createWish({
         id: 'wrong-weapon-1',
@@ -177,14 +177,7 @@ describe('replayWishHistory', () => {
         itemType: 'weapon',
         itemKey: 'Primordial Jade Winged-Spear',
         rarity: 5,
-      }),
-      createWish({
-        id: 'wrong-weapon-2',
-        bannerType: 'weapon',
-        itemType: 'weapon',
-        itemKey: 'Redhorn Stonethresher',
-        rarity: 5,
-        timestamp: '2024-01-01T00:01:00.000Z',
+        isFeatured: false,
       }),
       createWish({
         id: 'charted-hit',
@@ -192,15 +185,85 @@ describe('replayWishHistory', () => {
         itemType: 'weapon',
         itemKey: 'Aqua Simulacra',
         rarity: 5,
+        isFeatured: true,
         timestamp: '2024-01-01T00:02:00.000Z',
       }),
     ];
 
-    const result = replayWishHistory(wishes, { chartedWeapon: 'Aqua Simulacra' });
+    const midway = replayWishHistory(wishes.slice(0, 1), { chartedWeapon: 'Aqua Simulacra' });
+    expect(midway.pityState.weapon.fatePoints).toBe(1);
+    expect(midway.pityState.weapon.guaranteed).toBe(true); // lost the 75/25
+    expect(midway.pityState.weapon.fatePointsUnknown).toBe(false);
 
-    expect(result.computed['wrong-weapon-2'].wasGuaranteed).toBe(false);
-    expect(result.computed['charted-hit'].wasGuaranteed).toBe(true);
+    const result = replayWishHistory(wishes, { chartedWeapon: 'Aqua Simulacra' });
+    expect(result.computed['wrong-weapon-1'].wasGuaranteed).toBe(false);
+    expect(result.computed['charted-hit'].wasGuaranteed).toBe(true); // Epitomized Path forced it
     expect(result.pityState.weapon.fatePoints).toBe(0);
+    expect(result.pityState.weapon.guaranteed).toBe(false);
+  });
+
+  it('adds a fate point for the other rate-up weapon when the charted weapon is known', () => {
+    const wishes: TestWish[] = [
+      createWish({
+        id: 'other-rate-up',
+        bannerType: 'weapon',
+        itemType: 'weapon',
+        itemKey: 'Redhorn Stonethresher',
+        rarity: 5,
+        isFeatured: true,
+      }),
+    ];
+
+    const result = replayWishHistory(wishes, { chartedWeapon: 'Aqua Simulacra' });
+    expect(result.pityState.weapon.fatePoints).toBe(1);
+    expect(result.pityState.weapon.guaranteed).toBe(false); // won the 75/25, just not the charted one
+    expect(result.pityState.weapon.fatePointsUnknown).toBe(false);
+  });
+
+  it('flags fate points as unknown for a rate-up weapon when the charted weapon is unknown', () => {
+    const wishes: TestWish[] = [
+      createWish({
+        id: 'standard-loss',
+        bannerType: 'weapon',
+        itemType: 'weapon',
+        itemKey: 'Skyward Harp',
+        rarity: 5,
+        isFeatured: false,
+      }),
+      createWish({
+        id: 'rate-up-unknown',
+        bannerType: 'weapon',
+        itemType: 'weapon',
+        itemKey: 'Redhorn Stonethresher',
+        rarity: 5,
+        isFeatured: true,
+        timestamp: '2024-01-01T00:02:00.000Z',
+      }),
+    ];
+
+    const afterLoss = replayWishHistory(wishes.slice(0, 1));
+    expect(afterLoss.pityState.weapon.fatePoints).toBe(1); // a standard weapon is never charted
+
+    const result = replayWishHistory(wishes);
+    // With 1 fate point the rate-up 5★ must have been the charted one: reset.
+    expect(result.computed['rate-up-unknown'].wasGuaranteed).toBe(true);
+    expect(result.pityState.weapon.fatePoints).toBe(0);
+
+    const onlyRateUp = replayWishHistory(wishes.slice(1));
+    expect(onlyRateUp.pityState.weapon.fatePoints).toBe(0);
+    expect(onlyRateUp.pityState.weapon.fatePointsUnknown).toBe(true);
+  });
+
+  it('keeps manual (non-numeric id) wishes in input order when timestamps tie', () => {
+    const t = '2024-02-01T00:00:00.000Z';
+    const wishes: TestWish[] = [
+      createWish({ id: 'manual-b', gachaId: 'manual-b', rarity: 3, timestamp: t }),
+      createWish({ id: 'manual-a', gachaId: 'manual-a', rarity: 5, isFeatured: true, timestamp: t }),
+      createWish({ id: 'manual-c', gachaId: 'manual-c', rarity: 3, timestamp: t }),
+    ];
+    const result = replayWishHistory(wishes);
+    expect(result.computed['manual-a'].pityCount).toBe(2);
+    expect(result.pityState.character.pity).toBe(1);
   });
 
   it('tracks chronicled banner guarantee after losing featured pull', () => {

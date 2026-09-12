@@ -15,6 +15,7 @@ const basePityState: PityState = {
   fourStarPity: 0,
   guaranteed: false,
   fatePoints: 0,
+  fatePointsUnknown: false,
   radiantStreak: 0,
   radianceActive: false,
 };

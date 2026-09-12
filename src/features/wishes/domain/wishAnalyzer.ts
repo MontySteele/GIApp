@@ -1,5 +1,7 @@
 import type { BannerType } from '@/types';
 import { GACHA_RULES } from '@/lib/constants';
+import { isRadianceGuaranteed } from '@/lib/gacha/radiance';
+import { compareWishOrder } from './wishOrdering';
 
 export interface WishHistoryItem {
   id: string;
@@ -14,8 +16,11 @@ export interface WishHistoryItem {
 export interface PityState {
   fiveStarPity: number;
   fourStarPity: number;
+  /** Character/chronicled: featured guaranteed. Weapon: rate-up guaranteed (75/25 lost). */
   guaranteed: boolean;
   fatePoints: number;
+  /** Weapon banner: a rate-up 5★ was seen without knowing the charted weapon, so fate points may be stale. */
+  fatePointsUnknown: boolean;
   radiantStreak: number;
   radianceActive: boolean;
 }
@@ -59,15 +64,15 @@ interface ReplayResult {
 }
 
 function sortHistoryForReplay(history: WishHistoryItem[], bannerType: BannerType): WishHistoryItem[] {
+  // Same ordering as wishReplay: timestamp, then gacha ID (item.id is the HoYo gacha ID).
   return history
-    .map((wish, index) => ({ wish, index }))
-    .filter(({ wish }) => wish.banner === bannerType)
-    .sort((a, b) => {
-      const timeDiff = new Date(a.wish.time).getTime() - new Date(b.wish.time).getTime();
-      if (timeDiff !== 0) return timeDiff;
-      return a.index - b.index;
-    })
-    .map(({ wish }) => wish);
+    .filter((wish) => wish.banner === bannerType)
+    .sort((a, b) =>
+      compareWishOrder(
+        { timestamp: a.time, gachaId: a.id, id: a.id },
+        { timestamp: b.time, gachaId: b.id, id: b.id }
+      )
+    );
 }
 
 function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): ReplayResult {
@@ -79,7 +84,7 @@ function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): 
       fourStarPulls: [],
       fiveStarPityValues: [],
       fourStarPityValues: [],
-      pityState: { fiveStarPity: 0, fourStarPity: 0, guaranteed: false, fatePoints: 0, radiantStreak: 0, radianceActive: false },
+      pityState: { fiveStarPity: 0, fourStarPity: 0, guaranteed: false, fatePoints: 0, fatePointsUnknown: false, radiantStreak: 0, radianceActive: false },
       fiftyFiftyWon: 0,
       fiftyFiftyLost: 0,
     };
@@ -95,6 +100,7 @@ function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): 
   let fourStarPity = 0;
   let guaranteed = false;
   let fatePoints = 0;
+  let fatePointsUnknown = false;
   let radiantStreak = 0;
   let fiftyFiftyWon = 0;
   let fiftyFiftyLost = 0;
@@ -113,8 +119,7 @@ function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): 
       const wasGuaranteed = guaranteed;
       const isFeatured = wish.isFeatured;
       const resolvedFeatured = isFeatured ?? wasGuaranteed ?? true;
-      const triggeredRadiance =
-        rules.hasCapturingRadiance && radiantStreak >= (rules.radianceThreshold || 2);
+      const triggeredRadiance = !wasGuaranteed && isRadianceGuaranteed(radiantStreak, rules);
 
       fiveStarPulls.push({
         ...wish,
@@ -143,13 +148,23 @@ function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): 
       }
 
       if (bannerType === 'weapon' && rules.hasFatePoints) {
-        if (isFeatured !== false) {
+        const maxFatePoints = rules.maxFatePoints ?? 1;
+        if (fatePoints >= maxFatePoints) {
+          // Epitomized Path forced the charted weapon.
           fatePoints = 0;
+          fatePointsUnknown = false;
+          guaranteed = false;
+        } else if (isFeatured === false) {
+          // Lost the 75/25 to a standard weapon: +1 fate point, rate-up guaranteed next.
+          fatePoints = Math.min(maxFatePoints, fatePoints + 1);
+          guaranteed = true;
+          fiftyFiftyLost += 1;
         } else {
-          const nextFatePoints = fatePoints + 1;
-          fatePoints = rules.maxFatePoints
-            ? Math.min(rules.maxFatePoints, nextFatePoints)
-            : nextFatePoints;
+          // A rate-up weapon, but this surface does not know which weapon was charted,
+          // so it cannot tell a reset from +1. Leave fate points alone and flag it.
+          guaranteed = false;
+          fatePointsUnknown = true;
+          if (isFeatured === true) fiftyFiftyWon += 1;
         }
       }
 
@@ -170,10 +185,9 @@ function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): 
       fourStarPity,
       guaranteed,
       fatePoints,
+      fatePointsUnknown,
       radiantStreak,
-      radianceActive: rules.hasCapturingRadiance
-        ? radiantStreak >= (rules.radianceThreshold || 2)
-        : false,
+      radianceActive: isRadianceGuaranteed(radiantStreak, rules),
     },
     fiftyFiftyWon,
     fiftyFiftyLost,

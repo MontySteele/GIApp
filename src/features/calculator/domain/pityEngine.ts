@@ -1,4 +1,5 @@
 import type { GachaRules } from '../../../types';
+import { getRadianceFeaturedRate, isRadianceGuaranteed } from '../../../lib/gacha/radiance';
 
 /**
  * Calculate 5-star pull probability at a given pity count
@@ -16,37 +17,63 @@ export function getPullProbability(pity: number, rules: GachaRules): number {
 }
 
 /**
- * Calculate featured character probability (50/50 or Capturing Radiance)
- * Base rate is 55% (not 50%), with 100% guarantee after 3 consecutive losses
+ * Probability that a non-guaranteed 5★ is the featured (rate-up) item.
+ * Character banner: Capturing Radiance state machine (see lib/gacha/radiance.ts).
+ * Other banners: the banner's featuredRate (0.75 weapon, 0.5 chronicled, 1.0 standard = "any 5★").
  */
 export function getFeaturedProbability(radiantStreak: number, rules: GachaRules): number {
-  if (!rules.hasCapturingRadiance) return 0.5;
+  return getRadianceFeaturedRate(radiantStreak, rules);
+}
 
-  // Capturing Radiance activates after losing 50/50 three times consecutively
-  if (radiantStreak >= (rules.radianceThreshold || 3)) {
-    return 1.0; // Guaranteed featured after 3 losses
-  }
+export interface PullState {
+  pity: number;
+  /** Character/chronicled: featured guaranteed. Weapon: rate-up guaranteed (75/25 lost). */
+  guaranteed: boolean;
+  radiantStreak: number;
+  /** Weapon banner Epitomized Path fate points. */
+  fatePoints: number;
+}
 
-  return 0.55; // Base 55% win rate (not 50%)
+function maxFatePoints(rules: GachaRules): number {
+  return rules.maxFatePoints ?? 1;
 }
 
 /**
- * Simulate a single pull on character banner
+ * Probability that a 5★ obtained in this state is the *target* item
+ * (featured character, or the charted weapon on the weapon banner).
+ */
+export function getTargetProbability(state: PullState, rules: GachaRules): number {
+  if (rules.hasFatePoints) {
+    if (state.fatePoints >= maxFatePoints(rules)) return 1.0;
+    const rateUp = state.guaranteed ? 1.0 : (rules.featuredRate ?? 0.75);
+    return rateUp * (rules.chartedShare ?? 0.5);
+  }
+  if (state.guaranteed) return 1.0;
+  return getRadianceFeaturedRate(state.radiantStreak, rules);
+}
+
+export interface PullOutcome {
+  got5Star: boolean;
+  /** True when the 5★ was the target item (featured character / charted weapon). */
+  wasFeatured: boolean;
+  newPity: number;
+  newGuaranteed: boolean;
+  newRadiantStreak: number;
+  newFatePoints: number;
+  triggeredRadiance: boolean;
+}
+
+/**
+ * Simulate a single pull on any banner.
  */
 export function simulatePull(
   currentPity: number,
   isGuaranteed: boolean,
   radiantStreak: number,
   rules: GachaRules,
-  rng: () => number = Math.random
-): {
-  got5Star: boolean;
-  wasFeatured: boolean;
-  newPity: number;
-  newGuaranteed: boolean;
-  newRadiantStreak: number;
-  triggeredRadiance: boolean;
-} {
+  rng: () => number = Math.random,
+  fatePoints: number = 0
+): PullOutcome {
   const pullProb = getPullProbability(currentPity, rules);
   const got5Star = rng() < pullProb;
 
@@ -57,26 +84,64 @@ export function simulatePull(
       newPity: currentPity + 1,
       newGuaranteed: isGuaranteed,
       newRadiantStreak: radiantStreak,
+      newFatePoints: fatePoints,
       triggeredRadiance: false,
     };
   }
 
-  // Got a 5-star!
+  // --- Weapon banner: 75/25 + Epitomized Path ---
+  if (rules.hasFatePoints) {
+    if (fatePoints >= maxFatePoints(rules)) {
+      return {
+        got5Star: true,
+        wasFeatured: true,
+        newPity: 0,
+        newGuaranteed: false,
+        newRadiantStreak: 0,
+        newFatePoints: 0,
+        triggeredRadiance: false,
+      };
+    }
+    const isRateUp = isGuaranteed || rng() < (rules.featuredRate ?? 0.75);
+    if (!isRateUp) {
+      // Off-banner weapon: rate-up guaranteed next time, +1 fate point
+      return {
+        got5Star: true,
+        wasFeatured: false,
+        newPity: 0,
+        newGuaranteed: true,
+        newRadiantStreak: 0,
+        newFatePoints: Math.min(maxFatePoints(rules), fatePoints + 1),
+        triggeredRadiance: false,
+      };
+    }
+    const isCharted = rng() < (rules.chartedShare ?? 0.5);
+    return {
+      got5Star: true,
+      wasFeatured: isCharted,
+      newPity: 0,
+      newGuaranteed: false,
+      newRadiantStreak: 0,
+      newFatePoints: isCharted ? 0 : Math.min(maxFatePoints(rules), fatePoints + 1),
+      triggeredRadiance: false,
+    };
+  }
+
+  // --- Character / chronicled / standard ---
   if (isGuaranteed) {
-    // Guaranteed featured
     return {
       got5Star: true,
       wasFeatured: true,
       newPity: 0,
       newGuaranteed: false,
-      newRadiantStreak: 0,
+      newRadiantStreak: radiantStreak, // Guaranteed pulls do not touch the radiance streak
+      newFatePoints: 0,
       triggeredRadiance: false,
     };
   }
 
-  // 50/50 or Capturing Radiance
-  const featuredProb = getFeaturedProbability(radiantStreak, rules);
-  const triggeredRadiance = radiantStreak >= (rules.radianceThreshold || 2);
+  const featuredProb = getRadianceFeaturedRate(radiantStreak, rules);
+  const triggeredRadiance = isRadianceGuaranteed(radiantStreak, rules);
   const wasFeatured = rng() < featuredProb;
 
   return {
@@ -85,97 +150,114 @@ export function simulatePull(
     newPity: 0,
     newGuaranteed: !wasFeatured,
     newRadiantStreak: wasFeatured ? 0 : radiantStreak + 1,
+    newFatePoints: 0,
     triggeredRadiance,
   };
 }
 
 /**
- * Calculate cumulative probability distribution for getting featured character
- * Returns array of { pulls, probability } for each pull count
+ * Cumulative probability of obtaining the target item within N pulls, by exact
+ * dynamic programming over (pity, guaranteed, radiantStreak, fatePoints).
  */
 export function calculateDistribution(
   startPity: number,
   isGuaranteed: boolean,
   radiantStreak: number,
   maxPulls: number,
-  rules: GachaRules
+  rules: GachaRules,
+  startFatePoints: number = 0
 ): Array<{ pulls: number; probability: number }> {
-  // Dynamic programming approach
-  // State: (pity, guaranteed, radiantStreak) -> probability
+  const stateKey = (s: PullState) =>
+    `${s.pity}-${s.guaranteed ? 1 : 0}-${s.radiantStreak}-${s.fatePoints}`;
+  const parseKey = (key: string): PullState => {
+    const [p, g, r, f] = key.split('-');
+    return {
+      pity: parseInt(p ?? '0', 10),
+      guaranteed: g === '1',
+      radiantStreak: parseInt(r ?? '0', 10),
+      fatePoints: parseInt(f ?? '0', 10),
+    };
+  };
+  const fpMax = maxFatePoints(rules);
+  const streakCap = rules.radianceThreshold ?? 3;
 
-  interface State {
-    pity: number;
-    guaranteed: boolean;
-    radiantStreak: number;
-  }
-
-  const stateKey = (s: State) => `${s.pity}-${s.guaranteed ? 1 : 0}-${s.radiantStreak}`;
-
-  // Map of state -> probability of being in that state
   let currentStates = new Map<string, number>();
-  currentStates.set(stateKey({ pity: startPity, guaranteed: isGuaranteed, radiantStreak }), 1.0);
+  currentStates.set(
+    stateKey({ pity: startPity, guaranteed: isGuaranteed, radiantStreak, fatePoints: startFatePoints }),
+    1.0
+  );
 
   let cumulativeProbability = 0;
   const distribution: Array<{ pulls: number; probability: number }> = [];
+  const add = (map: Map<string, number>, s: PullState, mass: number) => {
+    if (mass <= 0) return;
+    const k = stateKey(s);
+    map.set(k, (map.get(k) || 0) + mass);
+  };
 
   for (let pullCount = 1; pullCount <= maxPulls; pullCount++) {
     const nextStates = new Map<string, number>();
 
     for (const [key, prob] of currentStates) {
-      const [pityStr, guaranteedStr, radiantStreakStr] = key.split('-');
-      const state = {
-        pity: parseInt(pityStr ?? '0'),
-        guaranteed: guaranteedStr === '1',
-        radiantStreak: parseInt(radiantStreakStr ?? '0'),
-      };
-
+      const state = parseKey(key);
       const pullProb = getPullProbability(state.pity, rules);
 
-      // Case 1: Don't get 5-star
+      // Case 1: no 5★
       if (pullProb < 1.0) {
-        const noStarProb = 1 - pullProb;
-        const nextState = {
-          pity: state.pity + 1,
-          guaranteed: state.guaranteed,
-          radiantStreak: state.radiantStreak,
-        };
-        const nextKey = stateKey(nextState);
-        nextStates.set(nextKey, (nextStates.get(nextKey) || 0) + prob * noStarProb);
+        add(nextStates, { ...state, pity: state.pity + 1 }, prob * (1 - pullProb));
       }
+      if (pullProb <= 0) continue;
 
-      // Case 2: Get 5-star
-      if (pullProb > 0) {
-        if (state.guaranteed) {
-          // Got featured character - success!
-          cumulativeProbability += prob * pullProb;
-        } else {
-          // 50/50 or Capturing Radiance
-          const featuredProb = getFeaturedProbability(state.radiantStreak, rules);
+      const mass5 = prob * pullProb;
 
-          // Got featured
-          cumulativeProbability += prob * pullProb * featuredProb;
-
-          // Lost 50/50
-          const nextState = {
-            pity: 0,
-            guaranteed: true,
-            radiantStreak: state.radiantStreak + 1,
-          };
-          const nextKey = stateKey(nextState);
-          nextStates.set(nextKey, (nextStates.get(nextKey) || 0) + prob * pullProb * (1 - featuredProb));
+      if (rules.hasFatePoints) {
+        // Weapon banner
+        if (state.fatePoints >= fpMax) {
+          cumulativeProbability += mass5;
+          continue;
         }
+        const rateUp = state.guaranteed ? 1.0 : (rules.featuredRate ?? 0.75);
+        const charted = rules.chartedShare ?? 0.5;
+        cumulativeProbability += mass5 * rateUp * charted;
+        // Rate-up but not charted
+        add(
+          nextStates,
+          { pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: Math.min(fpMax, state.fatePoints + 1) },
+          mass5 * rateUp * (1 - charted)
+        );
+        // Off-banner
+        add(
+          nextStates,
+          { pity: 0, guaranteed: true, radiantStreak: 0, fatePoints: Math.min(fpMax, state.fatePoints + 1) },
+          mass5 * (1 - rateUp)
+        );
+        continue;
       }
+
+      // Character / chronicled / standard
+      if (state.guaranteed) {
+        cumulativeProbability += mass5;
+        continue;
+      }
+      const featuredProb = getRadianceFeaturedRate(state.radiantStreak, rules);
+      cumulativeProbability += mass5 * featuredProb;
+      add(
+        nextStates,
+        {
+          pity: 0,
+          guaranteed: true,
+          radiantStreak: Math.min(streakCap, state.radiantStreak + 1),
+          fatePoints: 0,
+        },
+        mass5 * (1 - featuredProb)
+      );
     }
 
-    distribution.push({
-      pulls: pullCount,
-      probability: cumulativeProbability,
-    });
-
+    distribution.push({ pulls: pullCount, probability: Math.min(1, cumulativeProbability) });
     currentStates = nextStates;
 
-    // Early exit if we've reached near certainty
-    if (cumulativeProbability > 0.9999) break;
+    // Stop once the target is certain (hard pity makes this exact, not asymptotic).
+    if (cumulativeProbability >= 1 - 1e-12 || nextStates.size === 0) break;
   }
 
   return distribution;
@@ -189,9 +271,10 @@ export function pullsForProbability(
   startPity: number,
   isGuaranteed: boolean,
   radiantStreak: number,
-  rules: GachaRules
+  rules: GachaRules,
+  startFatePoints: number = 0
 ): number {
-  const distribution = calculateDistribution(startPity, isGuaranteed, radiantStreak, 300, rules);
+  const distribution = calculateDistribution(startPity, isGuaranteed, radiantStreak, 300, rules, startFatePoints);
 
   for (const point of distribution) {
     if (point.probability >= targetProb) {

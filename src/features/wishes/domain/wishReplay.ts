@@ -1,5 +1,7 @@
 import { GACHA_RULES } from '@/lib/constants';
+import { isRadianceGuaranteed } from '@/lib/gacha/radiance';
 import type { BannerPityState, ComputedWishData, WishRecord } from '@/types';
+import { sortWishesChronologically } from './wishOrdering';
 
 interface WishReplayOptions {
   chartedWeapon?: string | null;
@@ -23,7 +25,9 @@ const initialPityState: BannerPityState = {
   },
   weapon: {
     pity: 0,
+    guaranteed: false,
     fatePoints: 0,
+    fatePointsUnknown: false,
     chartedWeapon: null,
   },
   standard: {
@@ -35,45 +39,16 @@ const initialPityState: BannerPityState = {
   },
 };
 
-function compareGachaIds(a: string, b: string): number {
-  // Genshin gacha IDs are snowflake-like numeric strings where larger = later
-  // Compare by length first (longer number is bigger), then lexicographically
-  if (a.length !== b.length) return a.length - b.length;
-  return a.localeCompare(b);
-}
-
-function sortWishesByTime(wishes: WishWithMetadata[]): WishWithMetadata[] {
-  return [...wishes].sort((a, b) => {
-    const timeDiff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-    if (timeDiff !== 0) return timeDiff;
-
-    const createdDiff =
-      new Date(a.createdAt || a.timestamp).getTime() -
-      new Date(b.createdAt || b.timestamp).getTime();
-    if (createdDiff !== 0) return createdDiff;
-
-    // Use gachaId (original API ID) for ordering within same timestamp batch
-    // This preserves the actual pull order from the game API
-    if (a.gachaId && b.gachaId) {
-      return compareGachaIds(a.gachaId, b.gachaId);
-    }
-
-    return a.id.localeCompare(b.id);
-  });
-}
-
 function handleCharacterWish(
   wish: WishWithMetadata,
   state: BannerPityState,
   computed: Record<string, ComputedWishData>
 ) {
-  const characterRules = GACHA_RULES.character;
+  const characterRules = GACHA_RULES.character!;
   const pityCount = state.character.pity + 1;
   const wasGuaranteed = state.character.guaranteed;
   const triggeredRadiance =
-    !wasGuaranteed &&
-    typeof characterRules?.radianceThreshold === 'number' &&
-    state.character.radiantStreak >= characterRules.radianceThreshold;
+    !wasGuaranteed && isRadianceGuaranteed(state.character.radiantStreak, characterRules);
 
   if (wish.rarity === 5) {
     const isFeatured = wish.isFeatured ?? true;
@@ -114,29 +89,49 @@ function handleWeaponWish(
   chartedWeapon: string | null
 ) {
   const pityCount = state.weapon.pity + 1;
-  const maxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 2;
+  const maxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 1;
+  // "Guaranteed" for the computed row means the charted weapon was forced by Epitomized Path.
   const wasGuaranteed = state.weapon.fatePoints >= maxFatePoints;
 
   state.weapon.chartedWeapon = chartedWeapon;
 
   if (wish.rarity === 5) {
-    const hitCharted = chartedWeapon ? wish.itemKey === chartedWeapon : false;
-    const shouldReset = wasGuaranteed || hitCharted;
+    // isFeatured on weapon records means "is a rate-up weapon" (not in the standard pool).
+    const isRateUp = wish.isFeatured ?? true;
+    const hitCharted = chartedWeapon ? wish.itemKey === chartedWeapon : null;
 
     computed[wish.id] = {
       pityCount,
       wasGuaranteed,
-      won5050: null,
+      won5050: wasGuaranteed ? null : isRateUp,
       triggeredRadiance: false,
     };
 
-    if (chartedWeapon) {
-      state.weapon.fatePoints = shouldReset
-        ? 0
-        : Math.min(maxFatePoints, state.weapon.fatePoints + 1);
+    state.weapon.pity = 0;
+
+    if (wasGuaranteed || hitCharted === true) {
+      // Got the charted weapon: Epitomized Path resets, 75/25 guarantee consumed.
+      state.weapon.fatePoints = 0;
+      state.weapon.guaranteed = false;
+      state.weapon.fatePointsUnknown = false;
+      return;
     }
 
-    state.weapon.pity = 0;
+    if (!isRateUp) {
+      // Lost the 75/25 to a standard weapon: +1 fate point, next 5★ is a rate-up weapon.
+      state.weapon.fatePoints = Math.min(maxFatePoints, state.weapon.fatePoints + 1);
+      state.weapon.guaranteed = true;
+      return;
+    }
+
+    // Rate-up weapon that was not (or not known to be) the charted one.
+    state.weapon.guaranteed = false;
+    if (hitCharted === false) {
+      state.weapon.fatePoints = Math.min(maxFatePoints, state.weapon.fatePoints + 1);
+    } else {
+      // Charted weapon unknown: we cannot tell whether this reset or added a fate point.
+      state.weapon.fatePointsUnknown = true;
+    }
     return;
   }
 
@@ -195,7 +190,7 @@ export function replayWishHistory(
   wishes: WishWithMetadata[],
   options: WishReplayOptions = {}
 ): WishReplayResult {
-  const sortedWishes = sortWishesByTime(wishes);
+  const sortedWishes = sortWishesChronologically(wishes);
   const computed: Record<string, ComputedWishData> = {};
   const pityState: BannerPityState = structuredClone(initialPityState);
   const chartedWeapon = options.chartedWeapon ?? null;

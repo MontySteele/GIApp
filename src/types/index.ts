@@ -117,7 +117,11 @@ export interface BannerPityState {
   };
   weapon: {
     pity: number;
+    /** 75/25 guarantee: next 5★ is a rate-up weapon (not necessarily the charted one). */
+    guaranteed: boolean;
     fatePoints: number;
+    /** True when history contained a rate-up 5★ but the charted weapon was unknown, so fate points may be stale. */
+    fatePointsUnknown: boolean;
     chartedWeapon: string | null;
   };
   standard: {
@@ -242,14 +246,25 @@ export interface AppMeta {
 // Gacha Rules
 export interface GachaRules {
   version: string; // e.g., "5.0+"
-  softPityStart: number; // 74 for character
-  hardPity: number; // 90 for character
+  softPityStart: number; // Pity value at which the soft-pity ramp starts (73 = 74th pull for character)
+  hardPity: number; // 90 for character, 80 for weapon
   baseRate: number; // 0.006
   softPityRateIncrease: number; // 0.06 per pull
   hasCapturingRadiance: boolean;
-  radianceThreshold?: number; // Losses before radiance kicks in
+  radianceThreshold?: number; // Consecutive 50/50 losses at which the featured item is guaranteed (3)
+  /**
+   * Probability that a 5★ is a rate-up item when no guarantee is active.
+   * 0.5 for character/chronicled (50/50), 0.75 for weapon (75/25). Defaults to 0.5.
+   * Ignored on the character banner when Capturing Radiance is enabled.
+   */
+  featuredRate?: number;
+  /**
+   * Weapon banner only: share of rate-up 5★ that are the charted (Epitomized Path) weapon.
+   * There are two rate-up weapons, so 0.5.
+   */
+  chartedShare?: number;
   hasFatePoints?: boolean;
-  maxFatePoints?: number;
+  maxFatePoints?: number; // 1 since Version 5.0
 }
 
 // Calculator Scenarios

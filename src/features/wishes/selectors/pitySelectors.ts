@@ -1,4 +1,5 @@
 import { GACHA_RULES } from '@/lib/constants';
+import { isRadianceGuaranteed } from '@/lib/gacha/radiance';
 import type { BannerType, WishRecord } from '@/types';
 import { replayWishHistory } from '../domain/wishReplay';
 
@@ -9,6 +10,8 @@ export interface BannerPitySnapshot {
   radiantStreak: number;
   radianceActive: boolean;
   fatePoints?: number;
+  /** Weapon banner only: fate points could not be derived with certainty from history. */
+  fatePointsUnknown?: boolean;
 }
 
 const DEFAULT_STATE: Record<BannerType, BannerPitySnapshot> = {
@@ -55,8 +58,7 @@ function createDefaultState(): Record<BannerType, BannerPitySnapshot> {
 function getRadianceActive(radiantStreak: number): boolean {
   const characterRules = GACHA_RULES.character;
   if (!characterRules) return false;
-  const threshold = characterRules.radianceThreshold ?? 0;
-  return characterRules.hasCapturingRadiance && radiantStreak >= threshold;
+  return isRadianceGuaranteed(radiantStreak, characterRules);
 }
 
 export function getPityByBanner(wishes: WishRecord[]): Record<BannerType, BannerPitySnapshot> {
@@ -65,7 +67,8 @@ export function getPityByBanner(wishes: WishRecord[]): Record<BannerType, Banner
   }
 
   const { pityState } = replayWishHistory(wishes);
-  const weaponMaxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 2;
+  const weaponMaxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 1;
+  // "guaranteed" on the weapon snapshot = the charted weapon is forced by Epitomized Path.
   const weaponGuaranteed = (pityState.weapon.fatePoints ?? 0) >= weaponMaxFatePoints;
 
   return {
@@ -83,6 +86,7 @@ export function getPityByBanner(wishes: WishRecord[]): Record<BannerType, Banner
       radiantStreak: 0,
       radianceActive: false,
       fatePoints: pityState.weapon.fatePoints,
+      fatePointsUnknown: pityState.weapon.fatePointsUnknown,
     },
     standard: {
       banner: 'standard',

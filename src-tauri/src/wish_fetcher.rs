@@ -3,10 +3,11 @@ use std::collections::HashSet;
 
 const STANDARD_CHARACTERS: [&str; 7] = ["diluc", "jean", "keqing", "mona", "qiqi", "tighnari", "dehya"];
 
-const STANDARD_WEAPONS: [&str; 9] = [
+const STANDARD_WEAPONS: [&str; 10] = [
     "amos' bow",
     "aquila favonia",
     "lost prayer to the sacred winds",
+    "primordial jade winged-spear",
     "skyward atlas",
     "skyward blade",
     "skyward harp",
@@ -247,11 +248,6 @@ pub async fn fetch_banner_history(
 
         let url_string = url.to_string();
 
-        // Log the request URL for debugging (first iteration only)
-        if page == 1 {
-            eprintln!("DEBUG: Fetching from URL: {}", url_string);
-        }
-
         // Make the request (no custom headers needed)
         let response = client
             .get(&url_string)
@@ -265,7 +261,6 @@ pub async fn fetch_banner_history(
         if !status.is_success() {
             // Try to get response body for more details
             let body = response.text().await.unwrap_or_else(|_| "Could not read response body".to_string());
-            eprintln!("DEBUG: Response body: {}", body);
             return Err(format!("HTTP {}: {} - Body: {}", status, status.canonical_reason().unwrap_or("Unknown"), body));
         }
 
@@ -287,10 +282,7 @@ pub async fn fetch_banner_history(
             .ok_or("No data in response")?
             .list;
 
-        eprintln!("DEBUG: Page {} returned {} items for gacha_type={}", page, list.len(), gacha_type);
-
         if list.is_empty() {
-            eprintln!("DEBUG: Empty list, breaking");
             break;
         }
 
@@ -301,10 +293,7 @@ pub async fn fetch_banner_history(
             .filter(|item| !seen_ids.contains(&item.id))
             .collect();
 
-        eprintln!("DEBUG: After dedup filtering: {} new items", new_items.len());
-
         if new_items.is_empty() {
-            eprintln!("DEBUG: No new items after filtering, breaking");
             break;
         }
 
@@ -356,8 +345,6 @@ pub async fn fetch_all_wishes(
 ) -> Result<Vec<WishHistoryItem>, String> {
     let mut all_wishes = Vec::new();
 
-    eprintln!("DEBUG fetch_all_wishes: selected_banners = {:?}", selected_banners);
-
     let banner_map: Vec<(&str, Vec<&str>)> = vec![
         ("character", vec!["301", "400"]), // Character Event Wish-1 & Wish-2
         ("weapon", vec!["302"]),
@@ -367,18 +354,14 @@ pub async fn fetch_all_wishes(
 
     for (banner_name, gacha_types) in banner_map {
         let should_fetch = selected_banners.contains(&banner_name.to_string());
-        eprintln!("DEBUG: banner_name={}, should_fetch={}", banner_name, should_fetch);
 
         if should_fetch {
             for gacha_type in gacha_types {
-                eprintln!("DEBUG: Fetching gacha_type={}", gacha_type);
                 let wishes = fetch_banner_history(url, gacha_type).await?;
-                eprintln!("DEBUG: Got {} wishes for gacha_type={}", wishes.len(), gacha_type);
                 all_wishes.extend(wishes);
             }
         }
     }
 
-    eprintln!("DEBUG: Total wishes fetched = {}", all_wishes.len());
     Ok(all_wishes)
 }

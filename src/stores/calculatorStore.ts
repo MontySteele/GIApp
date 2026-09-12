@@ -27,7 +27,9 @@ export const useCalculatorStore = create<CalculatorState>((set) => ({
     },
     weapon: {
       pity: 0,
+      guaranteed: false,
       fatePoints: 0,
+      fatePointsUnknown: false,
       chartedWeapon: null,
     },
     standard: {

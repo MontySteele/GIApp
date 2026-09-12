@@ -1,44 +1,7 @@
 import { expose } from 'comlink';
 import { simulatePull } from '../features/calculator/domain/pityEngine';
-import type { BannerType, GachaRules } from '../types';
-// Import GACHA_RULES inline to avoid path resolution issues in worker context
-const GACHA_RULES: Record<string, GachaRules> = {
-  character: {
-    version: '5.0+',
-    softPityStart: 73,
-    hardPity: 90,
-    baseRate: 0.006,
-    softPityRateIncrease: 0.06,
-    hasCapturingRadiance: true,
-    radianceThreshold: 3,
-  },
-  weapon: {
-    version: '5.0+',
-    softPityStart: 62,
-    hardPity: 77,
-    baseRate: 0.007,
-    softPityRateIncrease: 0.07,
-    hasCapturingRadiance: false,
-    hasFatePoints: true,
-    maxFatePoints: 2,
-  },
-  standard: {
-    version: '1.0+',
-    softPityStart: 73,
-    hardPity: 90,
-    baseRate: 0.006,
-    softPityRateIncrease: 0.06,
-    hasCapturingRadiance: false,
-  },
-  chronicled: {
-    version: '4.5+',
-    softPityStart: 73,
-    hardPity: 90,
-    baseRate: 0.006,
-    softPityRateIncrease: 0.06,
-    hasCapturingRadiance: false,
-  },
-};
+import type { BannerType } from '../types';
+import { GACHA_RULES } from '../lib/constants';
 
 export interface SimulationConfig {
   iterations: number;
@@ -231,6 +194,9 @@ export async function runSimulation(
 
     let availablePulls = startingPulls;
     const now = new Date();
+    // Income accrues once per calendar interval: from now to the first banner, then
+    // between consecutive banners. Never from "now" to every banner (that double counts).
+    let incomeAccruedUntil = now.getTime();
     let allMustHavesSucceeded = true;
     let gotAnythingThisRun = false;
 
@@ -241,9 +207,10 @@ export async function runSimulation(
       if (!rules) continue;
 
       const targetDate = new Date(target.expectedStartDate);
-      const daysUntil = Math.max(0, (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntil = Math.max(0, (targetDate.getTime() - incomeAccruedUntil) / (1000 * 60 * 60 * 24));
       const earnedPulls = Math.floor(daysUntil * incomePerDay);
       availablePulls += earnedPulls;
+      incomeAccruedUntil = Math.max(incomeAccruedUntil, targetDate.getTime());
 
       // Get current banner state
       let state = bannerStates[bannerType]!;
@@ -268,11 +235,19 @@ export async function runSimulation(
 
       // Simulate pulling until we get all copies or run out of budget
       while (pullsUsed < budgetForThis && copiesObtained < copiesNeeded) {
-        const result = simulatePull(state.pity, state.guaranteed, state.radiantStreak, rules, rng);
+        const result = simulatePull(
+          state.pity,
+          state.guaranteed,
+          state.radiantStreak,
+          rules,
+          rng,
+          state.fatePoints
+        );
 
         state.pity = result.newPity;
         state.guaranteed = result.newGuaranteed;
         state.radiantStreak = result.newRadiantStreak;
+        state.fatePoints = result.newFatePoints;
         pullsUsed++;
 
         if (result.got5Star && result.wasFeatured) {
@@ -364,15 +339,14 @@ export async function runSimulation(
   });
 
   // Build timeline
+  const timelineNow = Date.now();
   const pullTimeline = sortedTargets.map((target, index) => {
-    let totalPullsAvailable = startingPulls;
+    // Income earned between now and this banner (counted once, not per prior banner)
+    const daysToTarget = Math.max(0, (new Date(target.expectedStartDate).getTime() - timelineNow) / (1000 * 60 * 60 * 24));
+    let totalPullsAvailable = startingPulls + Math.floor(daysToTarget * incomePerDay);
     for (let i = 0; i <= index; i++) {
       const prevTarget = sortedTargets[i];
       if (!prevTarget) continue;
-
-      const prevDate = new Date(prevTarget.expectedStartDate);
-      const prevDays = Math.max(0, (prevDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-      totalPullsAvailable += Math.floor(prevDays * incomePerDay);
 
       // Subtract average pulls used for previous targets (use last constellation's average)
       if (i < index) {

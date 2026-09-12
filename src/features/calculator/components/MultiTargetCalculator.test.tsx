@@ -584,7 +584,7 @@ describe('MultiTargetCalculator', () => {
       await user.clear(radiantInput);
       await user.type(radiantInput, '5');
 
-      expect(screen.getByText(/radiant streak should be 0-2/i)).toBeInTheDocument();
+      expect(screen.getByText(/radiant streak should be 0-3/i)).toBeInTheDocument();
     });
 
     it('should require at least one target to calculate', async () => {

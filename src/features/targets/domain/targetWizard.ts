@@ -1,3 +1,4 @@
+import { WORST_CASE_PULLS_PER_COPY } from '@/lib/constants';
 import { buildCampaignPrefillUrl } from '@/features/campaigns/lib/campaignLinks';
 import { getDisplayName } from '@/lib/gameData';
 import type { CampaignBuildGoal } from '@/types';
@@ -110,7 +111,12 @@ export function buildTargetWizardPreview(
   const currentPity = Math.min(89, nonNegativeInteger(state.currentPity));
   const pullBudget = positiveInteger(state.pullBudget);
   const daysRemaining = daysUntil(state.deadline, now);
-  const hardPityTarget = 90 * desiredCopies;
+  // Worst case per copy is losing the 50/50 and hitting hard pity twice (180). An active
+  // guarantee removes one hard pity from the first copy only.
+  const hardPityTarget = Math.max(
+    0,
+    WORST_CASE_PULLS_PER_COPY.character * desiredCopies - (state.guaranteed && desiredCopies > 0 ? 90 : 0)
+  );
   const pullProgress = savedPulls + currentPity;
   const pullShortfall = state.mode === 'get-character' && !targetAlreadyMet
     ? Math.max(0, hardPityTarget - pullProgress)
@@ -121,7 +127,9 @@ export function buildTargetWizardPreview(
   const readinessPercent = targetAlreadyMet
     ? 100
     : state.mode === 'get-character'
-    ? Math.min(100, Math.round((pullProgress / hardPityTarget) * 100))
+    ? hardPityTarget > 0
+      ? Math.min(100, Math.round((pullProgress / hardPityTarget) * 100))
+      : 100
     : null;
   const hasCharacter = Boolean(state.characterKey.trim());
   const hasTeam = Boolean(state.teamId.trim());
@@ -136,9 +144,9 @@ export function buildTargetWizardPreview(
       adviceRows.push('Pick a higher constellation or switch to Build if you want a polish target.');
     } else {
       if (pullShortfall === 0) {
-        adviceRows.push('Worst case: you cover hard pity with current pulls and pity.');
+        adviceRows.push('Worst case: even losing the 50/50 and hitting hard pity twice, your current pulls and pity cover it.');
       } else {
-        adviceRows.push(`Worst case: you need ${pullShortfall} more ${pullShortfall === 1 ? 'pull' : 'pulls'} before the banner target.`);
+        adviceRows.push(`Worst case (lose the 50/50, hit hard pity twice): you need ${pullShortfall} more ${pullShortfall === 1 ? 'pull' : 'pulls'} before the banner target.`);
       }
 
       if (pullsPerDay !== null) {
@@ -160,7 +168,7 @@ export function buildTargetWizardPreview(
   }
 
   if (pullBudget > 0 && pullShortfall > pullBudget) {
-    adviceRows.push(`Budget warning: ${pullBudget} pulls is below the current hard-pity shortfall.`);
+    adviceRows.push(`Budget warning: ${pullBudget} pulls is below the current worst-case shortfall.`);
   }
 
   const createHref = state.mode === 'polish-team'
@@ -191,7 +199,7 @@ export function buildTargetWizardPreview(
     summary: targetAlreadyMet
       ? 'Target already met'
       : state.mode === 'get-character'
-      ? `${readinessPercent}% hard-pity coverage`
+      ? `${readinessPercent}% worst-case coverage`
       : 'Ready to create a planning target',
     createHref,
     ...(state.mode === 'get-character' && hasCharacter && !targetAlreadyMet

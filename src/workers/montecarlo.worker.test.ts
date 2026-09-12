@@ -140,4 +140,87 @@ describe('montecarlo worker', () => {
       bannerType: 'chronicled',
     });
   });
+
+  const baseTarget = {
+    expectedEndDate: '',
+    priority: 1 as const,
+    maxPullBudget: null,
+    isConfirmed: true,
+    notes: '',
+    createdAt: '',
+    updatedAt: '',
+    copiesNeeded: 1,
+  };
+
+  it('applies Epitomized Path on the weapon banner: charted weapon is certain within 160 pulls', async () => {
+    const result = await runSimulation(
+      createBaseInput({
+        startingPulls: 160,
+        targets: [
+          {
+            ...baseTarget,
+            id: 'weapon-target',
+            characterKey: 'Aqua Simulacra (R1)',
+            expectedStartDate: '2026-01-01T00:00:00.000Z',
+            bannerType: 'weapon',
+          },
+        ],
+        perTargetStates: [{ pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: 0 }],
+        config: { iterations: 2000, seed: 7, chunkSize: 500 },
+      })
+    );
+
+    expect(result.perCharacter[0]?.constellations[0]?.probability).toBe(1);
+  });
+
+  it('a starting fate point makes the next weapon 5★ the charted one', async () => {
+    const result = await runSimulation(
+      createBaseInput({
+        startingPulls: 80,
+        targets: [
+          {
+            ...baseTarget,
+            id: 'weapon-target',
+            characterKey: 'Aqua Simulacra (R1)',
+            expectedStartDate: '2026-01-01T00:00:00.000Z',
+            bannerType: 'weapon',
+          },
+        ],
+        perTargetStates: [{ pity: 0, guaranteed: false, radiantStreak: 0, fatePoints: 1 }],
+        config: { iterations: 1000, seed: 11, chunkSize: 500 },
+      })
+    );
+
+    expect(result.perCharacter[0]?.constellations[0]?.probability).toBe(1);
+  });
+
+  it('counts daily income once per interval, not once per target', async () => {
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const in10Days = new Date(now + 10 * day).toISOString();
+    const in20Days = new Date(now + 20 * day).toISOString();
+
+    const result = await runSimulation(
+      createBaseInput({
+        startingPulls: 0,
+        incomePerDay: 1,
+        targets: [
+          { ...baseTarget, id: 'first', characterKey: 'First', expectedStartDate: in10Days, bannerType: 'character' },
+          { ...baseTarget, id: 'second', characterKey: 'Second', expectedStartDate: in20Days, bannerType: 'character' },
+        ],
+        // Both targets impossible (pity 0, budget only from income): we only inspect the timeline.
+        perTargetStates: [
+          { pity: 0, guaranteed: true, radiantStreak: 0, fatePoints: 0 },
+          { pity: 0, guaranteed: true, radiantStreak: 0, fatePoints: 0 },
+        ],
+        config: { iterations: 1, seed: 1, chunkSize: 1 },
+      })
+    );
+
+    // Second banner: 20 days of income minus pulls used on the first banner, never 10 + 20 = 30.
+    const second = result.pullTimeline[1]!;
+    expect(second.projectedPulls).toBeLessThanOrEqual(19);
+    const first = result.pullTimeline[0]!;
+    expect(first.projectedPulls).toBeLessThanOrEqual(9);
+  });
 });

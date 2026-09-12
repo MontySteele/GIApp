@@ -7,6 +7,7 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Plus, Download, RotateCcw, Save, FolderOpen, BarChart3 } from 'lucide-react';
+import { toast } from '@/stores/toastStore';
 import { GACHA_RULES } from '@/lib/constants';
 import type { BannerType, CalculatorScenario, CalculatorScenarioTarget } from '@/types';
 import type { SimulationInput, SimulationResult } from '@/workers/montecarlo.worker';
@@ -231,10 +232,11 @@ export function MultiTargetCalculator() {
         newErrors.set(`pity-${target.id}`, `Pity must be between 0 and ${bannerRules.hardPity - 1}`);
       }
       if (target.bannerType === 'character' && (target.radiantStreak < 0 || target.radiantStreak > 3)) {
-        newErrors.set(`radiant-${target.id}`, 'Radiant streak should be 0-2');
+        newErrors.set(`radiant-${target.id}`, 'Radiant streak should be 0-3');
       }
-      if (target.bannerType === 'weapon' && (target.fatePoints < 0 || target.fatePoints > 2)) {
-        newErrors.set(`fatePoints-${target.id}`, 'Fate points should be 0-2');
+      const maxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 1;
+      if (target.bannerType === 'weapon' && (target.fatePoints < 0 || target.fatePoints > maxFatePoints)) {
+        newErrors.set(`fatePoints-${target.id}`, `Fate points should be 0-${maxFatePoints}`);
       }
       if (target.constellation < 0 || target.constellation > 6) {
         newErrors.set(`constellation-${target.id}`, 'Constellation must be C0-C6');
@@ -397,7 +399,7 @@ export function MultiTargetCalculator() {
       if (isMountedRef.current) setResults(result);
     } catch (error) {
       console.error('Simulation error:', error);
-      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error('Simulation failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       await minimumLoadingDuration;
       if (isMountedRef.current) setIsCalculating(false);
