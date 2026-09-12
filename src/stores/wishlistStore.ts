@@ -11,6 +11,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 export interface WishlistCharacter {
   /** Character key (e.g., "Furina", "KaedeharaKazuha") */
@@ -92,7 +93,7 @@ export const useWishlistStore = create<WishlistState>()(
       },
     }),
     {
-      name: 'genshin-character-wishlist',
+      name: STORAGE_KEYS.WISHLIST,
     }
   )
 );

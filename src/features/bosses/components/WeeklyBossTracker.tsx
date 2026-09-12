@@ -13,6 +13,7 @@ import {
   formatTimeUntilReset,
   type WeeklyBoss,
 } from '../domain/weeklyBossData';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 interface WeeklyBossState {
   weekStart: string; // ISO date of week start
@@ -24,7 +25,7 @@ export interface RequiredWeeklyMaterial {
   required: number;
 }
 
-const STORAGE_KEY = 'weeklyBossState';
+const STORAGE_KEY = STORAGE_KEYS.WEEKLY_BOSS_STATE;
 
 function loadState(): WeeklyBossState | null {
   try {

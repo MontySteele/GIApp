@@ -40,6 +40,7 @@ import {
   DEFAULT_RESIN_BUDGET,
   type ResinBudget,
 } from '@/features/planner/domain/resinCalculator';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 /**
  * Format primogems to readable string
@@ -76,19 +77,19 @@ export default function DashboardPage() {
 
   // Persist checklist dismiss state in localStorage
   const [showChecklist, setShowChecklist] = useState(() => {
-    const dismissed = localStorage.getItem('checklist_dismissed');
+    const dismissed = localStorage.getItem(STORAGE_KEYS.CHECKLIST_DISMISSED);
     return dismissed !== 'true';
   });
 
   const handleDismissChecklist = () => {
-    localStorage.setItem('checklist_dismissed', 'true');
+    localStorage.setItem(STORAGE_KEYS.CHECKLIST_DISMISSED, 'true');
     setShowChecklist(false);
   };
 
   // Load resin from localStorage
   const resinBudget = useMemo<ResinBudget>(() => {
     try {
-      const saved = localStorage.getItem('resinBudget');
+      const saved = localStorage.getItem(STORAGE_KEYS.RESIN_BUDGET);
       if (saved) return JSON.parse(saved);
     } catch {
       // ignore

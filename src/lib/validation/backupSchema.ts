@@ -305,6 +305,39 @@ export const BACKUP_TABLE_SCHEMAS = {
 
 export type BackupTableName = keyof typeof BACKUP_TABLE_SCHEMAS;
 
+// ----- LOCAL STATE (localStorage-held product data) -----
+
+/**
+ * One localStorage entry carried in a backup's top-level `localState` array.
+ * `value` is the raw serialized string exactly as stored, so the backup needs
+ * no knowledge of each feature's shape; restore only writes keys that are in
+ * `BACKED_UP_LOCAL_STATE_KEYS`.
+ */
+export const backupLocalStateEntrySchema = z.object({
+  key: z.string().min(1),
+  value: z.string(),
+});
+
+export type BackupLocalStateEntry = z.infer<typeof backupLocalStateEntrySchema>;
+
+export const backupLocalStateSchema = z.array(backupLocalStateEntrySchema);
+
+/**
+ * Validate the optional `localState` section. `undefined`/`null` is fine (older
+ * backups have none); anything else must be an array of `{ key, value }`
+ * string pairs. Returns human-readable errors, empty when valid.
+ */
+export function validateBackupLocalState(localState: unknown): string[] {
+  if (localState === undefined || localState === null) return [];
+
+  const result = backupLocalStateSchema.safeParse(localState);
+  if (result.success) return [];
+
+  const issue = result.error.issues[0];
+  const detail = issue ? `${formatIssuePath(issue.path)} - ${issue.message}` : 'invalid entry';
+  return [`localState: expected an array of { key, value } strings (${detail})`];
+}
+
 const MAX_ROW_ERRORS_PER_TABLE = 5;
 
 function formatIssuePath(path: PropertyKey[]): string {

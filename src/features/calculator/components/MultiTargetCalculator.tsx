@@ -23,6 +23,7 @@ import { SaveScenarioModal, LoadScenarioModal, CompareScenarioModal } from './Sc
 import BudgetLinkBanner from './BudgetLinkBanner';
 import CampaignPullDecisionCard from './CampaignPullDecisionCard';
 import { useBudgetLink } from '../hooks/useBudgetLink';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 // Convert internal Target to CalculatorScenarioTarget
 function targetToScenarioTarget(target: Target): CalculatorScenarioTarget {
@@ -43,7 +44,7 @@ function scenarioTargetToTarget(target: CalculatorScenarioTarget): Target {
   return { ...target, id: crypto.randomUUID() };
 }
 
-const STORAGE_KEY = 'multi-target-calculator-state';
+const STORAGE_KEY = STORAGE_KEYS.MULTI_TARGET_CALCULATOR;
 
 interface PersistedState {
   targets: Target[];

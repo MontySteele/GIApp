@@ -11,6 +11,7 @@ import {
   DEFAULT_RESIN_BUDGET,
 } from '../domain/resinCalculator';
 import { RESIN_REGEN } from '../domain/materialConstants';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 interface ResinTrackerProps {
   onResinChange?: (budget: ResinBudget) => void;
@@ -19,7 +20,7 @@ interface ResinTrackerProps {
 export default function ResinTracker({ onResinChange }: ResinTrackerProps) {
   // Load from localStorage or use defaults
   const [budget, setBudget] = useState<ResinBudget>(() => {
-    const saved = localStorage.getItem('resinBudget');
+    const saved = localStorage.getItem(STORAGE_KEYS.RESIN_BUDGET);
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -44,7 +45,7 @@ export default function ResinTracker({ onResinChange }: ResinTrackerProps) {
 
   // Save to localStorage
   useEffect(() => {
-    localStorage.setItem('resinBudget', JSON.stringify(budget));
+    localStorage.setItem(STORAGE_KEYS.RESIN_BUDGET, JSON.stringify(budget));
     onResinChange?.(budget);
   }, [budget, onResinChange]);
 

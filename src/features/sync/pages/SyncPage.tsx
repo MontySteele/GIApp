@@ -10,6 +10,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { useOnboardingContext } from '@/contexts/OnboardingContext';
 import ImportBackup from '../components/ImportBackup';
 import DataTransfer from '../components/DataTransfer';
+import ServerRegionCard from '../components/ServerRegionCard';
+import StorageHealthCard from '../components/StorageHealthCard';
 
 function formatDate(dateString?: string | null) {
   const parsed = parseDateString(dateString ?? undefined);
@@ -140,6 +142,9 @@ export default function SyncPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Server region: drives daily/weekly resets, domain days and wish timestamps */}
+      <ServerRegionCard />
 
       {/* Display Preferences */}
       <Card>
@@ -307,6 +312,9 @@ export default function SyncPage() {
           <ImportBackup />
         </CardContent>
       </Card>
+
+      {/* Storage health: persistence, usage, and full reset */}
+      <StorageHealthCard />
 
       {/* Onboarding */}
       <Card>

@@ -81,6 +81,14 @@ vi.mock('../components/DataTransfer', () => ({
   default: () => <div data-testid="data-transfer">Data Transfer Component</div>,
 }));
 
+vi.mock('../components/ServerRegionCard', () => ({
+  default: () => <div data-testid="server-region-card">Server Region Card</div>,
+}));
+
+vi.mock('../components/StorageHealthCard', () => ({
+  default: () => <div data-testid="storage-health-card">Storage Health Card</div>,
+}));
+
 // Mock URL.createObjectURL and related
 global.URL.createObjectURL = vi.fn(() => 'blob:test');
 global.URL.revokeObjectURL = vi.fn();
@@ -127,6 +135,12 @@ describe('SyncPage', () => {
 
       expect(screen.getByRole('heading', { name: /cross-device sync/i })).toBeInTheDocument();
       expect(screen.getByTestId('data-transfer')).toBeInTheDocument();
+    });
+
+    it('renders server region and storage health cards', () => {
+      render(<SyncPage />);
+      expect(screen.getByTestId('server-region-card')).toBeInTheDocument();
+      expect(screen.getByTestId('storage-health-card')).toBeInTheDocument();
     });
 
     it('renders import backup section', () => {

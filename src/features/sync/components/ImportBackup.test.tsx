@@ -35,7 +35,10 @@ function createImportResult(): ImportResult {
       inventoryArtifacts: { created: 0, updated: 3, skipped: 0 },
       inventoryWeapons: { created: 0, updated: 0, skipped: 0 },
       materialInventory: { created: 0, updated: 0, skipped: 0 },
+      importRecords: { created: 0, updated: 0, skipped: 0 },
+      buildTemplates: { created: 0, updated: 0, skipped: 0 },
       campaigns: { created: 1, updated: 0, skipped: 0 },
+      localState: { created: 0, skipped: 0 },
     },
   };
 }

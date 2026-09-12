@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { GoalType } from './useMultiCharacterPlan';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 type PlannerMode = 'single' | 'multi';
 type MultiTab = 'characters' | 'weapons';
@@ -57,7 +58,7 @@ interface UsePlannerStateResult {
   setWeaponSelectedIds: (ids: string[]) => void;
 }
 
-const STORAGE_KEY = 'plannerState';
+const STORAGE_KEY = STORAGE_KEYS.PLANNER_STATE;
 
 const DEFAULT_STATE: PlannerPersistedState = {
   mode: 'single',

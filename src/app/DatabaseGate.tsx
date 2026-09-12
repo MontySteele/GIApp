@@ -14,6 +14,8 @@ interface DatabaseGateProps {
   initialize?: () => Promise<unknown>;
   /** Injectable for tests; defaults to deleting the real database and reloading. */
   resetDatabase?: () => Promise<void>;
+  /** Called once after the database has opened successfully. */
+  onReady?: () => void;
 }
 
 async function defaultReset(): Promise<void> {
@@ -30,6 +32,7 @@ export default function DatabaseGate({
   children,
   initialize = initializeDatabase,
   resetDatabase = defaultReset,
+  onReady,
 }: DatabaseGateProps) {
   const [state, setState] = useState<GateState>({ status: 'opening' });
   const [attempt, setAttempt] = useState(0);
@@ -41,7 +44,9 @@ export default function DatabaseGate({
     setState({ status: 'opening' });
     initialize()
       .then(() => {
-        if (!cancelled) setState({ status: 'ready' });
+        if (cancelled) return;
+        setState({ status: 'ready' });
+        onReady?.();
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -51,7 +56,7 @@ export default function DatabaseGate({
     return () => {
       cancelled = true;
     };
-  }, [initialize, attempt]);
+  }, [initialize, attempt, onReady]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

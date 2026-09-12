@@ -1,4 +1,5 @@
 import type { ImportValueRow } from './importValueSummary';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 export interface LastImportSummary {
   source: string;
@@ -11,7 +12,7 @@ export interface LastImportSummary {
   rows: ImportValueRow[];
 }
 
-const STORAGE_KEY = 'giapp:last-import-summary';
+const STORAGE_KEY = STORAGE_KEYS.LAST_IMPORT_SUMMARY;
 
 export function readLastImportSummary(storage: Storage = localStorage): LastImportSummary | null {
   try {

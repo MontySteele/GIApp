@@ -42,8 +42,21 @@ export {
   decryptData,
 } from './services/syncUtils';
 
+export { collectLocalState, restoreLocalState } from './services/localStateService';
+
+export {
+  ensurePersistentStorage,
+  requestPersistentStorage,
+  getStorageEstimate,
+  resetAllLocalData,
+  clearAppLocalStorage,
+  type StorageEstimate,
+} from './services/storageHealth';
+
 // Components
 export { default as BackupReminderBanner } from './components/BackupReminderBanner';
 export { default as AccountDataFreshnessCallout } from './components/AccountDataFreshnessCallout';
 export { default as DataTransfer } from './components/DataTransfer';
 export { default as ImportBackup } from './components/ImportBackup';
+export { default as ServerRegionCard } from './components/ServerRegionCard';
+export { default as StorageHealthCard } from './components/StorageHealthCard';

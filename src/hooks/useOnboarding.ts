@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
-const STORAGE_KEY = 'onboarding_completed';
-const CHECKLIST_KEY = 'onboarding_checklist';
+const STORAGE_KEY = STORAGE_KEYS.ONBOARDING_COMPLETED;
+const CHECKLIST_KEY = STORAGE_KEYS.ONBOARDING_CHECKLIST;
 
 export interface OnboardingChecklist {
   hasImportedCharacters: boolean;

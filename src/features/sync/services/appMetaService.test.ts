@@ -3,6 +3,7 @@ import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION } from '@/lib/constants';
 import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
 import { appMetaService, __testUtils } from './appMetaService';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 describe('appMetaService', () => {
   const fixedNow = new Date('2024-01-10T00:00:00.000Z');
@@ -134,5 +135,32 @@ describe('backup cadence utilities', () => {
   it('resolves cadence with sane fallbacks', () => {
     expect(__testUtils.resolveBackupCadenceDays(5)).toBe(5);
     expect(__testUtils.resolveBackupCadenceDays(-1)).toBe(DEFAULT_SETTINGS.backupReminderCadenceDays);
+  });
+
+  describe('exportBackup localState', () => {
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    it('includes allowlisted localStorage keys that exist and omits the rest', async () => {
+      localStorage.setItem(STORAGE_KEYS.WISHLIST, '{"state":{"characters":[]},"version":0}');
+      localStorage.setItem(STORAGE_KEYS.WEEKLY_BOSS_STATE, '{"kills":{}}');
+      localStorage.setItem(STORAGE_KEYS.UI_SETTINGS, '{"state":{}}');
+
+      const backup = await appMetaService.exportBackup();
+
+      expect(backup.localState).toEqual(
+        expect.arrayContaining([
+          { key: STORAGE_KEYS.WISHLIST, value: '{"state":{"characters":[]},"version":0}' },
+          { key: STORAGE_KEYS.WEEKLY_BOSS_STATE, value: '{"kills":{}}' },
+        ])
+      );
+      expect(backup.localState.map((e) => e.key)).not.toContain(STORAGE_KEYS.UI_SETTINGS);
+      expect(backup.localState.map((e) => e.key)).not.toContain(STORAGE_KEYS.RESIN_BUDGET);
+    });
+
+    it('exports an empty localState array when nothing is stored', async () => {
+      const backup = await appMetaService.exportBackup();
+      expect(backup.localState).toEqual([]);
+    });
   });
 });

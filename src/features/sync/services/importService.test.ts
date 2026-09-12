@@ -3,6 +3,7 @@ import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION } from '@/lib/constants';
 import { validateBackup, importBackup, APP_META_RESTORE_WHITELIST, type BackupData } from './importService';
 import { appMetaService } from './appMetaService';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 import type {
   InventoryArtifact,
   InventoryWeapon,
@@ -645,6 +646,71 @@ describe('importService', () => {
       expect(result.success).toBe(true);
       expect(await db.abyssRuns.count()).toBe(0);
       expect(await db.externalCache.count()).toBe(0);
+    });
+  });
+
+  describe('localState (localStorage product data)', () => {
+    const wishlistBlob = '{"state":{"characters":[{"key":"Furina","targetGoal":"full","addedAt":"2026-01-01T00:00:00.000Z"}]},"version":0}';
+
+    beforeEach(() => localStorage.clear());
+
+    it('validation accepts a well-formed localState and rejects a malformed one', () => {
+      const good = makeBackup({});
+      (good as BackupData).localState = [{ key: STORAGE_KEYS.WISHLIST, value: wishlistBlob }];
+      expect(validateBackup(good).valid).toBe(true);
+
+      const bad = makeBackup({});
+      (bad as unknown as { localState: unknown }).localState = [{ key: STORAGE_KEYS.WISHLIST, value: 42 }];
+      const validation = validateBackup(bad);
+      expect(validation.valid).toBe(false);
+      expect(validation.errors.some((e) => e.startsWith('localState:'))).toBe(true);
+    });
+
+    it('restores allowlisted keys and ignores unknown keys in every merge mode', async () => {
+      for (const strategy of ['replace', 'newer_wins', 'keep_local'] as const) {
+        localStorage.clear();
+        localStorage.setItem(STORAGE_KEYS.RESIN_BUDGET, 'local-value');
+
+        const backup = makeBackup({});
+        backup.localState = [
+          { key: STORAGE_KEYS.RESIN_BUDGET, value: 'backup-value' },
+          { key: STORAGE_KEYS.PLANNER_STATE, value: '{"mode":"multi"}' },
+          { key: 'not-an-app-key', value: 'ignored' },
+        ];
+
+        const result = await importBackup(backup, strategy);
+        expect(result.success).toBe(true);
+        expect(result.stats.localState).toEqual({ created: 2, skipped: 1 });
+        expect(localStorage.getItem(STORAGE_KEYS.RESIN_BUDGET)).toBe('backup-value');
+        expect(localStorage.getItem(STORAGE_KEYS.PLANNER_STATE)).toBe('{"mode":"multi"}');
+        expect(localStorage.getItem('not-an-app-key')).toBeNull();
+      }
+    });
+
+    it('does not touch localStorage when a backup is rejected', async () => {
+      localStorage.setItem(STORAGE_KEYS.RESIN_BUDGET, 'local-value');
+      const backup = makeBackup({ notes: [{ id: 'bad' } as unknown as Note] });
+      backup.localState = [{ key: STORAGE_KEYS.RESIN_BUDGET, value: 'backup-value' }];
+
+      const result = await importBackup(backup, 'replace');
+      expect(result.success).toBe(false);
+      expect(localStorage.getItem(STORAGE_KEYS.RESIN_BUDGET)).toBe('local-value');
+    });
+
+    it('export -> import round-trips the wishlist string byte-for-byte', async () => {
+      localStorage.setItem(STORAGE_KEYS.WISHLIST, wishlistBlob);
+      const backup = await appMetaService.exportBackup();
+      localStorage.clear();
+
+      const result = await importBackup(backup as BackupData, 'newer_wins');
+      expect(result.success).toBe(true);
+      expect(localStorage.getItem(STORAGE_KEYS.WISHLIST)).toBe(wishlistBlob);
+    });
+
+    it('accepts backups without a localState section', async () => {
+      const result = await importBackup(makeBackup({}), 'newer_wins');
+      expect(result.success).toBe(true);
+      expect(result.stats.localState).toEqual({ created: 0, skipped: 0 });
     });
   });
 });

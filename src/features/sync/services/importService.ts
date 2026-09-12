@@ -7,7 +7,9 @@
  */
 import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION } from '@/lib/constants';
-import { validateBackupTables } from '@/lib/validation/backupSchema';
+import { validateBackupTables, validateBackupLocalState, type BackupLocalStateEntry } from '@/lib/validation/backupSchema';
+import { restoreLocalState } from './localStateService';
+import { ensurePersistentStorage } from './storageHealth';
 import { WISH_HISTORY_IMPORTED_AT_KEY } from '@/features/wishes/services/wishDataFreshness';
 import type {
   Character,
@@ -59,6 +61,13 @@ export interface BackupData {
     /** Exported but not restored (no UI consumes it yet). */
     abyssRuns?: AbyssRun[];
   };
+  /**
+   * localStorage-held product data (wishlist, planner state, resin budget,
+   * weekly boss progress, campaign action states, calculator state, onboarding
+   * flags) as raw serialized strings. Restored last-write-wins for allowlisted
+   * keys only. Absent from backups made before this section existed.
+   */
+  localState?: BackupLocalStateEntry[];
 }
 
 type TableStats = { created: number; updated: number; skipped: number };
@@ -82,6 +91,8 @@ export interface ImportResult {
     importRecords: TableStats;
     buildTemplates: TableStats;
     campaigns: TableStats;
+    /** localStorage entries written (created) or ignored as non-allowlisted (skipped). */
+    localState: { created: number; skipped: number };
   };
   warnings: string[];
   errors: string[];
@@ -180,6 +191,7 @@ export function validateBackup(data: unknown): ValidationResult {
   // Per-table row validation
   const dataPayload = backup.data as Record<string, unknown>;
   errors.push(...validateBackupTables(dataPayload));
+  errors.push(...validateBackupLocalState(backup.localState));
 
   if (Array.isArray(dataPayload.abyssRuns) && dataPayload.abyssRuns.length > 0) {
     warnings.push('Backup contains abyssRuns, which this version does not restore.');
@@ -387,6 +399,7 @@ export async function importBackup(
       importRecords: emptyStats(),
       buildTemplates: emptyStats(),
       campaigns: emptyStats(),
+      localState: { created: 0, skipped: 0 },
     },
     warnings: [],
     errors: [],
@@ -418,8 +431,8 @@ export async function importBackup(
     { table: 'campaigns', label: 'Importing targets...' },
   ];
 
-  // characters + wishRecords + merge tables + 3 inventory tables + appMeta
-  const totalStages = 2 + mergeStages.length + 3 + 1;
+  // characters + wishRecords + merge tables + 3 inventory tables + appMeta + localState
+  const totalStages = 2 + mergeStages.length + 3 + 1 + 1;
   let stageIndex = 0;
   const report = (label: string) => onProgress?.(label, (stageIndex / totalStages) * 100);
 
@@ -498,7 +511,19 @@ export async function importBackup(
       stageIndex++;
     });
 
+    // localStorage product data: written only after the DB transaction has
+    // committed so a failed restore leaves local state untouched. Allowlisted
+    // keys only, last-write-wins in every merge mode.
+    if (backup.localState?.length) {
+      report('Restoring local settings...');
+      result.stats.localState = await restoreLocalState(backup.localState);
+    }
+    stageIndex++;
+
     onProgress?.('Complete', 100);
+
+    // First successful restore is a good moment to ask for durable storage.
+    ensurePersistentStorage();
   } catch (error) {
     result.success = false;
     result.errors.push(error instanceof Error ? error.message : 'Unknown error during import');

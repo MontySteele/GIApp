@@ -1,6 +1,8 @@
 import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION, BACKUP_REMINDER_DAYS } from '@/lib/constants';
 import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
+import { collectLocalState } from './localStateService';
+import { ensurePersistentStorage } from './storageHealth';
 
 /** Tables that are never included in a backup export. */
 export const EXPORT_EXCLUDED_TABLES: ReadonlySet<string> = new Set(['externalCache']);
@@ -100,6 +102,10 @@ export const appMetaService = {
     await db.appMeta.put({ key: 'createdAt', value: createdAt });
     await db.appMeta.put({ key: 'schemaVersion', value: APP_SCHEMA_VERSION });
 
+    // A completed backup is a strong signal the user cares about this data;
+    // ask the browser not to evict it (D-05). Memoized, never throws.
+    ensurePersistentStorage();
+
     return iso;
   },
 
@@ -117,6 +123,9 @@ export const appMetaService = {
       exportedAt: new Date().toISOString(),
       schemaVersion: APP_SCHEMA_VERSION,
       data: payload,
+      // localStorage-held product data (wishlist, planner, resin, ...) as raw
+      // strings; see localStateService for the allowlist.
+      localState: collectLocalState(),
     };
   },
 };

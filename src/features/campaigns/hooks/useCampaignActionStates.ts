@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { STORAGE_KEYS } from '@/lib/constants/storageKeys';
 
 export type CampaignActionState = 'done' | 'started' | 'skipped' | 'snoozed';
 
@@ -17,7 +18,7 @@ interface StoredCampaignActionState {
   activities: CampaignActionActivity[];
 }
 
-const STORAGE_KEY = 'campaignActionStates:v1';
+const STORAGE_KEY = STORAGE_KEYS.CAMPAIGN_ACTION_STATES;
 
 function getTodayKey(date = new Date()): string {
   return date.toISOString().slice(0, 10);
