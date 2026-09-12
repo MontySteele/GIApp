@@ -14,6 +14,8 @@ export interface RetryOptions {
   baseDelay?: number;
   /** Maximum delay in milliseconds (default: 16000) */
   maxDelay?: number;
+  /** Per-attempt timeout in milliseconds (default: 10000). A hung connection is aborted and retried. */
+  timeoutMs?: number;
   /** Callback when a retry is attempted */
   onRetry?: (attempt: number, error: Error | Response) => void;
 }
@@ -22,7 +24,22 @@ const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'onRetry'>> = {
   maxRetries: 4,
   baseDelay: 2000,
   maxDelay: 16000,
+  timeoutMs: 10000,
 };
+
+/** Runs fetch with a per-attempt timeout, honouring any caller-supplied abort signal. */
+async function fetchWithTimeout(url: string, init: RequestInit | undefined, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const onOuterAbort = () => controller.abort();
+  init?.signal?.addEventListener('abort', onOuterAbort);
+  const timer = setTimeout(() => controller.abort(new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+    init?.signal?.removeEventListener('abort', onOuterAbort);
+  }
+}
 
 /** HTTP status codes that should trigger a retry */
 const RETRYABLE_STATUS_CODES = [
@@ -74,7 +91,7 @@ export async function fetchWithRetry(
   init?: RequestInit,
   options: RetryOptions = {}
 ): Promise<Response> {
-  const { maxRetries, baseDelay, maxDelay } = { ...DEFAULT_OPTIONS, ...options };
+  const { maxRetries, baseDelay, maxDelay, timeoutMs } = { ...DEFAULT_OPTIONS, ...options };
   const { onRetry } = options;
 
   let lastError: Error | null = null;
@@ -88,7 +105,7 @@ export async function fetchWithRetry(
     }
 
     try {
-      const response = await fetch(url, init);
+      const response = await fetchWithTimeout(url, init, timeoutMs);
 
       // Success - return immediately
       if (response.ok) {

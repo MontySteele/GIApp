@@ -3,10 +3,11 @@ import { render, screen } from '@testing-library/react';
 import PityHeader from './PityHeader';
 import * as useCurrentPityModule from '../hooks/useCurrentPity';
 import type { BannerPitySnapshot } from '../selectors/pitySelectors';
+import type { BannerType } from '@/types';
 
 vi.mock('../hooks/useCurrentPity');
 
-const mockPityState: Record<string, BannerPitySnapshot> = {
+const mockPityState: Record<BannerType, BannerPitySnapshot> = {
   character: {
     banner: 'character',
     pity: 45,
@@ -52,7 +53,7 @@ describe('PityHeader', () => {
   });
 
   it('should render all four banner pity states', () => {
-    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState as any);
+    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState);
 
     render(<PityHeader />);
 
@@ -63,7 +64,7 @@ describe('PityHeader', () => {
   });
 
   it('should display pity counts for each banner', () => {
-    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState as any);
+    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState);
 
     render(<PityHeader />);
 
@@ -74,7 +75,7 @@ describe('PityHeader', () => {
   });
 
   it('should show guaranteed badge when applicable', () => {
-    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState as any);
+    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState);
 
     render(<PityHeader />);
 
@@ -83,7 +84,7 @@ describe('PityHeader', () => {
   });
 
   it('should show fate points for weapon banner', () => {
-    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState as any);
+    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(mockPityState);
 
     render(<PityHeader />);
 
@@ -98,7 +99,7 @@ describe('PityHeader', () => {
         radianceActive: true,
       },
     };
-    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(stateWithRadiance as any);
+    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(stateWithRadiance);
 
     render(<PityHeader />);
 
@@ -113,7 +114,7 @@ describe('PityHeader', () => {
         pity: 75, // Near pity (within 20 of 90)
       },
     };
-    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(stateNearPity as any);
+    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(stateNearPity);
 
     render(<PityHeader />);
 
@@ -128,7 +129,7 @@ describe('PityHeader', () => {
         fatePoints: 0,
       },
     };
-    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(stateNoFP as any);
+    vi.spyOn(useCurrentPityModule, 'useAllCurrentPity').mockReturnValue(stateNoFP);
 
     render(<PityHeader />);
 

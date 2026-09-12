@@ -143,9 +143,16 @@ function getCacheKey(characterKey: string): string {
 /**
  * Fetch character data from API with retry
  */
+/**
+ * Retry policy for the material API. Static fallback data exists for every
+ * character, so give up quickly (about 13 s worst case) rather than making an
+ * offline user wait through four exponential backoffs for a table we already have.
+ */
+const MATERIAL_API_RETRY = { maxRetries: 1, baseDelay: 1000, timeoutMs: 6000 } as const;
+
 async function fetchCharacterData(characterKey: string): Promise<GenshinDbCharacterResponse> {
   const url = `${API_BASE_URL}/characters?query=${encodeURIComponent(characterKey)}&matchCategories=true`;
-  const response = await fetchWithRetry(url);
+  const response = await fetchWithRetry(url, undefined, MATERIAL_API_RETRY);
 
   if (!response.ok) {
     throw new Error(getUserFriendlyError(response));
@@ -159,7 +166,7 @@ async function fetchCharacterData(characterKey: string): Promise<GenshinDbCharac
  */
 async function fetchTalentData(characterKey: string): Promise<GenshinDbTalentResponse> {
   const url = `${API_BASE_URL}/talents?query=${encodeURIComponent(characterKey)}&matchCategories=true`;
-  const response = await fetchWithRetry(url);
+  const response = await fetchWithRetry(url, undefined, MATERIAL_API_RETRY);
 
   if (!response.ok) {
     throw new Error(getUserFriendlyError(response));

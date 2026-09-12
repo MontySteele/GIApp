@@ -156,7 +156,12 @@ export class PlannerPage extends BasePage {
    * Check if materials list is visible
    */
   async hasMaterials(): Promise<boolean> {
-    return await this.materialsList.isVisible();
+    // The materials breakdown appears after an async calculation (with a network
+    // fetch that falls back to static data), so wait rather than sampling once.
+    return this.materialsList
+      .waitFor({ state: 'visible', timeout: 30000 })
+      .then(() => true)
+      .catch(() => false);
   }
 
   /**

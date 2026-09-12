@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { MultiTargetCalculator } from './MultiTargetCalculator';
 import * as montecarloClient from '@/workers/montecarloClient';
+import type { MonteCarloWorkerApi, MonteCarloWorkerHandle } from '@/workers/montecarloClient';
 
-const runSimulationMock = vi.fn();
+const runSimulationMock = vi.fn<MonteCarloWorkerApi['runSimulation']>();
 const freshnessMock = vi.hoisted(() => ({
   freshness: {
     status: 'fresh',
@@ -98,19 +99,17 @@ describe('MultiTargetCalculator', () => {
       reportProgress?.(1);
 
       return {
-        perCharacter: input.targets.map((target: { characterKey: string; bannerType?: string; targetCount?: number }, index: number) => ({
+        perCharacter: input.targets.map((target, index) => ({
           characterKey: target.characterKey,
           bannerType: target.bannerType || 'character',
-          probability: input.startingPulls > 0 ? 0.66 : 0,
-          averagePullsUsed: 30 + index,
-          medianPullsUsed: 25 + index,
-          constellations: Array.from({ length: target.targetCount || 1 }, (_, i) => ({
+          constellations: Array.from({ length: target.copiesNeeded || 1 }, (_, i) => ({
             label: `C${i}`,
             probability: input.startingPulls > 0 ? 0.66 : 0,
             averagePullsUsed: 30 + index + i * 10,
             medianPullsUsed: 25 + index + i * 10,
           })),
         })),
+        nothingProbability: input.startingPulls > 0 ? 0.34 : 1,
         allMustHavesProbability: input.startingPulls > 0 ? 0.66 : 0,
         pullTimeline: [],
       };
@@ -118,9 +117,12 @@ describe('MultiTargetCalculator', () => {
 
     createMonteCarloWorkerMock.mockReturnValue({
       worker: { terminate: vi.fn() } as unknown as Worker,
+      // Comlink's Remote<> adds proxy symbol methods a plain mock cannot satisfy structurally.
       api: {
         runSimulation: runSimulationMock,
-      },
+        ping: vi.fn(async () => 'pong'),
+      } as unknown as MonteCarloWorkerHandle['api'],
+      ready: Promise.resolve(),
     });
   });
 
@@ -696,9 +698,6 @@ describe('MultiTargetCalculator', () => {
           {
             characterKey: 'Furina',
             bannerType: 'character',
-            probability: 0.9,
-            averagePullsUsed: 50,
-            medianPullsUsed: 45,
             constellations: [
               {
                 label: 'C0',
@@ -709,6 +708,7 @@ describe('MultiTargetCalculator', () => {
             ],
           },
         ],
+        nothingProbability: 0.1,
         allMustHavesProbability: 0.9,
         pullTimeline: [],
       });

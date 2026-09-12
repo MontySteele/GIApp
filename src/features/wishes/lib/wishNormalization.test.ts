@@ -1,7 +1,38 @@
-import { describe, expect, it } from 'vitest';
-import { normalizeWishTimestamp } from './wishNormalization';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { normalizeWishTimestamp, toWishRecord } from './wishNormalization';
+import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
 
 describe('normalizeWishTimestamp', () => {
+  beforeEach(() => {
+    useUIStore.setState({ settings: { ...DEFAULT_SETTINGS, serverRegion: 'na' } });
+  });
+
+  it('applies the explicit region offset', () => {
+    expect(normalizeWishTimestamp('2025-11-11 14:30:00', 'na')).toBe('2025-11-11T19:30:00.000Z');
+    expect(normalizeWishTimestamp('2025-11-11 14:30:00', 'eu')).toBe('2025-11-11T13:30:00.000Z');
+    expect(normalizeWishTimestamp('2025-11-11 14:30:00', 'asia')).toBe('2025-11-11T06:30:00.000Z');
+    expect(normalizeWishTimestamp('2025-11-11 14:30:00', 'tw')).toBe('2025-11-11T06:30:00.000Z');
+  });
+
+  it('falls back to the configured server region when no region is given', () => {
+    useUIStore.getState().updateSettings({ serverRegion: 'asia' });
+    expect(normalizeWishTimestamp('2025-11-11 14:30:00')).toBe('2025-11-11T06:30:00.000Z');
+    expect(normalizeWishTimestamp('2025-11-11 14:30:00', null)).toBe('2025-11-11T06:30:00.000Z');
+  });
+
+  it('is idempotent once a timestamp carries an offset', () => {
+    const once = normalizeWishTimestamp('2025-11-11 14:30:00', 'asia');
+    expect(normalizeWishTimestamp(once, 'na')).toBe(once);
+  });
+
+  it('toWishRecord forwards the region', () => {
+    const record = toWishRecord(
+      { id: '1', name: 'Furina', rarity: 5, itemType: 'character', time: '2025-11-11 14:30:00', banner: 'character', isFeatured: true },
+      'eu'
+    );
+    expect(record.timestamp).toBe('2025-11-11T13:30:00.000Z');
+  });
+
   it('treats space-separated Genshin API timestamps as UTC-5', () => {
     // "2025-11-11 14:30:00" at UTC-5 = 2025-11-11T19:30:00Z
     const result = normalizeWishTimestamp('2025-11-11 14:30:00');

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   analyzeResinEfficiency,
   getEfficiencySummary,
@@ -27,6 +27,8 @@ describe('resinEfficiency', () => {
     localSpecialty: [],
     common: [],
     talent: [],
+    weapon: [],
+    artifact: [],
     weekly: [],
     crown: [],
   });
@@ -201,5 +203,27 @@ describe('resinEfficiency', () => {
       expect(text).toContain('resin');
       expect(text).toContain('days');
     });
+  });
+});
+
+describe('analyzeResinEfficiency server region', () => {
+  it("uses the region's game day to decide whether talent domains are open today", () => {
+    vi.useFakeTimers();
+    // Sunday 23:00Z: still Sunday on NA (18:00), already Monday on Asia (07:00)
+    vi.setSystemTime(new Date('2026-01-11T23:00:00Z'));
+    try {
+      const grouped: GroupedMaterials = {
+        mora: [], exp: [], boss: [], gem: [], localSpecialty: [], common: [], weapon: [], artifact: [], weekly: [], crown: [],
+        talent: [
+          { key: 'freedom', name: 'Guide to Freedom', category: 'talent' as const, tier: 2, required: 10, owned: 0, deficit: 10 },
+        ],
+      };
+      const talentReason = (region: 'na' | 'asia') =>
+        analyzeResinEfficiency(grouped, region).recommendations.find((r) => r.activity.type === 'talent')?.reason;
+      expect(talentReason('na')).toBe('Sunday - all books available!');
+      expect(talentReason('asia')).toBe('Time-gated by schedule');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

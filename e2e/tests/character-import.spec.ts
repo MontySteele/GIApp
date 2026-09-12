@@ -83,9 +83,9 @@ test.describe('Character Import', () => {
 
       await roster.importFromGOOD(JSON.stringify(invalidFormat));
 
-      // Should show validation error
+      // Should show validation error (message comes from irminsulImport's format guard)
       const modal = page.locator('[role="dialog"]');
-      await expect(modal.getByText(/^not a valid good format file$/i)).toBeVisible();
+      await expect(modal.getByText(/invalid irminsul\/good format/i)).toBeVisible();
     });
 
     test('should merge with existing characters on re-import', async ({ page }) => {

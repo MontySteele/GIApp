@@ -235,4 +235,39 @@ describe('createRetryFetch', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(2); // Initial + 1 retry (overridden)
   });
+
+  describe('per-attempt timeout', () => {
+    it('aborts a hung request after timeoutMs and retries', async () => {
+      const abortReasons: unknown[] = [];
+      let calls = 0;
+      const hungThenOk = vi.fn((_url: string, init?: RequestInit) => {
+        calls++;
+        if (calls === 1) {
+          return new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              abortReasons.push(init.signal?.reason);
+              reject(new DOMException('Aborted', 'AbortError'));
+            });
+          });
+        }
+        return Promise.resolve(new Response('ok', { status: 200 }));
+      });
+      vi.stubGlobal('fetch', hungThenOk);
+
+      const pending = fetchWithRetry('https://example.test/slow', undefined, {
+        maxRetries: 1,
+        baseDelay: 1,
+        timeoutMs: 20,
+      });
+      // Fake timers are active in this file: fire the 20ms abort, then the 1ms backoff.
+      await vi.advanceTimersByTimeAsync(25);
+      await vi.advanceTimersByTimeAsync(10);
+      const response = await pending;
+
+      expect(response.ok).toBe(true);
+      expect(calls).toBe(2);
+      expect(String(abortReasons[0])).toMatch(/timed out after 20ms/);
+      vi.unstubAllGlobals();
+    });
+  });
 });

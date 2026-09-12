@@ -56,7 +56,7 @@ describe('parseRoleCombat', () => {
       startDate: '2026-09-01',
       source: 'official',
       elements: ['Hydro', 'Electro', 'Dendro'],
-      openingCharacters: ['Columbina', 'Xingqiu', 'Cyno', 'Kuki Shinobu', 'Lauma', 'Kaveh'],
+      openingCharacters: ['Columbina', 'Xingqiu', 'Cyno', 'KukiShinobu', 'Lauma', 'Kaveh'],
     });
   });
 

@@ -6,6 +6,35 @@ import { GACHA_TYPE_MAP, WishImport } from './WishImport';
 import { db } from '@/db/schema';
 import { wishRepo } from '../repo/wishRepo';
 import type { Campaign } from '@/types';
+import type { WishHistoryItem } from '../domain/wishAnalyzer';
+
+/** Raw item shape returned by the Genshin gacha log API. */
+interface GachaLogItem {
+  id: string;
+  gacha_type: string;
+  item_id?: string;
+  name: string;
+  item_type: string;
+  rank_type: string;
+  time: string;
+}
+
+/** Builds the minimal Response surface WishImport reads (`ok` + `json()`). */
+function jsonResponse(body: unknown): Response {
+  return { ok: true, json: () => Promise.resolve(body) } as Response;
+}
+
+function requestUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') return input;
+  return input instanceof URL ? input.href : input.url;
+}
+
+/** Installs a typed fetch mock; the implementation receives the request URL as a string. */
+function mockFetch(impl: (url: string) => Promise<Response>) {
+  const spy = vi.fn<typeof fetch>((input) => impl(requestUrl(input)));
+  global.fetch = spy;
+  return spy;
+}
 
 const campaignMocks = vi.hoisted(() => ({
   activeCampaigns: [] as Campaign[],
@@ -33,12 +62,9 @@ beforeEach(async () => {
   await db.wishRecords.clear();
   localStorage.clear();
   campaignMocks.activeCampaigns = [];
-  global.fetch = vi.fn(() =>
-    Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
-    })
-  ) as any;
+  mockFetch(() =>
+    Promise.resolve(jsonResponse({ retcode: 0, data: { list: [] } }))
+  );
 });
 
 afterEach(async () => {
@@ -176,20 +202,17 @@ describe('WishImport', () => {
   describe('Import process', () => {
     it('should show loading state during import', async () => {
       const user = userEvent.setup();
-      const onImportComplete = vi.fn();
-      global.fetch = vi.fn(
+      const onImportComplete = vi.fn<(wishes: WishHistoryItem[]) => void>();
+      mockFetch(
         () =>
-          new Promise((resolve) =>
+          new Promise<Response>((resolve) =>
             setTimeout(
               () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
-                }),
+                resolve(jsonResponse({ retcode: 0, data: { list: [] } })),
               50
             )
           )
-      ) as any;
+      );
       render(<WishImport onImportComplete={onImportComplete} />);
 
       const urlInput = screen.getByLabelText(/wish history url/i);
@@ -206,19 +229,16 @@ describe('WishImport', () => {
 
     it('should show progress during import', async () => {
       const user = userEvent.setup();
-      global.fetch = vi.fn(
+      mockFetch(
         () =>
-          new Promise((resolve) =>
+          new Promise<Response>((resolve) =>
             setTimeout(
               () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
-                }),
+                resolve(jsonResponse({ retcode: 0, data: { list: [] } })),
               50
             )
           )
-      ) as any;
+      );
       render(<WishImport onImportComplete={vi.fn()} />);
 
       const urlInput = screen.getByLabelText(/wish history url/i);
@@ -234,14 +254,12 @@ describe('WishImport', () => {
 
     it('should call onImportComplete with wish data on success', async () => {
       const user = userEvent.setup();
-      const onImportComplete = vi.fn();
+      const onImportComplete = vi.fn<(wishes: WishHistoryItem[]) => void>();
 
       // Mock successful fetch
-      global.fetch = vi.fn((url: string) => {
+      mockFetch((url: string) => {
         const gachaType = new URL(url).searchParams.get('gacha_type');
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
+        return Promise.resolve(jsonResponse({
             retcode: 0,
             data: {
               list: gachaType === '301'
@@ -258,9 +276,8 @@ describe('WishImport', () => {
                 ]
                 : [],
             },
-          }),
-        });
-      }) as any;
+          }));
+      });
 
       render(<WishImport onImportComplete={onImportComplete} />);
 
@@ -280,13 +297,46 @@ describe('WishImport', () => {
       });
     });
 
+    it.each([
+      ['os_usa', '2024-01-01T17:00:00.000Z'],
+      ['os_euro', '2024-01-01T11:00:00.000Z'],
+      ['os_asia', '2024-01-01T04:00:00.000Z'],
+      ['os_cht', '2024-01-01T04:00:00.000Z'],
+    ])('interprets API timestamps in the server timezone of region=%s', async (region, expectedIso) => {
+      const user = userEvent.setup();
+      mockFetch((url: string) => {
+        const gachaType = new URL(url).searchParams.get('gacha_type');
+        return Promise.resolve(jsonResponse({
+            retcode: 0,
+            data: {
+              list: gachaType === '301'
+                ? [{ id: '1', gacha_type: '301', item_id: '10000089', name: 'Furina', item_type: 'Character', rank_type: '5', time: '2024-01-01 12:00:00' }]
+                : [],
+            },
+          }));
+      });
+
+      render(<WishImport onImportComplete={vi.fn()} />);
+      await user.type(
+        screen.getByLabelText(/wish history url/i),
+        `https://gs.hoyoverse.com/genshin/event/e20190909gacha-v3/log?authkey=test&region=${region}`
+      );
+      await user.click(screen.getByRole('button', { name: /^import$/i }));
+
+      await waitFor(async () => {
+        const stored = await wishRepo.getAll();
+        expect(stored).toHaveLength(1);
+        expect(stored[0]?.timestamp).toBe(expectedIso);
+      });
+    });
+
     it('should show error message on import failure', async () => {
       const user = userEvent.setup();
 
       // Mock failed fetch
-      global.fetch = vi.fn(() =>
+      mockFetch(() =>
         Promise.reject(new Error('Network error'))
-      ) as any;
+      );
 
       render(<WishImport onImportComplete={vi.fn()} />);
 
@@ -305,15 +355,12 @@ describe('WishImport', () => {
       const user = userEvent.setup();
 
       // Mock authkey expired response
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
+      mockFetch(() =>
+        Promise.resolve(jsonResponse({
             retcode: -101,
             message: 'authkey timeout',
-          }),
-        })
-      ) as any;
+          }))
+      );
 
       render(<WishImport onImportComplete={vi.fn()} />);
 
@@ -332,13 +379,9 @@ describe('WishImport', () => {
   describe('Banner selection', () => {
     it('should fetch all banner types by default', async () => {
       const user = userEvent.setup();
-      const fetchSpy = vi.fn(() => {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ retcode: 0, data: { list: [] } }),
-        });
+      const fetchSpy = mockFetch(() => {
+        return Promise.resolve(jsonResponse({ retcode: 0, data: { list: [] } }));
       });
-      global.fetch = fetchSpy as any;
 
       render(<WishImport onImportComplete={vi.fn()} />);
 
@@ -350,7 +393,7 @@ describe('WishImport', () => {
       await waitFor(() => {
         // Should fetch character (301 + 400), weapon (302), standard (200), and chronicled (500)
         expect(fetchSpy).toHaveBeenCalledTimes(5);
-        const gachaTypes = fetchSpy.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
+        const gachaTypes = fetchSpy.mock.calls.map((call) => new URL(requestUrl(call[0])).searchParams.get('gacha_type'));
         expect(gachaTypes).toEqual(expect.arrayContaining(['301', '400', '302', '200', '500']));
       });
     });
@@ -367,14 +410,12 @@ describe('WishImport', () => {
 
     it('should aggregate wishes from all selected banners', async () => {
       const user = userEvent.setup();
-      const onImportComplete = vi.fn();
+      const onImportComplete = vi.fn<(wishes: WishHistoryItem[]) => void>();
 
-      const fetchMock = vi.fn((url: string) => {
+      const fetchMock = mockFetch((url: string) => {
         const gachaType = new URL(url).searchParams.get('gacha_type');
 
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
+        return Promise.resolve(jsonResponse({
             retcode: 0,
             data: {
               list: gachaType
@@ -388,11 +429,8 @@ describe('WishImport', () => {
                   }]
                 : [],
             },
-          }),
-        });
+          }));
       });
-
-      global.fetch = fetchMock as any;
 
       render(<WishImport onImportComplete={onImportComplete} />);
 
@@ -407,8 +445,8 @@ describe('WishImport', () => {
       });
 
       const aggregatedWishes = onImportComplete.mock.calls[0][0];
-      const banners = aggregatedWishes.map((wish: any) => wish.banner);
-      const gachaTypes = fetchMock.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
+      const banners = aggregatedWishes.map((wish) => wish.banner);
+      const gachaTypes = fetchMock.mock.calls.map((call) => new URL(requestUrl(call[0])).searchParams.get('gacha_type'));
 
       expect(fetchMock).toHaveBeenCalledTimes(5);
       expect(gachaTypes).toEqual(expect.arrayContaining(['301', '400', '302', '200', '500']));
@@ -419,9 +457,9 @@ describe('WishImport', () => {
 
     it('should keep chronicled wishes when paginating with duplicate pages', async () => {
       const user = userEvent.setup();
-      const onImportComplete = vi.fn();
+      const onImportComplete = vi.fn<(wishes: WishHistoryItem[]) => void>();
 
-      const responsesByPage: Record<string, any[]> = {
+      const responsesByPage: Record<string, GachaLogItem[]> = {
         '500-1': [
           { id: '500-a', gacha_type: '500', rank_type: '5', name: 'Diluc', item_type: 'Character', time: '2024-01-01 00:00:00' },
         ],
@@ -431,19 +469,15 @@ describe('WishImport', () => {
         ],
       };
 
-      const fetchMock = vi.fn((url: string) => {
+      const fetchMock = mockFetch((url: string) => {
         const parsed = new URL(url);
         const gachaType = parsed.searchParams.get('gacha_type');
         const page = parsed.searchParams.get('page');
         const key = `${gachaType}-${page}`;
         const list = responsesByPage[key] ?? [];
 
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ retcode: 0, data: { list } }),
-        });
+        return Promise.resolve(jsonResponse({ retcode: 0, data: { list } }));
       });
-      global.fetch = fetchMock as any;
 
       render(<WishImport onImportComplete={onImportComplete} />);
 
@@ -467,14 +501,12 @@ describe('WishImport', () => {
 
     it('should fetch only selected banners when some are deselected', async () => {
       const user = userEvent.setup();
-      const onImportComplete = vi.fn();
+      const onImportComplete = vi.fn<(wishes: WishHistoryItem[]) => void>();
 
-      const fetchMock = vi.fn((url: string) => {
+      const fetchMock = mockFetch((url: string) => {
         const gachaType = new URL(url).searchParams.get('gacha_type');
 
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
+        return Promise.resolve(jsonResponse({
             retcode: 0,
             data: {
               list: gachaType && gachaType !== '302'
@@ -488,11 +520,8 @@ describe('WishImport', () => {
                   }]
                 : [],
             },
-          }),
-        });
+          }));
       });
-
-      global.fetch = fetchMock as any;
 
       render(<WishImport onImportComplete={onImportComplete} />);
 
@@ -510,8 +539,8 @@ describe('WishImport', () => {
       });
 
       const aggregatedWishes = onImportComplete.mock.calls[0][0];
-      const banners = aggregatedWishes.map((wish: any) => wish.banner);
-      const fetchedGachaTypes = fetchMock.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
+      const banners = aggregatedWishes.map((wish) => wish.banner);
+      const fetchedGachaTypes = fetchMock.mock.calls.map((call) => new URL(requestUrl(call[0])).searchParams.get('gacha_type'));
 
       expect(fetchMock).toHaveBeenCalledTimes(4);
       expect(fetchedGachaTypes).toEqual(expect.arrayContaining(['301', '400', '200', '500']));
@@ -526,12 +555,10 @@ describe('WishImport', () => {
   describe('Import summary', () => {
     it('should show summary of imported wishes', async () => {
       const user = userEvent.setup();
-      const onImportComplete = vi.fn();
+      const onImportComplete = vi.fn<(wishes: WishHistoryItem[]) => void>();
 
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
+      mockFetch(() =>
+        Promise.resolve(jsonResponse({
             retcode: 0,
             data: {
               list: [
@@ -539,9 +566,8 @@ describe('WishImport', () => {
                 { id: '2', gacha_type: '301', rank_type: '4', name: 'Fischl', item_type: 'Character', time: '2024-01-01 11:00:00' },
               ],
             },
-          }),
-        })
-      ) as any;
+          }))
+      );
 
       render(<WishImport onImportComplete={onImportComplete} />);
 
@@ -560,23 +586,20 @@ describe('WishImport', () => {
 
     it('should include all banner counts when each gacha type returns data', async () => {
       const user = userEvent.setup();
-      const onImportComplete = vi.fn();
+      const onImportComplete = vi.fn<(wishes: WishHistoryItem[]) => void>();
 
-      const bannerResponses: Record<string, any[]> = {
-        '301': [{ id: '1', gacha_type: 301, rank_type: '5', name: 'Furina', item_type: 'Character', time: '2024-01-01 12:00:00' }],
-        '302': [{ id: '2', gacha_type: 302, rank_type: '5', name: 'Aqua Simulacra', item_type: 'Weapon', time: '2024-01-01 12:10:00' }],
-        '200': [{ id: '3', gacha_type: 200, rank_type: '4', name: 'Jean', item_type: 'Character', time: '2024-01-01 12:20:00' }],
-        '500': [{ id: '4', gacha_type: 500, rank_type: '4', name: 'Diluc', item_type: 'Character', time: '2024-01-01 12:30:00' }],
+      const bannerResponses: Record<string, GachaLogItem[]> = {
+        '301': [{ id: '1', gacha_type: '301', rank_type: '5', name: 'Furina', item_type: 'Character', time: '2024-01-01 12:00:00' }],
+        '302': [{ id: '2', gacha_type: '302', rank_type: '5', name: 'Aqua Simulacra', item_type: 'Weapon', time: '2024-01-01 12:10:00' }],
+        '200': [{ id: '3', gacha_type: '200', rank_type: '4', name: 'Jean', item_type: 'Character', time: '2024-01-01 12:20:00' }],
+        '500': [{ id: '4', gacha_type: '500', rank_type: '4', name: 'Diluc', item_type: 'Character', time: '2024-01-01 12:30:00' }],
       };
 
-      global.fetch = vi.fn((url: string) => {
+      mockFetch((url: string) => {
         const gachaType = new URL(url).searchParams.get('gacha_type') || '';
         const list = bannerResponses[gachaType] ?? [];
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ retcode: 0, data: { list } }),
-        });
-      }) as any;
+        return Promise.resolve(jsonResponse({ retcode: 0, data: { list } }));
+      });
 
       render(<WishImport onImportComplete={onImportComplete} />);
 
@@ -592,7 +615,7 @@ describe('WishImport', () => {
 
       const allWishes = onImportComplete.mock.calls[0][0];
       expect(allWishes).toHaveLength(4);
-      expect(allWishes.map((wish: any) => wish.banner).sort()).toEqual(
+      expect(allWishes.map((wish) => wish.banner).sort()).toEqual(
         ['character', 'weapon', 'standard', 'chronicled'].sort()
       );
 
@@ -605,20 +628,17 @@ describe('WishImport', () => {
     it('should show breakdown by banner type', async () => {
       const user = userEvent.setup();
 
-      global.fetch = vi.fn((url: string) => {
+      mockFetch((url: string) => {
         const gachaType = new URL(url).searchParams.get('gacha_type');
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
+        return Promise.resolve(jsonResponse({
             retcode: 0,
             data: {
               list: gachaType === '301'
                 ? [{ id: '1', gacha_type: '301', rank_type: '5', name: 'Furina', item_type: 'Character', time: '2024-01-01 12:00:00' }]
                 : [],
             },
-          }),
-        });
-      }) as any;
+          }));
+      });
 
       render(
         <MemoryRouter>
@@ -667,20 +687,17 @@ describe('WishImport', () => {
         },
       ];
 
-      global.fetch = vi.fn((url: string) => {
+      mockFetch((url: string) => {
         const gachaType = new URL(url).searchParams.get('gacha_type');
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
+        return Promise.resolve(jsonResponse({
             retcode: 0,
             data: {
               list: gachaType === '301'
                 ? [{ id: '1', gacha_type: '301', rank_type: '3', name: 'Cool Steel', item_type: 'Weapon', time: '2024-01-01 12:00:00' }]
                 : [],
             },
-          }),
-        });
-      }) as any;
+          }));
+      });
 
       render(
         <MemoryRouter>

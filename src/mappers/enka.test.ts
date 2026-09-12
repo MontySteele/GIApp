@@ -433,7 +433,7 @@ describe('Enka Mapper', () => {
 
     it('imports a realistic multi-character showcase with correct talents, keys and weapons', () => {
       const result = fromEnka(ENKA_SHOWCASE_FIXTURE);
-      expect(result.map((c) => c.key)).toEqual(['Kamisato Ayaka', 'Furina', 'Traveler', 'Columbina']);
+      expect(result.map((c) => c.key)).toEqual(['KamisatoAyaka', 'Furina', 'TravelerDendro', 'Columbina']);
 
       const [ayaka, furina, traveler, columbina] = result;
       expect(ayaka.talent).toEqual({ auto: 10, skill: 8, burst: 9 });
@@ -513,7 +513,7 @@ describe('Enka Mapper', () => {
         expiresAt: future,
       });
 
-      globalThis.fetch = vi.fn() as any;
+      globalThis.fetch = vi.fn<typeof fetch>();
 
       const result = await fetchEnkaData(uid);
 
@@ -531,12 +531,12 @@ describe('Enka Mapper', () => {
         expiresAt: expired,
       });
 
-      globalThis.fetch = vi.fn().mockResolvedValue(
+      globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
         new Response(JSON.stringify({ ...baseEnkaResponse, ttl: 120 }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         }),
-      ) as any;
+      );
 
       const result = await fetchEnkaData(uid);
 
@@ -544,21 +544,21 @@ describe('Enka Mapper', () => {
       expect(result.ttl).toBe(120);
 
       const cached = await db.externalCache.where('cacheKey').equals(`enka:${uid}`).first();
-      expect(cached?.data.uid).toBe(uid);
+      expect(cached?.data).toMatchObject({ uid });
       expect(new Date(cached!.expiresAt).getTime()).toBeGreaterThan(Date.now());
     });
 
     it('retries on retryable errors before succeeding', async () => {
       vi.useFakeTimers();
-      globalThis.fetch = (vi
-        .fn()
+      globalThis.fetch = vi
+        .fn<typeof fetch>()
         .mockResolvedValueOnce(new Response('Server error', { status: 500, statusText: 'Server Error' }))
         .mockResolvedValueOnce(
           new Response(JSON.stringify(baseEnkaResponse), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           }),
-        )) as any;
+        );
 
       const fetchPromise = fetchEnkaData(uid);
       await vi.runAllTimersAsync();
@@ -569,12 +569,12 @@ describe('Enka Mapper', () => {
     });
 
     it('throws helpful errors for API failures', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue(
+      globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
         new Response('Not found', {
           status: 404,
           statusText: 'Not Found',
         }),
-      ) as any;
+      );
 
       await expect(fetchEnkaData(uid)).rejects.toThrow('UID not found');
     });

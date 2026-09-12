@@ -2,7 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 import EnkaImport from './EnkaImport';
-import { fetchEnkaData, fromEnka } from '@/mappers/enka';
+import { fetchEnkaData, fromEnka, type EnkaAvatar } from '@/mappers/enka';
+import type { Character } from '@/types';
 import { characterRepo } from '../repo/characterRepo';
 
 vi.mock('@/mappers/enka', () => ({
@@ -17,7 +18,7 @@ vi.mock('../repo/characterRepo', () => ({
   },
 }));
 
-const mockCharacter = {
+const mockCharacter: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
   key: 'Furina',
   level: 90,
   ascension: 6,
@@ -37,7 +38,8 @@ describe('EnkaImport', () => {
 
   it('shows skipped warning when some characters cannot be imported', async () => {
     vi.mocked(fetchEnkaData).mockResolvedValue({
-      avatarInfoList: [{ avatarId: 1 } as any, { avatarId: 2 } as any],
+      // Deliberately incomplete avatars: the test covers characters the mapper cannot import.
+      avatarInfoList: [{ avatarId: 1 } as EnkaAvatar, { avatarId: 2 } as EnkaAvatar],
       playerInfo: {
         nickname: 'Tester',
         level: 60,
@@ -51,7 +53,7 @@ describe('EnkaImport', () => {
       ttl: 60,
       uid: '123456789',
     });
-    vi.mocked(fromEnka).mockReturnValue([mockCharacter as any]);
+    vi.mocked(fromEnka).mockReturnValue([mockCharacter]);
     vi.mocked(characterRepo.bulkUpsert).mockResolvedValue({ created: 1, updated: 0 });
 
     render(<EnkaImport onCancel={() => {}} onSuccess={() => {}} />);

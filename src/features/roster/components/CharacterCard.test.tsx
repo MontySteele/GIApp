@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import CharacterCard from './CharacterCard';
-import type { Character } from '@/types';
+import type { Artifact, Character } from '@/types';
 
 interface MockLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
   to: string;
@@ -208,7 +208,7 @@ describe('CharacterCard', () => {
 
   describe('artifact score', () => {
     it('shows artifact score when artifacts exist', () => {
-      const artifacts = [
+      const artifacts: Artifact[] = [
         {
           setKey: 'GoldenTroupe',
           slotKey: 'flower',
@@ -224,7 +224,7 @@ describe('CharacterCard', () => {
         },
       ];
 
-      render(<CharacterCard character={makeCharacter({ artifacts: artifacts as any })} />);
+      render(<CharacterCard character={makeCharacter({ artifacts })} />);
 
       expect(screen.getByText('Artifacts')).toBeInTheDocument();
       expect(screen.getByText('CV: 180.5')).toBeInTheDocument();

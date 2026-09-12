@@ -47,8 +47,10 @@ test.describe('Material Planner', () => {
         // May already be in single mode
       });
 
-      // Select a character
+      // Select a character. The fixture Furina is already 90/A6, so "Next Ascension"
+      // (the default goal) needs nothing; pick Full Build to get a material list.
       await planner.selectCharacter('Furina');
+      await planner.selectGoalType('full');
 
       // Materials should be displayed
       const hasMaterials = await planner.hasMaterials();

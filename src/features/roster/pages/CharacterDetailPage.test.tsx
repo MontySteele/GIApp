@@ -68,7 +68,15 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 vi.mock('../components/CharacterForm', () => ({
   __esModule: true,
-  default: ({ onSubmit, onCancel, initialData }: any) => (
+  default: ({
+    onSubmit,
+    onCancel,
+    initialData,
+  }: {
+    onSubmit: (character: Partial<Character>) => void;
+    onCancel: () => void;
+    initialData?: Character;
+  }) => (
     <div>
       <div>Mock CharacterForm {initialData?.key}</div>
       <button onClick={() => onSubmit({ key: 'Updated Furina' })}>Submit Edit</button>

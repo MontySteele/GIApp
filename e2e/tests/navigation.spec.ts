@@ -229,11 +229,15 @@ test.describe('Navigation', () => {
     test('should support skip link for accessibility', async ({ page }) => {
       await page.goto('/');
 
+      // The app shell mounts only after the local database has opened (DatabaseGate),
+      // so wait for the skip link to exist before tabbing to it.
+      const skipLink = page.getByRole('link', { name: /skip to main content/i });
+      await expect(skipLink).toBeAttached();
+
       // Press Tab to focus skip link
       await page.keyboard.press('Tab');
 
       // Skip link should be visible when focused
-      const skipLink = page.getByRole('link', { name: /skip to main content/i });
       await expect(skipLink).toBeFocused();
 
       await page.keyboard.press('Enter');

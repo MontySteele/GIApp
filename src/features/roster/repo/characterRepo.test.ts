@@ -210,8 +210,9 @@ describe('Character Repository', () => {
       const updatedCharacter = await characterRepo.getById(id);
 
       // ISO strings can be compared directly
-      expect(updatedCharacter?.updatedAt).not.toBe(originalCharacter!.updatedAt);
-      expect(updatedCharacter?.updatedAt >= originalCharacter!.updatedAt).toBe(true);
+      expect(updatedCharacter).toBeDefined();
+      expect(updatedCharacter!.updatedAt).not.toBe(originalCharacter!.updatedAt);
+      expect(updatedCharacter!.updatedAt >= originalCharacter!.updatedAt).toBe(true);
     });
 
     it('should not change createdAt timestamp', async () => {
@@ -264,11 +265,12 @@ describe('Character Repository', () => {
       expect(teamC?.updatedAt).toBe(now);
     });
 
-    it('keeps the key in teams while another character with the same key remains', async () => {
+    it('keeps the key in teams while another (legacy duplicate) row with the same key remains', async () => {
       const now = '2026-01-01T00:00:00.000Z';
       await db.teams.put({ id: 'team-a', name: 'A', characterKeys: ['Furina'], rotationNotes: '', tags: [], createdAt: now, updatedAt: now });
+      // create() merges by key now, so seed the legacy duplicate directly.
       const first = await characterRepo.create(mockCharacterData);
-      await characterRepo.create(mockCharacterData);
+      await db.characters.add({ ...mockCharacterData, id: 'legacy-dupe', createdAt: now, updatedAt: now });
 
       await characterRepo.delete(first);
 
@@ -424,6 +426,24 @@ describe('Character Repository', () => {
       const character = await characterRepo.getById(id);
 
       expect(character?.artifacts).toEqual([]);
+    });
+  });
+
+  describe('canonical keys', () => {
+    it('GOOD, Enka display-name and manual short keys land on one row', async () => {
+      await characterRepo.bulkUpsert([
+        { ...mockCharacterData, key: 'KamisatoAyaka', level: 80 },
+      ]);
+      await characterRepo.bulkUpsert([
+        { ...mockCharacterData, key: 'Kamisato Ayaka', level: 85 },
+      ]);
+      await characterRepo.create({ ...mockCharacterData, key: 'Ayaka', level: 90 });
+
+      const all = await db.characters.toArray();
+      expect(all.filter((c) => c.key === 'KamisatoAyaka')).toHaveLength(1);
+      expect(all.some((c) => c.key === 'Ayaka' || c.key === 'Kamisato Ayaka')).toBe(false);
+      expect(await characterRepo.getByKey('Ayaka')).toBeDefined();
+      expect((await characterRepo.getByKey('Ayaka'))?.level).toBe(90); // last write wins on merge
     });
   });
 });
