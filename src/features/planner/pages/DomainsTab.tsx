@@ -9,9 +9,12 @@ import { ExternalLink, Info, Calendar as CalendarIcon } from 'lucide-react';
 import { openExternal } from '@/lib/utils/openExternal';
 import DomainScheduleCard from '../components/DomainScheduleCard';
 import ResetTimers from '@/features/calendar/components/ResetTimers';
+import { useServerRegion } from '@/stores/uiStore';
+import { formatServerRegion } from '@/lib/time/serverTime';
 import { Card } from '@/components/ui/Card';
 
 export default function DomainsTab() {
+  const serverRegion = useServerRegion();
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -86,7 +89,7 @@ export default function DomainsTab() {
         <Info className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-slate-500">
           <p>
-            Reset times are calculated for <strong>US Server (UTC-5)</strong>.
+            Reset times are calculated for <strong>{formatServerRegion(serverRegion)}</strong> (change it in Settings).
             All timers update automatically. Domain materials rotate daily at server reset.
           </p>
         </div>

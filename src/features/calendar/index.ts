@@ -5,7 +5,6 @@
  */
 
 // Pages
-export { default as CalendarPage } from './pages/CalendarPage';
 
 // Hooks
 export { useEvents } from './hooks/useEvents';

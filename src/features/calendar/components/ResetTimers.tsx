@@ -1,3 +1,5 @@
+import { formatServerRegion } from '@/lib/time/serverTime';
+import { useServerRegion } from '@/stores/uiStore';
 import { useState, useEffect } from 'react';
 import { Clock, RefreshCw, Swords, ShoppingBag, Calendar, Theater, Sparkles } from 'lucide-react';
 import {
@@ -39,6 +41,7 @@ function TimerCard({ timer }: { timer: ResetInfo }) {
 }
 
 export default function ResetTimers() {
+  const serverRegion = useServerRegion();
   const [timers, setTimers] = useState<ResetInfo[]>(getAllResetTimers());
 
   // Update timers every second
@@ -68,7 +71,7 @@ export default function ResetTimers() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-200">Reset Timers</h2>
-        <span className="text-xs text-slate-500">US Server (UTC-5)</span>
+        <span className="text-xs text-slate-500">{formatServerRegion(serverRegion)}</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {timers.map((timer) => (

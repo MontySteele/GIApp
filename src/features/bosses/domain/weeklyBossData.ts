@@ -4,6 +4,13 @@
  * Contains information about all weekly bosses in Genshin Impact
  */
 
+import {
+  getLastWeeklyReset,
+  getNextWeeklyReset as getNextWeeklyResetForRegion,
+  type ServerRegion,
+} from '@/lib/time/serverTime';
+import { getCurrentServerRegion } from '@/stores/uiStore';
+
 export interface WeeklyBoss {
   key: string;
   name: string;
@@ -140,41 +147,24 @@ export const REGULAR_RESIN_COST = 60;
 export const MAX_DISCOUNTED_CLAIMS = 3;
 
 /**
- * Get next Monday reset time (4:00 AM server time)
- * US Server: UTC-5
+ * Get next Monday reset time (4:00 AM server time) for the given region
+ * (defaults to the user's configured server region).
  */
-export function getNextWeeklyReset(): Date {
-  const now = new Date();
-  // Assuming US server (UTC-5)
-  const serverOffset = -5; // hours
-  const resetHour = 4; // 4:00 AM server time
-
-  // Convert to server time
-  const serverTime = new Date(now.getTime() + serverOffset * 60 * 60 * 1000);
-
-  // Find next Monday
-  const daysUntilMonday = (8 - serverTime.getDay()) % 7 || 7;
-  const nextMonday = new Date(serverTime);
-  nextMonday.setDate(serverTime.getDate() + daysUntilMonday);
-  nextMonday.setHours(resetHour, 0, 0, 0);
-
-  // If it's Monday before reset, use this Monday
-  if (serverTime.getDay() === 1 && serverTime.getHours() < resetHour) {
-    nextMonday.setDate(nextMonday.getDate() - 7);
-  }
-
-  // Convert back to local time
-  return new Date(nextMonday.getTime() - serverOffset * 60 * 60 * 1000);
+export function getNextWeeklyReset(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
+  return getNextWeeklyResetForRegion(region, now);
 }
 
 /**
- * Get the start of the current week (Monday 4:00 AM server time)
+ * Get the start of the current week (previous Monday 4:00 AM server time)
  */
-export function getCurrentWeekStart(): Date {
-  const nextReset = getNextWeeklyReset();
-  const currentWeekStart = new Date(nextReset);
-  currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-  return currentWeekStart;
+export function getCurrentWeekStart(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
+  return getLastWeeklyReset(region, now);
 }
 
 /**

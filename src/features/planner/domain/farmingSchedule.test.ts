@@ -137,7 +137,9 @@ describe('farmingSchedule', () => {
     // Mock Date to control "today"
     const mockDate = (dayIndex: number) => {
       // dayIndex: 0 = Sunday, 1 = Monday, etc.
-      const mockNow = new Date(2024, 0, 7 + dayIndex); // Jan 7, 2024 is Sunday
+      // Jan 7, 2024 is Sunday. Noon UTC is the same game day on every server
+      // (NA 07:00, EU 13:00, Asia 20:00 - all past the 04:00 rollover).
+      const mockNow = new Date(Date.UTC(2024, 0, 7 + dayIndex, 12));
       vi.setSystemTime(mockNow);
     };
 
@@ -399,5 +401,36 @@ describe('farmingSchedule', () => {
       const summary = getFarmingSummary(schedule);
       expect(summary).toContain('All domains available');
     });
+  });
+});
+
+describe('getTodayName by server region', () => {
+  it('uses the game day of the given region (04:00 server rollover)', async () => {
+    const { getTodayName } = await import('./farmingSchedule');
+    // 2026-01-12T22:00Z: Monday 17:00 on NA, Tuesday 06:00 on Asia
+    const instant = new Date('2026-01-12T22:00:00Z');
+    expect(getTodayName('na', instant)).toBe('Monday');
+    expect(getTodayName('eu', instant)).toBe('Monday');
+    expect(getTodayName('asia', instant)).toBe('Tuesday');
+    // 2026-01-13T08:59Z is still Monday's game day on NA (03:59 server time)
+    expect(getTodayName('na', new Date('2026-01-13T08:59:00Z'))).toBe('Monday');
+    expect(getTodayName('na', new Date('2026-01-13T09:00:00Z'))).toBe('Tuesday');
+  });
+
+  it('analyzeFarmingSchedule honours the region argument', async () => {
+    const { analyzeFarmingSchedule } = await import('./farmingSchedule');
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-12T22:00:00Z'));
+    try {
+      const materials = [
+        { key: 'freedom', name: 'Guide to Freedom', category: 'talent' as const, tier: 2, required: 10, owned: 0, deficit: 10 },
+      ];
+      // Freedom: Mon/Thu/Sun
+      expect(analyzeFarmingSchedule(materials, 'na').farmToday).toHaveLength(1);
+      expect(analyzeFarmingSchedule(materials, 'asia').farmToday).toHaveLength(0);
+      expect(analyzeFarmingSchedule(materials, 'asia').dayName).toBe('Tuesday');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

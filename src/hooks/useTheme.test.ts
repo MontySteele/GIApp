@@ -1,18 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTheme } from './useTheme';
-import { useUIStore } from '@/stores/uiStore';
+import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
 
 // Reset store between tests
 const resetStore = () => {
   useUIStore.setState({
-    settings: {
-      dateFormat: 'MM/dd/yyyy',
-      theme: 'dark',
-      backupReminderCadenceDays: 14,
-      showManualWishEntry: false,
-      showManualPrimogemEntry: false,
-    },
+    settings: { ...DEFAULT_SETTINGS, theme: 'dark' },
   });
 };
 

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import PlannerPage from './PlannerPage';
+import { getTodayName } from '@/lib/planning/farmingSchedule';
 
 // Helper to wrap component with router
 function renderWithRouter(ui: React.ReactElement, initialEntries = ['/']) {
@@ -246,9 +247,8 @@ describe('PlannerPage', () => {
     it('shows today day name', async () => {
       renderWithRouter(<PlannerPage />);
 
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const today = days[new Date().getDay()];
-      expect(screen.getByText(today!)).toBeInTheDocument();
+      // "Today" follows the configured server's game day (04:00 rollover), not the browser's local day.
+      expect(screen.getByText(getTodayName())).toBeInTheDocument();
 
       await waitForPlannerPersistence();
     });

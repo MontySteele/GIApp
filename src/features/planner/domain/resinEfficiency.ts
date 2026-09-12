@@ -8,6 +8,8 @@
 import { RESIN_COSTS, DOMAIN_DROPS_PER_RUN, RESIN_REGEN } from './materialConstants';
 import type { MaterialRequirement } from './ascensionCalculator';
 import type { GroupedMaterials } from './multiCharacterCalculator';
+import { getServerDay, type ServerRegion } from '@/lib/time/serverTime';
+import { getCurrentServerRegion } from '@/stores/uiStore';
 
 export interface FarmingActivity {
   name: string;
@@ -150,20 +152,14 @@ function calculateMoraDeficit(materials: MaterialRequirement[]): number {
 }
 
 /**
- * Get today's day name for domain schedule
- */
-function getTodayName(): string {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return days[new Date().getDay()] ?? 'Sunday';
-}
-
-/**
- * Analyze resin efficiency for all farming activities
+ * Analyze resin efficiency for all farming activities.
+ * "Today" follows the game day (04:00 server-time rollover) of `region`.
  */
 export function analyzeResinEfficiency(
-  groupedMaterials: GroupedMaterials
+  groupedMaterials: GroupedMaterials,
+  region: ServerRegion = getCurrentServerRegion()
 ): ResinEfficiencySummary {
-  const today = getTodayName();
+  const today: string = getServerDay(region).weekdayName;
   const isSunday = today === 'Sunday';
 
   const activities: FarmingActivity[] = [];

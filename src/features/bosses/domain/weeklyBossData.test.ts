@@ -388,3 +388,30 @@ describe('Edge Cases', () => {
     });
   });
 });
+
+describe('Weekly reset by server region', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-11T21:00:00Z')); // Sunday 16:00 NA, Monday 05:00 Asia
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('NA is still waiting for Monday, Asia has already reset', () => {
+    expect(getNextWeeklyReset('na').toISOString()).toBe('2026-01-12T09:00:00.000Z');
+    expect(getNextWeeklyReset('asia').toISOString()).toBe('2026-01-18T20:00:00.000Z');
+    expect(getNextWeeklyReset('eu').toISOString()).toBe('2026-01-12T03:00:00.000Z');
+  });
+
+  it('getCurrentWeekStart is the previous Monday 04:00 server time', () => {
+    expect(getCurrentWeekStart('na').toISOString()).toBe('2026-01-05T09:00:00.000Z');
+    expect(getCurrentWeekStart('asia').toISOString()).toBe('2026-01-11T20:00:00.000Z');
+  });
+
+  it('accepts an explicit instant', () => {
+    expect(getNextWeeklyReset('na', new Date('2026-01-12T08:59:00Z')).toISOString()).toBe('2026-01-12T09:00:00.000Z');
+    expect(getNextWeeklyReset('na', new Date('2026-01-12T09:00:00Z')).toISOString()).toBe('2026-01-19T09:00:00.000Z');
+  });
+});

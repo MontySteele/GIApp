@@ -2,14 +2,18 @@ import { Calendar } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { DOMAIN_SCHEDULE, TALENT_BOOK_REGIONS } from '../domain/materialConstants';
+import { getServerDay, type ServerRegion } from '@/lib/time/serverTime';
+import { getCurrentServerRegion, useServerRegion } from '@/stores/uiStore';
 
 /**
- * Get today's available talent materials based on day of week
+ * Get today's available talent materials based on the game day
+ * (04:00 server-time rollover) for the given server region.
  */
-export function getTodaysMaterials(): { materials: string[]; dayName: string } {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
-  const today = new Date();
-  const dayName = days[today.getDay()] ?? 'Sunday';
+export function getTodaysMaterials(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): { materials: string[]; dayName: string } {
+  const dayName = getServerDay(region, now).weekdayName;
 
   const materials: string[] = [];
   for (const [material, availableDays] of Object.entries(DOMAIN_SCHEDULE)) {
@@ -22,7 +26,8 @@ export function getTodaysMaterials(): { materials: string[]; dayName: string } {
 }
 
 export default function DomainScheduleCard() {
-  const { materials: todayMaterials, dayName } = getTodaysMaterials();
+  const region = useServerRegion();
+  const { materials: todayMaterials, dayName } = getTodaysMaterials(region);
 
   // Group today's materials by region
   const materialsByRegion: Record<string, string[]> = {};

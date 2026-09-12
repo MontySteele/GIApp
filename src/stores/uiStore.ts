@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import {
+  DEFAULT_SERVER_REGION,
+  getServerRegionFromTimezone,
+  isServerRegion,
+  type ServerRegion,
+} from '@/lib/time/serverTime';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -9,6 +15,8 @@ interface UISettings {
   backupReminderCadenceDays: number;
   showManualWishEntry: boolean;
   showManualPrimogemEntry: boolean;
+  /** Genshin server the player is on; drives daily/weekly reset and "today's domains". */
+  serverRegion: ServerRegion;
 }
 
 interface UIState {
@@ -42,6 +50,7 @@ export const DEFAULT_SETTINGS: UISettings = {
   backupReminderCadenceDays: 14,
   showManualWishEntry: false,
   showManualPrimogemEntry: false,
+  serverRegion: getServerRegionFromTimezone(),
 };
 
 export const useUIStore = create<UIState>()(
@@ -82,3 +91,24 @@ export const useUIStore = create<UIState>()(
     }
   )
 );
+
+/**
+ * Resolve the configured server region, tolerating settings persisted before
+ * `serverRegion` existed (the persisted `settings` object replaces the default
+ * wholesale, so the field may be missing).
+ */
+function resolveServerRegion(settings: Partial<UISettings> | undefined): ServerRegion {
+  const region = settings?.serverRegion;
+  if (isServerRegion(region)) return region;
+  return DEFAULT_SETTINGS.serverRegion ?? DEFAULT_SERVER_REGION;
+}
+
+/** React hook: the user's configured server region. */
+export function useServerRegion(): ServerRegion {
+  return useUIStore((state) => resolveServerRegion(state.settings));
+}
+
+/** Non-hook accessor for the configured server region (domain code, defaults). */
+export function getCurrentServerRegion(): ServerRegion {
+  return resolveServerRegion(useUIStore.getState().settings);
+}

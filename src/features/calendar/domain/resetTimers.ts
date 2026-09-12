@@ -1,22 +1,19 @@
 /**
  * Reset timer calculations for Genshin Impact
- * All calculations based on US Server (UTC-5 / America server)
  *
- * Server reset time: 4:00 AM server time
- * US Server offset: UTC-5 (EST), which means 9:00 AM UTC
+ * All resets happen at 04:00 server time. The server region defaults to the
+ * user's configured region (see `useServerRegion`); pass one explicitly for
+ * pure computation. Region offsets live in `@/lib/time/serverTime`.
  */
 
-// US Server offset in hours from UTC
-const US_SERVER_OFFSET_HOURS = -5;
-
-// Reset hour in server time (4:00 AM)
-const RESET_HOUR_SERVER = 4;
-
-/**
- * Convert server time hour to UTC hour
- * Server 4:00 AM at UTC-5 = 9:00 AM UTC
- */
-const RESET_HOUR_UTC = RESET_HOUR_SERVER - US_SERVER_OFFSET_HOURS; // 9
+import {
+  getNextDailyReset as getNextDailyResetForRegion,
+  getNextWeeklyReset as getNextWeeklyResetForRegion,
+  getServerNow,
+  serverWallToDate,
+  type ServerRegion,
+} from '@/lib/time/serverTime';
+import { getCurrentServerRegion } from '@/stores/uiStore';
 
 export interface ResetInfo {
   name: string;
@@ -26,108 +23,67 @@ export interface ResetInfo {
 }
 
 /**
- * Get the next daily reset time
- * Daily reset occurs at 4:00 AM server time (9:00 AM UTC for US server)
+ * Get the next daily reset time (4:00 AM server time).
  */
-export function getNextDailyReset(): Date {
-  const now = new Date();
-  const reset = new Date(now);
-
-  reset.setUTCHours(RESET_HOUR_UTC, 0, 0, 0);
-
-  // If we've passed today's reset, move to tomorrow
-  if (now >= reset) {
-    reset.setUTCDate(reset.getUTCDate() + 1);
-  }
-
-  return reset;
+export function getNextDailyReset(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
+  return getNextDailyResetForRegion(region, now);
 }
 
 /**
- * Get the next weekly reset time
- * Weekly reset occurs every Monday at 4:00 AM server time
+ * Get the next weekly reset time (Monday 4:00 AM server time).
  */
-export function getNextWeeklyReset(): Date {
-  const now = new Date();
-  const reset = new Date(now);
-
-  reset.setUTCHours(RESET_HOUR_UTC, 0, 0, 0);
-
-  // Get current day of week (0 = Sunday, 1 = Monday, ...)
-  const currentDay = reset.getUTCDay();
-
-  // Calculate days until next Monday
-  // If today is Monday and we haven't passed reset, days = 0
-  // If today is Monday and we have passed reset, days = 7
-  // Otherwise, days until Monday
-  let daysUntilMonday = (8 - currentDay) % 7; // Days until next Monday
-  if (currentDay === 1) {
-    // It's Monday
-    if (now >= reset) {
-      daysUntilMonday = 7; // Already passed today's reset, wait until next Monday
-    } else {
-      daysUntilMonday = 0; // Haven't passed reset yet
-    }
-  }
-
-  reset.setUTCDate(reset.getUTCDate() + daysUntilMonday);
-
-  return reset;
+export function getNextWeeklyReset(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
+  return getNextWeeklyResetForRegion(region, now);
 }
 
 /**
  * Get the next Spiral Abyss reset time
  * Spiral Abyss resets on the 1st and 16th of each month at 4:00 AM server time
  */
-export function getNextAbyssReset(): Date {
-  const now = new Date();
-  const reset = new Date(now);
-
-  reset.setUTCHours(RESET_HOUR_UTC, 0, 0, 0);
-
-  const currentDay = reset.getUTCDate();
-
-  if (currentDay < 1 || (currentDay === 1 && now < reset)) {
-    // Before the 1st reset
-    reset.setUTCDate(1);
-  } else if (currentDay < 16 || (currentDay === 16 && now < reset)) {
-    // Between 1st and 16th
-    reset.setUTCDate(16);
-  } else {
-    // After the 16th, go to next month's 1st
-    reset.setUTCMonth(reset.getUTCMonth() + 1);
-    reset.setUTCDate(1);
-  }
-
-  return reset;
+export function getNextAbyssReset(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
+  const server = getServerNow(region, now);
+  const candidates = [
+    serverWallToDate(region, server.year, server.month, 1),
+    serverWallToDate(region, server.year, server.month, 16),
+    serverWallToDate(region, server.year, server.month + 1, 1),
+  ];
+  // The last candidate is always in the future, so this never falls through.
+  return candidates.find((candidate) => candidate.getTime() > now.getTime()) ?? candidates[2]!;
 }
 
 /**
  * Get the next monthly shop reset (Paimon's Bargains)
  * Resets on the 1st of each month at 4:00 AM server time
  */
-export function getNextMonthlyReset(): Date {
-  const now = new Date();
-  const reset = new Date(now);
-
-  reset.setUTCHours(RESET_HOUR_UTC, 0, 0, 0);
-  reset.setUTCDate(1);
-
-  // If we've passed this month's reset, move to next month
-  if (now >= reset) {
-    reset.setUTCMonth(reset.getUTCMonth() + 1);
-  }
-
-  return reset;
+export function getNextMonthlyReset(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
+  const server = getServerNow(region, now);
+  const thisMonth = serverWallToDate(region, server.year, server.month, 1);
+  if (thisMonth.getTime() > now.getTime()) return thisMonth;
+  return serverWallToDate(region, server.year, server.month + 1, 1);
 }
 
 /**
  * Get the next Imaginarium Theatre reset
  * Resets on the 1st of each month at 4:00 AM server time
  */
-export function getNextImaginariumReset(): Date {
+export function getNextImaginariumReset(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
   // Same as monthly reset - 1st of each month
-  return getNextMonthlyReset();
+  return getNextMonthlyReset(region, now);
 }
 
 /**
@@ -189,30 +145,30 @@ export function formatTimeUntil(target: Date): string {
 /**
  * Get all reset timers
  */
-export function getAllResetTimers(): ResetInfo[] {
+export function getAllResetTimers(region: ServerRegion = getCurrentServerRegion()): ResetInfo[] {
   return [
     {
       name: 'Daily Reset',
-      nextReset: getNextDailyReset(),
-      timeUntil: formatTimeUntil(getNextDailyReset()),
+      nextReset: getNextDailyReset(region),
+      timeUntil: formatTimeUntil(getNextDailyReset(region)),
       description: 'Commissions, Resin, Domains, Expeditions',
     },
     {
       name: 'Weekly Reset',
-      nextReset: getNextWeeklyReset(),
-      timeUntil: formatTimeUntil(getNextWeeklyReset()),
+      nextReset: getNextWeeklyReset(region),
+      timeUntil: formatTimeUntil(getNextWeeklyReset(region)),
       description: 'Weekly Bosses, Reputation, Battle Pass Weeklies',
     },
     {
       name: 'Spiral Abyss',
-      nextReset: getNextAbyssReset(),
-      timeUntil: formatTimeUntil(getNextAbyssReset()),
+      nextReset: getNextAbyssReset(region),
+      timeUntil: formatTimeUntil(getNextAbyssReset(region)),
       description: 'Floors 9-12 reset (1st & 16th)',
     },
     {
       name: 'Imaginarium Theatre',
-      nextReset: getNextImaginariumReset(),
-      timeUntil: formatTimeUntil(getNextImaginariumReset()),
+      nextReset: getNextImaginariumReset(region),
+      timeUntil: formatTimeUntil(getNextImaginariumReset(region)),
       description: 'Monthly season reset (1st of month)',
     },
     {
@@ -223,8 +179,8 @@ export function getAllResetTimers(): ResetInfo[] {
     },
     {
       name: 'Monthly Shop',
-      nextReset: getNextMonthlyReset(),
-      timeUntil: formatTimeUntil(getNextMonthlyReset()),
+      nextReset: getNextMonthlyReset(region),
+      timeUntil: formatTimeUntil(getNextMonthlyReset(region)),
       description: "Paimon's Bargains, Stardust/Starglitter",
     },
   ];

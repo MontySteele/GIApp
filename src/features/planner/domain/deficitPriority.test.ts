@@ -27,6 +27,8 @@ describe('deficitPriority', () => {
     localSpecialty: [],
     common: [],
     talent: [],
+    weapon: [],
+    artifact: [],
     weekly: [],
     crown: [],
   });

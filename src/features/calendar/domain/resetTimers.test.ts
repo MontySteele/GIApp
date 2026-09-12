@@ -15,10 +15,12 @@ import {
   getAllResetTimers,
   type ResetInfo,
 } from './resetTimers';
+import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
 
 describe('Reset Timer Functions', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    useUIStore.setState({ settings: { ...DEFAULT_SETTINGS, serverRegion: 'na' } });
   });
 
   afterEach(() => {
@@ -384,5 +386,49 @@ describe('Edge Cases', () => {
     const daily = getNextDailyReset();
     // Should be next day since we're at/past reset
     expect(daily.getUTCDate()).toBe(16);
+  });
+});
+
+describe('Region awareness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T12:00:00Z')); // Thursday
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('daily reset differs per region', () => {
+    expect(getNextDailyReset('na').toISOString()).toBe('2026-01-16T09:00:00.000Z');
+    expect(getNextDailyReset('eu').toISOString()).toBe('2026-01-16T03:00:00.000Z');
+    expect(getNextDailyReset('asia').toISOString()).toBe('2026-01-15T20:00:00.000Z');
+    expect(getNextDailyReset('tw').toISOString()).toBe('2026-01-15T20:00:00.000Z');
+  });
+
+  it('weekly reset differs per region', () => {
+    expect(getNextWeeklyReset('na').toISOString()).toBe('2026-01-19T09:00:00.000Z');
+    expect(getNextWeeklyReset('asia').toISOString()).toBe('2026-01-18T20:00:00.000Z');
+  });
+
+  it('abyss and monthly resets use the region offset', () => {
+    expect(getNextAbyssReset('na').toISOString()).toBe('2026-01-16T09:00:00.000Z');
+    expect(getNextAbyssReset('asia').toISOString()).toBe('2026-01-15T20:00:00.000Z');
+    expect(getNextMonthlyReset('na').toISOString()).toBe('2026-02-01T09:00:00.000Z');
+    expect(getNextMonthlyReset('asia').toISOString()).toBe('2026-01-31T20:00:00.000Z');
+  });
+
+  it('abyss reset on the 16th: before vs after 04:00 server time (Asia)', () => {
+    // Asia 16th 03:59 == 15th 19:59Z
+    expect(getNextAbyssReset('asia', new Date('2026-01-15T19:59:00Z')).toISOString()).toBe('2026-01-15T20:00:00.000Z');
+    expect(getNextAbyssReset('asia', new Date('2026-01-15T20:00:00Z')).toISOString()).toBe('2026-01-31T20:00:00.000Z');
+  });
+
+  it('defaults to the configured store region', () => {
+    useUIStore.setState({ settings: { ...DEFAULT_SETTINGS, serverRegion: 'asia' } });
+    expect(getNextDailyReset().toISOString()).toBe('2026-01-15T20:00:00.000Z');
+    const timers = getAllResetTimers();
+    expect(timers.find((t) => t.name === 'Daily Reset')?.nextReset.toISOString()).toBe('2026-01-15T20:00:00.000Z');
+    expect(getAllResetTimers('na').find((t) => t.name === 'Daily Reset')?.nextReset.toISOString()).toBe('2026-01-16T09:00:00.000Z');
   });
 });

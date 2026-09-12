@@ -1,9 +1,10 @@
-import { DEFAULT_SETTINGS, useUIStore } from './uiStore';
+import { DEFAULT_SETTINGS, getCurrentServerRegion, useServerRegion, useUIStore } from './uiStore';
+import { renderHook, act } from '@testing-library/react';
+import { SERVER_REGIONS } from '@/lib/time/serverTime';
 
 describe('useUIStore settings surface', () => {
   beforeEach(() => {
     useUIStore.setState({
-      theme: 'system',
       rosterFilter: {
         element: null,
         weaponType: null,
@@ -41,14 +42,14 @@ describe('useUIStore settings surface', () => {
   it('can update multiple settings at once', () => {
     const { updateSettings } = useUIStore.getState();
     updateSettings({
-      defaultTheme: 'dark',
+      theme: 'light',
       backupReminderCadenceDays: 7,
     });
 
     const state = useUIStore.getState();
     expect(state.settings).toEqual({
       ...DEFAULT_SETTINGS,
-      defaultTheme: 'dark',
+      theme: 'light',
       backupReminderCadenceDays: 7,
     });
   });
@@ -65,5 +66,34 @@ describe('useUIStore settings surface', () => {
 
     const state = useUIStore.getState();
     expect(state.settings).toEqual(DEFAULT_SETTINGS);
+  });
+});
+
+describe('serverRegion setting', () => {
+  beforeEach(() => {
+    useUIStore.setState({ settings: { ...DEFAULT_SETTINGS } });
+  });
+
+  it('defaults to a valid region derived from the timezone', () => {
+    expect(SERVER_REGIONS).toContain(DEFAULT_SETTINGS.serverRegion);
+    expect(getCurrentServerRegion()).toBe(DEFAULT_SETTINGS.serverRegion);
+  });
+
+  it('updates via updateSettings and is exposed by useServerRegion', () => {
+    const { result } = renderHook(() => useServerRegion());
+    expect(result.current).toBe(DEFAULT_SETTINGS.serverRegion);
+    act(() => {
+      useUIStore.getState().updateSettings({ serverRegion: 'asia' });
+    });
+    expect(result.current).toBe('asia');
+    expect(getCurrentServerRegion()).toBe('asia');
+  });
+
+  it('falls back to the default when persisted settings predate serverRegion', () => {
+    const { serverRegion: _omit, ...legacy } = DEFAULT_SETTINGS;
+    useUIStore.setState({ settings: legacy as typeof DEFAULT_SETTINGS });
+    expect(getCurrentServerRegion()).toBe(DEFAULT_SETTINGS.serverRegion);
+    const { result } = renderHook(() => useServerRegion());
+    expect(result.current).toBe(DEFAULT_SETTINGS.serverRegion);
   });
 });

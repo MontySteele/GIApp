@@ -7,6 +7,8 @@
 
 import { DOMAIN_SCHEDULE } from './materialConstants';
 import type { MaterialRequirement } from './ascensionCalculator';
+import { getServerDay, type ServerRegion } from '@/lib/time/serverTime';
+import { getCurrentServerRegion } from '@/stores/uiStore';
 
 // Day name type
 export type DayName =
@@ -67,19 +69,14 @@ export function extractBookSeries(materialName: string): string | null {
 }
 
 /**
- * Get today's day name
+ * Get today's day name according to the game day (04:00 server-time rollover)
+ * for the given server region (defaults to the user's configured region).
  */
-export function getTodayName(): DayName {
-  const days: DayName[] = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ];
-  return days[new Date().getDay()] ?? 'Sunday';
+export function getTodayName(
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): DayName {
+  return getServerDay(region, now).weekdayName;
 }
 
 /**
@@ -161,9 +158,10 @@ export interface FarmingScheduleSummary {
  * Analyze talent materials and generate farming recommendations
  */
 export function analyzeFarmingSchedule(
-  talentMaterials: MaterialRequirement[]
+  talentMaterials: MaterialRequirement[],
+  region: ServerRegion = getCurrentServerRegion()
 ): FarmingScheduleSummary {
-  const today = getTodayName();
+  const today = getTodayName(region);
   const recommendations: FarmingRecommendation[] = [];
 
   // Filter to only materials with deficits

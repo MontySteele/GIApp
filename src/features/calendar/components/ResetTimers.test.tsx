@@ -66,7 +66,7 @@ describe('ResetTimers Component', () => {
       render(<ResetTimers />);
 
       expect(screen.getByText('Reset Timers')).toBeInTheDocument();
-      expect(screen.getByText('US Server (UTC-5)')).toBeInTheDocument();
+      expect(screen.getByText(/server \(UTC[+-]\d+\)/)).toBeInTheDocument();
     });
 
     it('renders all 6 timer cards', () => {

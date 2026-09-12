@@ -10,6 +10,8 @@ import {
   RESIN_COSTS,
   DOMAIN_DROPS_PER_RUN,
 } from './materialConstants';
+import { getServerDay, type ServerRegion } from '@/lib/time/serverTime';
+import { getCurrentServerRegion } from '@/stores/uiStore';
 
 export interface FarmingGoal {
   id: string;
@@ -299,17 +301,25 @@ export const DOMAIN_SCHEDULE: Record<string, number[]> = {
 /**
  * Check if a domain is available today
  */
-export function isDomainAvailableToday(schedule: 'monday' | 'tuesday' | 'wednesday'): boolean {
-  const today = new Date().getDay();
+export function isDomainAvailableToday(
+  schedule: 'monday' | 'tuesday' | 'wednesday',
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): boolean {
+  const today = getServerDay(region, now).weekday;
   return DOMAIN_SCHEDULE[schedule]?.includes(today) ?? false;
 }
 
 /**
  * Get next available day for a domain
  */
-export function getNextDomainDay(schedule: 'monday' | 'tuesday' | 'wednesday'): Date {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
+export function getNextDomainDay(
+  schedule: 'monday' | 'tuesday' | 'wednesday',
+  region: ServerRegion = getCurrentServerRegion(),
+  now: Date = new Date()
+): Date {
+  const today = now;
+  const dayOfWeek = getServerDay(region, now).weekday;
   const availableDays = DOMAIN_SCHEDULE[schedule] ?? [];
 
   // Find next available day

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useMaterials } from './useMaterials';
 import { materialRepo } from '@/features/roster/repo/inventoryRepo';
+import type { MaterialInventory } from '@/types';
 
 // Mock the materialRepo
 vi.mock('@/features/roster/repo/inventoryRepo', () => ({
@@ -11,7 +12,9 @@ vi.mock('@/features/roster/repo/inventoryRepo', () => ({
   },
 }));
 
-const mockMaterialData = {
+const mockMaterialData: MaterialInventory = {
+  id: 'materials',
+  updatedAt: '2026-01-01T00:00:00.000Z',
   materials: {
     'mora': 5000000,
     'heros-wit': 200,
@@ -63,7 +66,7 @@ describe('useMaterials', () => {
     });
 
     it('handles null data', async () => {
-      vi.mocked(materialRepo.get).mockResolvedValue(null);
+      vi.mocked(materialRepo.get).mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useMaterials());
 
@@ -120,7 +123,7 @@ describe('useMaterials', () => {
     });
 
     it('returns hasMaterials false when no materials', async () => {
-      vi.mocked(materialRepo.get).mockResolvedValue({ materials: {} });
+      vi.mocked(materialRepo.get).mockResolvedValue({ ...mockMaterialData, materials: {} });
 
       const { result } = renderHook(() => useMaterials());
 

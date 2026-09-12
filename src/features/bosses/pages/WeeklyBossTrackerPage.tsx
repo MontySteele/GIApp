@@ -1,7 +1,10 @@
+import { useServerRegion } from '@/stores/uiStore';
+import { formatServerRegion } from '@/lib/time/serverTime';
 import { Info } from 'lucide-react';
 import WeeklyBossTracker from '../components/WeeklyBossTracker';
 
 export default function WeeklyBossTrackerPage() {
+  const serverRegion = useServerRegion();
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Weekly Bosses</h1>
@@ -19,7 +22,7 @@ export default function WeeklyBossTrackerPage() {
             <strong>60 Original Resin</strong>.
           </p>
           <p className="mt-2">
-            Weekly bosses reset every <strong>Monday at 4:00 AM (US Server, UTC-5)</strong>.
+            Weekly bosses reset every <strong>Monday at 4:00 AM ({formatServerRegion(serverRegion)})</strong>.
             Your progress is saved locally and resets automatically each week.
           </p>
         </div>

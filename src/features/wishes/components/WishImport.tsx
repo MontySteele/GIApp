@@ -1,6 +1,8 @@
 import { useReducer, useCallback, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { BannerType } from '@/types';
+import { normalizeWishTimestamp } from '../lib/wishNormalization';
+import { parseHoyoRegion } from '@/lib/time/serverTime';
 import { useCampaigns } from '@/features/campaigns/hooks/useCampaigns';
 import type { WishHistoryItem } from '../domain/wishAnalyzer';
 import { wishRepo } from '../repo/wishRepo';
@@ -377,6 +379,18 @@ export function WishImport({ onImportComplete }: WishImportProps) {
           }
         }
       }
+
+      // API timestamps carry no timezone: they are in the wall clock of the
+      // server named by the URL's `region` param (os_usa / os_euro / os_asia /
+      // os_cht). Normalise them to UTC here so the stored records are correct
+      // regardless of the user's configured region. `normalizeWishTimestamp`
+      // is idempotent on ISO strings with an explicit offset, so the mapper's
+      // own normalisation below is a no-op afterwards.
+      const urlRegion = parseHoyoRegion(new URL(state.url).searchParams.get('region'));
+      allWishes = allWishes.map((wish) => ({
+        ...wish,
+        time: normalizeWishTimestamp(wish.time, urlRegion),
+      }));
 
       // Pass ALL wishes to bulkCreate — it handles upserts internally
       // (updates existing records with corrected timestamps, creates new ones).
