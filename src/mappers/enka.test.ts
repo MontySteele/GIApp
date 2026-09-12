@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { db } from '@/db/schema';
-import { fetchEnkaData, fromEnka, type EnkaResponse } from './enka';
+import { fetchEnkaData, fromEnka, resolveEnkaTalents, type EnkaResponse } from './enka';
+import { getEnkaSkillOrder } from './enkaSkillOrder';
+import {
+  AYAKA_AVATAR,
+  COLUMBINA_AVATAR,
+  ENKA_SHOWCASE_FIXTURE,
+  FURINA_AVATAR,
+  TRAVELER_DENDRO_AVATAR,
+} from './__fixtures__/enkaShowcase';
 
 describe('Enka Mapper', () => {
   const mockEnkaResponse: EnkaResponse = {
@@ -35,7 +43,7 @@ describe('Enka Mapper', () => {
         equipList: [
           // Weapon
           {
-            itemId: 11511, // Splendor of Tranquil Waters
+            itemId: 11513, // Splendor of Tranquil Waters
             flat: {
               nameTextMapHash: '1234567890',
               rankLevel: 5,
@@ -84,6 +92,16 @@ describe('Enka Mapper', () => {
   };
 
   describe('fromEnka', () => {
+    // Several legacy cases reuse Furina's skillLevelMap under other avatarIds,
+    // which now (correctly) trips the talent-order fallback warning.
+    let fromEnkaWarnSpy: ReturnType<typeof vi.spyOn>;
+    beforeEach(() => {
+      fromEnkaWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+    afterEach(() => {
+      fromEnkaWarnSpy.mockRestore();
+    });
+
     it('should convert Enka response to internal format', () => {
       const result = fromEnka(mockEnkaResponse);
 
@@ -117,7 +135,7 @@ describe('Enka Mapper', () => {
     it('should map weapon ID to weapon name', () => {
       const result = fromEnka(mockEnkaResponse);
 
-      expect(result[0].weapon.key).toBe('Splendor of Tranquil Waters'); // ID 11511
+      expect(result[0].weapon.key).toBe('Splendor of Tranquil Waters'); // ID 11513
       expect(result[0].weapon.level).toBe(90);
       expect(result[0].weapon.ascension).toBe(6);
       expect(result[0].weapon.refinement).toBe(1); // affixMap 0 + 1
@@ -282,6 +300,14 @@ describe('Enka Mapper', () => {
         { id: 10000103, expected: 'Xilonen' },
         { id: 10000104, expected: 'Chasca' },
         { id: 10000106, expected: 'Mavuika' },
+        // Previously shifted blocks
+        { id: 10000083, expected: 'Lynette' },
+        { id: 10000087, expected: 'Neuvillette' },
+        { id: 10000095, expected: 'Sigewinne' },
+        { id: 10000098, expected: 'Clorinde' },
+        // 6.2+ (IDs mirrored from src/lib/characterData.ts)
+        { id: 10000125, expected: 'Columbina' },
+        { id: 10000132, expected: 'Prune' },
       ];
 
       for (const testCase of testCases) {
@@ -302,11 +328,16 @@ describe('Enka Mapper', () => {
 
     it('should map weapon IDs correctly for popular weapons', () => {
       const testCases = [
-        { id: 11511, expected: 'Splendor of Tranquil Waters' },
+        { id: 11501, expected: 'Aquila Favonia' },
+        { id: 11511, expected: 'Key of Khaj-Nisut' },
+        { id: 11513, expected: 'Splendor of Tranquil Waters' },
+        { id: 11515, expected: 'Absolution' },
         { id: 11426, expected: 'Fleuve Cendre Ferryman' },
         { id: 13501, expected: 'Staff of Homa' },
+        { id: 13509, expected: 'Engulfing Lightning' },
         { id: 15508, expected: 'Aqua Simulacra' },
-        { id: 14509, expected: 'A Thousand Floating Dreams' },
+        { id: 14509, expected: 'Kagura\'s Verity' },
+        { id: 14511, expected: 'A Thousand Floating Dreams' },
       ];
 
       for (const testCase of testCases) {
@@ -338,6 +369,107 @@ describe('Enka Mapper', () => {
         const result = fromEnka(response);
         expect(result[0].weapon.key).toBe(testCase.expected);
       }
+    });
+  });
+
+  describe('talent order (R-02)', () => {
+    let warnSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    it('maps Ayaka talents by skill ID even though her IDs are not ascending', () => {
+      // Sanity: positional enumeration would rotate these (10018, 10019, 10024).
+      expect(Object.keys(AYAKA_AVATAR.skillLevelMap)).toEqual(['10018', '10019', '10024']);
+
+      const { talent, uncertain } = resolveEnkaTalents(AYAKA_AVATAR);
+      expect(uncertain).toBe(false);
+      expect(talent).toEqual({ auto: 10, skill: 8, burst: 9 });
+    });
+
+    it('maps Furina talents by skill ID', () => {
+      const { talent, uncertain } = resolveEnkaTalents(FURINA_AVATAR);
+      expect(uncertain).toBe(false);
+      expect(talent).toEqual({ auto: 9, skill: 10, burst: 10 });
+    });
+
+    it('uses the Traveler skill depot to pick the right normal-attack ID', () => {
+      // Positional would read 10117, 10118, 100557 -> auto 8, skill 9, burst 6.
+      const { talent, uncertain } = resolveEnkaTalents(TRAVELER_DENDRO_AVATAR);
+      expect(uncertain).toBe(false);
+      expect(talent).toEqual({ auto: 6, skill: 8, burst: 9 });
+      expect(getEnkaSkillOrder(10000007, 708)).toEqual([100557, 10117, 10118]);
+      expect(getEnkaSkillOrder(10000005, 504)).toEqual([100543, 10067, 10068]);
+    });
+
+    it('falls back positionally and flags avatars missing from the skill-order table', () => {
+      expect(getEnkaSkillOrder(COLUMBINA_AVATAR.avatarId, COLUMBINA_AVATAR.skillDepotId)).toBeUndefined();
+      const { talent, uncertain } = resolveEnkaTalents(COLUMBINA_AVATAR);
+      expect(uncertain).toBe(true);
+      expect(talent).toEqual({ auto: 7, skill: 8, burst: 9 });
+    });
+
+    it('flags a known avatar whose skillLevelMap lacks the expected IDs', () => {
+      const { talent, uncertain } = resolveEnkaTalents({
+        avatarId: 10000002,
+        skillDepotId: 201,
+        skillLevelMap: { '1': 2, '2': 3, '3': 4 },
+      });
+      expect(uncertain).toBe(true);
+      expect(talent).toEqual({ auto: 2, skill: 3, burst: 4 });
+    });
+
+    it('does not flag an empty skillLevelMap', () => {
+      expect(resolveEnkaTalents({ avatarId: 10000002, skillDepotId: 201, skillLevelMap: {} })).toEqual({
+        talent: { auto: 1, skill: 1, burst: 1 },
+        uncertain: false,
+      });
+    });
+
+    it('imports a realistic multi-character showcase with correct talents, keys and weapons', () => {
+      const result = fromEnka(ENKA_SHOWCASE_FIXTURE);
+      expect(result.map((c) => c.key)).toEqual(['Kamisato Ayaka', 'Furina', 'Traveler', 'Columbina']);
+
+      const [ayaka, furina, traveler, columbina] = result;
+      expect(ayaka.talent).toEqual({ auto: 10, skill: 8, burst: 9 });
+      expect(ayaka.weapon.key).toBe('Mistsplitter Reforged');
+      expect(ayaka.constellation).toBe(1);
+      expect(ayaka.notes).not.toContain('talent order uncertain');
+
+      expect(furina.talent).toEqual({ auto: 9, skill: 10, burst: 10 });
+      expect(furina.weapon.key).toBe('Splendor of Tranquil Waters');
+
+      expect(traveler.talent).toEqual({ auto: 6, skill: 8, burst: 9 });
+      expect(traveler.weapon.key).toBe('Primordial Jade Cutter');
+      expect(traveler.level).toBe(80);
+      expect(traveler.constellation).toBe(6);
+
+      expect(columbina.talent).toEqual({ auto: 7, skill: 8, burst: 9 });
+      expect(columbina.weapon.key).toBe('Lost Prayer to the Sacred Winds');
+      expect(columbina.notes).toContain('Imported from Enka.network (UID: 700000001)');
+      expect(columbina.notes).toContain('talent order uncertain');
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0][0]).toContain('Columbina');
+    });
+
+    it('has a skill-order entry for every non-6.2+ avatar in the ID map', () => {
+      // Every avatar the mapper knows (except the 6.2+ IDs mirrored from
+      // characterData.ts, which Enka has not published yet) must resolve.
+      const knownWithoutOrder: number[] = [];
+      for (let id = 10000002; id <= 10000124; id++) {
+        const probe = fromEnka({
+          ...ENKA_SHOWCASE_FIXTURE,
+          avatarInfoList: [{ ...FURINA_AVATAR, avatarId: id }],
+        })[0];
+        if (probe.key.startsWith('Unknown_')) continue;
+        if (!getEnkaSkillOrder(id, 0)) knownWithoutOrder.push(id);
+      }
+      expect(knownWithoutOrder).toEqual([]);
     });
   });
 

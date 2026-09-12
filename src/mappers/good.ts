@@ -1,20 +1,15 @@
-import type { Character, InventoryArtifact, InventoryWeapon, SlotKey } from '@/types';
+import type { Character, InventoryArtifact, InventoryWeapon } from '@/types';
 import { toGoodArtifactSetKey, toGoodCharacterKey, toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 
-const VALID_SLOT_KEYS: readonly SlotKey[] = ['flower', 'plume', 'sands', 'goblet', 'circlet'];
+// GOOD Format Specification
+// https://frzyc.github.io/genshin-optimizer/#/doc
 
 /**
- * Safely converts a string to SlotKey with validation
+ * GOOD version emitted by every exporter in this module. Both the equipped-only
+ * and the full-inventory export must agree so downstream tools (and our own
+ * Irminsul import pipeline, whose fixtures use version 3) treat them alike.
  */
-function toSlotKey(value: string): SlotKey {
-  if (VALID_SLOT_KEYS.includes(value as SlotKey)) {
-    return value as SlotKey;
-  }
-  return 'flower'; // Default fallback
-}
-
-// GOOD Format v2 Specification
-// https://frzyc.github.io/genshin-optimizer/#/doc
+export const GOOD_EXPORT_VERSION = 3;
 
 export interface GOODFormat {
   format: 'GOOD';
@@ -86,6 +81,26 @@ const getMaxArtifactLevel = (rarity: number): number => {
 };
 
 /**
+ * Builds the GOOD weapon row for a character's embedded weapon, or null when
+ * the character has no usable weapon row (missing object or empty key).
+ */
+function toGoodEquippedWeapon(char: Character, characterKey: string): GOODWeapon | null {
+  const weapon = char.weapon as Character['weapon'] | undefined;
+  if (!weapon || !weapon.key) {
+    return null;
+  }
+
+  return {
+    key: toGoodWeaponKey(weapon.key),
+    level: weapon.level,
+    ascension: weapon.ascension,
+    refinement: weapon.refinement,
+    location: characterKey,
+    lock: true,
+  };
+}
+
+/**
  * Convert internal Character format to GOOD format
  */
 export function toGOOD(characters: Character[]): GOODFormat {
@@ -109,15 +124,13 @@ export function toGOOD(characters: Character[]): GOODFormat {
       },
     });
 
-    // Add weapon
-    goodWeapons.push({
-      key: toGoodWeaponKey(char.weapon.key),
-      level: char.weapon.level,
-      ascension: char.weapon.ascension,
-      refinement: char.weapon.refinement,
-      location: characterKey,
-      lock: true,
-    });
+    // Add weapon. GOOD characters do not require a weapon entry (weapons are a
+    // separate array joined by `location`), so a character with no weapon row
+    // is still exported; only the weapon entry is omitted.
+    const weapon = toGoodEquippedWeapon(char, characterKey);
+    if (weapon) {
+      goodWeapons.push(weapon);
+    }
 
     // Add artifacts
     for (const artifact of char.artifacts) {
@@ -152,7 +165,7 @@ export function toGOOD(characters: Character[]): GOODFormat {
 
   return {
     format: 'GOOD',
-    version: 2,
+    version: GOOD_EXPORT_VERSION,
     source: 'Genshin Progress Tracker',
     ...(active ? { active } : {}),
     targets,
@@ -160,65 +173,6 @@ export function toGOOD(characters: Character[]): GOODFormat {
     weapons: goodWeapons,
     artifacts: goodArtifacts,
   };
-}
-
-/**
- * Convert GOOD format to internal Character format
- */
-export function fromGOOD(good: GOODFormat): Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] {
-  if (good.format !== 'GOOD') {
-    throw new Error('Invalid format: expected GOOD format');
-  }
-
-  const characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] = [];
-  const goodCharacters = good.characters || [];
-  const goodWeapons = good.weapons || [];
-  const goodArtifacts = good.artifacts || [];
-
-  for (const goodChar of goodCharacters) {
-    // Find weapon for this character
-    const weapon = goodWeapons.find((w) => w.location === goodChar.key);
-    if (!weapon) {
-      console.warn(`No weapon found for character ${goodChar.key}, skipping`);
-      continue;
-    }
-
-    // Find artifacts for this character
-    const artifacts = goodArtifacts
-      .filter((a) => a.location === goodChar.key)
-      .map((a) => ({
-        setKey: a.setKey,
-        slotKey: toSlotKey(a.slotKey),
-        level: a.level,
-        rarity: a.rarity,
-        mainStatKey: a.mainStatKey,
-        substats: a.substats,
-      }));
-
-    characters.push({
-      key: goodChar.key,
-      level: goodChar.level,
-      ascension: goodChar.ascension,
-      constellation: goodChar.constellation,
-      talent: {
-        auto: goodChar.talent.auto,
-        skill: goodChar.talent.skill,
-        burst: goodChar.talent.burst,
-      },
-      weapon: {
-        key: weapon.key,
-        level: weapon.level,
-        ascension: weapon.ascension,
-        refinement: weapon.refinement,
-      },
-      artifacts,
-      notes: '',
-      priority: 'unbuilt',
-      teamIds: [],
-    });
-  }
-
-  return characters;
 }
 
 /**
@@ -435,14 +389,10 @@ export function toGOODWithInventory(data: InventoryExportData): GOODFormat {
           location: weapon.location || '',
           lock: weapon.lock,
         }))
-      : data.characters.map((char) => ({
-          key: toGoodWeaponKey(char.weapon.key),
-          level: char.weapon.level,
-          ascension: char.weapon.ascension,
-          refinement: char.weapon.refinement,
-          location: toGoodCharacterKey(char.key),
-          lock: true,
-        }));
+      : data.characters.flatMap((char) => {
+          const weapon = toGoodEquippedWeapon(char, toGoodCharacterKey(char.key));
+          return weapon ? [weapon] : [];
+        });
 
   const active = goodCharacters[0]?.key;
   const targets: GOODTarget[] =
@@ -458,7 +408,7 @@ export function toGOODWithInventory(data: InventoryExportData): GOODFormat {
 
   return {
     format: 'GOOD',
-    version: 3,
+    version: GOOD_EXPORT_VERSION,
     source: 'Genshin Progress Tracker',
     ...(active ? { active } : {}),
     targets,

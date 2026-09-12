@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { toGOOD, fromGOOD, toGOODWithInventory, validateGOOD, type GOODFormat } from './good';
+import { GOOD_EXPORT_VERSION, toGOOD, toGOODWithInventory, validateGOOD, type GOODFormat } from './good';
 import { validateIrminsulFormat, fromIrminsul } from './irminsul';
-import { toGoodStatKey, toGoodWeaponKey } from '@/lib/gameData';
 import type { Character, InventoryArtifact, InventoryWeapon } from '@/types';
 
 describe('GOOD Mapper', () => {
@@ -57,7 +56,8 @@ describe('GOOD Mapper', () => {
       const result = toGOOD([mockCharacter as Character]);
 
       expect(result.format).toBe('GOOD');
-      expect(result.version).toBe(2);
+      expect(result.version).toBe(3);
+      expect(result.version).toBe(GOOD_EXPORT_VERSION);
       expect(result.source).toBe('Genshin Progress Tracker');
       expect(result.active).toBe('Furina');
       expect(result.targets).toEqual([
@@ -178,133 +178,21 @@ describe('GOOD Mapper', () => {
       expect(result.targets).toEqual([]);
       expect(result.active).toBeUndefined();
     });
-  });
 
-  describe('fromGOOD', () => {
-    it('should convert GOOD format to internal format', () => {
-      const goodData = toGOOD([mockCharacter as Character]);
-      const result = fromGOOD(goodData);
+    it('keeps a character without a weapon row and omits only the weapon entry', () => {
+      // GOOD characters do not require a weapon; weapons are a separate array
+      // joined by `location`. Legacy rows can lack the embedded weapon object.
+      const noWeapon = { ...mockCharacter, weapon: undefined } as unknown as Character;
+      const emptyWeaponKey = {
+        ...mockCharacter,
+        key: 'Neuvillette',
+        weapon: { key: '', level: 1, ascension: 0, refinement: 1 },
+      } as Character;
 
-      expect(result).toHaveLength(1);
-      expect(result[0].key).toBe('Furina');
-      expect(result[0].level).toBe(90);
-      expect(result[0].constellation).toBe(2);
-    });
+      const result = toGOOD([noWeapon, emptyWeaponKey]);
 
-    it('should restore weapon data', () => {
-      const goodData = toGOOD([mockCharacter as Character]);
-      const result = fromGOOD(goodData);
-
-      expect(result[0].weapon).toEqual({
-        key: 'SplendorOfTranquilWaters',
-        level: 90,
-        ascension: 6,
-        refinement: 1,
-      });
-    });
-
-    it('should restore artifact data', () => {
-      const goodData = toGOOD([mockCharacter as Character]);
-      const result = fromGOOD(goodData);
-
-      expect(result[0].artifacts).toHaveLength(2);
-      expect(result[0].artifacts[0].setKey).toBe('GoldenTroupe');
-      expect(result[0].artifacts[0].substats).toHaveLength(4);
-    });
-
-    it('should set default values for optional fields', () => {
-      const goodData = toGOOD([mockCharacter as Character]);
-      const result = fromGOOD(goodData);
-
-      expect(result[0].notes).toBe('');
-      expect(result[0].priority).toBe('unbuilt');
-      expect(result[0].teamIds).toEqual([]);
-    });
-
-    it('should skip characters without weapons', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      try {
-        const goodData: GOODFormat = {
-          format: 'GOOD',
-          version: 2,
-          source: 'Test',
-          characters: [
-            {
-              key: 'Furina',
-              level: 90,
-              ascension: 6,
-              constellation: 2,
-              talent: { auto: 9, skill: 10, burst: 10 },
-            },
-          ],
-          weapons: [], // No weapons
-          artifacts: [],
-        };
-
-        const result = fromGOOD(goodData);
-
-        expect(result).toHaveLength(0);
-        expect(warnSpy).toHaveBeenCalledWith('No weapon found for character Furina, skipping');
-      } finally {
-        warnSpy.mockRestore();
-      }
-    });
-
-    it('should handle characters with no artifacts', () => {
-      const goodData: GOODFormat = {
-        format: 'GOOD',
-        version: 2,
-        source: 'Test',
-        characters: [
-          {
-            key: 'Furina',
-            level: 90,
-            ascension: 6,
-            constellation: 2,
-            talent: { auto: 9, skill: 10, burst: 10 },
-          },
-        ],
-        weapons: [
-          {
-            key: 'Splendor of Tranquil Waters',
-            level: 90,
-            ascension: 6,
-            refinement: 1,
-            location: 'Furina',
-            lock: true,
-          },
-        ],
-        artifacts: [], // No artifacts
-      };
-
-      const result = fromGOOD(goodData);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].artifacts).toHaveLength(0);
-    });
-
-    it('should throw error for invalid format', () => {
-      const invalidData = {
-        format: 'INVALID',
-        version: 2,
-        source: 'Test',
-      };
-
-      expect(() => fromGOOD(invalidData as GOODFormat)).toThrow(
-        'Invalid format: expected GOOD format'
-      );
-    });
-
-    it('should handle missing optional arrays', () => {
-      const goodData: GOODFormat = {
-        format: 'GOOD',
-        version: 2,
-        source: 'Test',
-      };
-
-      const result = fromGOOD(goodData);
-
-      expect(result).toHaveLength(0);
+      expect(result.characters!.map((c) => c.key)).toEqual(['Furina', 'Neuvillette']);
+      expect(result.weapons).toEqual([]);
     });
   });
 
@@ -531,54 +419,6 @@ describe('GOOD Mapper', () => {
     });
   });
 
-  describe('Bidirectional conversion', () => {
-    it('should maintain data integrity through round-trip conversion', () => {
-      // Internal -> GOOD -> Internal
-      const goodData = toGOOD([mockCharacter as Character]);
-      const result = fromGOOD(goodData);
-
-      expect(result[0].key).toBe(mockCharacter.key);
-      expect(result[0].level).toBe(mockCharacter.level);
-      expect(result[0].ascension).toBe(mockCharacter.ascension);
-      expect(result[0].constellation).toBe(mockCharacter.constellation);
-      expect(result[0].talent).toEqual(mockCharacter.talent);
-      expect(result[0].weapon).toEqual({
-        ...mockCharacter.weapon,
-        key: toGoodWeaponKey(mockCharacter.weapon.key),
-      });
-      expect(result[0].artifacts).toHaveLength(mockCharacter.artifacts.length);
-    });
-
-    it('should preserve artifact substats through round-trip', () => {
-      const goodData = toGOOD([mockCharacter as Character]);
-      const result = fromGOOD(goodData);
-
-      const originalSubstats = mockCharacter.artifacts[0].substats.map((substat) => ({
-        ...substat,
-        key: toGoodStatKey(substat.key),
-      }));
-      const roundTripSubstats = result[0].artifacts[0].substats;
-
-      expect(roundTripSubstats).toEqual(originalSubstats);
-    });
-
-    it('should handle multiple characters in round-trip', () => {
-      const char1 = mockCharacter;
-      const char2: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
-        ...mockCharacter,
-        key: 'Neuvillette',
-        level: 80,
-        constellation: 0,
-      };
-
-      const goodData = toGOOD([char1 as Character, char2 as Character]);
-      const result = fromGOOD(goodData);
-
-      expect(result).toHaveLength(2);
-      expect(result.map((c) => c.key)).toEqual(['Furina', 'Neuvillette']);
-    });
-  });
-
   describe('toGOODWithInventory', () => {
     const makeInventoryArtifact = (overrides: Partial<InventoryArtifact> = {}): InventoryArtifact => ({
       id: 'inv-artifact-1',
@@ -693,6 +533,32 @@ describe('GOOD Mapper', () => {
 
       expect(exported.weapons).toHaveLength(1);
       expect(exported.weapons![0].location).toBe('Furina');
+    });
+
+    it('does not drop characters that lack a weapon row in the embedded fallback', () => {
+      const noWeapon = { ...mockCharacter, weapon: undefined } as unknown as Character;
+
+      const exported = toGOODWithInventory({
+        characters: [noWeapon],
+        inventoryArtifacts: [],
+        inventoryWeapons: [],
+        materials: {},
+      });
+
+      expect(exported.characters).toHaveLength(1);
+      expect(exported.weapons).toEqual([]);
+    });
+
+    it('emits the same GOOD version as toGOOD', () => {
+      const full = toGOODWithInventory({
+        characters: [mockCharacter as Character],
+        inventoryArtifacts: [],
+        inventoryWeapons: [],
+        materials: {},
+      });
+
+      expect(full.version).toBe(GOOD_EXPORT_VERSION);
+      expect(full.version).toBe(toGOOD([mockCharacter as Character]).version);
     });
 
     it('round-trips through the Irminsul import pipeline', () => {

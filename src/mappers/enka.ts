@@ -1,6 +1,7 @@
 import { db } from '@/db/schema';
 import { fetchWithRetry, getUserFriendlyError } from '@/lib/utils/fetchWithRetry';
 import type { Character, SlotKey } from '@/types';
+import { getEnkaSkillOrder } from './enkaSkillOrder';
 
 // Enka.network API types (simplified)
 export interface EnkaResponse {
@@ -125,7 +126,10 @@ export interface EnkaEquip {
   };
 }
 
-// Character ID to Key mapping (simplified - would need full mapping in production)
+// Character ID to key mapping.
+// IDs 10000002-10000124 verified against Enka's store/characters.json (2026-09-12).
+// Keys follow this file's existing convention (display names); sprint item 3.3
+// will normalise them to GOOD keys.
 const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000002: 'Kamisato Ayaka',
   10000003: 'Jean',
@@ -196,11 +200,11 @@ const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000080: 'Mika',
   10000081: 'Kaveh',
   10000082: 'Baizhu',
-  10000083: 'Kirara',
+  10000083: 'Lynette',
   10000084: 'Lyney',
-  10000085: 'Lynette',
-  10000086: 'Freminet',
-  10000087: 'Wriothesley',
+  10000085: 'Freminet',
+  10000086: 'Wriothesley',
+  10000087: 'Neuvillette',
   10000088: 'Charlotte',
   10000089: 'Furina',
   10000090: 'Chevreuse',
@@ -208,17 +212,17 @@ const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000092: 'Gaming',
   10000093: 'Xianyun',
   10000094: 'Chiori',
-  10000095: 'Arlecchino',
-  10000096: 'Sethos',
-  10000097: 'Clorinde',
-  10000098: 'Sigewinne',
+  10000095: 'Sigewinne',
+  10000096: 'Arlecchino',
+  10000097: 'Sethos',
+  10000098: 'Clorinde',
   10000099: 'Emilie',
   10000100: 'Kachina',
   10000101: 'Kinich',
   10000102: 'Mualani',
   10000103: 'Xilonen',
   10000104: 'Chasca',
-  10000105: 'Olorun',
+  10000105: 'Ororon',
   10000106: 'Mavuika',
   10000107: 'Citlali',
   10000108: 'Lan Yan',
@@ -236,28 +240,38 @@ const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000122: 'Nefer',
   10000123: 'Durin',
   10000124: 'Jahoda',
+  // 6.2+ characters are not yet in Enka's published store (it ends at 10000124
+  // as of 2026-09-12). IDs below mirror src/lib/characterData.ts; 10000130-132
+  // are extrapolated there from the sequential pattern. Sandrone (6.7) has no
+  // known avatarId yet.
+  10000125: 'Columbina',
+  10000126: 'Zibai',
+  10000127: 'Illuga',
+  10000128: 'Varka',
+  10000129: 'Linnea',
+  10000130: 'Nicole',
+  10000131: 'Lohen',
+  10000132: 'Prune',
 };
 
 // Weapon ID to name mapping
 const WEAPON_ID_MAP: { [key: number]: string } = {
   // 5-Star Swords
-  11501: 'Mistsplitter Reforged',
-  11502: 'Freedom-Sworn',
-  11503: 'Song of Broken Pines',
-  11504: 'Primordial Jade Cutter',
-  11505: 'Haran Geppaku Futsu',
-  11509: 'Key of Khaj-Nisut',
-  11510: 'Light of Foliar Incision',
-  11511: 'Splendor of Tranquil Waters',
-  11512: 'Absolution',
-  11513: 'Uraku Misugiri',
+  11501: 'Aquila Favonia',
+  11502: 'Skyward Blade',
+  11503: 'Freedom-Sworn',
+  11504: 'Summit Shaper',
+  11505: 'Primordial Jade Cutter',
+  11509: 'Mistsplitter Reforged',
+  11510: 'Haran Geppaku Futsu',
+  11511: 'Key of Khaj-Nisut',
+  11512: 'Light of Foliar Incision',
+  11513: 'Splendor of Tranquil Waters',
   11514: 'Uraku Misugiri',
   11515: 'Absolution',
   11516: 'Peak Patrol Song',
   11517: 'Azurelight',
-  11518: 'Athame Artis',
-  // Note: 11501 Aquila Favonia and 11502 Skyward Blade were previously duplicated
-  // They should use correct sword IDs (5-star swords start at 11501)
+  11518: 'Athame Artis', // unverified
   // 4-Star Swords
   11401: 'Favonius Sword',
   11402: 'The Flute',
@@ -321,10 +335,9 @@ const WEAPON_ID_MAP: { [key: number]: string } = {
   13502: 'Skyward Spine',
   13504: 'Vortex Vanquisher',
   13505: 'Primordial Jade Winged-Spear',
-  13506: 'Calamity Queller',
-  13507: 'Engulfing Lightning',
-  13509: 'Staff of the Scarlet Sands',
-  13511: 'Lumidouce Elegy',
+  13507: 'Calamity Queller',
+  13509: 'Engulfing Lightning',
+  13511: 'Staff of the Scarlet Sands',
   13512: 'Crimson Moon\'s Semblance',
   13513: 'Lumidouce Elegy',
   13514: 'Symphonist of Scents',
@@ -353,14 +366,14 @@ const WEAPON_ID_MAP: { [key: number]: string } = {
   14501: 'Skyward Atlas',
   14502: 'Lost Prayer to the Sacred Winds',
   14504: 'Memory of Dust',
-  14505: 'Everlasting Moonglow',
-  14506: 'Kagura\'s Verity',
-  14509: 'A Thousand Floating Dreams',
-  14511: 'Tulaytullah\'s Remembrance',
-  14512: 'Cashflow Supervision',
-  14513: 'Tome of the Eternal Flow',
-  14514: 'Crane\'s Echoing Call',
-  14515: 'Surf\'s Up',
+  14505: 'Jadefall\'s Splendor',
+  14506: 'Everlasting Moonglow',
+  14509: 'Kagura\'s Verity',
+  14511: 'A Thousand Floating Dreams',
+  14512: 'Tulaytullah\'s Remembrance',
+  14513: 'Cashflow Supervision',
+  14514: 'Tome of the Eternal Flow',
+  14515: 'Crane\'s Echoing Call',
   14516: 'Surf\'s Up',
   14517: 'Starcaller\'s Watch',
   14518: 'Sunny Morning Sleep-In',
@@ -477,6 +490,47 @@ function toSlotKey(equipType: string | undefined): SlotKey {
 }
 
 /**
+ * Resolve auto/skill/burst levels from Enka's `skillLevelMap`.
+ *
+ * The map is keyed by skill ID and JS enumerates integer-like keys in
+ * ascending order, which is NOT talent order for many characters (Ayaka:
+ * normal 10024, skill 10018, burst 10019). We therefore look the IDs up via
+ * the vendored skill-order table. If the avatar (or Traveler depot) is not in
+ * the table, or the map lacks the expected IDs, we fall back to the old
+ * positional read and report `uncertain: true`.
+ */
+export function resolveEnkaTalents(
+  avatar: Pick<EnkaAvatar, 'avatarId' | 'skillDepotId' | 'skillLevelMap'>,
+): { talent: Character['talent']; uncertain: boolean } {
+  const levelMap = avatar.skillLevelMap ?? {};
+  const rawLevels = Object.values(levelMap);
+
+  if (rawLevels.length === 0) {
+    return { talent: { auto: 1, skill: 1, burst: 1 }, uncertain: false };
+  }
+
+  const order = getEnkaSkillOrder(avatar.avatarId, avatar.skillDepotId);
+  if (order) {
+    const [normalId, skillId, burstId] = order;
+    const auto = levelMap[normalId];
+    const skill = levelMap[skillId];
+    const burst = levelMap[burstId];
+    if (auto !== undefined && skill !== undefined && burst !== undefined) {
+      return { talent: { auto, skill, burst }, uncertain: false };
+    }
+  }
+
+  return {
+    talent: {
+      auto: rawLevels[0] || 1,
+      skill: rawLevels[1] || 1,
+      burst: rawLevels[2] || 1,
+    },
+    uncertain: true,
+  };
+}
+
+/**
  * Convert Enka.network response to internal Character format
  */
 export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[] {
@@ -497,13 +551,13 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
       // Extract constellation
       const constellation = avatar.talentIdList?.length || 0;
 
-      // Extract talent levels
-      const skillLevels = Object.values(avatar.skillLevelMap);
-      const talent = {
-        auto: skillLevels[0] || 1,
-        skill: skillLevels[1] || 1,
-        burst: skillLevels[2] || 1,
-      };
+      // Extract talent levels (by skill ID; positional fallback for unknown avatars)
+      const { talent, uncertain: talentOrderUncertain } = resolveEnkaTalents(avatar);
+      if (talentOrderUncertain) {
+        console.warn(
+          `Talent order uncertain for ${characterKey} (avatarId ${avatar.avatarId}, depot ${avatar.skillDepotId}); assigned positionally`,
+        );
+      }
 
       // Extract weapon
       const weaponEquip = avatar.equipList.find((e) => e.weapon);
@@ -545,7 +599,11 @@ export function fromEnka(enkaResponse: EnkaResponse): Omit<Character, 'id' | 'cr
         talent,
         weapon,
         artifacts,
-        notes: `Imported from Enka.network (UID: ${enkaResponse.uid})`,
+        notes:
+          `Imported from Enka.network (UID: ${enkaResponse.uid})` +
+          (talentOrderUncertain
+            ? ' — talent order uncertain: unknown avatar/skill depot, auto/skill/burst assigned positionally; please verify'
+            : ''),
         priority: 'unbuilt',
         teamIds: [],
         avatarId: avatar.avatarId,
