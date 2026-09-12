@@ -13,17 +13,19 @@ function actionInput(actionKey: string) {
   };
 }
 
-function readActivities() {
+interface StoredActionStates {
+  activities: Array<{
+    actionKey: string;
+    state: CampaignActionState;
+    dateKey: string;
+    actionLabel: string;
+  }>;
+}
+
+function readActivities(): StoredActionStates {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return [];
-  return JSON.parse(stored) as {
-    activities: Array<{
-      actionKey: string;
-      state: CampaignActionState;
-      dateKey: string;
-      actionLabel: string;
-    }>;
-  };
+  if (!stored) return { activities: [] };
+  return JSON.parse(stored) as StoredActionStates;
 }
 
 describe('useCampaignActionStates', () => {

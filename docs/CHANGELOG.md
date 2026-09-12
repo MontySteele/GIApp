@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Cleanup sprint (September 2026 review)
+See `docs/REVIEW_FINDINGS.md` for the full register. Highlights:
+- **Gacha model**: weapon banner uses 75/25 with two rate-up weapons, Epitomized Path with 1 fate point and 80 hard pity; Capturing Radiance is the 50/50/75/100 consecutive-loss chain; the worker shares the app's gacha rules; one chronological ordering for pity replay; known-number tests.
+- **Planner**: character ascension costs are per phase (a 1→90 plan no longer asks for 78 tier-1 mats and 28 slivers).
+- **Data safety**: the app refuses to start on a half-open database; backups are schema-validated, restore build templates and import records, include localStorage product data (wishlist, planner state, resin, weekly bosses), and "Replace All" really replaces; persistent storage is requested; a typed-confirmation full reset exists in Settings.
+- **Identity**: one canonical GOOD key per character; Enka, GOOD and manual entry converge on one row; existing databases are repaired on startup.
+- **Imports**: Enka talents mapped by skill ID; corrected weapon/character IDs; character-only GOOD files no longer wipe weapons.
+- **Time**: server region setting (America/Europe/Asia/TW) drives daily and weekly resets, domain days and wish timestamps.
+- **Shell**: PWA icons exist; external links no longer pop-up-block outside Tauri; no `confirm()`; a11y labels; Theatre shows an explicit no-season state.
+- **Process**: tests are type-checked; CI runs lint, typecheck, unit, build and Playwright against the production build; dead Calendar/Wishes pages and the bake-off artifacts removed.
+
 ### First Target Setup
 - Added a reusable first-target setup state and card that guides new users through roster import, pull/resource setup, target selection, and target review.
 - Dashboard now shows the guided setup card only while no campaign, planned banner, or wishlist target exists.

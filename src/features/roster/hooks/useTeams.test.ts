@@ -24,24 +24,27 @@ const mockTeams: Team[] = [
   {
     id: 'team-1',
     name: 'Hu Tao Vape',
-    members: ['HuTao', 'Xingqiu', 'Zhongli', 'Yelan'],
-    description: 'Double hydro vaporize team',
+    characterKeys: ['HuTao', 'Xingqiu', 'Zhongli', 'Yelan'],
+    rotationNotes: 'Double hydro vaporize team',
+    tags: ['vaporize'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: 'team-2',
     name: 'National Team',
-    members: ['XiangLing', 'Xingqiu', 'Bennett', 'Raiden'],
-    description: 'Classic national team',
+    characterKeys: ['XiangLing', 'Xingqiu', 'Bennett', 'Raiden'],
+    rotationNotes: 'Classic national team',
+    tags: ['national'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: 'team-3',
     name: 'Freeze Team',
-    members: ['Ayaka', 'Shenhe', 'Kazuha', 'Kokomi'],
-    description: 'Ayaka freeze composition',
+    characterKeys: ['Ayaka', 'Shenhe', 'Kazuha', 'Kokomi'],
+    rotationNotes: 'Ayaka freeze composition',
+    tags: ['freeze'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -99,10 +102,11 @@ describe('useTeams', () => {
       vi.mocked(teamRepo.create).mockResolvedValue('new-team-id');
 
       const { result } = renderHook(() => useTeams());
-      const newTeam = {
+      const newTeam: Omit<Team, 'id' | 'createdAt' | 'updatedAt'> = {
         name: 'New Team',
-        members: ['Character1', 'Character2'],
-        description: 'A new team',
+        characterKeys: ['Character1', 'Character2'],
+        rotationNotes: 'A new team',
+        tags: [],
       };
 
       await result.current.createTeam(newTeam);
@@ -140,8 +144,8 @@ describe('useTeams', () => {
 
       const huTaoTeam = result.current.teams.find((t) => t.name === 'Hu Tao Vape');
       expect(huTaoTeam).toBeDefined();
-      expect(huTaoTeam?.members).toHaveLength(4);
-      expect(huTaoTeam?.members).toContain('HuTao');
+      expect(huTaoTeam?.characterKeys).toHaveLength(4);
+      expect(huTaoTeam?.characterKeys).toContain('HuTao');
     });
   });
 });

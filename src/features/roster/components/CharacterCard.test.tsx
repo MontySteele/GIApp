@@ -272,7 +272,7 @@ describe('CharacterCard', () => {
         <CharacterCard character={makeCharacter()} onClick={onClick} />
       );
 
-      container.firstElementChild!.click();
+      (container.firstElementChild as HTMLElement).click();
       expect(onClick).toHaveBeenCalledOnce();
     });
 

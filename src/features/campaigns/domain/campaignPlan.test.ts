@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Artifact, BuildTemplate, Campaign, Character, SlotKey, Team } from '@/types';
+import type { PullAvailability } from '@/features/ledger';
 import {
   calculateCampaignPlan,
   calculateBuildReadiness,
@@ -10,6 +11,16 @@ import {
 } from './campaignPlan';
 
 const ARTIFACT_SLOTS: SlotKey[] = ['flower', 'plume', 'sands', 'goblet', 'circlet'];
+
+function pullAvailability(eventPulls: number): PullAvailability {
+  return {
+    eventPulls,
+    standardPulls: 0,
+    allWishes: eventPulls,
+    currencyPulls: 0,
+    starglitterPulls: 0,
+  };
+}
 
 function buildArtifacts(level: number): Artifact[] {
   return ARTIFACT_SLOTS.map((slotKey) => ({
@@ -161,6 +172,7 @@ describe('campaignPlan', () => {
   it('calculates pull readiness from available pulls and target budget', () => {
     const readiness = calculatePullReadiness(baseCampaign, {
       availablePulls: 80,
+      pullAvailability: pullAvailability(80),
       resources: {
         primogems: 0,
         genesisCrystals: 0,
@@ -191,6 +203,7 @@ describe('campaignPlan', () => {
       },
       {
         availablePulls: 69.4125,
+        pullAvailability: pullAvailability(69.4125),
         resources: {
           primogems: 11106,
           genesisCrystals: 0,
@@ -225,6 +238,7 @@ describe('campaignPlan', () => {
       },
       {
         availablePulls: 40,
+        pullAvailability: pullAvailability(40),
         resources: {
           primogems: 0,
           genesisCrystals: 0,
@@ -259,6 +273,7 @@ describe('campaignPlan', () => {
     const effectiveTargets = getCampaignPullTargets(teamCampaign);
     const readiness = calculatePullReadiness(teamCampaign, {
       availablePulls: 40,
+      pullAvailability: pullAvailability(40),
       resources: {
         primogems: 0,
         genesisCrystals: 0,
@@ -323,8 +338,8 @@ describe('campaignPlan', () => {
 
     expect(readiness.status).toBe('attention');
     expect(readiness.percent).toBeLessThan(100);
-    expect(readiness.characters[0]?.breakdown.weapon).toBe(78);
-    expect(readiness.characters[0]?.breakdown.artifacts).toBeLessThan(100);
+    expect(readiness.characters[0]?.breakdown?.weapon).toBe(78);
+    expect(readiness.characters[0]?.breakdown?.artifacts).toBeLessThan(100);
     expect(readiness.characters[0]?.artifactScore).toBeDefined();
     expect(readiness.characters[0]?.hasBuildRecommendation).toBe(true);
     expect(readiness.characters[0]?.gaps).toEqual(
@@ -593,6 +608,7 @@ describe('campaignPlan', () => {
         materials: {},
         availablePulls: {
           availablePulls: 0,
+          pullAvailability: pullAvailability(0),
           resources: {
             primogems: 0,
             genesisCrystals: 0,
@@ -627,6 +643,7 @@ describe('campaignPlan', () => {
         materials: {},
         availablePulls: {
           availablePulls: 0,
+          pullAvailability: pullAvailability(0),
           resources: {
             primogems: 0,
             genesisCrystals: 0,
@@ -664,6 +681,7 @@ describe('campaignPlan', () => {
       materials: {},
       availablePulls: {
         availablePulls,
+        pullAvailability: pullAvailability(availablePulls),
         resources: {
           primogems: 0,
           genesisCrystals: 0,

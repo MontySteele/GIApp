@@ -12,8 +12,7 @@ const mockWishHistory: WishHistoryItem[] = [
     rarity: 5,
     itemType: 'character',
     banner: 'character',
-    timestamp: '2024-01-15T10:00:00Z',
-    pity: 75,
+    time: '2024-01-15T10:00:00Z',
     isFeatured: true,
   },
   {
@@ -22,8 +21,7 @@ const mockWishHistory: WishHistoryItem[] = [
     rarity: 4,
     itemType: 'weapon',
     banner: 'character',
-    timestamp: '2024-01-14T10:00:00Z',
-    pity: 5,
+    time: '2024-01-14T10:00:00Z',
     isFeatured: false,
   },
 ];

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useCurrentPity, useAllCurrentPity } from './useCurrentPity';
 import { wishRepo } from '../repo/wishRepo';
-import { getPityByBanner, getPityForBanner } from '../selectors/pitySelectors';
+import { getPityByBanner, getPityForBanner, type BannerPitySnapshot } from '../selectors/pitySelectors';
 import type { WishRecord, BannerType } from '@/types';
 
 // Mock dependencies
@@ -24,47 +24,45 @@ vi.mock('../selectors/pitySelectors', () => ({
 const mockWishRecords: WishRecord[] = [
   {
     id: 'wish-1',
-    gachaType: '301',
-    itemId: '10000046',
-    name: 'Hu Tao',
-    itemType: 'Character',
+    gachaId: '1001',
+    bannerType: 'character',
+    bannerVersion: '4.3-phase1',
+    timestamp: '2024-01-15T12:00:00Z',
+    itemType: 'character',
+    itemKey: 'HuTao',
     rarity: 5,
-    time: '2024-01-15 12:00:00',
-    pity: 76,
     isFeatured: true,
     createdAt: '2024-01-15T12:00:00Z',
     updatedAt: '2024-01-15T12:00:00Z',
   },
   {
     id: 'wish-2',
-    gachaType: '301',
-    itemId: '10000025',
-    name: 'Xingqiu',
-    itemType: 'Character',
+    gachaId: '1002',
+    bannerType: 'character',
+    bannerVersion: '4.3-phase1',
+    timestamp: '2024-01-15T11:00:00Z',
+    itemType: 'character',
+    itemKey: 'Xingqiu',
     rarity: 4,
-    time: '2024-01-15 11:00:00',
-    pity: 5,
     isFeatured: true,
     createdAt: '2024-01-15T11:00:00Z',
     updatedAt: '2024-01-15T11:00:00Z',
   },
 ];
 
-const mockPitySnapshot = {
-  currentPity: 15,
-  fiveStarPity: 15,
-  fourStarPity: 5,
+const mockPitySnapshot: BannerPitySnapshot = {
+  banner: 'character',
+  pity: 15,
   guaranteed: false,
-  lastFiveStar: mockWishRecords[0],
-  lastFourStar: mockWishRecords[1],
-  totalPulls: 100,
+  radiantStreak: 0,
+  radianceActive: false,
 };
 
-const mockAllPity: Record<BannerType, typeof mockPitySnapshot> = {
+const mockAllPity: Record<BannerType, BannerPitySnapshot> = {
   character: { ...mockPitySnapshot },
-  weapon: { ...mockPitySnapshot, currentPity: 30, guaranteed: true },
-  standard: { ...mockPitySnapshot, currentPity: 45 },
-  chronicled: { ...mockPitySnapshot, currentPity: 20 },
+  weapon: { ...mockPitySnapshot, banner: 'weapon', pity: 30, guaranteed: true, fatePoints: 0 },
+  standard: { ...mockPitySnapshot, banner: 'standard', pity: 45 },
+  chronicled: { ...mockPitySnapshot, banner: 'chronicled', pity: 20 },
 };
 
 describe('useCurrentPity', () => {
@@ -99,7 +97,7 @@ describe('useCurrentPity', () => {
 
     const { result } = renderHook(() => useCurrentPity('character'));
 
-    expect(result.current?.currentPity).toBe(15);
+    expect(result.current?.pity).toBe(15);
     expect(result.current?.guaranteed).toBe(false);
   });
 
@@ -111,7 +109,7 @@ describe('useCurrentPity', () => {
     const { result } = renderHook(() => useCurrentPity('weapon'));
 
     expect(getPityForBanner).toHaveBeenCalledWith(mockWishRecords, 'weapon');
-    expect(result.current?.currentPity).toBe(30);
+    expect(result.current?.pity).toBe(30);
     expect(result.current?.guaranteed).toBe(true);
   });
 
@@ -123,7 +121,7 @@ describe('useCurrentPity', () => {
     const { result } = renderHook(() => useCurrentPity('standard'));
 
     expect(getPityForBanner).toHaveBeenCalledWith(mockWishRecords, 'standard');
-    expect(result.current?.currentPity).toBe(45);
+    expect(result.current?.pity).toBe(45);
   });
 
   it('re-calculates when banner type changes', async () => {
@@ -138,7 +136,7 @@ describe('useCurrentPity', () => {
       { initialProps: { banner: 'character' as BannerType } }
     );
 
-    expect(result.current?.currentPity).toBe(15);
+    expect(result.current?.pity).toBe(15);
 
     rerender({ banner: 'weapon' as BannerType });
 
@@ -191,9 +189,9 @@ describe('useAllCurrentPity', () => {
 
     const { result } = renderHook(() => useAllCurrentPity());
 
-    expect(result.current?.character.currentPity).toBe(15);
-    expect(result.current?.weapon.currentPity).toBe(30);
-    expect(result.current?.standard.currentPity).toBe(45);
-    expect(result.current?.chronicled.currentPity).toBe(20);
+    expect(result.current?.character.pity).toBe(15);
+    expect(result.current?.weapon.pity).toBe(30);
+    expect(result.current?.standard.pity).toBe(45);
+    expect(result.current?.chronicled.pity).toBe(20);
   });
 });

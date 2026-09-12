@@ -32,7 +32,7 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     weapon: { key: 'SacrificialSword', level: 70, ascension: 4, refinement: 1 },
     artifacts: [],
     notes: '',
-    priority: 'support',
+    priority: 'secondary',
     teamIds: [],
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',

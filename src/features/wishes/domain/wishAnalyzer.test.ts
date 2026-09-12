@@ -181,7 +181,7 @@ describe('Wish Analyzer', () => {
         ...Array(80).fill(null).map((_, i) => ({
           id: `3-${i}`,
           name: 'Cool Steel',
-          rarity: 3,
+          rarity: 3 as const,
           itemType: 'weapon' as const,
           time: '2024-01-01',
           banner: 'character' as const,
@@ -191,7 +191,7 @@ describe('Wish Analyzer', () => {
         ...Array(60).fill(null).map((_, i) => ({
           id: `3-2-${i}`,
           name: 'Cool Steel',
-          rarity: 3,
+          rarity: 3 as const,
           itemType: 'weapon' as const,
           time: '2024-01-01',
           banner: 'character' as const,
@@ -248,7 +248,7 @@ describe('Wish Analyzer', () => {
         ...Array(80).fill(null).map((_, i) => ({
           id: `3-${i}`,
           name: 'Cool Steel',
-          rarity: 3,
+          rarity: 3 as const,
           itemType: 'weapon' as const,
           time: '2024-01-01',
           banner: 'character' as const,

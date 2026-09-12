@@ -33,52 +33,37 @@ vi.mock('../data/characterMetadata', () => ({
   }),
 }));
 
-const mockCharacters: Character[] = [
-  {
-    id: '1',
-    key: 'HuTao',
-    name: 'Hu Tao',
-    level: 90,
-    ascension: 6,
-    constellation: 1,
-    element: 'Pyro',
-    weaponType: 'Polearm',
-    rarity: 5,
-    talents: { normal: 10, skill: 10, burst: 10 },
-    priority: 'high',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    key: 'Xingqiu',
-    name: 'Xingqiu',
-    level: 80,
-    ascension: 5,
-    constellation: 6,
-    element: 'Hydro',
-    weaponType: 'Sword',
-    rarity: 4,
-    talents: { normal: 6, skill: 9, burst: 12 },
-    priority: 'medium',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    key: 'Zhongli',
-    name: 'Zhongli',
+function makeCharacter(overrides: Partial<Character> & Pick<Character, 'id' | 'key'>): Character {
+  const now = new Date().toISOString();
+  return {
     level: 90,
     ascension: 6,
     constellation: 0,
-    element: 'Geo',
-    weaponType: 'Polearm',
-    rarity: 5,
-    talents: { normal: 1, skill: 9, burst: 9 },
-    priority: 'low',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+    talent: { auto: 10, skill: 10, burst: 10 },
+    weapon: { key: 'StaffOfHoma', level: 90, ascension: 6, refinement: 1 },
+    artifacts: [],
+    notes: '',
+    priority: 'main',
+    teamIds: [],
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+// Element / weapon type / rarity live in character metadata (mocked above), keyed by `key`.
+const mockCharacters: Character[] = [
+  makeCharacter({ id: '1', key: 'HuTao', level: 90, constellation: 1, priority: 'main' }),
+  makeCharacter({
+    id: '2',
+    key: 'Xingqiu',
+    level: 80,
+    ascension: 5,
+    constellation: 6,
+    talent: { auto: 6, skill: 9, burst: 12 },
+    priority: 'secondary',
+  }),
+  makeCharacter({ id: '3', key: 'Zhongli', talent: { auto: 1, skill: 9, burst: 9 }, priority: 'bench' }),
 ];
 
 describe('useCharacters', () => {
@@ -119,7 +104,7 @@ describe('useCharacters', () => {
       );
 
       expect(result.current.characters).toHaveLength(1);
-      expect(result.current.characters[0].element).toBe('Pyro');
+      expect(result.current.characters[0].key).toBe('HuTao');
     });
 
     it('filters by weapon type', () => {
@@ -140,11 +125,11 @@ describe('useCharacters', () => {
 
     it('filters by priority', () => {
       const { result } = renderHook(() =>
-        useCharacters({ filters: { priority: 'high' } })
+        useCharacters({ filters: { priority: 'main' } })
       );
 
       expect(result.current.characters).toHaveLength(1);
-      expect(result.current.characters[0].priority).toBe('high');
+      expect(result.current.characters[0].priority).toBe('main');
     });
 
     it('filters by search term', () => {
@@ -153,7 +138,7 @@ describe('useCharacters', () => {
       );
 
       expect(result.current.characters).toHaveLength(1);
-      expect(result.current.characters[0].name).toBe('Hu Tao');
+      expect(result.current.characters[0].key).toBe('HuTao');
     });
 
     it('combines multiple filters', () => {
@@ -162,7 +147,7 @@ describe('useCharacters', () => {
       );
 
       expect(result.current.characters).toHaveLength(1);
-      expect(result.current.characters[0].name).toBe('Hu Tao');
+      expect(result.current.characters[0].key).toBe('HuTao');
     });
   });
 
@@ -193,8 +178,8 @@ describe('useCharacters', () => {
         useCharacters({ sort: { field: 'name', direction: 'asc' } })
       );
 
-      expect(result.current.characters[0].name).toBe('Hu Tao');
-      expect(result.current.characters[2].name).toBe('Zhongli');
+      expect(result.current.characters[0].key).toBe('HuTao');
+      expect(result.current.characters[2].key).toBe('Zhongli');
     });
   });
 
@@ -225,17 +210,17 @@ describe('useCharacters', () => {
       vi.mocked(characterRepo.create).mockResolvedValue('new-id');
 
       const { result } = renderHook(() => useCharacters());
-      const newChar = {
+      const newChar: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
         key: 'Keqing',
-        name: 'Keqing',
         level: 80,
         ascension: 5,
         constellation: 2,
-        element: 'Electro',
-        weaponType: 'Sword' as const,
-        rarity: 5 as const,
-        talents: { normal: 8, skill: 8, burst: 8 },
-        priority: 'medium' as const,
+        talent: { auto: 8, skill: 8, burst: 8 },
+        weapon: { key: 'LionsRoar', level: 80, ascension: 5, refinement: 5 },
+        artifacts: [],
+        notes: '',
+        priority: 'secondary',
+        teamIds: [],
       };
 
       await result.current.createCharacter(newChar);

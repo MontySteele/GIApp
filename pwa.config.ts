@@ -33,7 +33,7 @@ const runtimeCaching: NonNullable<NonNullable<VitePWAOptions['workbox']>['runtim
   }
 ]
 
-export const pwaConfig: VitePWAOptions = {
+export const pwaConfig: Partial<VitePWAOptions> = {
   registerType: 'autoUpdate',
   includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'mask-icon.svg'],
   manifest: {

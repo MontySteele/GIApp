@@ -47,7 +47,7 @@ describe('GOOD Mapper', () => {
       },
     ],
     notes: 'Main DPS',
-    priority: 'crowned',
+    priority: 'main',
     teamIds: [],
   };
 

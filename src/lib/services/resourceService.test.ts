@@ -57,7 +57,7 @@ describe('resourceService', () => {
   describe('getAvailablePullsFromTracker', () => {
     describe('when no snapshot exists', () => {
       beforeEach(() => {
-        vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(null);
+        vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(undefined);
         vi.mocked(wishRepo.getAll).mockResolvedValue([]);
         vi.mocked(primogemEntryRepo.getAll).mockResolvedValue([]);
         vi.mocked(fateEntryRepo.getAll).mockResolvedValue([]);
@@ -86,8 +86,8 @@ describe('resourceService', () => {
 
       it('aggregates primogem entries', async () => {
         vi.mocked(primogemEntryRepo.getAll).mockResolvedValue([
-          { id: '1', amount: 100, source: 'daily', date: '2024-01-01', createdAt: '', updatedAt: '' },
-          { id: '2', amount: 200, source: 'event', date: '2024-01-02', createdAt: '', updatedAt: '' },
+          { id: '1', amount: 100, source: 'daily_commission', timestamp: '2024-01-01', notes: '', createdAt: '', updatedAt: '' },
+          { id: '2', amount: 200, source: 'event', timestamp: '2024-01-02', notes: '', createdAt: '', updatedAt: '' },
         ]);
         mockPullAvailability(1);
 
@@ -98,9 +98,9 @@ describe('resourceService', () => {
 
       it('aggregates fate entries by type', async () => {
         vi.mocked(fateEntryRepo.getAll).mockResolvedValue([
-          { id: '1', amount: 5, fateType: 'intertwined', source: 'shop', date: '2024-01-01', createdAt: '', updatedAt: '' },
-          { id: '2', amount: 3, fateType: 'acquaint', source: 'bp', date: '2024-01-01', createdAt: '', updatedAt: '' },
-          { id: '3', amount: 2, fateType: 'intertwined', source: 'event', date: '2024-01-02', createdAt: '', updatedAt: '' },
+          { id: '1', amount: 5, fateType: 'intertwined', source: 'paimon_shop', timestamp: '2024-01-01', createdAt: '', updatedAt: '' },
+          { id: '2', amount: 3, fateType: 'acquaint', source: 'battle_pass', timestamp: '2024-01-01', createdAt: '', updatedAt: '' },
+          { id: '3', amount: 2, fateType: 'intertwined', source: 'event', timestamp: '2024-01-02', createdAt: '', updatedAt: '' },
         ]);
 
         const result = await getAvailablePullsFromTracker();
@@ -118,9 +118,9 @@ describe('resourceService', () => {
         intertwined: 10,
         acquaint: 5,
         starglitter: 20,
+        stardust: 0,
         timestamp: '2024-01-01T00:00:00Z',
         createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
       };
 
       beforeEach(() => {
@@ -128,7 +128,11 @@ describe('resourceService', () => {
         vi.mocked(wishRepo.getAll).mockResolvedValue([]);
         vi.mocked(primogemEntryRepo.getByDateRange).mockResolvedValue([]);
         vi.mocked(fateEntryRepo.getByDateRange).mockResolvedValue([]);
-        vi.mocked(resourceCalculations.calculateWishSpending).mockReturnValue(undefined);
+        vi.mocked(resourceCalculations.calculateWishSpending).mockReturnValue({
+          totalPulls: 0,
+          primogemEquivalent: 0,
+          pullsByFate: { intertwined: 0, acquaint: 0 },
+        });
         mockPullAvailability(16);
       });
 
@@ -157,7 +161,7 @@ describe('resourceService', () => {
 
       it('adds primogem delta to snapshot base', async () => {
         vi.mocked(primogemEntryRepo.getByDateRange).mockResolvedValue([
-          { id: '1', amount: 500, source: 'event', date: '2024-01-02', createdAt: '', updatedAt: '' },
+          { id: '1', amount: 500, source: 'event', timestamp: '2024-01-02', notes: '', createdAt: '', updatedAt: '' },
         ]);
 
         const result = await getAvailablePullsFromTracker();
@@ -167,8 +171,8 @@ describe('resourceService', () => {
 
       it('adds fate deltas to snapshot base', async () => {
         vi.mocked(fateEntryRepo.getByDateRange).mockResolvedValue([
-          { id: '1', amount: 3, fateType: 'intertwined', source: 'shop', date: '2024-01-02', createdAt: '', updatedAt: '' },
-          { id: '2', amount: 2, fateType: 'acquaint', source: 'bp', date: '2024-01-02', createdAt: '', updatedAt: '' },
+          { id: '1', amount: 3, fateType: 'intertwined', source: 'paimon_shop', timestamp: '2024-01-02', createdAt: '', updatedAt: '' },
+          { id: '2', amount: 2, fateType: 'acquaint', source: 'battle_pass', timestamp: '2024-01-02', createdAt: '', updatedAt: '' },
         ]);
 
         const result = await getAvailablePullsFromTracker();
@@ -207,13 +211,13 @@ describe('resourceService', () => {
 
     describe('available pulls calculation', () => {
       it('calls calculatePullAvailability with safe resources', async () => {
-        vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(null);
+        vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(undefined);
         vi.mocked(wishRepo.getAll).mockResolvedValue([]);
         vi.mocked(primogemEntryRepo.getAll).mockResolvedValue([
-          { id: '1', amount: 480, source: 'event', date: '2024-01-01', createdAt: '', updatedAt: '' },
+          { id: '1', amount: 480, source: 'event', timestamp: '2024-01-01', notes: '', createdAt: '', updatedAt: '' },
         ]);
         vi.mocked(fateEntryRepo.getAll).mockResolvedValue([
-          { id: '1', amount: 5, fateType: 'intertwined', source: 'shop', date: '2024-01-01', createdAt: '', updatedAt: '' },
+          { id: '1', amount: 5, fateType: 'intertwined', source: 'paimon_shop', timestamp: '2024-01-01', createdAt: '', updatedAt: '' },
         ]);
         mockPullAvailability(8);
 
@@ -230,7 +234,7 @@ describe('resourceService', () => {
       });
 
       it('returns the event pull count from the pull availability breakdown', async () => {
-        vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(null);
+        vi.mocked(resourceSnapshotRepo.getLatest).mockResolvedValue(undefined);
         vi.mocked(wishRepo.getAll).mockResolvedValue([]);
         vi.mocked(primogemEntryRepo.getAll).mockResolvedValue([]);
         vi.mocked(fateEntryRepo.getAll).mockResolvedValue([]);

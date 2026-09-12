@@ -10,7 +10,7 @@ const SUB_TABS = [
   { id: 'planner', label: 'Progression', path: '/roster/planner', icon: Target, end: false },
   { id: 'domains', label: 'Domains', path: '/roster/domains', icon: Calendar, end: false },
   { id: 'bosses', label: 'Bosses', path: '/roster/bosses', icon: Skull, end: false },
-  { id: 'theater', label: 'Theater', path: '/roster/theater', icon: Drama, end: false },
+  { id: 'theater', label: 'Theatre', path: '/roster/theater', icon: Drama, end: false },
 ] as const;
 
 export default function RosterSubNav() {

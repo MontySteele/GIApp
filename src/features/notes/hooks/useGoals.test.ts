@@ -29,9 +29,8 @@ const mockGoals: Goal[] = [
     title: 'Triple Crown Hu Tao',
     description: 'Max out all talents for Hu Tao',
     category: 'character',
-    status: 'in_progress',
+    status: 'active',
     linkedCharacterKey: 'HuTao',
-    linkedTeamId: null,
     checklist: [
       { id: 'c1', text: 'Level 10 Normal Attack', completed: true },
       { id: 'c2', text: 'Level 10 Skill', completed: true },
@@ -45,8 +44,7 @@ const mockGoals: Goal[] = [
     title: 'Build National Team',
     description: 'Complete the National team setup',
     category: 'team',
-    status: 'not_started',
-    linkedCharacterKey: null,
+    status: 'abandoned',
     linkedTeamId: 'team-national',
     checklist: [
       { id: 'c1', text: 'Build Xiangling', completed: false },
@@ -59,10 +57,8 @@ const mockGoals: Goal[] = [
     id: 'goal-3',
     title: 'Farm Emblem Domain',
     description: 'Get good Emblem artifacts',
-    category: 'farming',
+    category: 'exploration',
     status: 'completed',
-    linkedCharacterKey: null,
-    linkedTeamId: null,
     checklist: [
       { id: 'c1', text: 'Get Sands', completed: true },
       { id: 'c2', text: 'Get Goblet', completed: true },
@@ -134,11 +130,11 @@ describe('useGoals', () => {
       expect(result.current.goals[0].category).toBe('team');
     });
 
-    it('filters by farming category', () => {
-      const { result } = renderHook(() => useGoals({ category: 'farming' }));
+    it('filters by exploration category', () => {
+      const { result } = renderHook(() => useGoals({ category: 'exploration' }));
 
       expect(result.current.goals).toHaveLength(1);
-      expect(result.current.goals[0].category).toBe('farming');
+      expect(result.current.goals[0].category).toBe('exploration');
     });
   });
 
@@ -148,18 +144,18 @@ describe('useGoals', () => {
       useLiveQuery.mockReturnValue(mockGoals);
     });
 
-    it('filters by in_progress status', () => {
-      const { result } = renderHook(() => useGoals({ status: 'in_progress' }));
+    it('filters by active status', () => {
+      const { result } = renderHook(() => useGoals({ status: 'active' }));
 
       expect(result.current.goals).toHaveLength(1);
-      expect(result.current.goals[0].status).toBe('in_progress');
+      expect(result.current.goals[0].status).toBe('active');
     });
 
-    it('filters by not_started status', () => {
-      const { result } = renderHook(() => useGoals({ status: 'not_started' }));
+    it('filters by abandoned status', () => {
+      const { result } = renderHook(() => useGoals({ status: 'abandoned' }));
 
       expect(result.current.goals).toHaveLength(1);
-      expect(result.current.goals[0].status).toBe('not_started');
+      expect(result.current.goals[0].status).toBe('abandoned');
     });
 
     it('filters by completed status', () => {
@@ -252,17 +248,17 @@ describe('useGoals', () => {
 
     it('combines category and status filters', () => {
       const { result } = renderHook(() =>
-        useGoals({ category: 'character', status: 'in_progress' })
+        useGoals({ category: 'character', status: 'active' })
       );
 
       expect(result.current.goals).toHaveLength(1);
       expect(result.current.goals[0].category).toBe('character');
-      expect(result.current.goals[0].status).toBe('in_progress');
+      expect(result.current.goals[0].status).toBe('active');
     });
 
     it('returns empty when combined filters match nothing', () => {
       const { result } = renderHook(() =>
-        useGoals({ category: 'farming', status: 'in_progress' })
+        useGoals({ category: 'exploration', status: 'active' })
       );
 
       expect(result.current.goals).toHaveLength(0);
@@ -297,10 +293,8 @@ describe('useGoals', () => {
       const newGoal = {
         title: 'New Goal',
         description: 'A new goal',
-        category: 'general' as const,
-        status: 'not_started' as const,
-        linkedCharacterKey: null,
-        linkedTeamId: null,
+        category: 'other' as const,
+        status: 'abandoned' as const,
         checklist: [],
       };
 

@@ -98,8 +98,13 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
+  // In CI the suite runs against the production build (`dist/`, built in a prior
+  // step) so service-worker, precache and chunk-splitting bugs are visible.
+  // Locally it drives the dev server for fast iteration.
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI
+      ? 'npm run preview -- --port 5173 --strictPort'
+      : 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

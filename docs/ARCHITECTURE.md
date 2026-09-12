@@ -144,7 +144,10 @@ Hash links are handled in the app shell so SPA navigation such as `/#quick-resou
 - **Manual fast paths matter.** Pull odds and target creation should work with user-entered pity/pulls even when imports are incomplete.
 - **Import freshness is product data.** `useAccountDataFreshness` and Import Hub summaries feed dashboard guidance, not just settings screens.
 - **Dashboard ownership is narrow.** Dashboard owns "what should I do now?" and quick capture. Pulls owns budget depth, wish history, and charts. Targets owns target management and target-specific material deficits. Roster owns characters, teams, domains, and progression planning.
-- **Workers own expensive simulations.** Monte Carlo and heavy probability work must stay off the main thread.
+- **Workers own expensive simulations.** Monte Carlo and heavy probability work must stay off the main thread. The worker imports `GACHA_RULES` from `lib/constants`; never copy gacha constants into it.
+- **One character key.** `normalizeCharacterKey` (in `lib/constants/characterList.ts`) maps every spelling to the canonical GOOD key. All write paths (Enka, GOOD, manual form, repos) normalise; `db/dataFixes.ts` repairs legacy rows on startup.
+- **Server time is a setting.** `lib/time/serverTime.ts` owns resets and "today"; nothing else may hard-code UTC-5.
+- **Naming: "Theatre".** The in-game feature is spelled Imaginarium Theatre in UI copy; code paths keep the `theater` folder name.
 
 ## Design Guidelines
 

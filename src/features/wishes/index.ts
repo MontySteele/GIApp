@@ -5,7 +5,6 @@
  */
 
 // Pages
-export { default as WishesPage } from './pages/WishesPage';
 export { WishHistoryPage } from './pages/WishHistoryPage';
 
 // Hooks

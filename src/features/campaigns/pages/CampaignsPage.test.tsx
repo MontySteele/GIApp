@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CampaignsPage from './CampaignsPage';
 import type { Campaign } from '@/types';
 import type { CampaignPlan } from '../domain/campaignPlan';
+import type { AccountDataFreshness } from '@/features/sync';
 
 const mocks = vi.hoisted(() => ({
   createCampaign: vi.fn(),
@@ -19,7 +20,7 @@ const mocks = vi.hoisted(() => ({
     daysSinceImport: 0,
     label: 'Account data current',
     detail: 'Last Irminsul import was today.',
-  },
+  } as AccountDataFreshness,
 }));
 
 vi.mock('../hooks/useCampaigns', () => ({
@@ -189,6 +190,7 @@ const campaignPlan: CampaignPlan = {
     topDeficits: [],
     totalEstimatedResin: 120,
     totalEstimatedDays: 1,
+    summary: null,
     errors: [],
   },
   nextActions: [
@@ -303,7 +305,7 @@ describe('CampaignsPage', () => {
         ...activeCampaign,
         id: 'campaign-blocked',
         name: 'Blocked Materials',
-        priority: 2,
+        priority: 2 as const,
       };
       mocks.campaigns = [activeCampaign, blockedCampaign];
       mocks.plans = {

@@ -53,6 +53,13 @@ const context: CampaignPlanContext = {
   materials: {},
   availablePulls: {
     availablePulls: 0,
+    pullAvailability: {
+      eventPulls: 0,
+      standardPulls: 0,
+      allWishes: 0,
+      currencyPulls: 0,
+      starglitterPulls: 0,
+    },
     resources: {
       primogems: 0,
       genesisCrystals: 0,

@@ -5,16 +5,16 @@ import type { Character, Team } from '@/types';
 
 const mockCharacter: Character = {
   id: 'char-1',
-  key: 'Hu Tao',
-  name: 'Hu Tao',
+  key: 'HuTao',
   level: 90,
   ascension: 6,
   constellation: 1,
-  element: 'Pyro',
-  weaponType: 'Polearm',
-  rarity: 5,
-  talents: { normal: 10, skill: 10, burst: 10 },
-  priority: 'high',
+  talent: { auto: 10, skill: 10, burst: 10 },
+  weapon: { key: 'StaffOfHoma', level: 90, ascension: 6, refinement: 1 },
+  artifacts: [],
+  notes: '',
+  priority: 'main',
+  teamIds: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -22,8 +22,9 @@ const mockCharacter: Character = {
 const mockTeam: Team = {
   id: 'team-1',
   name: 'Hu Tao Vape',
-  members: ['Hu Tao', 'Xingqiu', 'Zhongli', 'Yelan'],
-  description: 'Vaporize team',
+  characterKeys: ['HuTao', 'Xingqiu', 'Zhongli', 'Yelan'],
+  rotationNotes: 'Vaporize team',
+  tags: ['vaporize'],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -278,7 +279,7 @@ describe('useRosterModals', () => {
     it('maintains state isolation between different modals', () => {
       const { result } = renderHook(() => useRosterModals());
 
-      const anotherCharacter: Character = { ...mockCharacter, id: 'char-2', name: 'Xiao' };
+      const anotherCharacter: Character = { ...mockCharacter, id: 'char-2', key: 'Xiao' };
 
       act(() => {
         result.current.openEditModal(mockCharacter);

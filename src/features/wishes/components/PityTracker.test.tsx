@@ -10,6 +10,7 @@ const buildPityState = (overrides: Partial<PityState> = {}): PityState => ({
   fourStarPity: 8,
   guaranteed: false,
   fatePoints: 0,
+  fatePointsUnknown: false,
   radiantStreak: 0,
   radianceActive: false,
   ...overrides,

@@ -128,12 +128,10 @@ npx playwright test e2e/tests/campaign-flow.spec.ts --project=chromium
 npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 ```
 
-## Current Test Baseline
+## Verification
 
-Latest verified baseline:
-
-- 150 Vitest files
-- 2075 Vitest tests
+- Run `npm run check` (lint, typecheck of app and tests, unit tests) before pushing.
+- See `docs/REVIEW_FINDINGS.md` for the September 2026 review register and `docs/CLEANUP_SPRINT.md` for the sprint that addressed it.
 - Campaign-flow Playwright smoke passing
 - Navigation Playwright smoke passing
 - Team-management Playwright smoke passing

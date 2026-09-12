@@ -14,8 +14,8 @@
 
 Latest verified after the first-target setup pass:
 
-- **Test files:** 150 passing
-- **Tests:** 2075 passing
+- **Test files / tests:** see the latest CI run; the count grows with every sprint and is not tracked here.
+- **Type-checked tests:** `npm run typecheck` covers `tsconfig.test.json` as well as the app.
 - **Coverage baseline:** 72.37% statements, 65.44% branches, 68.63% functions, 73.73% lines
 - **Enforced coverage floor:** 70% statements, 60% branches, 65% functions, 70% lines
 - **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`, `team-management.spec.ts`

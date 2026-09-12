@@ -152,7 +152,7 @@ describe('genshinDbService', () => {
     describe('when data is not cached', () => {
       beforeEach(() => {
         vi.mocked(db.externalCache.get).mockResolvedValue(null);
-        vi.mocked(db.externalCache.put).mockResolvedValue(undefined);
+        vi.mocked(db.externalCache.put).mockResolvedValue('cache-id');
         mockFetch
           .mockResolvedValueOnce({
             ok: true,
@@ -451,7 +451,7 @@ describe('genshinDbService', () => {
             ok: true,
             json: () => Promise.resolve(mockTalentResponse),
           });
-        vi.mocked(db.externalCache.put).mockResolvedValue(undefined);
+        vi.mocked(db.externalCache.put).mockResolvedValue('cache-id');
 
         await getCharacterMaterials('HuTao', { forceRefresh: true });
 
@@ -472,7 +472,7 @@ describe('genshinDbService', () => {
           fetchedAt: new Date().toISOString(),
           expiresAt: futureDate,
         });
-        vi.mocked(db.externalCache.put).mockResolvedValue(undefined);
+        vi.mocked(db.externalCache.put).mockResolvedValue('cache-id');
         mockFetch
           .mockResolvedValueOnce({
             ok: true,
@@ -587,7 +587,7 @@ describe('genshinDbService', () => {
     describe('when data is not cached', () => {
       beforeEach(() => {
         vi.mocked(db.externalCache.get).mockResolvedValue(null);
-        vi.mocked(db.externalCache.put).mockResolvedValue(undefined);
+        vi.mocked(db.externalCache.put).mockResolvedValue('cache-id');
         mockFetch.mockResolvedValue({
           ok: true,
           json: () => Promise.resolve(mockWeaponResponse),
@@ -732,7 +732,7 @@ describe('genshinDbService', () => {
   describe('preloadCharacters', () => {
     it('fetches multiple characters in parallel', async () => {
       vi.mocked(db.externalCache.get).mockResolvedValue(null);
-      vi.mocked(db.externalCache.put).mockResolvedValue(undefined);
+      vi.mocked(db.externalCache.put).mockResolvedValue('cache-id');
       mockFetch.mockResolvedValue({
         ok: true,
         json: () =>
@@ -760,7 +760,7 @@ describe('genshinDbService', () => {
   describe('memory cache behavior', () => {
     it('uses memory cache for repeated calls', async () => {
       vi.mocked(db.externalCache.get).mockResolvedValue(null);
-      vi.mocked(db.externalCache.put).mockResolvedValue(undefined);
+      vi.mocked(db.externalCache.put).mockResolvedValue('cache-id');
       mockFetch.mockResolvedValue({
         ok: true,
         json: () =>
@@ -782,7 +782,7 @@ describe('genshinDbService', () => {
 
     it('memory cache is cleared by clearMemoryCache', async () => {
       vi.mocked(db.externalCache.get).mockResolvedValue(null);
-      vi.mocked(db.externalCache.put).mockResolvedValue(undefined);
+      vi.mocked(db.externalCache.put).mockResolvedValue('cache-id');
       mockFetch.mockResolvedValue({
         ok: true,
         json: () =>

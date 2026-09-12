@@ -21,7 +21,7 @@ vi.mock('../domain/artifactScoring', () => ({
 vi.mock('dexie-react-hooks', () => ({
   useLiveQuery: (querier: () => Promise<unknown>) => {
     // Use a simple sync approach: call the querier and track the result via state
-    const { useState, useEffect } = require('react');
+    const { useState, useEffect } = require('react') as typeof import('react');
     const [data, setData] = useState<unknown>(undefined);
     useEffect(() => {
       let cancelled = false;
@@ -89,23 +89,26 @@ const mockArtifacts: InventoryArtifact[] = [
   },
 ];
 
-const mockScores = {
+const mockScores: Record<string, ArtifactScore> = {
   'art-1': {
     score: 85,
     critValue: 31.5,
-    grade: 'A' as const,
+    grade: 'A',
+    rollEfficiency: 0.85,
     isStrongboxTrash: false,
   },
   'art-2': {
     score: 45,
     critValue: 7.0,
-    grade: 'C' as const,
+    grade: 'C',
+    rollEfficiency: 0.45,
     isStrongboxTrash: false,
   },
   'art-3': {
     score: 20,
     critValue: 0,
-    grade: 'F' as const,
+    grade: 'F',
+    rollEfficiency: 0.2,
     isStrongboxTrash: true,
   },
 };
@@ -115,7 +118,7 @@ describe('useArtifacts', () => {
     vi.clearAllMocks();
     vi.mocked(artifactRepo.getAll).mockResolvedValue(mockArtifacts);
     vi.mocked(scoreInventoryArtifact).mockImplementation((artifact) => {
-      return mockScores[artifact.id as keyof typeof mockScores];
+      return mockScores[artifact.id]!;
     });
   });
 

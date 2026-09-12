@@ -39,6 +39,8 @@ function makeWish(timestamp: string, bannerType: BannerType = 'character', id?: 
     itemType: 'character',
     itemKey: 'test',
     rarity: 3,
+    createdAt: timestamp,
+    updatedAt: timestamp,
   };
 }
 
