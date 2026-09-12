@@ -33,13 +33,16 @@ export const materialRepo = {
   },
 
   async setMaterial(key: string, count: number): Promise<void> {
-    const inventory = await db.materialInventory.get(MATERIALS_ID);
-    const materials = inventory?.materials ?? {};
-    materials[key] = count;
-    await db.materialInventory.put({
-      id: MATERIALS_ID,
-      materials,
-      updatedAt: new Date().toISOString(),
+    // Read-modify-write on the singleton document must be atomic, otherwise
+    // two concurrent writers overwrite each other's counts.
+    await db.transaction('rw', db.materialInventory, async () => {
+      const inventory = await db.materialInventory.get(MATERIALS_ID);
+      const materials = { ...(inventory?.materials ?? {}), [key]: count };
+      await db.materialInventory.put({
+        id: MATERIALS_ID,
+        materials,
+        updatedAt: new Date().toISOString(),
+      });
     });
   },
 

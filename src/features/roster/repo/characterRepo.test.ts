@@ -7,11 +7,13 @@ describe('Character Repository', () => {
   beforeEach(async () => {
     // Clear database before each test
     await db.characters.clear();
+    await db.teams.clear();
   });
 
   afterEach(async () => {
     // Clean up after each test
     await db.characters.clear();
+    await db.teams.clear();
   });
 
   const mockCharacterData: Omit<Character, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -235,6 +237,68 @@ describe('Character Repository', () => {
 
     it('should not error when deleting non-existent character', async () => {
       await expect(characterRepo.delete('non-existent-id')).resolves.not.toThrow();
+    });
+
+    it('removes the character key from every team that references it', async () => {
+      const now = '2026-01-01T00:00:00.000Z';
+      await db.teams.bulkPut([
+        {
+          id: 'team-a', name: 'A', characterKeys: ['Furina', 'Nahida'], rotationNotes: '', tags: [],
+          memberBuildTemplates: { Furina: 'bt-1', Nahida: 'bt-2' }, createdAt: now, updatedAt: now,
+        },
+        { id: 'team-b', name: 'B', characterKeys: ['Furina'], rotationNotes: '', tags: [], createdAt: now, updatedAt: now },
+        { id: 'team-c', name: 'C', characterKeys: ['Nahida'], rotationNotes: '', tags: [], createdAt: now, updatedAt: now },
+      ]);
+      const id = await characterRepo.create({ ...mockCharacterData, teamIds: ['team-a', 'team-b'] });
+
+      await characterRepo.delete(id);
+
+      const teamA = await db.teams.get('team-a');
+      const teamB = await db.teams.get('team-b');
+      const teamC = await db.teams.get('team-c');
+      expect(teamA?.characterKeys).toEqual(['Nahida']);
+      expect(teamA?.memberBuildTemplates).toEqual({ Nahida: 'bt-2' });
+      expect(teamA?.updatedAt).not.toBe(now);
+      expect(teamB?.characterKeys).toEqual([]);
+      expect(teamC?.characterKeys).toEqual(['Nahida']);
+      expect(teamC?.updatedAt).toBe(now);
+    });
+
+    it('keeps the key in teams while another character with the same key remains', async () => {
+      const now = '2026-01-01T00:00:00.000Z';
+      await db.teams.put({ id: 'team-a', name: 'A', characterKeys: ['Furina'], rotationNotes: '', tags: [], createdAt: now, updatedAt: now });
+      const first = await characterRepo.create(mockCharacterData);
+      await characterRepo.create(mockCharacterData);
+
+      await characterRepo.delete(first);
+
+      expect((await db.teams.get('team-a'))?.characterKeys).toEqual(['Furina']);
+    });
+  });
+
+  describe('bulkUpsert', () => {
+    it('creates new and updates existing characters by key, preserving teamIds', async () => {
+      const id = await characterRepo.create({ ...mockCharacterData, teamIds: ['team-1'], level: 80 });
+
+      const result = await characterRepo.bulkUpsert([
+        { ...mockCharacterData, level: 90, teamIds: [] },
+        { ...mockCharacterData, key: 'Neuvillette' },
+      ]);
+
+      expect(result).toEqual({ created: 1, updated: 1 });
+      const furina = await characterRepo.getById(id);
+      expect(furina?.level).toBe(90);
+      expect(furina?.teamIds).toEqual(['team-1']);
+      expect(await db.characters.count()).toBe(2);
+    });
+
+    it('does not duplicate a character when two upserts race', async () => {
+      await Promise.all([
+        characterRepo.bulkUpsert([mockCharacterData]),
+        characterRepo.bulkUpsert([mockCharacterData]),
+      ]);
+
+      expect(await db.characters.where('key').equals('Furina').count()).toBe(1);
     });
   });
 

@@ -1,8 +1,14 @@
 /**
  * Import Service - Handles backup restore with merge strategies
+ *
+ * Every restore goes through `validateBackup` (envelope + per-table Zod
+ * validation) before a single row is written. Invalid files are rejected
+ * with a per-table error list.
  */
 import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION } from '@/lib/constants';
+import { validateBackupTables } from '@/lib/validation/backupSchema';
+import { WISH_HISTORY_IMPORTED_AT_KEY } from '@/features/wishes/services/wishDataFreshness';
 import type {
   Character,
   Team,
@@ -10,6 +16,7 @@ import type {
   PrimogemEntry,
   FateEntry,
   ResourceSnapshot,
+  AbyssRun,
   Goal,
   Note,
   PlannedBanner,
@@ -17,7 +24,10 @@ import type {
   InventoryArtifact,
   InventoryWeapon,
   MaterialInventory,
+  ImportRecord,
+  BuildTemplate,
   Campaign,
+  AppMeta,
 } from '@/types';
 
 // ----- TYPES -----
@@ -41,28 +51,37 @@ export interface BackupData {
     inventoryArtifacts?: InventoryArtifact[];
     inventoryWeapons?: InventoryWeapon[];
     materialInventory?: MaterialInventory[];
+    importRecords?: ImportRecord[];
+    buildTemplates?: BuildTemplate[];
     campaigns?: Campaign[];
-    // Intentionally not importing: externalCache, appMeta
+    /** Exported for completeness; only whitelisted keys are restored. */
+    appMeta?: AppMeta[];
+    /** Exported but not restored (no UI consumes it yet). */
+    abyssRuns?: AbyssRun[];
   };
 }
+
+type TableStats = { created: number; updated: number; skipped: number };
 
 export interface ImportResult {
   success: boolean;
   stats: {
-    characters: { created: number; updated: number; skipped: number };
-    teams: { created: number; updated: number; skipped: number };
+    characters: TableStats;
+    teams: TableStats;
     wishRecords: { created: number; skipped: number };
-    primogemEntries: { created: number; updated: number; skipped: number };
-    fateEntries: { created: number; updated: number; skipped: number };
-    resourceSnapshots: { created: number; updated: number; skipped: number };
-    goals: { created: number; updated: number; skipped: number };
-    notes: { created: number; updated: number; skipped: number };
-    plannedBanners: { created: number; updated: number; skipped: number };
-    calculatorScenarios: { created: number; updated: number; skipped: number };
-    inventoryArtifacts: { created: number; updated: number; skipped: number };
-    inventoryWeapons: { created: number; updated: number; skipped: number };
-    materialInventory: { created: number; updated: number; skipped: number };
-    campaigns: { created: number; updated: number; skipped: number };
+    primogemEntries: TableStats;
+    fateEntries: TableStats;
+    resourceSnapshots: TableStats;
+    goals: TableStats;
+    notes: TableStats;
+    plannedBanners: TableStats;
+    calculatorScenarios: TableStats;
+    inventoryArtifacts: TableStats;
+    inventoryWeapons: TableStats;
+    materialInventory: TableStats;
+    importRecords: TableStats;
+    buildTemplates: TableStats;
+    campaigns: TableStats;
   };
   warnings: string[];
   errors: string[];
@@ -78,6 +97,34 @@ export interface ValidationResult {
     recordCounts: Record<string, number>;
   } | null;
 }
+
+/**
+ * `appMeta` keys that are restored from a backup. Everything else in the
+ * exported `appMeta` table is device-local bookkeeping and is skipped:
+ * - `schemaVersion` is owned by the running app and must never be overwritten
+ * - `deviceId`, `createdAt`, `lastBackupAt` describe the source device
+ */
+export const APP_META_RESTORE_WHITELIST: readonly string[] = [WISH_HISTORY_IMPORTED_AT_KEY];
+
+/** Tables restored with a merge strategy (id-keyed, have updatedAt). */
+const MERGE_TABLES = [
+  'teams',
+  'primogemEntries',
+  'fateEntries',
+  'resourceSnapshots',
+  'goals',
+  'notes',
+  'plannedBanners',
+  'calculatorScenarios',
+  'importRecords',
+  'buildTemplates',
+  'campaigns',
+] as const;
+
+type MergeTableName = (typeof MERGE_TABLES)[number];
+
+/** Tables cleared before writing when strategy is 'replace' and the backup includes them. */
+const REPLACE_CLEARABLE_TABLES = ['characters', 'wishRecords', ...MERGE_TABLES] as const;
 
 // ----- VALIDATION -----
 
@@ -105,7 +152,7 @@ export function validateBackup(data: unknown): ValidationResult {
     errors.push('Missing or invalid schemaVersion');
   }
 
-  if (!backup.data || typeof backup.data !== 'object') {
+  if (!backup.data || typeof backup.data !== 'object' || Array.isArray(backup.data)) {
     errors.push('Missing or invalid data payload');
   }
 
@@ -130,8 +177,15 @@ export function validateBackup(data: unknown): ValidationResult {
     );
   }
 
+  // Per-table row validation
+  const dataPayload = backup.data as Record<string, unknown>;
+  errors.push(...validateBackupTables(dataPayload));
+
+  if (Array.isArray(dataPayload.abyssRuns) && dataPayload.abyssRuns.length > 0) {
+    warnings.push('Backup contains abyssRuns, which this version does not restore.');
+  }
+
   // Count records
-  const dataPayload = backup.data as Record<string, unknown[]>;
   const recordCounts: Record<string, number> = {};
   for (const [key, value] of Object.entries(dataPayload)) {
     if (Array.isArray(value)) {
@@ -159,15 +213,17 @@ function isNewer(incoming: string | undefined, existing: string | undefined): bo
   return new Date(incoming).getTime() > new Date(existing).getTime();
 }
 
-type TableStats = { created: number; updated: number; skipped: number };
+function emptyStats(): TableStats {
+  return { created: 0, updated: 0, skipped: 0 };
+}
 
 async function mergeTable<T extends { id: string; updatedAt?: string }>(
-  tableName: string,
+  tableName: MergeTableName,
   incoming: T[],
   strategy: MergeStrategy,
   keyField: keyof T = 'id'
 ): Promise<TableStats> {
-  const stats: TableStats = { created: 0, updated: 0, skipped: 0 };
+  const stats = emptyStats();
   const table = db.table(tableName);
 
   for (const item of incoming) {
@@ -205,7 +261,7 @@ async function importCharacters(
   characters: Character[],
   strategy: MergeStrategy
 ): Promise<TableStats> {
-  const stats: TableStats = { created: 0, updated: 0, skipped: 0 };
+  const stats = emptyStats();
 
   for (const char of characters) {
     const existing = await db.characters.get(char.id);
@@ -270,6 +326,41 @@ async function importWishRecords(wishRecords: WishRecord[]): Promise<{ created: 
   return stats;
 }
 
+async function importAppMeta(entries: AppMeta[]): Promise<number> {
+  let restored = 0;
+  for (const entry of entries) {
+    if (!APP_META_RESTORE_WHITELIST.includes(entry.key)) continue;
+    await db.appMeta.put({ key: entry.key, value: entry.value });
+    restored++;
+  }
+  return restored;
+}
+
+/**
+ * Inventory tables represent a point-in-time snapshot, not individually
+ * authored records, so the merge strategy does not apply: whenever the
+ * backup includes the table (even empty), replace local data wholesale.
+ * A backup that omits the table entirely leaves local data untouched,
+ * with a warning so stale inventories can't linger silently.
+ */
+async function importSnapshotTable<T>(
+  table: { clear(): Promise<void>; bulkPut(items: T[]): Promise<unknown>; count(): Promise<number> },
+  incoming: T[] | undefined,
+  missingWarning: string,
+  warnings: string[]
+): Promise<TableStats | null> {
+  if (incoming) {
+    await table.clear();
+    await table.bulkPut(incoming);
+    return { created: incoming.length, updated: 0, skipped: 0 };
+  }
+
+  if ((await table.count()) > 0) {
+    warnings.push(missingWarning);
+  }
+  return null;
+}
+
 // ----- MAIN IMPORT FUNCTION -----
 
 export async function importBackup(
@@ -280,167 +371,131 @@ export async function importBackup(
   const result: ImportResult = {
     success: true,
     stats: {
-      characters: { created: 0, updated: 0, skipped: 0 },
-      teams: { created: 0, updated: 0, skipped: 0 },
+      characters: emptyStats(),
+      teams: emptyStats(),
       wishRecords: { created: 0, skipped: 0 },
-      primogemEntries: { created: 0, updated: 0, skipped: 0 },
-      fateEntries: { created: 0, updated: 0, skipped: 0 },
-      resourceSnapshots: { created: 0, updated: 0, skipped: 0 },
-      goals: { created: 0, updated: 0, skipped: 0 },
-      notes: { created: 0, updated: 0, skipped: 0 },
-      plannedBanners: { created: 0, updated: 0, skipped: 0 },
-      calculatorScenarios: { created: 0, updated: 0, skipped: 0 },
-      inventoryArtifacts: { created: 0, updated: 0, skipped: 0 },
-      inventoryWeapons: { created: 0, updated: 0, skipped: 0 },
-      materialInventory: { created: 0, updated: 0, skipped: 0 },
-      campaigns: { created: 0, updated: 0, skipped: 0 },
+      primogemEntries: emptyStats(),
+      fateEntries: emptyStats(),
+      resourceSnapshots: emptyStats(),
+      goals: emptyStats(),
+      notes: emptyStats(),
+      plannedBanners: emptyStats(),
+      calculatorScenarios: emptyStats(),
+      inventoryArtifacts: emptyStats(),
+      inventoryWeapons: emptyStats(),
+      materialInventory: emptyStats(),
+      importRecords: emptyStats(),
+      buildTemplates: emptyStats(),
+      campaigns: emptyStats(),
     },
     warnings: [],
     errors: [],
   };
 
+  // Validate the whole file before touching the database.
+  const validation = validateBackup(backup);
+  result.warnings.push(...validation.warnings);
+  if (!validation.valid) {
+    result.success = false;
+    result.errors.push(...validation.errors);
+    return result;
+  }
+
   const { data } = backup;
-  const stages = [
-    'characters',
-    'teams',
-    'wishRecords',
-    'primogemEntries',
-    'fateEntries',
-    'resourceSnapshots',
-    'goals',
-    'notes',
-    'plannedBanners',
-    'calculatorScenarios',
-    'inventoryArtifacts',
-    'inventoryWeapons',
-    'materialInventory',
-    'campaigns',
+
+  type MergeStage = { table: MergeTableName; label: string };
+  const mergeStages: MergeStage[] = [
+    { table: 'teams', label: 'Importing teams...' },
+    { table: 'primogemEntries', label: 'Importing primogem entries...' },
+    { table: 'fateEntries', label: 'Importing fate entries...' },
+    { table: 'resourceSnapshots', label: 'Importing resource snapshots...' },
+    { table: 'goals', label: 'Importing goals...' },
+    { table: 'notes', label: 'Importing notes...' },
+    { table: 'plannedBanners', label: 'Importing planned banners...' },
+    { table: 'calculatorScenarios', label: 'Importing calculator scenarios...' },
+    { table: 'importRecords', label: 'Importing import history...' },
+    { table: 'buildTemplates', label: 'Importing build templates...' },
+    { table: 'campaigns', label: 'Importing targets...' },
   ];
+
+  // characters + wishRecords + merge tables + 3 inventory tables + appMeta
+  const totalStages = 2 + mergeStages.length + 3 + 1;
   let stageIndex = 0;
+  const report = (label: string) => onProgress?.(label, (stageIndex / totalStages) * 100);
 
   try {
     // Use transaction for atomicity
     await db.transaction('rw', db.tables, async () => {
+      // "Replace All": drop local rows for every table the backup includes so
+      // rows that exist only locally do not survive the restore. Tables the
+      // backup omits entirely are left alone.
+      if (strategy === 'replace') {
+        for (const tableName of REPLACE_CLEARABLE_TABLES) {
+          if (Array.isArray(data[tableName])) {
+            await db.table(tableName).clear();
+          }
+        }
+      }
+
       // Characters (special handling)
       if (data.characters?.length) {
-        onProgress?.('Importing characters...', (stageIndex / stages.length) * 100);
+        report('Importing characters...');
         result.stats.characters = await importCharacters(data.characters, strategy);
-      }
-      stageIndex++;
-
-      // Teams
-      if (data.teams?.length) {
-        onProgress?.('Importing teams...', (stageIndex / stages.length) * 100);
-        result.stats.teams = await mergeTable('teams', data.teams, strategy);
       }
       stageIndex++;
 
       // Wish Records (dedup by gachaId, no merge strategy)
       if (data.wishRecords?.length) {
-        onProgress?.('Importing wish records...', (stageIndex / stages.length) * 100);
+        report('Importing wish records...');
         result.stats.wishRecords = await importWishRecords(data.wishRecords);
       }
       stageIndex++;
 
-      // Primogem Entries
-      if (data.primogemEntries?.length) {
-        onProgress?.('Importing primogem entries...', (stageIndex / stages.length) * 100);
-        result.stats.primogemEntries = await mergeTable('primogemEntries', data.primogemEntries, strategy);
+      for (const stage of mergeStages) {
+        const rows = data[stage.table] as Array<{ id: string; updatedAt?: string }> | undefined;
+        if (rows?.length) {
+          report(stage.label);
+          result.stats[stage.table] = await mergeTable(stage.table, rows, strategy);
+        }
+        stageIndex++;
       }
+
+      report('Importing inventory artifacts...');
+      const artifactStats = await importSnapshotTable(
+        db.inventoryArtifacts,
+        data.inventoryArtifacts,
+        'Backup did not include artifact inventory - existing local artifacts were kept and may be stale.',
+        result.warnings
+      );
+      if (artifactStats) result.stats.inventoryArtifacts = artifactStats;
       stageIndex++;
 
-      // Fate Entries
-      if (data.fateEntries?.length) {
-        onProgress?.('Importing fate entries...', (stageIndex / stages.length) * 100);
-        result.stats.fateEntries = await mergeTable('fateEntries', data.fateEntries, strategy);
-      }
+      report('Importing inventory weapons...');
+      const weaponStats = await importSnapshotTable(
+        db.inventoryWeapons,
+        data.inventoryWeapons,
+        'Backup did not include weapon inventory - existing local weapons were kept and may be stale.',
+        result.warnings
+      );
+      if (weaponStats) result.stats.inventoryWeapons = weaponStats;
       stageIndex++;
 
-      // Resource Snapshots
-      if (data.resourceSnapshots?.length) {
-        onProgress?.('Importing resource snapshots...', (stageIndex / stages.length) * 100);
-        result.stats.resourceSnapshots = await mergeTable('resourceSnapshots', data.resourceSnapshots, strategy);
-      }
+      report('Importing material inventory...');
+      const materialStats = await importSnapshotTable(
+        db.materialInventory,
+        data.materialInventory,
+        'Backup did not include material inventory - existing local materials were kept and may be stale.',
+        result.warnings
+      );
+      if (materialStats) result.stats.materialInventory = materialStats;
       stageIndex++;
 
-      // Goals
-      if (data.goals?.length) {
-        onProgress?.('Importing goals...', (stageIndex / stages.length) * 100);
-        result.stats.goals = await mergeTable('goals', data.goals, strategy);
+      // App metadata: whitelisted keys only, regardless of strategy
+      if (data.appMeta?.length) {
+        report('Importing metadata...');
+        await importAppMeta(data.appMeta);
       }
       stageIndex++;
-
-      // Notes
-      if (data.notes?.length) {
-        onProgress?.('Importing notes...', (stageIndex / stages.length) * 100);
-        result.stats.notes = await mergeTable('notes', data.notes, strategy);
-      }
-      stageIndex++;
-
-      // Planned Banners
-      if (data.plannedBanners?.length) {
-        onProgress?.('Importing planned banners...', (stageIndex / stages.length) * 100);
-        result.stats.plannedBanners = await mergeTable('plannedBanners', data.plannedBanners, strategy);
-      }
-      stageIndex++;
-
-      // Calculator Scenarios
-      if (data.calculatorScenarios?.length) {
-        onProgress?.('Importing calculator scenarios...', (stageIndex / stages.length) * 100);
-        result.stats.calculatorScenarios = await mergeTable('calculatorScenarios', data.calculatorScenarios, strategy);
-      }
-      stageIndex++;
-
-      // Inventory tables represent a point-in-time snapshot, not individually
-      // authored records, so the merge strategy does not apply: whenever the
-      // backup includes the table (even empty), replace local data wholesale.
-      // A backup that omits the table entirely leaves local data untouched,
-      // with a warning so stale inventories can't linger silently.
-
-      // Inventory Artifacts
-      if (data.inventoryArtifacts) {
-        onProgress?.('Importing inventory artifacts...', (stageIndex / stages.length) * 100);
-        await db.inventoryArtifacts.clear();
-        await db.inventoryArtifacts.bulkPut(data.inventoryArtifacts);
-        result.stats.inventoryArtifacts = { created: data.inventoryArtifacts.length, updated: 0, skipped: 0 };
-      } else if (await db.inventoryArtifacts.count() > 0) {
-        result.warnings.push(
-          'Backup did not include artifact inventory - existing local artifacts were kept and may be stale.'
-        );
-      }
-      stageIndex++;
-
-      // Inventory Weapons
-      if (data.inventoryWeapons) {
-        onProgress?.('Importing inventory weapons...', (stageIndex / stages.length) * 100);
-        await db.inventoryWeapons.clear();
-        await db.inventoryWeapons.bulkPut(data.inventoryWeapons);
-        result.stats.inventoryWeapons = { created: data.inventoryWeapons.length, updated: 0, skipped: 0 };
-      } else if (await db.inventoryWeapons.count() > 0) {
-        result.warnings.push(
-          'Backup did not include weapon inventory - existing local weapons were kept and may be stale.'
-        );
-      }
-      stageIndex++;
-
-      // Material Inventory
-      if (data.materialInventory) {
-        onProgress?.('Importing material inventory...', (stageIndex / stages.length) * 100);
-        await db.materialInventory.clear();
-        await db.materialInventory.bulkPut(data.materialInventory);
-        result.stats.materialInventory = { created: data.materialInventory.length, updated: 0, skipped: 0 };
-      } else if (await db.materialInventory.count() > 0) {
-        result.warnings.push(
-          'Backup did not include material inventory - existing local materials were kept and may be stale.'
-        );
-      }
-      stageIndex++;
-
-      // Campaigns
-      if (data.campaigns?.length) {
-        onProgress?.('Importing targets...', (stageIndex / stages.length) * 100);
-        result.stats.campaigns = await mergeTable('campaigns', data.campaigns, strategy);
-      }
     });
 
     onProgress?.('Complete', 100);
@@ -461,10 +516,23 @@ export async function importPartial(
   tables: ImportableTable[],
   strategy: MergeStrategy
 ): Promise<Partial<ImportResult['stats']>> {
+  const validation = validateBackup(backup);
+  if (!validation.valid) {
+    throw new Error(`Backup failed validation: ${validation.errors.join('; ')}`);
+  }
+
   const stats: Partial<ImportResult['stats']> = {};
   const { data } = backup;
 
   await db.transaction('rw', db.tables, async () => {
+    if (strategy === 'replace') {
+      for (const tableName of tables) {
+        if (Array.isArray(data[tableName])) {
+          await db.table(tableName).clear();
+        }
+      }
+    }
+
     if (tables.includes('characters') && data.characters?.length) {
       stats.characters = await importCharacters(data.characters, strategy);
     }

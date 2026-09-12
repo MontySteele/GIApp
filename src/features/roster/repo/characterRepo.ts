@@ -1,5 +1,5 @@
 import { db } from '@/db/schema';
-import type { Character } from '@/types';
+import type { Character, Team } from '@/types';
 import { getAvatarIdFromKey } from '@/lib/characterData';
 
 export const characterRepo = {
@@ -39,7 +39,31 @@ export const characterRepo = {
   },
 
   async delete(id: string): Promise<void> {
-    await db.characters.delete(id);
+    await db.transaction('rw', db.characters, db.teams, async () => {
+      const character = await db.characters.get(id);
+      await db.characters.delete(id);
+      if (!character) return;
+
+      // Keep Team.characterKeys consistent. Keys are shared by duplicates of
+      // the same character, so only detach when no other copy remains.
+      const remaining = await db.characters.where('key').equals(character.key).count();
+      if (remaining > 0) return;
+
+      const updatedAt = new Date().toISOString();
+      const teams = await db.teams.filter((team) => team.characterKeys.includes(character.key)).toArray();
+      for (const team of teams) {
+        const updates: Partial<Team> = {
+          characterKeys: team.characterKeys.filter((key) => key !== character.key),
+          updatedAt,
+        };
+        if (team.memberBuildTemplates && character.key in team.memberBuildTemplates) {
+          updates.memberBuildTemplates = Object.fromEntries(
+            Object.entries(team.memberBuildTemplates).filter(([key]) => key !== character.key)
+          );
+        }
+        await db.teams.update(team.id, updates);
+      }
+    });
   },
 
   async addTeamToCharacters(teamId: string, characterKeys: string[], updatedAt = new Date().toISOString()): Promise<void> {
@@ -95,38 +119,42 @@ export const characterRepo = {
   async bulkUpsert(
     characters: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>[]
   ): Promise<{ created: number; updated: number }> {
-    const now = new Date().toISOString();
-    let created = 0;
-    let updated = 0;
+    // One transaction so a concurrent import cannot slip between the
+    // key lookup and the add and create a duplicate character.
+    return db.transaction('rw', db.characters, async () => {
+      const now = new Date().toISOString();
+      let created = 0;
+      let updated = 0;
 
-    for (const char of characters) {
-      const existing = await db.characters.where('key').equals(char.key).first();
+      for (const char of characters) {
+        const existing = await db.characters.where('key').equals(char.key).first();
 
-      if (existing) {
-        // Update existing character, preserving teamIds and other user data
-        const avatarId = char.avatarId ?? existing.avatarId ?? getAvatarIdFromKey(char.key);
-        await db.characters.update(existing.id, {
-          ...char,
-          ...(avatarId !== undefined ? { avatarId } : {}),
-          teamIds: existing.teamIds, // Preserve team associations
-          updatedAt: now,
-        });
-        updated++;
-      } else {
-        // Create new character
-        const avatarId = char.avatarId ?? getAvatarIdFromKey(char.key);
-        await db.characters.add({
-          ...char,
-          ...(avatarId !== undefined ? { avatarId } : {}),
-          id: crypto.randomUUID(),
-          createdAt: now,
-          updatedAt: now,
-        });
-        created++;
+        if (existing) {
+          // Update existing character, preserving teamIds and other user data
+          const avatarId = char.avatarId ?? existing.avatarId ?? getAvatarIdFromKey(char.key);
+          await db.characters.update(existing.id, {
+            ...char,
+            ...(avatarId !== undefined ? { avatarId } : {}),
+            teamIds: existing.teamIds, // Preserve team associations
+            updatedAt: now,
+          });
+          updated++;
+        } else {
+          // Create new character
+          const avatarId = char.avatarId ?? getAvatarIdFromKey(char.key);
+          await db.characters.add({
+            ...char,
+            ...(avatarId !== undefined ? { avatarId } : {}),
+            id: crypto.randomUUID(),
+            createdAt: now,
+            updatedAt: now,
+          });
+          created++;
+        }
       }
-    }
 
-    return { created, updated };
+      return { created, updated };
+    });
   },
 
   async getByPriority(priority: Character['priority']): Promise<Character[]> {

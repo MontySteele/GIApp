@@ -304,7 +304,10 @@ export default function ImportBackup({ onImportComplete }: ImportBackupProps) {
 
           <div className="text-xs text-slate-500 space-y-1">
             <p><strong>Newer Wins:</strong> Compares timestamps and keeps the more recent version.</p>
-            <p><strong>Replace All:</strong> Overwrites existing data with imported data.</p>
+            <p>
+              <strong>Replace All:</strong> Every table present in the backup replaces the local
+              table entirely, so local records missing from the backup are removed.
+            </p>
             <p><strong>Keep Local:</strong> Only imports new records, never updates existing ones.</p>
             <p>
               Artifact, weapon, and material inventories are point-in-time snapshots:

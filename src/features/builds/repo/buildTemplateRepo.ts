@@ -26,7 +26,9 @@ export const buildTemplateRepo = {
   async getFiltered(filters: BuildTemplateFilters): Promise<BuildTemplate[]> {
     let collection = db.buildTemplates.toCollection();
 
-    // Apply indexed filters first for better performance
+    // Narrow with one indexed string filter first, then apply the rest in
+    // memory. `isOfficial` is a boolean and IndexedDB cannot index booleans,
+    // so it is never used as the indexed filter.
     if (filters.characterKey) {
       collection = db.buildTemplates.where('characterKey').equals(filters.characterKey);
     } else if (filters.role) {
@@ -35,24 +37,20 @@ export const buildTemplateRepo = {
       collection = db.buildTemplates.where('difficulty').equals(filters.difficulty);
     } else if (filters.budget) {
       collection = db.buildTemplates.where('budget').equals(filters.budget);
-    } else if (filters.isOfficial !== undefined) {
-      collection = db.buildTemplates.where('isOfficial').equals(filters.isOfficial ? 1 : 0);
     }
 
-    // Get results and filter in memory for remaining criteria
     let results = await collection.toArray();
 
-    // Apply non-primary filters in memory
-    if (filters.characterKey && filters.role) {
+    if (filters.role) {
       results = results.filter((t) => t.role === filters.role);
     }
-    if (filters.difficulty && filters.characterKey) {
+    if (filters.difficulty) {
       results = results.filter((t) => t.difficulty === filters.difficulty);
     }
-    if (filters.budget && filters.characterKey) {
+    if (filters.budget) {
       results = results.filter((t) => t.budget === filters.budget);
     }
-    if (filters.isOfficial !== undefined && filters.characterKey) {
+    if (filters.isOfficial !== undefined) {
       results = results.filter((t) => t.isOfficial === filters.isOfficial);
     }
     if (filters.tags && filters.tags.length > 0) {
@@ -114,10 +112,12 @@ export const buildTemplateRepo = {
   },
 
   /**
-   * Get all official (community-verified) builds
+   * Get all official (community-verified) builds.
+   * Filtered in memory: IndexedDB does not index boolean values, so the
+   * `isOfficial` index can never match.
    */
   async getOfficialBuilds(): Promise<BuildTemplate[]> {
-    return db.buildTemplates.where('isOfficial').equals(1).toArray();
+    return db.buildTemplates.filter((t) => t.isOfficial === true).toArray();
   },
 
   /**

@@ -2,6 +2,9 @@ import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION, BACKUP_REMINDER_DAYS } from '@/lib/constants';
 import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
 
+/** Tables that are never included in a backup export. */
+export const EXPORT_EXCLUDED_TABLES: ReadonlySet<string> = new Set(['externalCache']);
+
 export interface AppMetaStatus {
   createdAt?: string;
   lastBackupAt?: string;
@@ -104,6 +107,9 @@ export const appMetaService = {
     const payload: Record<string, unknown> = {};
 
     for (const table of db.tables) {
+      // externalCache is a transient API response cache: never restored and
+      // can dominate backup size, so it is left out of the export.
+      if (EXPORT_EXCLUDED_TABLES.has(table.name)) continue;
       payload[table.name] = await table.toArray();
     }
 

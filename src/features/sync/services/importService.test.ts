@@ -1,8 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION } from '@/lib/constants';
-import { validateBackup, importBackup, type BackupData } from './importService';
-import type { InventoryArtifact, InventoryWeapon, MaterialInventory, Character } from '@/types';
+import { validateBackup, importBackup, APP_META_RESTORE_WHITELIST, type BackupData } from './importService';
+import { appMetaService } from './appMetaService';
+import type {
+  InventoryArtifact,
+  InventoryWeapon,
+  MaterialInventory,
+  Character,
+  Team,
+  WishRecord,
+  BuildTemplate,
+  ImportRecord,
+  Note,
+} from '@/types';
 
 // ----- Helpers -----
 
@@ -271,7 +282,9 @@ describe('importService', () => {
       const updated = makeCharacter({ id: 'c1', key: 'Furina', level: 90 });
       const result = await importBackup(makeBackup({ characters: [updated] }), 'replace');
 
-      expect(result.stats.characters.updated).toBe(1);
+      // Replace All clears the table first, so the incoming row is a create
+      expect(result.stats.characters.created).toBe(1);
+      expect(await db.characters.count()).toBe(1);
       const stored = await db.characters.get('c1');
       expect(stored?.level).toBe(90);
     });
@@ -311,8 +324,13 @@ describe('importService', () => {
     it('deduplicates by character key when IDs differ', async () => {
       await db.characters.put(makeCharacter({ id: 'local-id', key: 'Furina', level: 80 }));
 
-      const incoming = makeCharacter({ id: 'remote-id', key: 'Furina', level: 90 });
-      const result = await importBackup(makeBackup({ characters: [incoming] }), 'replace');
+      const incoming = makeCharacter({
+        id: 'remote-id',
+        key: 'Furina',
+        level: 90,
+        updatedAt: '2026-03-02T00:00:00.000Z',
+      });
+      const result = await importBackup(makeBackup({ characters: [incoming] }), 'newer_wins');
 
       expect(result.stats.characters.updated).toBe(1);
       // Should keep the local ID
@@ -324,8 +342,13 @@ describe('importService', () => {
     it('merges teamIds when updating characters', async () => {
       await db.characters.put(makeCharacter({ id: 'c1', key: 'Furina', teamIds: ['team-a'] }));
 
-      const incoming = makeCharacter({ id: 'c1', key: 'Furina', teamIds: ['team-b'] });
-      const result = await importBackup(makeBackup({ characters: [incoming] }), 'replace');
+      const incoming = makeCharacter({
+        id: 'c1',
+        key: 'Furina',
+        teamIds: ['team-b'],
+        updatedAt: '2026-03-02T00:00:00.000Z',
+      });
+      const result = await importBackup(makeBackup({ characters: [incoming] }), 'newer_wins');
 
       expect(result.stats.characters.updated).toBe(1);
       const stored = await db.characters.get('c1');
@@ -361,6 +384,267 @@ describe('importService', () => {
 
       expect(stages).toContain('Importing inventory artifacts...');
       expect(stages).toContain('Complete');
+    });
+  });
+
+  // ===== Backup round-trip, validation, replace-all =====
+
+  describe('backup round-trip', () => {
+    const makeTeam = (overrides: Partial<Team> = {}): Team => ({
+      id: 'team-1',
+      name: 'Hyperbloom',
+      characterKeys: ['Furina', 'Nahida'],
+      rotationNotes: '',
+      tags: [],
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    });
+
+    const makeWish = (overrides: Partial<WishRecord> = {}): WishRecord => ({
+      id: 'wish-1',
+      gachaId: 'g-1',
+      bannerType: 'character',
+      bannerVersion: '5.3-phase1',
+      timestamp: now,
+      itemType: 'character',
+      itemKey: 'Furina',
+      rarity: 5,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    });
+
+    const makeNote = (overrides: Partial<Note> = {}): Note => ({
+      id: 'note-1',
+      title: 'Rotation',
+      content: 'E Q swap',
+      tags: [],
+      pinned: false,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    });
+
+    const makeBuildTemplate = (overrides: Partial<BuildTemplate> = {}): BuildTemplate => ({
+      id: 'bt-1',
+      name: 'Furina Sub-DPS',
+      characterKey: 'Furina',
+      description: '',
+      role: 'sub-dps',
+      notes: '',
+      weapons: { primary: ['SplendorOfTranquilWaters'], alternatives: [] },
+      artifacts: {
+        sets: [[{ setKey: 'GoldenTroupe', pieces: 4 }]],
+        mainStats: { sands: ['hp_'], goblet: ['hp_'], circlet: ['critRate_'] },
+        substats: ['critRate_'],
+      },
+      leveling: { targetLevel: 90, targetAscension: 6, talentPriority: ['skill', 'burst', 'auto'] },
+      tags: [],
+      difficulty: 'intermediate',
+      budget: 'mixed',
+      isOfficial: false,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    });
+
+    const makeImportRecord = (overrides: Partial<ImportRecord> = {}): ImportRecord => ({
+      id: 'imp-1',
+      source: 'Irminsul',
+      importedAt: now,
+      characterCount: 1,
+      artifactCount: 1,
+      weaponCount: 1,
+      materialCount: 1,
+      ...overrides,
+    });
+
+    async function seedEveryTable() {
+      await db.characters.put(makeCharacter({ id: 'char-1' }));
+      await db.teams.put(makeTeam());
+      await db.wishRecords.put(makeWish());
+      await db.primogemEntries.put({
+        id: 'pg-1', timestamp: now, amount: 60, source: 'daily_commission', notes: '', createdAt: now, updatedAt: now,
+      });
+      await db.fateEntries.put({
+        id: 'fate-1', timestamp: now, amount: 1, fateType: 'intertwined', source: 'paimon_shop', createdAt: now, updatedAt: now,
+      });
+      await db.resourceSnapshots.put({
+        id: 'snap-1', timestamp: now, primogems: 1600, genesisCrystals: 0, intertwined: 10, acquaint: 0, starglitter: 0, stardust: 0, createdAt: now,
+      });
+      await db.goals.put({
+        id: 'goal-1', title: 'C2 Furina', description: '', category: 'pull', status: 'active', checklist: [], createdAt: now, updatedAt: now,
+      });
+      await db.notes.put(makeNote());
+      await db.plannedBanners.put({
+        id: 'pb-1', characterKey: 'Furina', expectedStartDate: now, expectedEndDate: now, priority: 1, maxPullBudget: null, isConfirmed: true, notes: '', createdAt: now, updatedAt: now,
+      });
+      await db.calculatorScenarios.put({
+        id: 'calc-1', name: 'Scenario', targets: [], availablePulls: 90, iterations: 1000, createdAt: now, updatedAt: now,
+      });
+      await db.inventoryArtifacts.put(makeArtifact({ id: 'art-1' }));
+      await db.inventoryWeapons.put(makeWeapon({ id: 'wpn-1' }));
+      await db.materialInventory.put({ id: 'materials', materials: { Mora: 1000 }, updatedAt: now });
+      await db.importRecords.put(makeImportRecord());
+      await db.buildTemplates.put(makeBuildTemplate());
+      await db.campaigns.put({
+        id: 'camp-1', type: 'character-acquisition', name: 'Get Furina', status: 'active', priority: 1, pullTargets: [], characterTargets: [], notes: '', createdAt: now, updatedAt: now,
+      });
+      await db.appMeta.put({ key: APP_META_RESTORE_WHITELIST[0], value: now });
+      await db.externalCache.put({ id: 'cache-1', cacheKey: 'enka:1', data: { big: true }, fetchedAt: now, expiresAt: now });
+    }
+
+    async function snapshotTables(names: string[]) {
+      const out: Record<string, unknown[]> = {};
+      for (const name of names) {
+        out[name] = (await db.table(name).toArray()).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+      }
+      return out;
+    }
+
+    const RESTORED_TABLES = [
+      'characters', 'teams', 'wishRecords', 'primogemEntries', 'fateEntries', 'resourceSnapshots',
+      'goals', 'notes', 'plannedBanners', 'calculatorScenarios', 'inventoryArtifacts', 'inventoryWeapons',
+      'materialInventory', 'importRecords', 'buildTemplates', 'campaigns',
+    ];
+
+    it('export omits externalCache but keeps appMeta', async () => {
+      await seedEveryTable();
+      const backup = await appMetaService.exportBackup();
+
+      expect(backup.data).not.toHaveProperty('externalCache');
+      expect(backup.data).toHaveProperty('appMeta');
+      expect(backup.data).toHaveProperty('buildTemplates');
+      expect(validateBackup(backup).valid).toBe(true);
+    });
+
+    it('export -> import preserves every table, including build templates and import records', async () => {
+      await seedEveryTable();
+      const before = await snapshotTables(RESTORED_TABLES);
+      const backup = await appMetaService.exportBackup();
+
+      await Promise.all(db.tables.map((t) => t.clear()));
+
+      const result = await importBackup(backup as BackupData, 'newer_wins');
+      expect(result.errors).toEqual([]);
+      expect(result.success).toBe(true);
+      expect(result.stats.buildTemplates.created).toBe(1);
+      expect(result.stats.importRecords.created).toBe(1);
+
+      const after = await snapshotTables(RESTORED_TABLES);
+      expect(after).toEqual(before);
+    });
+
+    it('rejects a backup with a malformed wish row and writes nothing', async () => {
+      const backup = makeBackup({
+        characters: [makeCharacter({ id: 'char-ok' })],
+        wishRecords: [
+          makeWish({ id: 'wish-ok' }),
+          makeWish({ id: 'wish-bad', gachaId: 'g-2', bannerType: 'bogus' as WishRecord['bannerType'] }),
+          { ...makeWish({ gachaId: 'g-3' }), id: undefined } as unknown as WishRecord,
+        ],
+      });
+
+      const validation = validateBackup(backup);
+      expect(validation.valid).toBe(false);
+      expect(validation.errors).toHaveLength(1);
+      expect(validation.errors[0]).toMatch(/^wishRecords: 2 invalid rows/);
+      expect(validation.errors[0]).toContain('[1] bannerType');
+      expect(validation.errors[0]).toContain('[2] id');
+
+      const result = await importBackup(backup, 'replace');
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual(validation.errors);
+      expect(await db.characters.count()).toBe(0);
+      expect(await db.wishRecords.count()).toBe(0);
+    });
+
+    it('lists errors per table when several tables are malformed', () => {
+      const backup = makeBackup({
+        notes: [{ id: 'n', title: 'x' } as unknown as Note],
+        teams: [makeTeam({ characterKeys: 'Furina' as unknown as string[] })],
+      });
+
+      const validation = validateBackup(backup);
+      expect(validation.valid).toBe(false);
+      expect(validation.errors.map((e) => e.split(':')[0]).sort()).toEqual(['notes', 'teams']);
+    });
+
+    it('Replace All removes local rows that are absent from the backup', async () => {
+      await db.notes.put(makeNote({ id: 'note-local-only' }));
+      await db.notes.put(makeNote({ id: 'note-shared', title: 'old' }));
+      await db.wishRecords.put(makeWish({ id: 'wish-local-only', gachaId: 'g-local' }));
+      await db.buildTemplates.put(makeBuildTemplate({ id: 'bt-local-only' }));
+      // goals is not in the backup at all: must be left untouched
+      await db.goals.put({
+        id: 'goal-keep', title: 'keep', description: '', category: 'other', status: 'active', checklist: [], createdAt: now, updatedAt: now,
+      });
+
+      const result = await importBackup(
+        makeBackup({
+          notes: [makeNote({ id: 'note-shared', title: 'new' }), makeNote({ id: 'note-incoming' })],
+          wishRecords: [makeWish({ id: 'wish-incoming', gachaId: 'g-in' })],
+          buildTemplates: [],
+        }),
+        'replace'
+      );
+
+      expect(result.success).toBe(true);
+      expect((await db.notes.toArray()).map((n) => n.id).sort()).toEqual(['note-incoming', 'note-shared']);
+      expect((await db.notes.get('note-shared'))?.title).toBe('new');
+      expect((await db.wishRecords.toArray()).map((w) => w.id)).toEqual(['wish-incoming']);
+      expect(await db.buildTemplates.count()).toBe(0);
+      expect(await db.goals.count()).toBe(1);
+    });
+
+    it('newer_wins keeps local-only rows', async () => {
+      await db.notes.put(makeNote({ id: 'note-local-only' }));
+
+      await importBackup(makeBackup({ notes: [makeNote({ id: 'note-incoming' })] }), 'newer_wins');
+
+      expect((await db.notes.toArray()).map((n) => n.id).sort()).toEqual(['note-incoming', 'note-local-only']);
+    });
+
+    it('restores only whitelisted appMeta keys and never schemaVersion', async () => {
+      await db.appMeta.put({ key: 'schemaVersion', value: APP_SCHEMA_VERSION });
+      await db.appMeta.put({ key: 'deviceId', value: 'local-device' });
+
+      const result = await importBackup(
+        makeBackup({
+          appMeta: [
+            { key: 'schemaVersion', value: 1 },
+            { key: 'deviceId', value: 'other-device' },
+            { key: 'createdAt', value: '2020-01-01T00:00:00.000Z' },
+            { key: 'lastBackupAt', value: '2020-01-01T00:00:00.000Z' },
+            { key: APP_META_RESTORE_WHITELIST[0], value: '2026-02-01T00:00:00.000Z' },
+          ],
+        }),
+        'replace'
+      );
+
+      expect(result.success).toBe(true);
+      expect((await db.appMeta.get('schemaVersion'))?.value).toBe(APP_SCHEMA_VERSION);
+      expect((await db.appMeta.get('deviceId'))?.value).toBe('local-device');
+      expect(await db.appMeta.get('createdAt')).toBeUndefined();
+      expect(await db.appMeta.get('lastBackupAt')).toBeUndefined();
+      expect((await db.appMeta.get(APP_META_RESTORE_WHITELIST[0]))?.value).toBe('2026-02-01T00:00:00.000Z');
+    });
+
+    it('tolerates abyssRuns and legacy externalCache in the payload without restoring them', async () => {
+      const backup = makeBackup({
+        abyssRuns: [{ id: 'run-1', cycleStart: now, floor: 12, chamber: 1, stars: 9, firstHalfTeam: [], secondHalfTeam: [], notes: '', createdAt: now, updatedAt: now }],
+      });
+      (backup.data as Record<string, unknown>).externalCache = [{ id: 'c', cacheKey: 'k' }];
+
+      const validation = validateBackup(backup);
+      expect(validation.valid).toBe(true);
+      expect(validation.warnings.some((w) => w.includes('abyssRuns'))).toBe(true);
+
+      const result = await importBackup(backup, 'replace');
+      expect(result.success).toBe(true);
+      expect(await db.abyssRuns.count()).toBe(0);
+      expect(await db.externalCache.count()).toBe(0);
     });
   });
 });

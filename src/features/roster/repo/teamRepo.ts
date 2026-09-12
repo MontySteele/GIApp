@@ -30,15 +30,17 @@ export const teamRepo = {
   },
 
   async update(id: string, updates: Partial<Omit<Team, 'id' | 'createdAt'>>): Promise<void> {
-    const existing = await db.teams.get(id);
-    if (!existing) return;
-
-    const updatedAt = new Date().toISOString();
-    const nextCharacterKeys = updates.characterKeys ?? existing.characterKeys;
-    const addedKeys = nextCharacterKeys.filter((key) => !existing.characterKeys.includes(key));
-    const removedKeys = existing.characterKeys.filter((key) => !nextCharacterKeys.includes(key));
-
     await db.transaction('rw', db.teams, db.characters, async () => {
+      // Read inside the transaction so the added/removed diff is computed
+      // against the row we are about to overwrite.
+      const existing = await db.teams.get(id);
+      if (!existing) return;
+
+      const updatedAt = new Date().toISOString();
+      const nextCharacterKeys = updates.characterKeys ?? existing.characterKeys;
+      const addedKeys = nextCharacterKeys.filter((key) => !existing.characterKeys.includes(key));
+      const removedKeys = existing.characterKeys.filter((key) => !nextCharacterKeys.includes(key));
+
       await db.teams.update(id, {
         ...updates,
         updatedAt,
@@ -55,10 +57,10 @@ export const teamRepo = {
   },
 
   async delete(id: string): Promise<void> {
-    const existing = await db.teams.get(id);
-    const updatedAt = new Date().toISOString();
-
     await db.transaction('rw', db.teams, db.characters, async () => {
+      const existing = await db.teams.get(id);
+      const updatedAt = new Date().toISOString();
+
       await db.teams.delete(id);
 
       if (existing) {

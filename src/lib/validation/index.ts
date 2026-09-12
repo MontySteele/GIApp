@@ -34,3 +34,10 @@ export {
   TALENT_TYPES,
   type BuildTemplateFormData,
 } from './buildTemplateSchema';
+
+// Backup validation (one schema per exported table)
+export {
+  BACKUP_TABLE_SCHEMAS,
+  validateBackupTables,
+  type BackupTableName,
+} from './backupSchema';

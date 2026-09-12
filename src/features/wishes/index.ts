@@ -55,15 +55,6 @@ export {
 
 // Lib
 export { toWishRecord, toWishHistoryItem, normalizeWishTimestamp } from './lib/wishNormalization';
-export {
-  loadWishSession,
-  saveWishSession,
-  clearWishSession,
-  isWishSessionExpired,
-  getWishSessionExpiry,
-  WISH_AUTH_SESSION_KEY,
-  type WishAuthSession,
-} from './lib/wishSession';
 
 // Utils
 export {

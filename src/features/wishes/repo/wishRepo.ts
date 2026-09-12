@@ -22,28 +22,32 @@ export const wishRepo = {
   },
 
   async create(wish: NewWishRecord): Promise<string> {
-    const existing = await db.wishRecords.where('gachaId').equals(wish.gachaId).first();
-    const now = new Date().toISOString();
+    // Read-modify-write inside one transaction so two concurrent imports of
+    // the same gachaId cannot both miss the lookup and insert duplicates.
+    return db.transaction('rw', db.wishRecords, async () => {
+      const existing = await db.wishRecords.where('gachaId').equals(wish.gachaId).first();
+      const now = new Date().toISOString();
 
-    if (existing) {
-      await db.wishRecords.update(existing.id, {
+      if (existing) {
+        await db.wishRecords.update(existing.id, {
+          ...wish,
+          updatedAt: now,
+        });
+
+        return existing.id;
+      }
+
+      const id = crypto.randomUUID();
+
+      await db.wishRecords.add({
         ...wish,
+        id,
+        createdAt: now,
         updatedAt: now,
       });
 
-      return existing.id;
-    }
-
-    const id = crypto.randomUUID();
-
-    await db.wishRecords.add({
-      ...wish,
-      id,
-      createdAt: now,
-      updatedAt: now,
+      return id;
     });
-
-    return id;
   },
 
   async bulkCreate(wishes: NewWishRecord[]): Promise<void> {

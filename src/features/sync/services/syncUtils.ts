@@ -31,6 +31,50 @@ export function calculateChecksum(data: string): string {
   return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
+// ----- BASE64 HELPERS -----
+
+// btoa/atob only speak Latin1 and String.fromCharCode(...bigArray) blows the
+// argument-count limit on payloads of a few hundred KB, so convert bytes in
+// chunks and route text through TextEncoder/TextDecoder.
+const BASE64_CHUNK_SIZE = 0x8000;
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += BASE64_CHUNK_SIZE) {
+    const chunk = bytes.subarray(offset, offset + BASE64_CHUNK_SIZE);
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(binary);
+}
+
+export function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+export function textToBase64(text: string): string {
+  return bytesToBase64(new TextEncoder().encode(text));
+}
+
+export function base64ToText(base64: string): string {
+  const bytes = base64ToBytes(base64);
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    // Legacy exports were produced with btoa(rawString): the bytes are the
+    // Latin1 code units of the original string, not UTF-8.
+    let text = '';
+    for (const byte of bytes) {
+      text += String.fromCharCode(byte);
+    }
+    return text;
+  }
+}
+
 // ----- COMPRESSION -----
 
 export function compressData(jsonString: string): string {
@@ -89,15 +133,15 @@ export async function encryptData(data: string, passphrase: string): Promise<str
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(encrypted), salt.length + iv.length);
 
-  // Return as base64
-  return btoa(String.fromCharCode(...combined));
+  // Return as base64 (chunked: large histories exceed the spread-arg limit)
+  return bytesToBase64(combined);
 }
 
 export async function decryptData(encryptedBase64: string, passphrase: string): Promise<string> {
   const decoder = new TextDecoder();
 
   // Decode base64
-  const combined = Uint8Array.from(atob(encryptedBase64), (c) => c.charCodeAt(0));
+  const combined = base64ToBytes(encryptedBase64);
 
   // Extract salt, iv, and ciphertext
   const salt = combined.slice(0, 16);
@@ -215,7 +259,9 @@ const SYNC_FOOTER = '===END-SYNC===';
 
 export function wrapForTextExport(payload: SyncPayload): string {
   const payloadJson = JSON.stringify(payload);
-  const base64 = btoa(payloadJson);
+  // Encode as UTF-8 bytes first: btoa() alone throws on any non-Latin1
+  // character (emoji, CJK) in an uncompressed payload.
+  const base64 = textToBase64(payloadJson);
   return `${SYNC_HEADER}\n${base64}\n${SYNC_FOOTER}`;
 }
 
@@ -231,7 +277,8 @@ export function unwrapFromTextImport(text: string): SyncPayload {
     .trim();
 
   try {
-    const payloadJson = atob(base64);
+    // base64ToText decodes UTF-8 and falls back to Latin1 for legacy exports
+    const payloadJson = base64ToText(base64);
     return JSON.parse(payloadJson) as SyncPayload;
   } catch {
     throw new Error('Invalid sync data format - corrupted data');
