@@ -125,27 +125,21 @@ export class QRScannerManager {
 
     try {
       if (cameraId) {
-        console.log('[QRScanner] Starting with camera ID:', cameraId);
         await this.scanner.start(cameraId, config, successCallback, errorCallback);
       } else {
         // Try to get the first available camera
         try {
           const cameras = await Html5Qrcode.getCameras();
-          console.log('[QRScanner] Available cameras:', cameras);
           const firstCamera = cameras[0];
           if (firstCamera) {
-            console.log('[QRScanner] Using camera:', firstCamera.id, firstCamera.label);
             await this.scanner.start(firstCamera.id, config, successCallback, errorCallback);
           } else {
-            console.log('[QRScanner] No cameras enumerated, trying facingMode: user');
             await this.scanner.start({ facingMode: 'user' }, config, successCallback, errorCallback);
           }
-        } catch (enumError) {
-          console.log('[QRScanner] Camera enum failed, trying facingMode: environment', enumError);
+        } catch {
           await this.scanner.start({ facingMode: 'environment' }, config, successCallback, errorCallback);
         }
       }
-      console.log('[QRScanner] Started successfully');
       this.isScanning = true;
     } catch (error) {
       console.error('[QRScanner] Failed to start:', error);

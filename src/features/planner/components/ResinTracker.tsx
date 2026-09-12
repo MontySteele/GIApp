@@ -107,6 +107,7 @@ export default function ResinTracker({ onResinChange }: ResinTrackerProps) {
           onClick={handleRefresh}
           className="p-1 text-slate-400 hover:text-slate-200"
           title="Refresh"
+          aria-label="Refresh resin estimate"
         >
           <RefreshCw className="w-4 h-4" />
         </button>

@@ -36,9 +36,9 @@ vi.mock('@/features/wishes/hooks/useWishDataFreshness', () => ({
   useWishDataFreshness: () => mockWishDataFreshness.freshness,
 }));
 
-function renderPage() {
+function renderPage(initialEntry = '/pulls/calculator') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <CalculatorPage />
     </MemoryRouter>
   );
@@ -46,7 +46,6 @@ function renderPage() {
 
 describe('CalculatorPage', () => {
   beforeEach(() => {
-    window.history.replaceState(null, '', '/pulls/calculator');
     mockWishDataFreshness.freshness = {
       status: 'fresh',
       lastUpdatedAt: '2026-05-10T00:00:00.000Z',
@@ -96,9 +95,7 @@ describe('CalculatorPage', () => {
     });
 
     it('opens the multi-target calculator from URL mode params', () => {
-      window.history.replaceState(null, '', '/pulls/calculator?mode=multi');
-
-      renderPage();
+      renderPage('/pulls/calculator?mode=multi');
 
       expect(screen.getByTestId('multi-target-calculator')).toBeVisible();
       expect(screen.getByTestId('single-target-calculator')).not.toBeVisible();

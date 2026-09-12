@@ -150,42 +150,44 @@ export default function GoalsSection({
                     key={goal.id}
                     className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden"
                   >
-                    <div
-                      className="p-3 cursor-pointer hover:bg-slate-800/80 transition-colors"
+                    <button
+                      type="button"
+                      className="block w-full text-left p-3 hover:bg-slate-800/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                       onClick={() => toggleExpand(goal.id)}
+                      aria-expanded={isExpanded}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-slate-200">{goal.title}</h4>
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="block flex-1 min-w-0">
+                          <span className="block font-medium text-slate-200">{goal.title}</span>
                           {goal.description && (
-                            <p className="text-sm text-slate-400 mt-1 line-clamp-1">
+                            <span className="block text-sm text-slate-400 mt-1 line-clamp-1">
                               {goal.description}
-                            </p>
+                            </span>
                           )}
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        </span>
+                        <span className="flex items-center gap-2 flex-shrink-0">
                           {totalCount > 0 && (
                             <span className="text-xs text-slate-400">
                               {completedCount}/{totalCount}
                             </span>
                           )}
                           {isExpanded ? (
-                            <ChevronUp className="w-4 h-4 text-slate-400" />
+                            <ChevronUp className="w-4 h-4 text-slate-400" aria-hidden="true" />
                           ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                            <ChevronDown className="w-4 h-4 text-slate-400" aria-hidden="true" />
                           )}
-                        </div>
-                      </div>
+                        </span>
+                      </span>
 
                       {totalCount > 0 && (
-                        <div className="mt-2 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 transition-all"
+                        <span className="block mt-2 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                          <span
+                            className="block h-full bg-emerald-500 transition-all"
                             style={{ width: `${progress}%` }}
                           />
-                        </div>
+                        </span>
                       )}
-                    </div>
+                    </button>
 
                     {isExpanded && (
                       <div className="border-t border-slate-700 p-3 space-y-3">

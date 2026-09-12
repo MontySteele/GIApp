@@ -119,6 +119,7 @@ export default function MaterialItem({ mat, onUpdateOwned, highlighted = false }
                     onClick={startEditing}
                     className="group flex items-center gap-1 hover:text-primary-400 transition-colors"
                     title="Click to edit owned count"
+                    aria-label="Edit owned count"
                   >
                     <span>{mat.owned.toLocaleString()}</span>
                     <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary-400" />

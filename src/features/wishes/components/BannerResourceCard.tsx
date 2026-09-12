@@ -1,12 +1,5 @@
 import { ExternalLink, type LucideIcon } from 'lucide-react';
-import { open } from '@tauri-apps/plugin-shell';
-
-function openExternal(url: string) {
-  open(url).catch((err) => {
-    console.error('Failed to open URL:', err);
-    window.open(url, '_blank', 'noopener,noreferrer');
-  });
-}
+import { openExternal } from '@/lib/utils/openExternal';
 
 interface BannerResourceCardProps {
   icon: LucideIcon;

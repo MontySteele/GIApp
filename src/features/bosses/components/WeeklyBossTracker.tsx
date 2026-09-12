@@ -242,6 +242,7 @@ export default function WeeklyBossTracker({
               onClick={resetAll}
               className="p-2 text-slate-400 hover:text-slate-200 transition-colors"
               title="Reset all"
+              aria-label="Reset all weekly boss progress"
             >
               <RefreshCw className="w-4 h-4" />
             </button>

@@ -53,28 +53,34 @@ interface StickyNoteProps {
 function StickyNote({ id, title, content, onEdit, onDelete }: StickyNoteProps) {
   const color = getColorForId(id);
 
+  const displayTitle = title || 'Untitled';
+
+  // The card body is a real <button> (keyboard + AT reachable); the delete
+  // control sits beside it as a sibling, since buttons cannot nest.
   return (
     <div
-      className={`${color.bg} ${color.border} border-2 rounded-lg p-4 cursor-pointer hover:scale-[1.02] transition-transform shadow-lg`}
-      onClick={onEdit}
+      className={`relative ${color.bg} ${color.border} border-2 rounded-lg hover:scale-[1.02] transition-transform shadow-lg`}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className={`font-semibold ${color.text} line-clamp-1`}>{title || 'Untitled'}</h3>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="p-1 text-slate-400 hover:text-red-400 transition-colors flex-shrink-0"
-          title="Delete"
-          aria-label="Delete sticky"
-        >
-          <Trash2 className="w-4 h-4" aria-hidden="true" />
-        </button>
-      </div>
-      <p className={`text-sm ${color.text} opacity-80 line-clamp-4 whitespace-pre-wrap`}>
-        {content || 'Click to add content...'}
-      </p>
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={`Edit sticky: ${displayTitle}`}
+        className="block w-full text-left p-4 pr-12 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+      >
+        <span className={`block font-semibold ${color.text} line-clamp-1 mb-2`}>{displayTitle}</span>
+        <span className={`block text-sm ${color.text} opacity-80 line-clamp-4 whitespace-pre-wrap`}>
+          {content || 'Click to add content...'}
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="absolute top-3 right-3 p-1 text-slate-400 hover:text-red-400 transition-colors"
+        title="Delete"
+        aria-label={`Delete sticky: ${displayTitle}`}
+      >
+        <Trash2 className="w-4 h-4" aria-hidden="true" />
+      </button>
     </div>
   );
 }

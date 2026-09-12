@@ -3,6 +3,7 @@ import { format } from 'date-fns/format';
 import { parseISO } from 'date-fns/parseISO';
 import { Camera, CreditCard, Sparkles, Filter, MinusCircle } from 'lucide-react';
 import Select from '@/components/ui/Select';
+import DeleteConfirmModal from '@/features/roster/components/DeleteConfirmModal';
 import type { ResourceSnapshot, WishRecord, PrimogemEntry } from '@/types';
 import { buildTransactionLog, type TransactionLogEntry } from '../domain/historicalReconstruction';
 
@@ -25,6 +26,7 @@ export function TransactionLog({
 }: TransactionLogProps) {
   const [filter, setFilter] = useState<FilterType>('all');
   const [limit, setLimit] = useState(20);
+  const [pendingDelete, setPendingDelete] = useState<PrimogemEntry | null>(null);
 
   const allEntries = useMemo(
     () => buildTransactionLog(snapshots, wishes, purchases),
@@ -145,12 +147,7 @@ export function TransactionLog({
                 )}
                 {onDeletePurchase && (
                   <button
-                    onClick={() => {
-                      const purchase = entry.originalEntry as PrimogemEntry;
-                      if (confirm(`Delete purchase of ${purchase.amount} primogems?`)) {
-                        onDeletePurchase(purchase.id);
-                      }
-                    }}
+                    onClick={() => setPendingDelete(entry.originalEntry as PrimogemEntry)}
                     className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-slate-700 rounded"
                   >
                     Delete
@@ -169,6 +166,24 @@ export function TransactionLog({
         >
           Load more ({filteredEntries.length - limit} remaining)
         </button>
+      )}
+
+      {onDeletePurchase && (
+        <DeleteConfirmModal
+          isOpen={pendingDelete !== null}
+          onClose={() => setPendingDelete(null)}
+          onConfirm={() => {
+            if (pendingDelete) onDeletePurchase(pendingDelete.id);
+            setPendingDelete(null);
+          }}
+          title="Delete Purchase"
+          itemName={
+            pendingDelete
+              ? `the purchase of ${pendingDelete.amount.toLocaleString()} primogems`
+              : 'this purchase'
+          }
+          description="The entry will be removed from your ledger. This cannot be undone."
+        />
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Calculator as CalcIcon, Target, TrendingUp } from 'lucide-react';
 import SingleTargetCalculator from '../components/SingleTargetCalculator';
 import { MultiTargetCalculator } from '../components/MultiTargetCalculator';
@@ -9,8 +10,7 @@ import { useWishDataFreshness } from '@/features/wishes/hooks/useWishDataFreshne
 
 type TabType = 'single' | 'multi' | 'reverse';
 
-function getInitialTab(): TabType {
-  const params = new URLSearchParams(window.location.search);
+function getInitialTab(params: URLSearchParams): TabType {
   const mode = params.get('mode') ?? params.get('tab');
 
   if (mode === 'multi') return 'multi';
@@ -19,7 +19,8 @@ function getInitialTab(): TabType {
 }
 
 export default function CalculatorPage() {
-  const [activeTab, setActiveTab] = useState<TabType>(() => getInitialTab());
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>(() => getInitialTab(searchParams));
   const wishDataFreshness = useWishDataFreshness();
 
   const tabs = [

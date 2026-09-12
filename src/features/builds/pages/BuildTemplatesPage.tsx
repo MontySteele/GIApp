@@ -4,6 +4,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Modal from '@/components/ui/Modal';
+import DeleteConfirmModal from '@/features/roster/components/DeleteConfirmModal';
 import { Card, CardContent } from '@/components/ui/Card';
 import BuildTemplateCard from '../components/BuildTemplateCard';
 import BuildTemplateForm from '../components/BuildTemplateForm';
@@ -22,6 +23,7 @@ export default function BuildTemplatesPage() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<BuildTemplate | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const query: BuildTemplateQuery = useMemo(
     () => ({
@@ -40,11 +42,20 @@ export default function BuildTemplatesPage() {
   const { templates, allTemplates, stats, isLoading, createTemplate, updateTemplate, deleteTemplate } = useBuildTemplates(query);
   const { characters } = useCharacters();
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this build template?')) {
-      await deleteTemplate(id);
-    }
-  };
+  const handleDelete = useCallback((id: string) => {
+    setPendingDeleteId(id);
+  }, []);
+
+  const pendingDeleteTemplate = useMemo(
+    () => (pendingDeleteId ? allTemplates.find((t) => t.id === pendingDeleteId) ?? null : null),
+    [allTemplates, pendingDeleteId]
+  );
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!pendingDeleteId) return;
+    await deleteTemplate(pendingDeleteId);
+    setPendingDeleteId(null);
+  }, [pendingDeleteId, deleteTemplate]);
 
   const handleEdit = useCallback((template: BuildTemplate) => {
     setEditingTemplate(template);
@@ -304,6 +315,15 @@ export default function BuildTemplatesPage() {
       </Modal>
 
       {/* gcsim Import Modal */}
+      <DeleteConfirmModal
+        isOpen={pendingDeleteId !== null}
+        onClose={() => setPendingDeleteId(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Build Template"
+        itemName={pendingDeleteTemplate ? `"${pendingDeleteTemplate.name}"` : 'this build template'}
+        description="The template will be permanently removed. This cannot be undone."
+      />
+
       <GcsimImportModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}

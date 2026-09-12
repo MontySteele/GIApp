@@ -16,8 +16,8 @@ vi.mock('dexie-react-hooks', () => ({
   useLiveQuery: () => mocks.plannedBanners,
 }));
 
-vi.mock('@tauri-apps/plugin-shell', () => ({
-  open: mocks.openExternal,
+vi.mock('@/lib/utils/openExternal', () => ({
+  openExternal: mocks.openExternal,
 }));
 
 vi.mock('../repo/upcomingWishRepo', () => ({

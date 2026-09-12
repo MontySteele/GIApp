@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Genshin Progress Tracker",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.montysteele.giapp",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -17,12 +17,11 @@
         "width": 1200,
         "height": 800,
         "resizable": true,
-        "fullscreen": false,
-        "url": "http://localhost:5173"
+        "fullscreen": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https://enka.network https://*.hoyoverse.com https://*.mihoyo.com https://*.hoyolab.com https://corsproxy.io https://genshin-db-api.vercel.app https://raw.githubusercontent.com; worker-src 'self' blob:; media-src 'self' blob: mediastream:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     },
     "withGlobalTauri": true
   },

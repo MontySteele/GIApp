@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CalendarPage from './CalendarPage';
 
-// Mock Tauri shell plugin
-vi.mock('@tauri-apps/plugin-shell', () => ({
-  open: vi.fn().mockResolvedValue(undefined),
+// Mock the external-link helper
+vi.mock('@/lib/utils/openExternal', () => ({
+  openExternal: vi.fn(),
 }));
 
 // Mock the ResetTimers component
@@ -64,7 +64,7 @@ describe('CalendarPage', () => {
 
   describe('external links', () => {
     it('opens paimon.moe timeline when main button is clicked', async () => {
-      const { open } = await import('@tauri-apps/plugin-shell');
+      const { openExternal: open } = await import('@/lib/utils/openExternal');
       const user = userEvent.setup();
       render(<CalendarPage />);
 
@@ -74,7 +74,7 @@ describe('CalendarPage', () => {
     });
 
     it('opens paimon.moe calendar link', async () => {
-      const { open } = await import('@tauri-apps/plugin-shell');
+      const { openExternal: open } = await import('@/lib/utils/openExternal');
       const user = userEvent.setup();
       render(<CalendarPage />);
 
@@ -88,7 +88,7 @@ describe('CalendarPage', () => {
     });
 
     it('opens HoYoLAB link when clicked', async () => {
-      const { open } = await import('@tauri-apps/plugin-shell');
+      const { openExternal: open } = await import('@/lib/utils/openExternal');
       const user = userEvent.setup();
       render(<CalendarPage />);
 
@@ -100,7 +100,7 @@ describe('CalendarPage', () => {
     });
 
     it('opens daily check-in link when clicked', async () => {
-      const { open } = await import('@tauri-apps/plugin-shell');
+      const { openExternal: open } = await import('@/lib/utils/openExternal');
       const user = userEvent.setup();
       render(<CalendarPage />);
 

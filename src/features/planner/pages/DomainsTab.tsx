@@ -6,21 +6,10 @@
  */
 
 import { ExternalLink, Info, Calendar as CalendarIcon } from 'lucide-react';
-import { open } from '@tauri-apps/plugin-shell';
+import { openExternal } from '@/lib/utils/openExternal';
 import DomainScheduleCard from '../components/DomainScheduleCard';
 import ResetTimers from '@/features/calendar/components/ResetTimers';
 import { Card } from '@/components/ui/Card';
-
-/**
- * Open external URL in browser using Tauri's shell plugin
- */
-function openExternal(url: string) {
-  open(url).catch((err) => {
-    console.error('Failed to open URL:', err);
-    // Fallback for non-Tauri environments (e.g., browser dev mode)
-    window.open(url, '_blank', 'noopener,noreferrer');
-  });
-}
 
 export default function DomainsTab() {
   return (
