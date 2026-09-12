@@ -12,7 +12,11 @@ export { default as DifficultyReadinessCard } from './components/DifficultyReadi
 export { default as LevelingPlanPanel } from './components/LevelingPlanPanel';
 
 // Hooks
-export { useTheaterReadiness, type UseTheaterReadinessResult } from './hooks/useTheaterReadiness';
+export {
+  useTheaterReadiness,
+  type TheaterSeasonStatus,
+  type UseTheaterReadinessResult,
+} from './hooks/useTheaterReadiness';
 
 // Data
 export {

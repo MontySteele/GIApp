@@ -34,6 +34,47 @@ const GEMS: Record<string, string> = {
   Geo: 'Prithiva Topaz',
 };
 
+/**
+ * Normal (world) boss ascension drops that have been verified against the
+ * game. Every `boss` value below must come from this list unless the entry is
+ * explicitly documented as unverified in characterMaterialMap.test.ts.
+ */
+export const NORMAL_BOSS_MATERIALS: readonly string[] = [
+  // Mondstadt / Liyue
+  'Hurricane Seed', 'Lightning Prism', 'Basalt Pillar', 'Hoarfrost Core', 'Everflame Seed',
+  'Cleansing Heart', 'Juvenile Jade', 'Crystalline Bloom', 'Runic Fang', 'Riftborn Regalia',
+  'Dragonheir\'s False Fin', 'Cloudseam Scale', 'Emperor\'s Resolution',
+  // Inazuma
+  'Perpetual Heart', 'Smoldering Pearl', 'Dew of Repudiation', 'Storm Beads', 'Marionette Core',
+  // Sumeru
+  'Majestic Hooked Beak', 'Thunderclap Fruitcore', 'Perpetual Caliber', 'Light Guiding Tetrahedron',
+  'Quelled Creeper', 'Pseudo-Stamens', 'Evergloom Ring',
+  // Fontaine
+  'Artificed Spare Clockwork Component — Coppelia', 'Artificed Spare Clockwork Component — Coppelius',
+  'Fontemer Unihorn', 'Tourbillon Device', 'Water That Failed to Transcend', 'Fragment of a Golden Melody',
+  // Natlan
+  'Overripe Flamegranate', 'Mark of the Binding Blessing', 'Gold-Inscribed Secret Source Core',
+  'Ensnaring Gaze', 'Talisman of the Enigmatic Land', 'Sparkless Statue Core',
+  'Secret Source Airflow Accumulator',
+];
+
+/**
+ * Weekly boss talent drops, grouped by boss (three drops each).
+ */
+export const WEEKLY_BOSS_MATERIALS: readonly string[] = [
+  'Dvalin\'s Plume', 'Dvalin\'s Claw', 'Dvalin\'s Sigh',
+  'Tail of Boreas', 'Ring of Boreas', 'Spirit Locket of Boreas',
+  'Tusk of Monoceros Caeli', 'Shard of a Foul Legacy', 'Shadow of the Warrior',
+  'Dragon Lord\'s Crown', 'Bloodjade Branch', 'Gilded Scale',
+  'Molten Moment', 'Hellfire Butterfly', 'Ashen Heart',
+  'Mudra of the Malefic General', 'Tears of the Calamitous God', 'The Meaning of Aeons',
+  'Puppet Strings', 'Mirror of Mushin', 'Daka\'s Bell',
+  'Worldspan Fern', 'Primordial Greenbloom', 'Everamber',
+  'Lightless Silk String', 'Lightless Eye of the Maelstrom', 'Lightless Mass',
+  'Fading Candle', 'Silken Feather', 'Denial and Judgment',
+  'Eroded Horn', 'Eroded Sunfire', 'Eroded Scale-Feather',
+];
+
 function normalizeCharacterKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -503,7 +544,7 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonAscension: ['Fungal Spores', 'Luminescent Pollen', 'Crystalline Cyst Dust'],
     talentBook: 'Ingenuity', talentBookRegion: 'Sumeru',
     commonTalent: ['Fungal Spores', 'Luminescent Pollen', 'Crystalline Cyst Dust'],
-    weeklyBoss: 'Worldspan Fern',
+    weeklyBoss: 'Primordial Greenbloom',
   },
   Kirara: {
     element: 'Dendro', gem: GEMS.Dendro!, boss: 'Evergloom Ring', localSpecialty: 'Amakumo Fruit',
@@ -564,18 +605,18 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     weeklyBoss: 'Lightless Silk String',
   },
   Chevreuse: {
-    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Fontemer Unihorn', localSpecialty: 'Romaritime Flower',
+    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Fontemer Unihorn', localSpecialty: 'Lumidouce Bell',
     commonAscension: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
     talentBook: 'Order', talentBookRegion: 'Fontaine',
     commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
-    weeklyBoss: 'Lightless Eye of the Maelstrom',
+    weeklyBoss: 'Lightless Silk String',
   },
   Chiori: {
-    element: 'Geo', gem: GEMS.Geo!, boss: 'Artificed Spare Clockwork Component — Coppelius', localSpecialty: 'Dendrobium',
+    element: 'Geo', gem: GEMS.Geo!, boss: 'Artificed Spare Clockwork Component — Coppelia', localSpecialty: 'Dendrobium',
     commonAscension: ['Spectral Husk', 'Spectral Heart', 'Spectral Nucleus'],
     talentBook: 'Light', talentBookRegion: 'Inazuma',
     commonTalent: ['Spectral Husk', 'Spectral Heart', 'Spectral Nucleus'],
-    weeklyBoss: 'Lightless Mass',
+    weeklyBoss: 'Lightless Silk String',
   },
   Clorinde: {
     element: 'Electro', gem: GEMS.Electro!, boss: 'Fontemer Unihorn', localSpecialty: 'Lumitoile',
@@ -592,14 +633,14 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     weeklyBoss: 'Worldspan Fern',
   },
   Furina: {
-    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Water Orb of the Font of All Waters', localSpecialty: 'Lakelight Lily',
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Water That Failed to Transcend', localSpecialty: 'Lakelight Lily',
     commonAscension: ['Whopperflower Nectar', 'Shimmering Nectar', 'Energy Nectar'],
     talentBook: 'Justice', talentBookRegion: 'Fontaine',
     commonTalent: ['Whopperflower Nectar', 'Shimmering Nectar', 'Energy Nectar'],
-    weeklyBoss: 'Lightless Silk String',
+    weeklyBoss: 'Lightless Mass',
   },
   Lynette: {
-    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Artificed Spare Clockwork Component — Coppelius', localSpecialty: 'Lumidouce Bell',
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Artificed Spare Clockwork Component — Coppelia', localSpecialty: 'Lumidouce Bell',
     commonAscension: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
     talentBook: 'Order', talentBookRegion: 'Fontaine',
     commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
@@ -610,14 +651,14 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonAscension: ['Recruit\'s Insignia', 'Sergeant\'s Insignia', 'Lieutenant\'s Insignia'],
     talentBook: 'Equity', talentBookRegion: 'Fontaine',
     commonTalent: ['Recruit\'s Insignia', 'Sergeant\'s Insignia', 'Lieutenant\'s Insignia'],
-    weeklyBoss: 'Worldspan Fern',
+    weeklyBoss: 'Primordial Greenbloom',
   },
   Navia: {
     element: 'Geo', gem: GEMS.Geo!, boss: 'Artificed Spare Clockwork Component — Coppelius', localSpecialty: 'Spring of the First Dewdrop',
     commonAscension: ['Transoceanic Pearl', 'Transoceanic Chunk', 'Xenochromatic Crystal'],
     talentBook: 'Equity', talentBookRegion: 'Fontaine',
     commonTalent: ['Transoceanic Pearl', 'Transoceanic Chunk', 'Xenochromatic Crystal'],
-    weeklyBoss: 'Lightless Eye of the Maelstrom',
+    weeklyBoss: 'Lightless Silk String',
   },
   Neuvillette: {
     element: 'Hydro', gem: GEMS.Hydro!, boss: 'Fontemer Unihorn', localSpecialty: 'Lumitoile',
@@ -627,7 +668,7 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     weeklyBoss: 'Everamber',
   },
   Sigewinne: {
-    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Water Orb of the Font of All Waters', localSpecialty: 'Romaritime Flower',
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Water That Failed to Transcend', localSpecialty: 'Romaritime Flower',
     commonAscension: ['Transoceanic Pearl', 'Transoceanic Chunk', 'Xenochromatic Crystal'],
     talentBook: 'Equity', talentBookRegion: 'Fontaine',
     commonTalent: ['Transoceanic Pearl', 'Transoceanic Chunk', 'Xenochromatic Crystal'],
@@ -635,10 +676,10 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
   },
   Wriothesley: {
     element: 'Cryo', gem: GEMS.Cryo!, boss: 'Tourbillon Device', localSpecialty: 'Subdetection Unit',
-    commonAscension: ['Transoceanic Pearl', 'Transoceanic Chunk', 'Xenochromatic Crystal'],
+    commonAscension: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
     talentBook: 'Order', talentBookRegion: 'Fontaine',
-    commonTalent: ['Transoceanic Pearl', 'Transoceanic Chunk', 'Xenochromatic Crystal'],
-    weeklyBoss: 'Lightless Eye of the Maelstrom',
+    commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
+    weeklyBoss: 'Primordial Greenbloom',
   },
 
   // ==================== NATLAN ====================
@@ -650,17 +691,17 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     weeklyBoss: 'Fading Candle',
   },
   Chasca: {
-    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Ensnaring Gaze', localSpecialty: 'Brilliant Chrysanthemum',
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Ensnaring Gaze', localSpecialty: 'Withering Purpurbloom',
     commonAscension: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
     talentBook: 'Conflict', talentBookRegion: 'Natlan',
     commonTalent: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
     weeklyBoss: 'Silken Feather',
   },
   Citlali: {
-    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Mark of the Binding Blessing', localSpecialty: 'Withering Purpurbloom',
-    commonAscension: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
+    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Talisman of the Enigmatic Land', localSpecialty: 'Quenepa Berry',
+    commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
     talentBook: 'Kindling', talentBookRegion: 'Natlan',
-    commonTalent: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
+    commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
     weeklyBoss: 'Denial and Judgment',
   },
   Emilie: {
@@ -668,7 +709,7 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonAscension: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
     talentBook: 'Order', talentBookRegion: 'Fontaine',
     commonTalent: ['Meshing Gear', 'Mechanical Spur Gear', 'Artificed Dynamic Gear'],
-    weeklyBoss: 'Lightless Mass',
+    weeklyBoss: 'Silken Feather',
   },
   Escoffier: {
     element: 'Cryo', gem: GEMS.Cryo!, boss: 'Secret Source Airflow Accumulator', localSpecialty: 'Beryl Conch',
@@ -689,35 +730,35 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
     talentBook: 'Kindling', talentBookRegion: 'Natlan',
     commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
-    weeklyBoss: 'Fading Candle',
-  },
-  Mavuika: {
-    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Gold-Inscribed Secret Source Core', localSpecialty: 'Brilliant Chrysanthemum',
-    commonAscension: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
-    talentBook: 'Contention', talentBookRegion: 'Natlan',
-    commonTalent: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
     weeklyBoss: 'Denial and Judgment',
   },
-  Mualani: {
-    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Overripe Flamegranate', localSpecialty: 'Saurian Claw Succulent',
+  Mavuika: {
+    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Sparkless Statue Core', localSpecialty: 'Withering Purpurbloom',
     commonAscension: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
     talentBook: 'Contention', talentBookRegion: 'Natlan',
     commonTalent: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
-    weeklyBoss: 'Fading Candle',
+    weeklyBoss: 'Eroded Horn',
+  },
+  Mualani: {
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Mark of the Binding Blessing', localSpecialty: 'Sprayfeather Gill',
+    commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    talentBook: 'Contention', talentBookRegion: 'Natlan',
+    commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    weeklyBoss: 'Lightless Mass',
   },
   Ororon: {
-    element: 'Electro', gem: GEMS.Electro!, boss: 'Overripe Flamegranate', localSpecialty: 'Glowing Hornshroom',
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Mark of the Binding Blessing', localSpecialty: 'Glowing Hornshroom',
     commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
     talentBook: 'Conflict', talentBookRegion: 'Natlan',
     commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
-    weeklyBoss: 'Silken Feather',
+    weeklyBoss: 'Lightless Eye of the Maelstrom',
   },
   Xilonen: {
-    element: 'Geo', gem: GEMS.Geo!, boss: 'Ensnaring Gaze', localSpecialty: 'Brilliant Chrysanthemum',
-    commonAscension: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
+    element: 'Geo', gem: GEMS.Geo!, boss: 'Gold-Inscribed Secret Source Core', localSpecialty: 'Brilliant Chrysanthemum',
+    commonAscension: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
     talentBook: 'Kindling', talentBookRegion: 'Natlan',
-    commonTalent: ['Juvenile Fang', 'Seasoned Fang', 'Tyrant\'s Fang'],
-    weeklyBoss: 'Silken Feather',
+    commonTalent: ['Sentry\'s Wooden Whistle', 'Sentry\'s Brass Whistle', 'Sentry\'s Golden Whistle'],
+    weeklyBoss: 'Mirror of Mushin',
   },
 
   // ==================== CROSSOVER ====================
@@ -943,6 +984,9 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     weeklyBoss: 'Madman\'s Restraint',
   },
 };
+
+/** Every key with a static material entry (GOOD keys plus a few display-name aliases). */
+export const STATIC_MATERIAL_CHARACTER_KEYS: readonly string[] = Object.keys(CHARACTER_MATERIALS);
 
 const NORMALIZED_MATERIAL_KEY_TO_KEY = Object.keys(CHARACTER_MATERIALS).reduce<Record<string, string>>(
   (acc, key) => {

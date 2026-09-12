@@ -108,6 +108,19 @@ export const CHARACTER_KEY_MAP: Record<string, string> = {
   Zhongli: 'zhongli',
   Varesa: 'varesa',
 
+  // 5.x / 6.x additions (gcsim keys are the lowercased single-word name)
+  Aino: 'aino',
+  Columbina: 'columbina',
+  Durin: 'durin',
+  Flins: 'flins',
+  Iansan: 'iansan',
+  Ifa: 'ifa',
+  Ineffa: 'ineffa',
+  Jahoda: 'jahoda',
+  Kachina: 'kachina',
+  Lauma: 'lauma',
+  Nefer: 'nefer',
+
   // Special mappings (name simplifications)
   'Raiden Shogun': 'raiden',
   RaidenShogun: 'raiden',

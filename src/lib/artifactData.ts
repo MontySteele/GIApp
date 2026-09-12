@@ -50,6 +50,12 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   '15033': 'Unfinished Reverie',
   '15034': 'Scroll of the Hero of Cinder City',
   '15035': 'Obsidian Codex',
+  '15036': 'Long Night\'s Oath',
+  '15037': 'Finale of the Deep Galleries',
+
+  // Nod-Krai (6.0)
+  '15038': 'Night of the Sky\'s Unveiling',
+  '15039': 'Silken Moon\'s Serenade',
 
   // Nod-Krai (6.6)
   '15045': 'Celestial Gift',
@@ -160,8 +166,14 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   'Unfinished Reverie': 'Unfinished Reverie',
   'Scroll of the Hero of Cinder City': 'Scroll of the Hero of Cinder City',
   'Obsidian Codex': 'Obsidian Codex',
+  'Long Night\'s Oath': 'Long Night\'s Oath',
+  'Finale of the Deep Galleries': 'Finale of the Deep Galleries',
+  'Night of the Sky\'s Unveiling': 'Night of the Sky\'s Unveiling',
+  'Silken Moon\'s Serenade': 'Silken Moon\'s Serenade',
   'Celestial Gift': 'Celestial Gift',
   'Disenchantment in Deep Shadow': 'Disenchantment in Deep Shadow',
+  // 4★ sets referenced by the artifact scoring tables
+  'Instructor': 'Instructor',
 };
 
 /**

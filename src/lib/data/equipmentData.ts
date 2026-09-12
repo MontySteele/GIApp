@@ -494,6 +494,38 @@ export const ARTIFACT_SETS: ArtifactSetData[] = [
     twoPiece: 'When not in Nightsoul Blessing, Nightsoul-aligned DMG +15%',
     fourPiece: 'When Nightsoul Blessing active, CRIT Rate +40% and Phlogiston consumption for hits -40%',
   },
+  {
+    key: 'LongNightsOath',
+    name: "Long Night's Oath",
+    maxRarity: 5,
+    twoPiece: 'Plunging Attack DMG +25%',
+    fourPiece: 'Plunging/Charged Attack or Skill hits grant Gleaming Moment stacks (max 5): Plunging Attack DMG +15% per stack for 6s',
+  },
+  {
+    key: 'FinaleOfTheDeepGalleries',
+    name: 'Finale of the Deep Galleries',
+    maxRarity: 5,
+    twoPiece: 'Cryo DMG Bonus +15%',
+    fourPiece: 'At 0 Energy, Normal Attack DMG +60% and Burst DMG +60%; dealing one kind of DMG disables the other bonus for 6s',
+  },
+
+  // Nod-Krai Sets (6.0)
+  {
+    key: 'NightOfTheSkysUnveiling',
+    name: "Night of the Sky's Unveiling",
+    maxRarity: 5,
+    twoPiece: 'Elemental Mastery +80',
+    // TODO(verify): 4pc wording is paraphrased from memory; confirm against game text.
+    fourPiece: 'After triggering a Lunar reaction, CRIT Rate +15% for 4s (further +15% under Moonsign: Ascendant Gleam)',
+  },
+  {
+    key: 'SilkenMoonsSerenade',
+    name: "Silken Moon's Serenade",
+    maxRarity: 5,
+    twoPiece: 'Energy Recharge +20%',
+    // TODO(verify): 4pc wording is paraphrased from memory; confirm against game text.
+    fourPiece: 'After Skill/Burst hits, all party members gain Elemental Mastery +60 for 12s (+120 under Moonsign: Ascendant Gleam)',
+  },
 
   // Nod-Krai Sets (6.6)
   {

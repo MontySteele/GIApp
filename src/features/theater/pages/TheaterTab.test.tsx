@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -44,6 +44,21 @@ const renderTab = () =>
 describe('TheaterTab', () => {
   beforeEach(() => {
     mockCharacters.value = [];
+    // Only the seeded 2026-08 season exists; pin the clock inside that month so
+    // these cases exercise the "current season" path deterministically.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-08-15T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('does not show a stale-season notice while the season month is in progress', () => {
+    renderTab();
+
+    expect(screen.queryByText(/No season data for/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Previous season/i)).not.toBeInTheDocument();
   });
 
   it('should render an empty-roster state without crashing', () => {
@@ -131,5 +146,39 @@ describe('TheaterTab', () => {
       screen.getByRole('button', { name: /Hide leveling for Easy/i })
     ).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('heading', { name: /Plan leveling to Lv\. 60/ })).toBeInTheDocument();
+  });
+
+  describe('when no season matches the current month', () => {
+    beforeEach(() => {
+      vi.setSystemTime(new Date('2026-09-12T12:00:00Z'));
+    });
+
+    it('shows a clear no-season-data state for the current month', () => {
+      renderTab();
+
+      expect(screen.getByRole('status')).toHaveTextContent('No season data for September 2026.');
+      expect(
+        screen.getByText(/Showing the last known season \(2026-08\) for reference only/i)
+      ).toBeInTheDocument();
+    });
+
+    it('labels the last known season as previous/stale instead of presenting it as current', () => {
+      renderTab();
+
+      expect(screen.getByText('Previous season — stale')).toBeInTheDocument();
+      expect(screen.getByLabelText('Season')).toHaveValue('2026-08');
+      // The stale line-up is still visible for reference.
+      expect(screen.getByText(/Yelan, Aino, Flins, Ororon, Skirk, Layla/)).toBeInTheDocument();
+    });
+
+    it('keeps the no-season notice when a previous season is explicitly selected', async () => {
+      const user = userEvent.setup();
+      renderTab();
+
+      await user.selectOptions(screen.getByLabelText('Season'), '2026-08');
+
+      expect(screen.getByRole('status')).toHaveTextContent('No season data for September 2026.');
+      expect(screen.getByText('Previous season (2026-08)')).toBeInTheDocument();
+    });
   });
 });

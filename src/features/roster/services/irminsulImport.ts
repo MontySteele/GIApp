@@ -188,8 +188,10 @@ export async function importIrminsul(
           artifactsImported = result.artifacts.length;
         }
 
-        // Import weapons
-        if (opts.importWeapons && data.weapons !== undefined) {
+        // Import weapons. Guarded on `length > 0` exactly like artifacts: a
+        // character-only GOOD file that carries `weapons: []` is not a weapon
+        // scan and must not reconcile (wipe) the existing weapon inventory.
+        if (opts.importWeapons && result.weapons.length > 0) {
           if (opts.replaceAll) {
             await db.inventoryWeapons.clear();
           }

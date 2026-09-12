@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Drama, Info } from 'lucide-react';
+import { AlertTriangle, Drama, Info } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import DifficultyReadinessCard from '../components/DifficultyReadinessCard';
@@ -26,10 +26,30 @@ const ELEMENT_BADGE_VARIANTS: Record<
   Geo: 'geo',
 };
 
+/** 'YYYY-MM' -> 'September 2026' */
+function formatMonth(monthId: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(monthId);
+  if (!match) return monthId;
+  return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1)).toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 export default function TheaterTab() {
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | undefined>(undefined);
-  const { seasons, season, readiness, characters, isLoading } =
-    useTheaterReadiness(selectedSeasonId);
+  const {
+    seasons,
+    season,
+    seasonStatus,
+    currentMonthId,
+    currentSeason,
+    readiness,
+    characters,
+    isLoading,
+  } = useTheaterReadiness(selectedSeasonId);
+  const isPastSeason = season !== undefined && season.id !== currentMonthId;
 
   return (
     <div className="space-y-4">
@@ -61,6 +81,25 @@ export default function TheaterTab() {
         )}
       </div>
 
+      {!currentSeason && seasons.length > 0 && (
+        <Card role="status">
+          <CardContent>
+            <p className="flex items-start gap-2 text-sm text-slate-200">
+              <AlertTriangle
+                className="mt-0.5 h-4 w-4 shrink-0 text-amber-400"
+                aria-hidden="true"
+              />
+              No season data for {formatMonth(currentMonthId)}.
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {seasonStatus === 'stale'
+                ? `Showing the last known season (${season?.id}) for reference only — its line-up and readiness do not apply to this month.`
+                : 'The season shown below is a previous season; its line-up does not apply to this month.'}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {!season ? (
         <Card>
           <CardContent>
@@ -87,6 +126,11 @@ export default function TheaterTab() {
                 {season.source === 'beta' && (
                   <Badge variant="warning" className="text-xs">
                     Beta — subject to change
+                  </Badge>
+                )}
+                {isPastSeason && (
+                  <Badge variant="outline" className="text-xs">
+                    {seasonStatus === 'stale' ? 'Previous season — stale' : `Previous season (${season.id})`}
                   </Badge>
                 )}
               </div>

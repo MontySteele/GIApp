@@ -90,4 +90,45 @@ describe('importIrminsul weapon inventory', () => {
       "weapon:Wolf's Gravestone:20:1:1:unequipped:locked",
     ]);
   });
+
+  it('does not wipe the weapon inventory when a file carries an empty weapons array', async () => {
+    // A character-only GOOD export (e.g. from a roster tool) commonly includes
+    // `weapons: []`. That is not a weapon scan and must not reconcile the
+    // existing inventory away, matching the `length > 0` guard on artifacts.
+    await db.inventoryWeapons.bulkPut([
+      storedWeapon({ id: 'weapon:PrimordialJadeWingedSpear:1:0:1:unequipped:locked' }),
+      storedWeapon({
+        id: "weapon:Wolf's Gravestone:20:1:1:unequipped:locked",
+        key: "Wolf's Gravestone",
+        level: 20,
+        ascension: 1,
+      }),
+    ]);
+
+    const result = await importIrminsul(
+      {
+        ...exportWithWeapons([]),
+        characters: [
+          {
+            key: 'Furina',
+            level: 90,
+            constellation: 0,
+            ascension: 6,
+            talent: { auto: 10, skill: 10, burst: 10 },
+          },
+        ],
+      },
+      { importWeapons: true }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.weaponsImported).toBe(0);
+    expect(result.charactersImported).toBe(1);
+
+    const stored = await db.inventoryWeapons.toArray();
+    expect(stored.map((item) => item.id).sort()).toEqual([
+      'weapon:PrimordialJadeWingedSpear:1:0:1:unequipped:locked',
+      "weapon:Wolf's Gravestone:20:1:1:unequipped:locked",
+    ]);
+  });
 });

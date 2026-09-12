@@ -2,10 +2,46 @@ import { describe, it, expect } from 'vitest';
 import { ALL_CHARACTERS } from '@/lib/constants/characterList';
 import { CHARACTER_METADATA } from '@/features/roster/data/characterMetadata';
 import {
+  NORMAL_BOSS_MATERIALS,
+  STATIC_MATERIAL_CHARACTER_KEYS,
+  WEEKLY_BOSS_MATERIALS,
   findStaticMaterialCoverageGaps,
   getStaticCharacterMaterials,
   hasStaticMaterialData,
 } from './characterMaterialMap';
+
+const TRAVELER_KEYS = new Set([
+  'TravelerAnemo',
+  'TravelerGeo',
+  'TravelerElectro',
+  'TravelerDendro',
+  'TravelerHydro',
+  'TravelerPyro',
+]);
+
+/**
+ * Entries whose boss / weekly values reference 6.x (Nod-Krai) items that have
+ * not been verified against the game. They are excluded from the allowlist
+ * check below; remove a key from this set once its materials are confirmed.
+ */
+const UNVERIFIED_MATERIAL_ENTRIES = new Set([
+  'Aino',
+  'Columbina',
+  'Durin',
+  'Flins',
+  'Ifa',
+  'Illuga',
+  'Jahoda',
+  'Lauma',
+  'Linnea',
+  'Lohen',
+  'Nefer',
+  'Nicole',
+  'Prune',
+  'Sandrone',
+  'Varka',
+  'Zibai',
+]);
 
 describe('characterMaterialMap', () => {
   describe('getStaticCharacterMaterials', () => {
@@ -14,10 +50,10 @@ describe('characterMaterialMap', () => {
       expect(data).not.toBeNull();
       expect(data!.element).toBe('Hydro');
       expect(data!.ascensionMaterials.gem.baseName).toBe('Varunada Lazurite');
-      expect(data!.ascensionMaterials.boss.name).toBe('Water Orb of the Font of All Waters');
+      expect(data!.ascensionMaterials.boss.name).toBe('Water That Failed to Transcend');
       expect(data!.ascensionMaterials.localSpecialty.name).toBe('Lakelight Lily');
       expect(data!.talentMaterials.books.series).toBe('Justice');
-      expect(data!.talentMaterials.weekly.name).toBe('Lightless Silk String');
+      expect(data!.talentMaterials.weekly.name).toBe('Lightless Mass');
     });
 
     it('returns material data for characters with space keys', () => {
@@ -92,6 +128,49 @@ describe('characterMaterialMap', () => {
     });
   });
 
+  describe('boss material allowlists', () => {
+    it('lists each weekly boss drop exactly once, three per boss', () => {
+      expect(new Set(WEEKLY_BOSS_MATERIALS).size).toBe(WEEKLY_BOSS_MATERIALS.length);
+      expect(WEEKLY_BOSS_MATERIALS.length % 3).toBe(0);
+      expect(new Set(NORMAL_BOSS_MATERIALS).size).toBe(NORMAL_BOSS_MATERIALS.length);
+    });
+
+    it('only uses verified boss and weekly boss materials outside the documented unverified set', () => {
+      const normalBoss = new Set(NORMAL_BOSS_MATERIALS);
+      const weeklyBoss = new Set(WEEKLY_BOSS_MATERIALS);
+      const offList: string[] = [];
+
+      for (const key of STATIC_MATERIAL_CHARACTER_KEYS) {
+        if (UNVERIFIED_MATERIAL_ENTRIES.has(key)) continue;
+        const data = getStaticCharacterMaterials(key)!;
+        // The Traveler has no boss ascension item; the map stores a gem placeholder.
+        if (!TRAVELER_KEYS.has(key) && !normalBoss.has(data.ascensionMaterials.boss.name)) {
+          offList.push(`${key}: boss '${data.ascensionMaterials.boss.name}'`);
+        }
+        if (!weeklyBoss.has(data.talentMaterials.weekly.name)) {
+          offList.push(`${key}: weekly '${data.talentMaterials.weekly.name}'`);
+        }
+      }
+
+      expect(offList).toEqual([]);
+    });
+
+    it('keeps the unverified set limited to entries that actually need it', () => {
+      const normalBoss = new Set(NORMAL_BOSS_MATERIALS);
+      const weeklyBoss = new Set(WEEKLY_BOSS_MATERIALS);
+      const noLongerNeeded = Array.from(UNVERIFIED_MATERIAL_ENTRIES).filter((key) => {
+        const data = getStaticCharacterMaterials(key);
+        return (
+          data &&
+          normalBoss.has(data.ascensionMaterials.boss.name) &&
+          weeklyBoss.has(data.talentMaterials.weekly.name)
+        );
+      });
+
+      expect(noLongerNeeded).toEqual([]);
+    });
+  });
+
   describe('coverage', () => {
     const knownCharacters = [
       'Furina', 'Neuvillette', 'KaedeharaKazuha', 'Nahida', 'RaidenShogun',
@@ -133,6 +212,24 @@ describe('characterMaterialMap', () => {
       expect(findStaticMaterialCoverageGaps(['TotallyFakeCharacter'])).toEqual([
         { characterKey: 'TotallyFakeCharacter', reasons: ['missing-entry'] },
       ]);
+    });
+
+    it('keeps corrected Fontaine/Natlan material assignments', () => {
+      expect(getStaticCharacterMaterials('Sigewinne')?.ascensionMaterials.boss.name).toBe(
+        'Water That Failed to Transcend'
+      );
+      expect(getStaticCharacterMaterials('Wriothesley')?.talentMaterials.weekly.name).toBe(
+        'Primordial Greenbloom'
+      );
+      expect(getStaticCharacterMaterials('Mavuika')?.ascensionMaterials.boss.name).toBe(
+        'Sparkless Statue Core'
+      );
+      expect(getStaticCharacterMaterials('Mualani')?.ascensionMaterials.boss.name).toBe(
+        'Mark of the Binding Blessing'
+      );
+      expect(getStaticCharacterMaterials('Xilonen')?.talentMaterials.weekly.name).toBe(
+        'Mirror of Mushin'
+      );
     });
 
     it('keeps corrected Sethos material assignments', () => {

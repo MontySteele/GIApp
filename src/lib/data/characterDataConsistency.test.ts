@@ -12,7 +12,11 @@ import {
   ALL_5_STAR_CHARACTERS,
   BANNER_HISTORY,
 } from '@/lib/bannerHistory';
+import { getTrackedSets } from '@/features/artifacts/domain/artifactQualityFilter';
+import { CHARACTER_BUILDS } from '@/features/artifacts/domain/setRecommendations';
+import { ARTIFACT_SET_NAMES, toGoodArtifactSetKey } from '@/lib/artifactData';
 import { findStaticMaterialCoverageGaps } from './characterMaterialMap';
+import { ARTIFACT_SETS } from './equipmentData';
 
 const TRAVELER_ELEMENT_KEYS = new Set([
   'TravelerAnemo',
@@ -50,26 +54,25 @@ const EXPECTED_CHARACTER_LIST_AVATAR_GAPS = new Set([
 ]);
 
 const EXPECTED_GCSIM_EXPORT_GAPS = new Set([
-  // Present in tracker data, but wfpsim/gcsim support is not wired yet.
-  'Aino',
-  'Columbina',
-  'Durin',
-  'Flins',
-  'Iansan',
-  'Ifa',
+  // Late-6.x additions whose gcsim keys have not been confirmed yet.
   'Illuga',
-  'Ineffa',
-  'Jahoda',
-  'Kachina',
-  'Lauma',
   'Linnea',
   'Lohen',
-  'Nefer',
   'Nicole',
   'Prune',
   'Sandrone',
   'Varka',
   'Zibai',
+]);
+
+const EXPECTED_SCORING_TABLE_SET_GAPS = new Set([
+  // artifactQualityFilter tracks the 4★ set as 'Exile' while the picker and
+  // GOOD use 'TheExile' (src/features/artifacts, outside this data cleanup).
+  'Exile',
+  // 6.x sets referenced by setRecommendations whose bonuses are not yet
+  // recorded in equipmentData/artifactData.
+  'ADayCarvedFromRisingWinds',
+  'AubadeOfMorningstarAndMoon',
 ]);
 
 const BANNER_CHARACTER_ALIASES: Record<string, string> = {
@@ -226,6 +229,30 @@ describe('character data consistency scanner', () => {
       .filter((key) => !TRAVELER_ELEMENT_KEYS.has(key));
 
     expect(findStaticMaterialCoverageGaps(plannerCharacterKeys)).toEqual([]);
+  });
+
+  it('keeps every artifact set referenced by scoring tables in the picker and name map', () => {
+    const pickerKeys = new Set(ARTIFACT_SETS.map((set) => set.key));
+    const nameMapKeys = new Set(
+      Object.values(ARTIFACT_SET_NAMES).map((displayName) => toGoodArtifactSetKey(displayName))
+    );
+
+    const referencedKeys = new Set<string>([
+      ...getTrackedSets(),
+      ...Object.values(CHARACTER_BUILDS).flatMap((build) =>
+        build.recommendedSets.flatMap((option) => option.map((piece) => piece.setKey))
+      ),
+    ]);
+
+    const missingFromPicker = sorted(
+      Array.from(referencedKeys).filter((key) => !pickerKeys.has(key))
+    );
+    const missingFromNameMap = sorted(
+      Array.from(referencedKeys).filter((key) => !nameMapKeys.has(key))
+    );
+
+    expect(missingFromPicker).toEqual(sorted(EXPECTED_SCORING_TABLE_SET_GAPS));
+    expect(missingFromNameMap).toEqual(sorted(EXPECTED_SCORING_TABLE_SET_GAPS));
   });
 
   it('compares characterList against gcsim export mappings with explicit gaps', () => {
