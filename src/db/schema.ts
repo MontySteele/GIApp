@@ -1,3 +1,4 @@
+import { SCHEMA_VERSION } from './schemaVersion';
 import Dexie, { type EntityTable } from 'dexie';
 import type {
   Character,
@@ -103,7 +104,16 @@ export class GenshinTrackerDB extends Dexie {
     this.version(3).stores(SCHEMA_STORES_V3);
     this.version(4).stores(SCHEMA_STORES_V4);
     this.version(5).stores(SCHEMA_STORES_V5);
+    // When adding version(6) here, bump SCHEMA_VERSION in ./schemaVersion.ts in the same change.
+
+    if (this.verno !== SCHEMA_VERSION) {
+      throw new Error(
+        `Schema version mismatch: declared Dexie versions reach ${this.verno} but SCHEMA_VERSION is ${SCHEMA_VERSION}`
+      );
+    }
   }
 }
+
+export { SCHEMA_VERSION };
 
 export const db = new GenshinTrackerDB();

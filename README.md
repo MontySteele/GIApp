@@ -85,8 +85,8 @@ npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 
 ## Database Migrations
 
-- Migrations fail closed: if an upgrade throws, database initialization aborts so the app never runs on a partially migrated schema.
-- No-op upgrades still bump `appMeta.schemaVersion` via Dexie upgrade hooks so clients stay aligned with the latest version.
-- Metadata like `deviceId` and `createdAt` is hydrated when missing to keep app identity intact across migrations.
+- Schema versions are declared in `src/db/schema.ts`; the current number lives in `src/db/schemaVersion.ts` and is the only place it is defined. All versions so far are additive, so no custom `.upgrade()` transforms exist yet.
+- Migrations fail closed: `DatabaseGate` in the app shell blocks the router until `initializeDatabase()` resolves. If Dexie cannot open or migrate, users see a recovery screen (retry, or a typed-confirmation reset) instead of an app running on partial data.
+- After a successful open, `appMeta.schemaVersion` is written to the current version so backup/sync can detect stale clients. `deviceId` and `createdAt` are hydrated when missing.
 
 Current schema version: Dexie v5.

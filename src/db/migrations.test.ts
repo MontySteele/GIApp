@@ -18,7 +18,7 @@ afterEach(async () => {
 });
 
 describe('database migrations', () => {
-  it('runs the v1 → v2 upgrade hook and bumps appMeta schemaVersion', async () => {
+  it('opens a legacy v1 database, migrates it additively, and writes the latest appMeta schemaVersion', async () => {
     const dbName = `MigrationTest-${crypto.randomUUID()}`;
     createdDatabases.push(dbName);
 
@@ -51,5 +51,24 @@ describe('database migrations', () => {
     expect(schemaVersion?.value).toBe(LATEST_SCHEMA_VERSION);
 
     trackerDb.close();
+  });
+
+  it('rejects instead of half-opening when Dexie cannot open the database', async () => {
+    const dbName = `MigrationTest-${crypto.randomUUID()}`;
+    createdDatabases.push(dbName);
+    const trackerDb = new GenshinTrackerDB(dbName);
+    vi.spyOn(trackerDb, 'open').mockRejectedValue(new Error('UpgradeError: boom'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(initializeDatabase(trackerDb)).rejects.toThrow('boom');
+  });
+
+  it('exposes one schema version everywhere', async () => {
+    const { SCHEMA_VERSION } = await import('./schemaVersion');
+    const { APP_SCHEMA_VERSION } = await import('@/lib/constants');
+    const trackerDb = new GenshinTrackerDB(`MigrationTest-${crypto.randomUUID()}`);
+    expect(LATEST_SCHEMA_VERSION).toBe(SCHEMA_VERSION);
+    expect(APP_SCHEMA_VERSION).toBe(SCHEMA_VERSION);
+    expect(trackerDb.verno).toBe(SCHEMA_VERSION);
   });
 });

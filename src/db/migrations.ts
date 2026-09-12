@@ -1,23 +1,17 @@
 import { db as defaultDb, type GenshinTrackerDB } from './schema';
+import { SCHEMA_VERSION } from './schemaVersion';
 
 // Migration guardrails:
-// - Upgrades must be idempotent and write the latest schemaVersion so clients do not stall on stale metadata.
-// - Dexie fails closed on migration errors. We rethrow initialization errors so the app never runs on a partially migrated DB.
-// - Avoid silent divergence: even no-op migrations should bump appMeta.schemaVersion through the upgrade hook.
+// - Schema versions (and any future `.upgrade()` transforms) live in schema.ts. All current
+//   versions are additive, so Dexie migrates them without custom upgrade code.
+// - Fail closed: `initializeDatabase` rethrows, and `DatabaseGate` in the app shell refuses
+//   to render the router until it resolves, so nothing runs against a half-open database.
+// - After a successful open, appMeta.schemaVersion is written to SCHEMA_VERSION so the
+//   sync/backup layer can detect stale clients.
 
-// NOTE: Schema versions are now defined in schema.ts constructor (versions 1-5).
-// This file only handles runtime app metadata initialization, not schema migrations.
-const LATEST_SCHEMA_VERSION = 5;
-const METADATA_INITIALIZED = Symbol('metadataInitialized');
-type MetadataInitializedDB = GenshinTrackerDB & { [METADATA_INITIALIZED]?: boolean };
+const LATEST_SCHEMA_VERSION = SCHEMA_VERSION;
 
 async function ensureMetadata(database: GenshinTrackerDB) {
-  const metadataDb = database as MetadataInitializedDB;
-
-  if (metadataDb[METADATA_INITIALIZED]) {
-    return;
-  }
-
   // Ensure deviceId and createdAt are set
   const deviceId = await database.appMeta.get('deviceId');
   if (!deviceId) {
@@ -28,8 +22,6 @@ async function ensureMetadata(database: GenshinTrackerDB) {
   if (!createdAt) {
     await database.appMeta.put({ key: 'createdAt', value: new Date().toISOString() });
   }
-
-  metadataDb[METADATA_INITIALIZED] = true;
 }
 
 export async function initializeDatabase(database: GenshinTrackerDB = defaultDb) {
@@ -37,7 +29,11 @@ export async function initializeDatabase(database: GenshinTrackerDB = defaultDb)
     // Open the database - Dexie handles schema migrations automatically
     // based on version definitions in schema.ts
     await database.open();
-    console.log('Database initialized successfully');
+    if (database.verno !== SCHEMA_VERSION) {
+      throw new Error(
+        `Database opened at schema version ${database.verno}, expected ${SCHEMA_VERSION}`
+      );
+    }
 
     // Ensure app metadata is set up
     await ensureMetadata(database);
