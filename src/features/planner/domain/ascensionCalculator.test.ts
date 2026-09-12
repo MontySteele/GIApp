@@ -5,6 +5,7 @@ import {
   calculateAscensionSummary,
   type AscensionGoal,
 } from './ascensionCalculator';
+import { TOTAL_ASCENSION_MATS } from '@/lib/planning/materialConstants';
 
 // Mock the genshin-db service
 vi.mock('@/lib/services/genshinDbService', () => ({
@@ -42,22 +43,38 @@ vi.mock('@/lib/services/genshinDbService', () => ({
 }));
 
 describe('calculateAscensionMaterials', () => {
-  it('calculates materials for A5 -> A6', () => {
+  it('calculates materials for A5 -> A6 (per-phase, not cumulative)', () => {
     const result = calculateAscensionMaterials(5, 6);
 
-    // Index 5 in CHARACTER_ASCENSION_COSTS is { level: 80, mora: 120000, bossMat: 20, ... }
+    // A5 -> A6 (level 80 cap -> 90): 120k mora, 20 boss, 60 specialty, 24 tier-3 common, 6 gemstones
     expect(result.mora).toBe(120000);
     expect(result.bossMat).toBe(20);
     expect(result.localSpecialty).toBe(60);
-    expect(result.commonMat).toEqual([15, 18, 24]);
-    expect(result.gem).toEqual([6, 9, 6, 0]);
+    expect(result.commonMat).toEqual([0, 0, 24]);
+    expect(result.gem).toEqual([0, 0, 0, 6]);
   });
 
-  it('calculates materials for A0 -> A6 (full ascension)', () => {
+  it('A0 -> A6 equals the known 1->90 totals', () => {
     const result = calculateAscensionMaterials(0, 6);
 
-    expect(result.mora).toBeGreaterThan(0);
-    expect(result.bossMat).toBeGreaterThan(0);
+    expect(result.mora).toBe(TOTAL_ASCENSION_MATS.mora); // 420,000
+    expect(result.bossMat).toBe(TOTAL_ASCENSION_MATS.bossMat); // 46
+    expect(result.localSpecialty).toBe(TOTAL_ASCENSION_MATS.localSpecialty); // 168
+    expect(result.commonMat).toEqual(TOTAL_ASCENSION_MATS.commonMat); // [18, 30, 36]
+    expect(result.gem).toEqual(TOTAL_ASCENSION_MATS.gem); // [1, 9, 9, 6]
+  });
+
+  it('each individual phase matches the in-game ascension screen', () => {
+    expect(calculateAscensionMaterials(0, 1)).toEqual({ mora: 20000, bossMat: 0, localSpecialty: 3, commonMat: [3, 0, 0], gem: [1, 0, 0, 0] });
+    expect(calculateAscensionMaterials(1, 2)).toEqual({ mora: 40000, bossMat: 2, localSpecialty: 10, commonMat: [15, 0, 0], gem: [0, 3, 0, 0] });
+    expect(calculateAscensionMaterials(2, 3)).toEqual({ mora: 60000, bossMat: 4, localSpecialty: 20, commonMat: [0, 12, 0], gem: [0, 6, 0, 0] });
+    expect(calculateAscensionMaterials(3, 4)).toEqual({ mora: 80000, bossMat: 8, localSpecialty: 30, commonMat: [0, 18, 0], gem: [0, 0, 3, 0] });
+    expect(calculateAscensionMaterials(4, 5)).toEqual({ mora: 100000, bossMat: 12, localSpecialty: 45, commonMat: [0, 0, 12], gem: [0, 0, 6, 0] });
+  });
+
+  it('returns zero when from >= to', () => {
+    expect(calculateAscensionMaterials(6, 6).mora).toBe(0);
+    expect(calculateAscensionMaterials(6, 3).bossMat).toBe(0);
   });
 });
 

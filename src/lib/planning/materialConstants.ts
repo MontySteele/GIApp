@@ -37,15 +37,17 @@ export const CHARACTER_EXP_REQUIREMENTS: Record<number, number> = {
   90: 8362650,
 };
 
-// Character ascension material costs (cumulative from level 1)
-// Format: [level cap, mora, boss drops, local specialty, common enemy mats (by tier), gems (by tier)]
+// Character ascension material costs PER PHASE (not cumulative).
+// Index n is the cost of ascension n+1 (index 0 = A0->A1 at level 20, index 5 = A5->A6 at level 80).
+// commonMat is [tier1 (gray), tier2 (green), tier3 (blue)]; gem is [sliver, fragment, chunk, gemstone].
+// Summing indices 0..5 must equal TOTAL_ASCENSION_MATS (a test enforces this).
 export const CHARACTER_ASCENSION_COSTS = [
   { level: 20, mora: 20000, bossMat: 0, localSpecialty: 3, commonMat: [3, 0, 0], gem: [1, 0, 0, 0] },
-  { level: 40, mora: 40000, bossMat: 2, localSpecialty: 10, commonMat: [15, 0, 0], gem: [3, 0, 0, 0] },
-  { level: 50, mora: 60000, bossMat: 4, localSpecialty: 20, commonMat: [15, 12, 0], gem: [6, 3, 0, 0] },
-  { level: 60, mora: 80000, bossMat: 8, localSpecialty: 30, commonMat: [15, 18, 0], gem: [6, 6, 0, 0] },
-  { level: 70, mora: 100000, bossMat: 12, localSpecialty: 45, commonMat: [15, 18, 12], gem: [6, 9, 0, 0] },
-  { level: 80, mora: 120000, bossMat: 20, localSpecialty: 60, commonMat: [15, 18, 24], gem: [6, 9, 6, 0] },
+  { level: 40, mora: 40000, bossMat: 2, localSpecialty: 10, commonMat: [15, 0, 0], gem: [0, 3, 0, 0] },
+  { level: 50, mora: 60000, bossMat: 4, localSpecialty: 20, commonMat: [0, 12, 0], gem: [0, 6, 0, 0] },
+  { level: 60, mora: 80000, bossMat: 8, localSpecialty: 30, commonMat: [0, 18, 0], gem: [0, 0, 3, 0] },
+  { level: 70, mora: 100000, bossMat: 12, localSpecialty: 45, commonMat: [0, 0, 12], gem: [0, 0, 6, 0] },
+  { level: 80, mora: 120000, bossMat: 20, localSpecialty: 60, commonMat: [0, 0, 24], gem: [0, 0, 0, 6] },
   { level: 90, mora: 0, bossMat: 0, localSpecialty: 0, commonMat: [0, 0, 0], gem: [0, 0, 0, 0] }, // No ascension at 90
 ];
 
