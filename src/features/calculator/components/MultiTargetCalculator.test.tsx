@@ -469,6 +469,16 @@ describe('MultiTargetCalculator', () => {
     });
 
     it('should show loading state when calculating', async () => {
+      // Hold the simulation open so the loading state is observable deterministically
+      // instead of racing an instantly-resolving mock.
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      const defaultImpl = runSimulationMock.getMockImplementation()!;
+      runSimulationMock.mockImplementationOnce(async (input, reportProgress) => {
+        await gate;
+        return defaultImpl(input, reportProgress);
+      });
+
       const user = userEvent.setup();
       render(<MultiTargetCalculator />);
 
@@ -478,8 +488,10 @@ describe('MultiTargetCalculator', () => {
       const calculateButton = screen.getByRole('button', { name: /calculate/i });
       await user.click(calculateButton);
 
-      // Should show loading state briefly - component shows "Working…"
-      expect(screen.getByText(/working/i)).toBeInTheDocument();
+      expect(await screen.findByText(/working/i)).toBeInTheDocument();
+
+      release();
+      await waitFor(() => expect(screen.queryByText(/working/i)).not.toBeInTheDocument());
     });
   });
 
