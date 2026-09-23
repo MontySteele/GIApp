@@ -1,44 +1,7 @@
 import { expose } from 'comlink';
 import { simulatePull } from '../features/calculator/domain/pityEngine';
-import type { BannerType, GachaRules } from '../types';
-// Import GACHA_RULES inline to avoid path resolution issues in worker context
-const GACHA_RULES: Record<string, GachaRules> = {
-  character: {
-    version: '5.0+',
-    softPityStart: 73,
-    hardPity: 90,
-    baseRate: 0.006,
-    softPityRateIncrease: 0.06,
-    hasCapturingRadiance: true,
-    radianceThreshold: 3,
-  },
-  weapon: {
-    version: '5.0+',
-    softPityStart: 62,
-    hardPity: 77,
-    baseRate: 0.007,
-    softPityRateIncrease: 0.07,
-    hasCapturingRadiance: false,
-    hasFatePoints: true,
-    maxFatePoints: 2,
-  },
-  standard: {
-    version: '1.0+',
-    softPityStart: 73,
-    hardPity: 90,
-    baseRate: 0.006,
-    softPityRateIncrease: 0.06,
-    hasCapturingRadiance: false,
-  },
-  chronicled: {
-    version: '4.5+',
-    softPityStart: 73,
-    hardPity: 90,
-    baseRate: 0.006,
-    softPityRateIncrease: 0.06,
-    hasCapturingRadiance: false,
-  },
-};
+import type { BannerType } from '../types';
+import { GACHA_RULES } from '../lib/constants';
 
 export interface SimulationConfig {
   iterations: number;
@@ -256,6 +219,11 @@ export async function runSimulation(
         if (targetState.fatePoints !== null) state.fatePoints = targetState.fatePoints;
       }
 
+      // Epitomized Path: a full fate gauge guarantees the chosen weapon
+      if (rules.hasFatePoints && state.fatePoints >= (rules.maxFatePoints ?? 1)) {
+        state.guaranteed = true;
+      }
+
       const maxBudget = target.maxPullBudget ?? Infinity;
       // Clamp budget to zero - can't use negative pulls
       const budgetForThis = Math.max(0, Math.min(availablePulls, maxBudget));
@@ -273,6 +241,7 @@ export async function runSimulation(
         state.pity = result.newPity;
         state.guaranteed = result.newGuaranteed;
         state.radiantStreak = result.newRadiantStreak;
+        if (rules.hasFatePoints) state.fatePoints = state.guaranteed ? (rules.maxFatePoints ?? 1) : 0;
         pullsUsed++;
 
         if (result.got5Star && result.wasFeatured) {

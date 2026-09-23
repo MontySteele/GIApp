@@ -3,6 +3,7 @@ import Badge from '@/components/ui/Badge';
 import { useAllCurrentPity } from '../hooks/useCurrentPity';
 import InfoTooltip, { GACHA_TOOLTIPS } from '@/components/ui/InfoTooltip';
 import type { BannerType } from '@/types';
+import { GACHA_RULES } from '@/lib/constants';
 
 interface BannerPityDisplayProps {
   banner: BannerType;
@@ -57,7 +58,7 @@ function BannerPityDisplay({
           {fatePoints !== undefined && fatePoints > 0 && (
             <span className="flex items-center gap-1">
               <Badge className="text-xs bg-blue-900/30 text-blue-300 border border-blue-700/50">
-                {fatePoints}/2 EP
+                {fatePoints}/{GACHA_RULES.weapon?.maxFatePoints ?? 1} EP
               </Badge>
               <InfoTooltip content={GACHA_TOOLTIPS.fatePoints} />
             </span>

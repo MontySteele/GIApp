@@ -65,7 +65,7 @@ export function getPityByBanner(wishes: WishRecord[]): Record<BannerType, Banner
   }
 
   const { pityState } = replayWishHistory(wishes);
-  const weaponMaxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 2;
+  const weaponMaxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 1;
   const weaponGuaranteed = (pityState.weapon.fatePoints ?? 0) >= weaponMaxFatePoints;
 
   return {

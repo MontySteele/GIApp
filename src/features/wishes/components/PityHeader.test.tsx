@@ -87,7 +87,7 @@ describe('PityHeader', () => {
 
     render(<PityHeader />);
 
-    expect(screen.getByText('1/2 EP')).toBeInTheDocument();
+    expect(screen.getByText('1/1 EP')).toBeInTheDocument();
   });
 
   it('should show radiance badge when radiance is active', () => {

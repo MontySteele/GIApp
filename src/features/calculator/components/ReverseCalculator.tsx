@@ -172,7 +172,7 @@ export function ReverseCalculator() {
     const weaponRules = GACHA_RULES.weapon;
     const nextGuaranteed =
       pitySnapshot.banner === 'weapon'
-        ? (pitySnapshot.fatePoints ?? 0) >= (weaponRules?.maxFatePoints ?? 2)
+        ? (pitySnapshot.fatePoints ?? 0) >= (weaponRules?.maxFatePoints ?? 1)
         : pitySnapshot.guaranteed;
 
     setCurrentPity(pitySnapshot.pity);

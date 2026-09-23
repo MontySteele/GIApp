@@ -179,14 +179,6 @@ describe('replayWishHistory', () => {
         rarity: 5,
       }),
       createWish({
-        id: 'wrong-weapon-2',
-        bannerType: 'weapon',
-        itemType: 'weapon',
-        itemKey: 'Redhorn Stonethresher',
-        rarity: 5,
-        timestamp: '2024-01-01T00:01:00.000Z',
-      }),
-      createWish({
         id: 'charted-hit',
         bannerType: 'weapon',
         itemType: 'weapon',
@@ -196,9 +188,13 @@ describe('replayWishHistory', () => {
       }),
     ];
 
+    const afterMiss = replayWishHistory(wishes.slice(0, 1), { chartedWeapon: 'Aqua Simulacra' });
+    expect(afterMiss.pityState.weapon.fatePoints).toBe(1);
+
     const result = replayWishHistory(wishes, { chartedWeapon: 'Aqua Simulacra' });
 
-    expect(result.computed['wrong-weapon-2'].wasGuaranteed).toBe(false);
+    // One fate point is enough to guarantee the charted weapon
+    expect(result.computed['wrong-weapon-1'].wasGuaranteed).toBe(false);
     expect(result.computed['charted-hit'].wasGuaranteed).toBe(true);
     expect(result.pityState.weapon.fatePoints).toBe(0);
   });

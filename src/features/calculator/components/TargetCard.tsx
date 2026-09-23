@@ -164,7 +164,7 @@ function PityInputs({ target, errors, onUpdate }: PityInputsProps) {
           onChange={(e) => onUpdate(target.id, { fatePoints: Number(e.target.value) })}
           error={errors.get(`fatePoints-${target.id}`)}
           min={0}
-          max={2}
+          max={1}
         />
       ) : null}
       <div className="flex items-center gap-2 col-span-2">
@@ -230,7 +230,7 @@ function InheritablePityInputs({ target, errors, onUpdate }: PityInputsProps) {
               onChange={(e) => onUpdate(target.id, { fatePoints: Number(e.target.value) })}
               error={errors.get(`fatePoints-${target.id}`)}
               min={0}
-              max={2}
+              max={1}
             />
           ) : null}
           <div className="flex items-center gap-2 col-span-2">

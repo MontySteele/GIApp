@@ -110,7 +110,11 @@ export function buildTargetWizardPreview(
   const currentPity = Math.min(89, nonNegativeInteger(state.currentPity));
   const pullBudget = positiveInteger(state.pullBudget);
   const daysRemaining = daysUntil(state.deadline, now);
-  const hardPityTarget = 90 * desiredCopies;
+  // Worst case is hard pity twice per copy (lost 50/50), except a first copy
+  // that is already guaranteed.
+  const hardPityTarget = desiredCopies === 0
+    ? 0
+    : desiredCopies * 180 - (state.guaranteed ? 90 : 0);
   const pullProgress = savedPulls + currentPity;
   const pullShortfall = state.mode === 'get-character' && !targetAlreadyMet
     ? Math.max(0, hardPityTarget - pullProgress)
