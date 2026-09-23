@@ -24,6 +24,7 @@ This is a local-first PWA for Genshin Impact players. Its current product direct
 | Targets | `/campaigns` | User-facing Targets control center, target material deficits, storage still uses campaigns |
 | Target Detail | `/campaigns/:id` | Target plan, readiness, next actions |
 | Roster | `/roster` | Characters plus nested teams, progression, domains, bosses, weapons, artifacts, build templates |
+| Imaginarium Theatre | `/roster/theater` | Season line-up and per-difficulty roster readiness with leveling plans |
 | Pulls | `/pulls` | Budget, calculator, wish history, banners |
 | Import Hub | `/imports` | Roster, wish history, manual fallback, backup, last import impact |
 | More | `/more` | Mobile secondary navigation |

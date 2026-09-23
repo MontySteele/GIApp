@@ -473,11 +473,13 @@ describe('MultiTargetCalculator', () => {
       await user.click(screen.getByRole('button', { name: /add character/i }));
       await user.type(screen.getByPlaceholderText(/character name/i), 'Furina');
 
+      // Hold the simulation open so the loading state can't race past the assertion
+      runSimulationMock.mockImplementationOnce(() => new Promise(() => {}));
+
       const calculateButton = screen.getByRole('button', { name: /calculate/i });
       await user.click(calculateButton);
 
-      // Should show loading state briefly - component shows "Working…"
-      expect(screen.getByText(/working/i)).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: /working/i })).toBeDisabled();
     });
   });
 

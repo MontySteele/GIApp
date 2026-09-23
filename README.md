@@ -20,6 +20,7 @@ The app keeps user data in IndexedDB through Dexie and can run as a PWA.
 | `/` | Dashboard | Command center with Next Up, contextual target entry, quick capture, compact snapshot, and conditional data freshness |
 | `/campaigns` | Targets | Active, planned, wishlist, completed targets, and target material deficits |
 | `/roster` | Roster | Characters plus nested teams, progression, domains, weapons, artifacts, bosses, and build templates |
+| `/roster/theater` | Imaginarium Theatre | Season line-up plus per-difficulty readiness, near-miss characters, and leveling plans |
 | `/pulls` | Pulls | Budget, calculator, wish history, and planned banners |
 | `/settings` | Sync | Backup, restore, and app sync settings |
 

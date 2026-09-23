@@ -85,7 +85,7 @@ test.describe('Character Import', () => {
 
       // Should show validation error
       const modal = page.locator('[role="dialog"]');
-      await expect(modal.getByText(/^not a valid good format file$/i)).toBeVisible();
+      await expect(modal.getByText(/^invalid irminsul\/good format$/i)).toBeVisible();
     });
 
     test('should merge with existing characters on re-import', async ({ page }) => {
