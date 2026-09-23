@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Enka Import Fixes
+- Enka character, talent-order, weapon, and portrait data is now generated from Enka.Network's data store (`node scripts/generate-enka-data.mjs` writes `src/lib/data/enkaData.generated.ts`) instead of hand-maintained tables.
+- Talent levels are read in each character's published skill order (per element for the Traveler), fixing swapped talents for characters such as Kamisato Ayaka whose skill map includes extra skills.
+- Weapon IDs now resolve correctly; the old table was off by one for many 5★ swords, polearms, and catalysts and lacked every weapon since 5.0.
+- Enka imports store GOOD keys ("HuTao", "TravelerDendro"), matching GOOD and HoYoLAB imports. Roster upserts match legacy display-name keys ("Hu Tao"), so re-importing updates the old entry instead of duplicating it.
+- Added avatarIds and portraits for Sandrone, Odette, Alyosha, Vesna, and Vodyanitsa; corrected the Lohen/Linnea/Nicole IDs (which also fixes Imaginarium Theatre guests) and the Heizou, Alhaitham, and Baizhu portraits.
+
 ### HoYoLAB Roster Sync
 - Added a HoYoLAB Battle Chronicle importer: syncs the full roster (levels, constellations, talents, weapons, and equipped artifacts with substats) from HoYoverse servers using a HoYoLAB login cookie — no game client or scanner run needed, which makes routine refreshes possible for console players.
 - New `hoyolab` import view in the Add Character modal (`/roster?import=hoyolab`) with UID + cookie entry, optional on-device credential storage for one-click refreshes, and a HoYoLAB roster sync card in the Import Hub.
@@ -21,7 +28,7 @@
 - Refreshed README, architecture, manual testing, test coverage, and agent handoff docs around the current target-first IA and first-target setup flow.
 
 ### Verification
-- Current branch verification: 150 Vitest files / 2075 tests passing, plus lint/build verification.
+- Current branch verification: 150 Vitest files / 2118 tests passing, plus lint/build verification.
 
 ## 2026-09-23 (Patch update 6.7 → 7.1)
 

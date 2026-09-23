@@ -1,130 +1,13 @@
+import { ENKA_CHARACTERS } from '@/lib/data/enkaData.generated';
 import { toPascalCase } from '@/lib/utils/pascalCase';
 
-// Character avatar ID to icon name mapping (for Enka CDN)
-// Maps avatarId to the internal icon name used in Enka's CDN
-// Source: https://github.com/EnkaNetwork/API-docs/blob/master/store/characters.json
+// Character avatarId to side-icon name on Enka's CDN, from Enka's data store
+// (regenerate with scripts/generate-enka-data.mjs). The Manekin/Manekina have
+// no base entry there, only per-element skill depots.
 const CHARACTER_ICON_NAMES: Record<number, string> = {
-  10000002: 'Ayaka',
-  10000003: 'Qin', // Jean
-  10000005: 'PlayerBoy', // Traveler (male)
-  10000006: 'Lisa',
-  10000007: 'PlayerGirl', // Traveler (female)
-  10000014: 'Barbara',
-  10000015: 'Kaeya',
-  10000016: 'Diluc',
-  10000020: 'Razor',
-  10000021: 'Ambor', // Amber
-  10000022: 'Venti',
-  10000023: 'Xiangling',
-  10000024: 'Beidou',
-  10000025: 'Xingqiu',
-  10000026: 'Xiao',
-  10000027: 'Ningguang',
-  10000029: 'Klee',
-  10000030: 'Zhongli',
-  10000031: 'Fischl',
-  10000032: 'Bennett',
-  10000033: 'Tartaglia',
-  10000034: 'Noel', // Noelle
-  10000035: 'Qiqi',
-  10000036: 'Chongyun',
-  10000037: 'Ganyu',
-  10000038: 'Albedo',
-  10000039: 'Diona',
-  10000041: 'Mona',
-  10000042: 'Keqing',
-  10000043: 'Sucrose',
-  10000044: 'Xinyan',
-  10000045: 'Rosaria',
-  10000046: 'Hutao', // Hu Tao
-  10000047: 'Kazuha',
-  10000048: 'Feiyan', // Yanfei
-  10000049: 'Yoimiya',
-  10000050: 'Tohma', // Thoma
-  10000051: 'Eula',
-  10000052: 'Shougun', // Raiden Shogun
-  10000053: 'Sayu',
-  10000054: 'Kokomi',
-  10000055: 'Gorou',
-  10000056: 'Sara',
-  10000057: 'Itto',
-  10000058: 'Yae',
-  10000059: 'Heizou',
-  10000060: 'Yelan',
-  10000061: 'Momoka', // Kirara (pre-release internal name)
-  10000062: 'Aloy',
-  10000063: 'Shenhe',
-  10000064: 'Yunjin',
-  10000065: 'Shinobu',
-  10000066: 'Ayato',
-  10000067: 'Collei',
-  10000068: 'Dori',
-  10000069: 'Tighnari',
-  10000070: 'Nilou',
-  10000071: 'Cyno',
-  10000072: 'Candace',
-  10000073: 'Nahida',
-  10000074: 'Layla',
-  10000075: 'Wanderer',
-  10000076: 'Faruzan',
-  10000077: 'Yaoyao',
-  10000078: 'Alhaitham',
-  10000079: 'Dehya',
-  10000080: 'Mika',
-  10000081: 'Kaveh',
-  10000082: 'Baizhu',
-  10000083: 'Linette', // Lynette
-  10000084: 'Liney', // Lyney
-  10000085: 'Freminet',
-  10000086: 'Wriothesley',
-  10000087: 'Neuvillette',
-  10000088: 'Charlotte',
-  10000089: 'Furina',
-  10000090: 'Chevreuse',
-  10000091: 'Navia',
-  10000092: 'Gaming',
-  10000093: 'Liuyun', // Xianyun
-  10000094: 'Chiori',
-  10000095: 'Sigewinne',
-  10000096: 'Arlecchino',
-  10000097: 'Sethos',
-  10000098: 'Clorinde',
-  10000099: 'Emilie',
-  10000100: 'Kachina',
-  10000101: 'Kinich',
-  10000102: 'Mualani',
-  10000103: 'Xilonen',
-  10000104: 'Chasca',
-  10000105: 'Olorun', // Ororon
-  10000106: 'Mavuika',
-  10000107: 'Citlali',
-  10000108: 'Lanyan', // Lan Yan
-  10000109: 'Mizuki',
-  10000110: 'Iansan',
-  10000111: 'Varesa',
-  10000112: 'Escoffier',
-  10000113: 'Ifa',
-  10000114: 'SkirkNew', // Skirk
-  10000115: 'Dahlia',
-  10000116: 'Ineffa',
-  10000119: 'Lauma',
-  10000120: 'Flins',
-  10000121: 'Aino',
-  10000122: 'Nefer',
-  10000123: 'Durin',
-  10000117: 'MannequinBoy', // Manekin (male)
-  10000118: 'MannequinGirl', // Manekina (female)
-  10000124: 'Jahoda',
-  10000125: 'Columbina',
-  10000126: 'Zibai',
-  10000127: 'Illuga',
-  10000128: 'Varka',
-  10000129: 'Linnea',
-  // Version 6.6 — avatarIds extrapolated from the sequential pattern (Enka
-  // docs repo still lags at 10000124); icon names verified HTTP 200 on Enka's CDN.
-  10000130: 'Nicole',
-  10000131: 'Lohen',
-  10000132: 'Prune',
+  ...Object.fromEntries(Object.entries(ENKA_CHARACTERS).map(([id, character]) => [id, character.icon])),
+  10000117: 'MannequinBoy',
+  10000118: 'MannequinGirl',
 };
 
 // Reverse mapping: Character key (GOOD format) to avatarId
@@ -271,16 +154,15 @@ const CHARACTER_KEY_TO_ID: Record<string, number> = {
   'zibai': 10000126,
   'illuga': 10000127,
   'varka': 10000128,
-  'linnea': 10000129,
-  'nicole': 10000130,
-  'lohen': 10000131,
+  'lohen': 10000129,
+  'linnea': 10000130,
+  'nicole': 10000131,
   'prune': 10000132,
-  // Version 6.7: Sandrone has no entry yet. Enka's docs repo still lags at
-  // 10000124 and the CDN serves no side icon for her under any known name, so
-  // an avatarId cannot be verified. Add her mapping once Enka publishes it.
-  // Versions 7.0/7.1: Odette, Alyosha, Vesna, and Vodyanitsa have side icons on
-  // Enka's CDN, but their avatarIds are unpublished and Sandrone's unknown slot
-  // makes sequential extrapolation unreliable. Add them once Enka publishes.
+  'sandrone': 10000133,
+  'vodyanitsa': 10000140,
+  'vesna': 10000143,
+  'alyosha': 10000148,
+  'odette': 10000150,
 };
 
 /**

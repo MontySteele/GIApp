@@ -1,6 +1,6 @@
 # Test Coverage Plan - Genshin Progress Tracker
 
-## Current State (May 2026)
+## Current State (September 2026)
 
 ### Test Infrastructure
 
@@ -12,10 +12,10 @@
 
 ### Current Metrics
 
-Latest verified after the first-target setup pass:
+Latest verified after the Enka import fixes (September 2026):
 
 - **Test files:** 150 passing
-- **Tests:** 2075 passing
+- **Tests:** 2118 passing
 - **Coverage baseline:** 72.37% statements, 65.44% branches, 68.63% functions, 73.73% lines
 - **Enforced coverage floor:** 70% statements, 60% branches, 65% functions, 70% lines
 - **E2E smoke suites verified:** `campaign-flow.spec.ts`, `navigation.spec.ts`, `team-management.spec.ts`

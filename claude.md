@@ -135,8 +135,8 @@ npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 
 Latest verified baseline:
 
-- 152 Vitest files
-- 2115 Vitest tests
+- 150 Vitest files
+- 2118 Vitest tests (no act() or stray console warnings in the output)
 - Campaign-flow Playwright smoke passing
 - Navigation Playwright smoke passing
 - Team-management Playwright smoke passing

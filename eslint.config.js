@@ -58,4 +58,10 @@ export default [
       'react-hooks/exhaustive-deps': 'off',
     },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: { console: 'readonly', fetch: 'readonly', URL: 'readonly' },
+    },
+  },
 ];

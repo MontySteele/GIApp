@@ -230,6 +230,9 @@ describe('WishImport', () => {
       await waitFor(() => {
         expect(screen.getByText(/fetching.*character.*banner/i)).toBeInTheDocument();
       });
+
+      // Let the import finish so its state updates land inside the test
+      expect(await screen.findByRole('button', { name: /^import$/i }, { timeout: 3000 })).toBeEnabled();
     });
 
     it('should call onImportComplete with wish data on success', async () => {
@@ -353,6 +356,9 @@ describe('WishImport', () => {
         const gachaTypes = fetchSpy.mock.calls.map((call) => new URL(call[0]).searchParams.get('gacha_type'));
         expect(gachaTypes).toEqual(expect.arrayContaining(['301', '400', '302', '200', '500']));
       });
+
+      // Let the import finish so its state updates land inside the test
+      expect(await screen.findByRole('button', { name: /^import$/i }, { timeout: 3000 })).toBeEnabled();
     });
 
     it('should allow selecting specific banners to import', async () => {

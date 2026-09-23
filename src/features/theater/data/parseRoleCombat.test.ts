@@ -29,7 +29,7 @@ describe('getKeyForAvatarId', () => {
   });
 
   it('should return undefined for an unmapped id', () => {
-    expect(getKeyForAvatarId(10000150)).toBeUndefined();
+    expect(getKeyForAvatarId(10009999)).toBeUndefined();
   });
 });
 
@@ -92,24 +92,31 @@ describe('parseRoleCombat', () => {
     }
   });
 
-  it('should omit unmapped avatar ids from a season but still emit the season', () => {
+  it('maps every special guest in the fixture seasons', () => {
     const { seasons, unknownAvatarIds } = parseRoleCombat(FIXTURE_JSON);
     const september = seasons.find((season) => season.id === '2026-09');
 
-    // Season 29's invite list contains two ids with no repo mapping.
-    expect(september?.specialGuests).toEqual(['Sucrose', 'Lohen']);
-    expect(unknownAvatarIds).toContain(10000150);
-    expect(unknownAvatarIds).toEqual([...unknownAvatarIds].sort((a, b) => a - b));
-    expect(new Set(unknownAvatarIds).size).toBe(unknownAvatarIds.length);
+    expect(september?.specialGuests).toEqual(['Odette', 'Sandrone', 'Sucrose', 'Nicole']);
+    expect(unknownAvatarIds).toEqual([]);
+  });
+
+  it('should omit unmapped avatar ids from a season but still emit the season', () => {
+    const json = JSON.stringify({
+      29: { element: [3, 5, 6, 0], invite: [10009999, 10000043, 10009998], buff: [] },
+    });
+    const { seasons, unknownAvatarIds } = parseRoleCombat(json);
+
+    expect(seasons[0]?.specialGuests).toEqual(['Sucrose']);
+    expect(unknownAvatarIds).toEqual([10009998, 10009999]);
   });
 
   it('should report each unknown id once even across seasons', () => {
     const json = JSON.stringify({
-      28: { element: [3, 5, 6, 0], invite: [10000150], buff: [10000150] },
-      29: { element: [3, 5, 6, 0], invite: [10000150], buff: [] },
+      28: { element: [3, 5, 6, 0], invite: [10009999], buff: [10009999] },
+      29: { element: [3, 5, 6, 0], invite: [10009999], buff: [] },
     });
 
-    expect(parseRoleCombat(json).unknownAvatarIds).toEqual([10000150]);
+    expect(parseRoleCombat(json).unknownAvatarIds).toEqual([10009999]);
   });
 
   it('should skip entries below minSeasonId', () => {
@@ -161,7 +168,7 @@ describe('parseRoleCombat', () => {
 
   it('should not leak unknown ids from a skipped malformed entry', () => {
     const json = JSON.stringify({
-      28: { element: [3, 5, 99, 0], invite: [10000150], buff: [10000150] },
+      28: { element: [3, 5, 99, 0], invite: [10009999], buff: [10009999] },
     });
 
     expect(parseRoleCombat(json)).toEqual({ seasons: [], unknownAvatarIds: [] });
