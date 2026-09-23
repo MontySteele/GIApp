@@ -33,6 +33,80 @@ export interface CharacterBannerHistory {
 // Historical banner data (recent versions)
 // Note: This is a simplified dataset - expand as needed
 export const BANNER_HISTORY: BannerRecord[] = [
+  // Version 7.1 "A Rekviem for the Underworld" (released 2026-09-23)
+  {
+    id: '7.1-1-char',
+    version: '7.1',
+    phase: 1,
+    startDate: '2026-09-23',
+    endDate: '2026-10-13',
+    bannerType: 'character',
+    featured5Star: ['Vesna', 'Vodyanitsa'],
+    featured4Star: ['Diona', 'Faruzan', 'Chongyun'],
+  },
+  {
+    id: '7.1-1-weapon',
+    version: '7.1',
+    phase: 1,
+    startDate: '2026-09-23',
+    endDate: '2026-10-13',
+    bannerType: 'weapon',
+    featured5Star: ['BeyondTheChrysalis', 'HymnOfTheMaelstrom'],
+    featured4Star: [],
+  },
+  // 7.1 phase 2 featured 4-stars and weapon banner not yet announced; dates
+  // follow the version end date (2026-11-03) and are not yet official.
+  {
+    id: '7.1-2-char',
+    version: '7.1',
+    phase: 2,
+    startDate: '2026-10-13',
+    endDate: '2026-11-03',
+    bannerType: 'character',
+    featured5Star: ['Skirk', 'Escoffier'],
+    featured4Star: [],
+  },
+  // Version 7.0 "Everwinter Without Mercy" (released 2026-08-12)
+  {
+    id: '7.0-1-char',
+    version: '7.0',
+    phase: 1,
+    startDate: '2026-08-12',
+    endDate: '2026-09-01',
+    bannerType: 'character',
+    featured5Star: ['Odette', 'Arlecchino'],
+    featured4Star: ['Alyosha', 'Sucrose', 'Lynette'],
+  },
+  {
+    id: '7.0-1-weapon',
+    version: '7.0',
+    phase: 1,
+    startDate: '2026-08-12',
+    endDate: '2026-09-01',
+    bannerType: 'weapon',
+    featured5Star: ['WhitelakeFrostfeather', 'CrimsonMoonsSemblance'],
+    featured4Star: [],
+  },
+  {
+    id: '7.0-2-char',
+    version: '7.0',
+    phase: 2,
+    startDate: '2026-09-01',
+    endDate: '2026-09-22',
+    bannerType: 'character',
+    featured5Star: ['Flins', 'Ineffa'],
+    featured4Star: ['Aino', 'Iansan', 'LanYan'],
+  },
+  {
+    id: '7.0-2-weapon',
+    version: '7.0',
+    phase: 2,
+    startDate: '2026-09-01',
+    endDate: '2026-09-22',
+    bannerType: 'weapon',
+    featured5Star: ['BloodsoakedRuins', 'FracturedHalo'],
+    featured4Star: [],
+  },
   // Version 6.7 "Luna VIII" (released 2026-07-01)
   {
     id: '6.7-1-char',
@@ -54,8 +128,6 @@ export const BANNER_HISTORY: BannerRecord[] = [
     featured5Star: ['ATeaspoonOfTranscendence', 'StarcallersWatch'],
     featured4Star: [],
   },
-  // 6.7 phase 2 featured 4-stars and weapon banner not yet announced (end date
-  // estimated from the usual 3-week cadence).
   {
     id: '6.7-2-char',
     version: '6.7',
@@ -64,6 +136,16 @@ export const BANNER_HISTORY: BannerRecord[] = [
     endDate: '2026-08-11',
     bannerType: 'character',
     featured5Star: ['Columbina', 'RaidenShogun'],
+    featured4Star: ['Jahoda', 'Ororon', 'Sethos'],
+  },
+  {
+    id: '6.7-2-weapon',
+    version: '6.7',
+    phase: 2,
+    startDate: '2026-07-21',
+    endDate: '2026-08-11',
+    bannerType: 'weapon',
+    featured5Star: ['NocturnesCurtainCall', 'EngulfingLightning'],
     featured4Star: [],
   },
   // Version 6.6 "Luna VII" (released 2026-05-20)
@@ -357,9 +439,9 @@ export const ALL_5_STAR_CHARACTERS = [
   'Dehya', 'Diluc', 'Emilie', 'Eula', 'Furina',
   'Ganyu', 'Hu Tao', 'Jean', 'Kazuha', 'Keqing',
   'Kinich', 'Klee', 'Kokomi', 'Linnea', 'Lohen', 'Lyney', 'Mavuika', 'Mona',
-  'Mualani', 'Nahida', 'Navia', 'Neuvillette', 'Nicole', 'Nilou',
+  'Mualani', 'Nahida', 'Navia', 'Neuvillette', 'Nicole', 'Nilou', 'Odette',
   'Qiqi', 'Raiden', 'Sandrone', 'Shenhe', 'Sigewinne', 'Tartaglia',
-  'Tighnari', 'Venti', 'Wanderer', 'Wriothesley', 'Xiao',
+  'Tighnari', 'Venti', 'Vesna', 'Vodyanitsa', 'Wanderer', 'Wriothesley', 'Xiao',
   'Xianyun', 'Xilonen', 'Yae Miko', 'Yelan', 'Yoimiya', 'Zhongli',
 ] as const;
 

@@ -120,6 +120,11 @@ const UNRELEASED_CHARACTERS = new Set([
   'columbina',
   // Released in 6.7, but Enka has not published her avatarId/icon yet.
   'sandrone',
+  // Released in 7.0/7.1; Enka has not published avatarIds yet.
+  'odette',
+  'alyosha',
+  'vesna',
+  'vodyanitsa',
 ]);
 
 describe('cross-reference: CHARACTER_METADATA ↔ CHARACTER_KEY_TO_ID', () => {

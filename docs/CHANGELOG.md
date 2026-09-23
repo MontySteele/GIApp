@@ -16,6 +16,16 @@
 ### Verification
 - Current branch verification: 150 Vitest files / 2075 tests passing, plus lint/build verification.
 
+## 2026-09-23 (Patch update 6.7 → 7.1)
+
+### Static game data
+- Version 7.0 "Everwinter Without Mercy": added 5★ Odette (Cryo Sword) and 4★ Alyosha (Electro Polearm), the Snezhnaya region with Charity/Fortitude/Glory talent books, the Scarlet Proof and Heart of the Furnace artifact sets, and 12 weapons (Whitelake Frostfeather, Exaiphanes Blade, plus forgeable and Battle Pass 4★s).
+- Version 7.1 "A Rekviem for the Underworld": added 5★ Vesna (Anemo Sword) and Vodyanitsa (Hydro Catalyst), and 6 weapons (Beyond the Chrysalis, Hymn of the Maelstrom, New Bough, Breezeborne Refrain, Winter's Heavy Heart, Silver Light).
+- Banner history: filled 6.7 phase 2 featured 4★s and weapon banner; added 7.0 phases 1–2 and 7.1 phase 1 (character and weapon), and the 7.1 phase 2 character banner (Skirk / Escoffier; 4★s and weapon banner not yet announced).
+- Snezhnaya local specialties and common materials added to material tier detection.
+- Avatar IDs for Sandrone, Odette, Alyosha, Vesna, and Vodyanitsa remain pending until Enka publishes them.
+- Patch pointer: 6.7 → 7.1.
+
 ## 2026-07-13 (Patch update 6.7 — Luna VIII)
 
 ### Static game data

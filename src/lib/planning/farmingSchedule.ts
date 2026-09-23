@@ -33,6 +33,7 @@ export const TALENT_BOOK_REGIONS: Record<string, string[]> = {
   Fontaine: ['Equity', 'Justice', 'Order'],
   Natlan: ['Contention', 'Kindling', 'Conflict'],
   'Nod-Krai': ['Moonlight', 'Elysium', 'Vagrancy'],
+  Snezhnaya: ['Charity', 'Fortitude', 'Glory'],
 };
 
 // Reverse lookup: book series to region

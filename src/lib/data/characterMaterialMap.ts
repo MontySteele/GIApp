@@ -942,6 +942,34 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Broken Drive Shaft', 'Reinforced Drive Shaft', 'Precision Drive Shaft'],
     weeklyBoss: 'Madman\'s Restraint',
   },
+  Odette: {
+    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Unscorched Blossom Branch', localSpecialty: 'Frostfairy Flower',
+    commonAscension: ['Ethereal Glimmershard', 'Ethereal Crystal', 'Ethereal Crystalscale Stone'],
+    talentBook: 'Charity', talentBookRegion: 'Snezhnaya',
+    commonTalent: ['Ethereal Glimmershard', 'Ethereal Crystal', 'Ethereal Crystalscale Stone'],
+    weeklyBoss: 'Twisted Withered Branch',
+  },
+  Alyosha: {
+    element: 'Electro', gem: GEMS.Electro!, boss: 'Severed Tail of the Sky-Roamer', localSpecialty: 'Flockingweed',
+    commonAscension: ['Chimeric Core', 'Symbiotic Chimeric Nucleus', 'Prime Chimeric Nexus'],
+    talentBook: 'Fortitude', talentBookRegion: 'Snezhnaya',
+    commonTalent: ['Chimeric Core', 'Symbiotic Chimeric Nucleus', 'Prime Chimeric Nexus'],
+    weeklyBoss: 'Elixir of the Heretic',
+  },
+  Vesna: {
+    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Vagabond\'s Cracked Armor', localSpecialty: 'Golden Fern',
+    commonAscension: ['Ethereal Glimmershard', 'Ethereal Crystal', 'Ethereal Crystalscale Stone'],
+    talentBook: 'Glory', talentBookRegion: 'Snezhnaya',
+    commonTalent: ['Ethereal Glimmershard', 'Ethereal Crystal', 'Ethereal Crystalscale Stone'],
+    weeklyBoss: 'Profaned Sprout',
+  },
+  Vodyanitsa: {
+    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Unscorched Blossom Branch', localSpecialty: 'Frostfairy Flower',
+    commonAscension: ['Chimeric Core', 'Symbiotic Chimeric Nucleus', 'Prime Chimeric Nexus'],
+    talentBook: 'Fortitude', talentBookRegion: 'Snezhnaya',
+    commonTalent: ['Chimeric Core', 'Symbiotic Chimeric Nucleus', 'Prime Chimeric Nexus'],
+    weeklyBoss: 'Madman\'s Restraint',
+  },
 };
 
 const NORMALIZED_MATERIAL_KEY_TO_KEY = Object.keys(CHARACTER_MATERIALS).reduce<Record<string, string>>(

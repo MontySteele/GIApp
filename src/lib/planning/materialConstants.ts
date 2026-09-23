@@ -147,6 +147,10 @@ export const DOMAIN_SCHEDULE: Record<string, string[]> = {
   'Moonlight': ['Monday', 'Thursday', 'Sunday'],
   'Elysium': ['Tuesday', 'Friday', 'Sunday'],
   'Vagrancy': ['Wednesday', 'Saturday', 'Sunday'],
+  // Snezhnaya talent books
+  'Charity': ['Monday', 'Thursday', 'Sunday'],
+  'Fortitude': ['Tuesday', 'Friday', 'Sunday'],
+  'Glory': ['Wednesday', 'Saturday', 'Sunday'],
 };
 
 // Estimated domain runs for materials (average drops at AR55+ level 90 domains)
@@ -180,4 +184,5 @@ export const TALENT_BOOK_REGIONS: Record<string, string[]> = {
   'Fontaine': ['Equity', 'Justice', 'Order'],
   'Natlan': ['Contention', 'Kindling', 'Conflict'],
   'Nod-Krai': ['Moonlight', 'Elysium', 'Vagrancy'],
+  'Snezhnaya': ['Charity', 'Fortitude', 'Glory'],
 };

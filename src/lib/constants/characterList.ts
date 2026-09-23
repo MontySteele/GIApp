@@ -11,7 +11,7 @@ export interface CharacterInfo {
   weapon: 'Sword' | 'Claymore' | 'Polearm' | 'Bow' | 'Catalyst';
 }
 
-// Last updated for version 6.7
+// Last updated for version 7.1
 // See src/lib/constants/patchVersion.ts for the single source of truth.
 export const ALL_CHARACTERS: CharacterInfo[] = [
   // Traveler (special - can use multiple elements)
@@ -89,6 +89,9 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Nicole', name: 'Nicole', rarity: 5, element: 'Pyro', weapon: 'Catalyst' },
   { key: 'Lohen', name: 'Lohen', rarity: 5, element: 'Cryo', weapon: 'Polearm' },
   { key: 'Sandrone', name: 'Sandrone', rarity: 5, element: 'Cryo', weapon: 'Claymore' },
+  { key: 'Odette', name: 'Odette', rarity: 5, element: 'Cryo', weapon: 'Sword' },
+  { key: 'Vesna', name: 'Vesna', rarity: 5, element: 'Anemo', weapon: 'Sword' },
+  { key: 'Vodyanitsa', name: 'Vodyanitsa', rarity: 5, element: 'Hydro', weapon: 'Catalyst' },
 
   // 4-Star Characters
   { key: 'Amber', name: 'Amber', rarity: 4, element: 'Pyro', weapon: 'Bow' },
@@ -141,6 +144,7 @@ export const ALL_CHARACTERS: CharacterInfo[] = [
   { key: 'Jahoda', name: 'Jahoda', rarity: 4, element: 'Anemo', weapon: 'Bow' },
   { key: 'Illuga', name: 'Illuga', rarity: 4, element: 'Geo', weapon: 'Polearm' },
   { key: 'Prune', name: 'Prune', rarity: 4, element: 'Anemo', weapon: 'Catalyst' },
+  { key: 'Alyosha', name: 'Alyosha', rarity: 4, element: 'Electro', weapon: 'Polearm' },
 ];
 
 // Create lookup maps for fast access
