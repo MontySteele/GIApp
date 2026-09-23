@@ -90,11 +90,14 @@ Dashboard and Import Hub show the shared setup card only while no campaign, plan
 `/imports` centralizes setup:
 
 - Roster and inventory import status
+- HoYoLAB roster sync (server-side refresh, no game client; desktop build only)
 - Wish history status
 - Manual fast path
 - Backup and restore status
 - Live snapshot counts
 - Last import impact summary
+
+Roster import sources: Irminsul/GOOD files (full inventory), HoYoLAB Battle Chronicle (full roster + equipped gear via Tauri command), Enka.network (showcase only), manual entry.
 
 Dashboard freshness should point users here when account data is missing or stale; fresh data should stay subtle.
 
@@ -132,8 +135,8 @@ npx playwright test e2e/tests/navigation.spec.ts --project=chromium
 
 Latest verified baseline:
 
-- 150 Vitest files
-- 2075 Vitest tests
+- 152 Vitest files
+- 2115 Vitest tests
 - Campaign-flow Playwright smoke passing
 - Navigation Playwright smoke passing
 - Team-management Playwright smoke passing

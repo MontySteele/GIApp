@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArrowRight,
+  Cloud,
   Database,
   FileJson,
   History,
@@ -91,6 +92,15 @@ export default function ImportHubPage() {
       href: '/roster?import=irminsul',
       action: characterCount ? 'Refresh roster' : 'Import roster',
       icon: Users,
+    },
+    {
+      id: 'hoyolab',
+      title: 'HoYoLAB roster sync',
+      detail: 'Refresh characters, talents, and equipped gear from your HoYoLAB account — no game client or scan needed.',
+      status: characterCount ? 'ready' : 'missing',
+      href: '/roster?import=hoyolab',
+      action: characterCount ? 'Sync from HoYoLAB' : 'Set up HoYoLAB sync',
+      icon: Cloud,
     },
     {
       id: 'wishes',

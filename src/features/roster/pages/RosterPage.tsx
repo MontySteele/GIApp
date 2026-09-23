@@ -25,7 +25,7 @@ const AddCharacterModal = lazy(() => import('../components/AddCharacterModal'));
 const CharacterForm = lazy(() => import('../components/CharacterForm'));
 const GOODExport = lazy(() => import('../components/GOODExport'));
 
-const VALID_IMPORT_VIEWS: AddModalView[] = ['enka', 'good', 'irminsul', 'manual'];
+const VALID_IMPORT_VIEWS: AddModalView[] = ['enka', 'good', 'irminsul', 'hoyolab', 'manual'];
 
 function ModalLoadingFallback({ label }: { label: string }) {
   return (
