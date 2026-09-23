@@ -606,7 +606,7 @@ export function MultiTargetCalculator() {
 
       {/* Calculate Button */}
       <div className="space-y-2">
-        <Button onClick={handleCalculate} disabled={!canCalculate} className="w-full" variant="primary">
+        <Button onClick={handleCalculate} disabled={!canCalculate || isCalculating} className="w-full" variant="primary">
           {isCalculating ? 'Working…' : 'Calculate'}
         </Button>
         {isCalculating && (
