@@ -160,7 +160,7 @@ function parseCharacterLine(line: string): Partial<ParsedCharacterBuild> | null 
 
   const result: Partial<ParsedCharacterBuild> = {
     gcsimKey,
-    characterKey: REVERSE_CHARACTER_MAP[gcsimKey] || toPascalCase(gcsimKey),
+    characterKey: REVERSE_CHARACTER_MAP[gcsimKey] || snakeToPascalCase(gcsimKey),
   };
 
   // Parse lvl=90/90
@@ -205,7 +205,7 @@ function parseWeaponLine(line: string): { charKey: string; weapon: ParsedCharact
     charKey,
     weapon: {
       gcsimKey: gcsimWeaponKey,
-      key: REVERSE_WEAPON_MAP[gcsimWeaponKey] || toPascalCase(gcsimWeaponKey),
+      key: REVERSE_WEAPON_MAP[gcsimWeaponKey] || snakeToPascalCase(gcsimWeaponKey),
       refinement: refine,
       level,
     },
@@ -228,7 +228,7 @@ function parseArtifactSetLine(line: string): { charKey: string; set: { gcsimKey:
     charKey,
     set: {
       gcsimKey: gcsimSetKey,
-      key: REVERSE_ARTIFACT_MAP[gcsimSetKey] || toPascalCase(gcsimSetKey),
+      key: REVERSE_ARTIFACT_MAP[gcsimSetKey] || snakeToPascalCase(gcsimSetKey),
       count,
     },
   };
@@ -259,9 +259,9 @@ function parseStatsLine(line: string): { charKey: string; stats: Record<string, 
 }
 
 /**
- * Convert a string to PascalCase
+ * Convert a gcsim snake_case/kebab-case key to PascalCase
  */
-function toPascalCase(str: string): string {
+function snakeToPascalCase(str: string): string {
   return str
     .split(/[-_\s]/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())

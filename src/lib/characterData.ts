@@ -1,3 +1,5 @@
+import { toPascalCase } from '@/lib/utils/pascalCase';
+
 // Character avatar ID to icon name mapping (for Enka CDN)
 // Maps avatarId to the internal icon name used in Enka's CDN
 // Source: https://github.com/EnkaNetwork/API-docs/blob/master/store/characters.json
@@ -333,17 +335,6 @@ export function getCharacterGachaArtUrl(avatarId: number | undefined): string | 
   return `https://enka.network/ui/UI_Gacha_AvatarImg_${iconName}.png`;
 }
 
-// Shared utility for PascalCase conversion
-function toPascalCase(value: string): string {
-  return value
-    .replace(/[''\u2019]s\b/g, 's')
-    .replace(/[^A-Za-z0-9]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
-}
 
 /**
  * Formats a character key to a GOOD/GO-compatible key
