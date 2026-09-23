@@ -47,11 +47,17 @@ const EXPECTED_CHARACTER_LIST_AVATAR_GAPS = new Set([
   ...TRAVELER_ELEMENT_KEYS,
   // Released in 6.7, but Enka has not published her avatarId/icon yet.
   'Sandrone',
+  // Released in 7.0/7.1; Enka has not published avatarIds yet.
+  'Odette',
+  'Alyosha',
+  'Vesna',
+  'Vodyanitsa',
 ]);
 
 const EXPECTED_GCSIM_EXPORT_GAPS = new Set([
   // Present in tracker data, but wfpsim/gcsim support is not wired yet.
   'Aino',
+  'Alyosha',
   'Columbina',
   'Durin',
   'Flins',
@@ -66,9 +72,12 @@ const EXPECTED_GCSIM_EXPORT_GAPS = new Set([
   'Lohen',
   'Nefer',
   'Nicole',
+  'Odette',
   'Prune',
   'Sandrone',
   'Varka',
+  'Vesna',
+  'Vodyanitsa',
   'Zibai',
 ]);
 

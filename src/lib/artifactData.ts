@@ -162,6 +162,8 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   'Obsidian Codex': 'Obsidian Codex',
   'Celestial Gift': 'Celestial Gift',
   'Disenchantment in Deep Shadow': 'Disenchantment in Deep Shadow',
+  'Scarlet Proof': 'Scarlet Proof',
+  'Heart of the Furnace': 'Heart of the Furnace',
 };
 
 /**

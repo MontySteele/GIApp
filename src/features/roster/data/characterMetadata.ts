@@ -147,6 +147,12 @@ export const CHARACTER_METADATA: CharacterMetadata[] = [
   { key: 'Prune', element: 'Anemo', weaponType: 'Catalyst', rarity: 4 },
   // Version 6.7 (Luna VIII)
   { key: 'Sandrone', element: 'Cryo', weaponType: 'Claymore', rarity: 5 },
+  // Version 7.0
+  { key: 'Odette', element: 'Cryo', weaponType: 'Sword', rarity: 5 },
+  { key: 'Alyosha', element: 'Electro', weaponType: 'Polearm', rarity: 4 },
+  // Version 7.1
+  { key: 'Vesna', element: 'Anemo', weaponType: 'Sword', rarity: 5 },
+  { key: 'Vodyanitsa', element: 'Hydro', weaponType: 'Catalyst', rarity: 5 },
 ];
 
 const metadataByKey = new Map<string, CharacterMetadata>();

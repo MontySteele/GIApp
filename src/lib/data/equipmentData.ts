@@ -54,6 +54,9 @@ export const WEAPONS: WeaponData[] = [
   { key: 'Absolution', name: 'Absolution', type: 'Sword', rarity: 5 },
   { key: 'PeakPatrolSong', name: 'Peak Patrol Song', type: 'Sword', rarity: 5 },
   { key: 'AthameArtis', name: 'Athame Artis', type: 'Sword', rarity: 5 },
+  { key: 'WhitelakeFrostfeather', name: 'Whitelake Frostfeather', type: 'Sword', rarity: 5 },
+  { key: 'ExaiphanesBlade', name: 'Exaiphanes Blade', type: 'Sword', rarity: 5 },
+  { key: 'BeyondTheChrysalis', name: 'Beyond the Chrysalis', type: 'Sword', rarity: 5 },
 
   // 4-Star Swords
   { key: 'TheBlackSword', name: 'The Black Sword', type: 'Sword', rarity: 4 },
@@ -72,6 +75,10 @@ export const WEAPONS: WeaponData[] = [
   { key: 'FinaleOfTheDeep', name: 'Finale of the Deep', type: 'Sword', rarity: 4 },
   { key: 'FleuveCendreFerryman', name: 'Fleuve Cendre Ferryman', type: 'Sword', rarity: 4 },
   { key: 'SwordOfNarzissenkreuz', name: 'Sword of Narzissenkreuz', type: 'Sword', rarity: 4 },
+  { key: 'Emberwell', name: 'Emberwell', type: 'Sword', rarity: 4 },
+  { key: 'HereticsMoltenBlade', name: "Heretic's Molten Blade", type: 'Sword', rarity: 4 },
+  { key: 'NewBough', name: 'New Bough', type: 'Sword', rarity: 4 },
+  { key: 'SilverLight', name: 'Silver Light', type: 'Sword', rarity: 4 },
 
   // 3-Star Swords
   { key: 'HarbingerOfDawn', name: 'Harbinger of Dawn', type: 'Sword', rarity: 3 },
@@ -107,6 +114,8 @@ export const WEAPONS: WeaponData[] = [
   { key: 'TidalShadow', name: 'Tidal Shadow', type: 'Claymore', rarity: 4 },
   { key: 'PortablePowerSaw', name: 'Portable Power Saw', type: 'Claymore', rarity: 4 },
   { key: 'EarthShaker', name: 'Earth Shaker', type: 'Claymore', rarity: 4 },
+  { key: 'BladeOfAtonement', name: 'Blade of Atonement', type: 'Claymore', rarity: 4 },
+  { key: 'ForgedByTheGoldenMelody', name: 'Forged by the Golden Melody', type: 'Claymore', rarity: 4 },
 
   // 3-Star Claymores
   { key: 'FerrousShadow', name: 'Ferrous Shadow', type: 'Claymore', rarity: 3 },
@@ -140,6 +149,8 @@ export const WEAPONS: WeaponData[] = [
   { key: 'RightfulReward', name: 'Rightful Reward', type: 'Polearm', rarity: 4 },
   { key: 'DialoguesOfTheDesertSages', name: 'Dialogues of the Desert Sages', type: 'Polearm', rarity: 4 },
   { key: 'FootprintOfTheRainbow', name: 'Footprint of the Rainbow', type: 'Polearm', rarity: 4 },
+  { key: 'SongOfTheVigil', name: 'Song of the Vigil', type: 'Polearm', rarity: 4 },
+  { key: 'Frostbreath', name: 'Frostbreath', type: 'Polearm', rarity: 4 },
 
   // 3-Star Polearms
   { key: 'WhiteTassel', name: 'White Tassel', type: 'Polearm', rarity: 3 },
@@ -177,6 +188,9 @@ export const WEAPONS: WeaponData[] = [
   { key: 'RangeGauge', name: 'Range Gauge', type: 'Bow', rarity: 4 },
   { key: 'ChainBreaker', name: 'Chain Breaker', type: 'Bow', rarity: 4 },
   { key: 'Cloudforged', name: 'Cloudforged', type: 'Bow', rarity: 4 },
+  { key: 'CovenantOfFrostAndSnow', name: 'Covenant of Frost and Snow', type: 'Bow', rarity: 4 },
+  { key: 'JadeVista', name: 'Jade Vista', type: 'Bow', rarity: 4 },
+  { key: 'BreezeborneRefrain', name: 'Breezeborne Refrain', type: 'Bow', rarity: 4 },
 
   // 3-Star Bows
   { key: 'Slingshot', name: 'Slingshot', type: 'Bow', rarity: 3 },
@@ -197,6 +211,7 @@ export const WEAPONS: WeaponData[] = [
   { key: 'CranesEchoingCall', name: "Crane's Echoing Call", type: 'Catalyst', rarity: 5 },
   { key: 'AngelosHeptades', name: "Angelos' Heptades", type: 'Catalyst', rarity: 5 },
   { key: 'StarcallersWatch', name: "Starcaller's Watch", type: 'Catalyst', rarity: 5 },
+  { key: 'HymnOfTheMaelstrom', name: 'Hymn of the Maelstrom', type: 'Catalyst', rarity: 5 },
 
   // 4-Star Catalysts
   { key: 'SacrificialFragments', name: 'Sacrificial Fragments', type: 'Catalyst', rarity: 4 },
@@ -217,6 +232,9 @@ export const WEAPONS: WeaponData[] = [
   { key: 'BalladOfTheBoundlessBlue', name: 'Ballad of the Boundless Blue', type: 'Catalyst', rarity: 4 },
   { key: 'RingOfYaxche', name: 'Ring of Yaxche', type: 'Catalyst', rarity: 4 },
   { key: 'SacrificialJade', name: 'Sacrificial Jade', type: 'Catalyst', rarity: 4 },
+  { key: 'EchoesOfTheHeart', name: 'Echoes of the Heart', type: 'Catalyst', rarity: 4 },
+  { key: 'ClashOfKings', name: 'Clash of Kings', type: 'Catalyst', rarity: 4 },
+  { key: 'WintersHeavyHeart', name: "Winter's Heavy Heart", type: 'Catalyst', rarity: 4 },
 
   // 3-Star Catalysts
   { key: 'ThrillingTalesOfDragonSlayers', name: 'Thrilling Tales of Dragon Slayers', type: 'Catalyst', rarity: 3 },
@@ -509,6 +527,22 @@ export const ARTIFACT_SETS: ArtifactSetData[] = [
     maxRarity: 5,
     twoPiece: 'Energy Recharge +20%',
     fourPiece: 'After Elemental Skill, grant party Elemental DMG Bonus matching the wearer (upgraded under Hexerei: Secret Rite)',
+  },
+
+  // Snezhnaya Sets (7.0)
+  {
+    key: 'ScarletProof',
+    name: 'Scarlet Proof',
+    maxRarity: 5,
+    twoPiece: 'ATK +18%',
+    fourPiece: 'After triggering Stellar Swirl, CRIT Rate +16% and Stellar Swirl DMG +40% for 10s',
+  },
+  {
+    key: 'HeartOfTheFurnace',
+    name: 'Heart of the Furnace',
+    maxRarity: 5,
+    twoPiece: 'ATK +18%',
+    fourPiece: 'After triggering Stellar Glimmer, ATK +12% for 12s; party Stellar Glimmer DMG +50% (works off-field)',
   },
 
   // Early Game Sets (4-star max)

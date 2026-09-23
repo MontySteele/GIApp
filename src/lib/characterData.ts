@@ -276,6 +276,9 @@ const CHARACTER_KEY_TO_ID: Record<string, number> = {
   // Version 6.7: Sandrone has no entry yet. Enka's docs repo still lags at
   // 10000124 and the CDN serves no side icon for her under any known name, so
   // an avatarId cannot be verified. Add her mapping once Enka publishes it.
+  // Versions 7.0/7.1: Odette, Alyosha, Vesna, and Vodyanitsa have side icons on
+  // Enka's CDN, but their avatarIds are unpublished and Sandrone's unknown slot
+  // makes sequential extrapolation unreliable. Add them once Enka publishes.
 };
 
 /**

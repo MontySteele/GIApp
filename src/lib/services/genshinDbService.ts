@@ -63,6 +63,8 @@ const LOCAL_SPECIALTIES = new Set([
   'Glowing Hornshroom', 'Withering Purpurbloom', 'Smoking Sunfire Saurian Eye', 'Sacred Chalice\'s Dew',
   // Nod-Krai / newer regions
   'Etherwing Moth', 'Frostlamp Flower', 'Moonfall Silver', 'Pine Amber', 'Portable Bearing', 'Winter Icelea',
+  // Snezhnaya (7.0)
+  'Flockingweed', 'Frostfairy Flower', 'Glaciafruit', 'Lumifluorite', 'Rimecurrant', 'Snowball Flower', 'Golden Fern',
 ]);
 
 /**
@@ -88,6 +90,8 @@ const COMMON_TIER_PATTERNS = {
     'Recruit\'s Insignia', 'Old Handguard',
     // Nod-Krai / newer materials
     'Tattered Warrant', 'Broken Drive Shaft',
+    // Snezhnaya materials (7.0)
+    'Ethereal Glimmershard', 'Chimeric Core',
     // Snezhnaya/Fatui materials (potential future)
     'Fatui Insignia', 'Recruit\'s Insignia',
   ],
@@ -110,6 +114,8 @@ const COMMON_TIER_PATTERNS = {
     'Sergeant\'s Insignia', 'Kageuchi Handguard',
     // Natlan alternate/newer and Nod-Krai materials
     'Warrior\'s Metal Whistle', 'Immaculate Warrant', 'Reinforced Drive Shaft',
+    // Snezhnaya materials (7.0)
+    'Ethereal Crystal', 'Symbiotic Chimeric Nucleus',
   ],
   // Tier 3 (Blue) patterns
   tier3: [
@@ -130,6 +136,8 @@ const COMMON_TIER_PATTERNS = {
     'Lieutenant\'s Insignia', 'Famed Handguard',
     // Natlan alternate/newer and Nod-Krai materials
     'Saurian-Crowned Warrior\'s Golden Whistle', 'Frost-Etched Warrant', 'Precision Drive Shaft',
+    // Snezhnaya materials (7.0)
+    'Ethereal Crystalscale Stone', 'Prime Chimeric Nexus',
   ],
 };
 
@@ -234,6 +242,7 @@ function identifyTalentBookSeries(name: string): {
     Fontaine: ['Equity', 'Justice', 'Order'],
     Natlan: ['Contention', 'Kindling', 'Conflict'],
     'Nod-Krai': ['Moonlight', 'Elysium', 'Vagrancy'],
+    Snezhnaya: ['Charity', 'Fortitude', 'Glory'],
   };
 
   let region = 'Unknown';
