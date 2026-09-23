@@ -134,6 +134,8 @@ describe('cross-reference: CHARACTER_METADATA ↔ CHARACTER_KEY_TO_ID', () => {
     for (const entry of CHARACTER_METADATA) {
       const normalized = entry.key.toLowerCase().replace(/\s+/g, '');
       if (UNRELEASED_CHARACTERS.has(normalized)) continue;
+      // Per-element Traveler keys share the generic Traveler avatar
+      if (normalized.startsWith('traveler')) continue;
 
       const avatarId = getAvatarIdFromKey(entry.key);
       if (avatarId === undefined) {
@@ -181,6 +183,8 @@ describe('cross-reference: CHARACTER_METADATA ↔ CHARACTER_KEY_TO_ID', () => {
     for (const entry of CHARACTER_METADATA) {
       const normalized = entry.key.toLowerCase().replace(/\s+/g, '');
       if (UNRELEASED_CHARACTERS.has(normalized)) continue;
+      // Per-element Traveler keys share the generic Traveler avatar
+      if (normalized.startsWith('traveler')) continue;
 
       const avatarId = getAvatarIdFromKey(entry.key);
       const url = avatarId ? getCharacterPortraitUrl(avatarId) : undefined;

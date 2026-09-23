@@ -125,8 +125,9 @@ export interface EnkaEquip {
   };
 }
 
-// Character ID to Key mapping (simplified - would need full mapping in production)
-const CHARACTER_ID_MAP: { [key: number]: string } = {
+// Character ID to Key mapping. Must agree with CHARACTER_KEY_TO_ID in
+// src/lib/characterData.ts (enforced by enka.test.ts).
+export const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000002: 'Kamisato Ayaka',
   10000003: 'Jean',
   10000005: 'Traveler',
@@ -196,11 +197,11 @@ const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000080: 'Mika',
   10000081: 'Kaveh',
   10000082: 'Baizhu',
-  10000083: 'Kirara',
+  10000083: 'Lynette',
   10000084: 'Lyney',
-  10000085: 'Lynette',
-  10000086: 'Freminet',
-  10000087: 'Wriothesley',
+  10000085: 'Freminet',
+  10000086: 'Wriothesley',
+  10000087: 'Neuvillette',
   10000088: 'Charlotte',
   10000089: 'Furina',
   10000090: 'Chevreuse',
@@ -208,17 +209,17 @@ const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000092: 'Gaming',
   10000093: 'Xianyun',
   10000094: 'Chiori',
-  10000095: 'Arlecchino',
-  10000096: 'Sethos',
-  10000097: 'Clorinde',
-  10000098: 'Sigewinne',
+  10000095: 'Sigewinne',
+  10000096: 'Arlecchino',
+  10000097: 'Sethos',
+  10000098: 'Clorinde',
   10000099: 'Emilie',
   10000100: 'Kachina',
   10000101: 'Kinich',
   10000102: 'Mualani',
   10000103: 'Xilonen',
   10000104: 'Chasca',
-  10000105: 'Olorun',
+  10000105: 'Ororon',
   10000106: 'Mavuika',
   10000107: 'Citlali',
   10000108: 'Lan Yan',
@@ -236,6 +237,14 @@ const CHARACTER_ID_MAP: { [key: number]: string } = {
   10000122: 'Nefer',
   10000123: 'Durin',
   10000124: 'Jahoda',
+  10000125: 'Columbina',
+  10000126: 'Zibai',
+  10000127: 'Illuga',
+  10000128: 'Varka',
+  10000129: 'Linnea',
+  10000130: 'Nicole',
+  10000131: 'Lohen',
+  10000132: 'Prune',
 };
 
 // Weapon ID to name mapping
