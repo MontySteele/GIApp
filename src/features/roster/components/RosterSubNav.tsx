@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Users, Sword, Gem, Layers, UsersRound, Target, Calendar, Skull } from 'lucide-react';
+import { Users, Sword, Gem, Layers, UsersRound, Target, Calendar, Skull, Drama } from 'lucide-react';
 
 const SUB_TABS = [
   { id: 'characters', label: 'Characters', path: '/roster', icon: Users, end: true },
@@ -10,6 +10,7 @@ const SUB_TABS = [
   { id: 'planner', label: 'Progression', path: '/roster/planner', icon: Target, end: false },
   { id: 'domains', label: 'Domains', path: '/roster/domains', icon: Calendar, end: false },
   { id: 'bosses', label: 'Bosses', path: '/roster/bosses', icon: Skull, end: false },
+  { id: 'theater', label: 'Theater', path: '/roster/theater', icon: Drama, end: false },
 ] as const;
 
 export default function RosterSubNav() {

@@ -21,6 +21,7 @@ const TeamsPage = lazy(() => import('@/features/teams/pages/TeamsPage'));
 const TeamDetailPage = lazy(() => import('@/features/teams/pages/TeamDetailPage'));
 const TemplatesTab = lazy(() => import('@/features/teams/pages/TemplatesTab'));
 const BossesTab = lazy(() => import('@/features/teams/pages/BossesTab'));
+const TheaterTab = lazy(() => import('@/features/theater/pages/TheaterTab'));
 const PlannerPage = lazy(() => import('@/features/planner/pages/PlannerPage'));
 const MaterialsTab = lazy(() => import('@/features/planner/pages/MaterialsTab'));
 const DomainsTab = lazy(() => import('@/features/planner/pages/DomainsTab'));
@@ -136,6 +137,10 @@ export const router = createBrowserRouter([
           {
             path: 'bosses',
             element: routeElement(<BossesTab />),
+          },
+          {
+            path: 'theater',
+            element: routeElement(<TheaterTab />),
           },
         ],
       },
