@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION } from '@/lib/constants';
 import { validateBackup, importBackup, type BackupData } from './importService';
+import { appMetaService } from './appMetaService';
+import { WISH_AUTH_SESSION_KEY } from '@/features/wishes/lib/wishSession';
+import type { BuildTemplate } from '@/types';
 import type { InventoryArtifact, InventoryWeapon, MaterialInventory, Character } from '@/types';
 
 // ----- Helpers -----
@@ -361,6 +364,61 @@ describe('importService', () => {
 
       expect(stages).toContain('Importing inventory artifacts...');
       expect(stages).toContain('Complete');
+    });
+  });
+
+  describe('backup completeness', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('never exports credentials or the API cache', async () => {
+      await db.appMeta.put({ key: WISH_AUTH_SESSION_KEY, value: { url: 'https://example/authkey=secret' } });
+      await db.appMeta.put({ key: 'createdAt', value: now });
+      await db.externalCache.put({ id: 'c1', cacheKey: 'k', data: {}, fetchedAt: now, expiresAt: now });
+      localStorage.setItem('hoyolab-import-credentials', JSON.stringify({ uid: '1', cookie: 'ltoken_v2=secret' }));
+      localStorage.setItem('genshin-character-wishlist', '{"state":{"characters":[]}}');
+
+      const backup = await appMetaService.exportBackup();
+      const serialized = JSON.stringify(backup);
+
+      expect(serialized).not.toContain('secret');
+      expect(backup.data.externalCache).toBeUndefined();
+      expect(backup.data.appMeta).toEqual([{ key: 'createdAt', value: now }]);
+      expect(backup.localState).toEqual({ 'genshin-character-wishlist': '{"state":{"characters":[]}}' });
+    });
+
+    it('restores build templates that export already included', async () => {
+      const template = { id: 'bt1', name: 'Hyper', characterKey: 'Furina', updatedAt: now } as unknown as BuildTemplate;
+
+      const result = await importBackup(makeBackup({ buildTemplates: [template] }), 'replace');
+
+      expect(result.stats.buildTemplates.created).toBe(1);
+      expect(await db.buildTemplates.get('bt1')).toMatchObject({ name: 'Hyper' });
+    });
+
+    it('round-trips allowlisted local state and ignores anything else', async () => {
+      const backup = {
+        ...makeBackup({}),
+        localState: {
+          'genshin-character-wishlist': '{"state":{"characters":[{"key":"Furina"}]},"version":0}',
+          'hoyolab-import-credentials': 'should-not-be-written',
+        },
+      };
+
+      const result = await importBackup(backup, 'replace');
+
+      expect(result.localStateKeys).toEqual(['genshin-character-wishlist']);
+      expect(localStorage.getItem('genshin-character-wishlist')).toContain('Furina');
+      expect(localStorage.getItem('hoyolab-import-credentials')).toBeNull();
+    });
+
+    it('keeps local state that already exists when strategy is keep_local', async () => {
+      localStorage.setItem('plannerState', 'local');
+
+      await importBackup({ ...makeBackup({}), localState: { plannerState: 'backup' } }, 'keep_local');
+
+      expect(localStorage.getItem('plannerState')).toBe('local');
     });
   });
 });

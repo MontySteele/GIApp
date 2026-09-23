@@ -1,6 +1,13 @@
 import { db } from '@/db/schema';
 import { APP_SCHEMA_VERSION, BACKUP_REMINDER_DAYS } from '@/lib/constants';
 import { DEFAULT_SETTINGS, useUIStore } from '@/stores/uiStore';
+import { WISH_AUTH_SESSION_KEY } from '@/features/wishes/lib/wishSession';
+import { readLocalState } from '../domain/localState';
+
+// Tables left out of backups: API response cache is rebuilt on demand
+const EXCLUDED_BACKUP_TABLES = new Set(['externalCache']);
+// appMeta rows that hold credentials and must never leave the device
+const EXCLUDED_APP_META_KEYS = new Set([WISH_AUTH_SESSION_KEY]);
 
 export interface AppMetaStatus {
   createdAt?: string;
@@ -104,13 +111,18 @@ export const appMetaService = {
     const payload: Record<string, unknown> = {};
 
     for (const table of db.tables) {
-      payload[table.name] = await table.toArray();
+      if (EXCLUDED_BACKUP_TABLES.has(table.name)) continue;
+      const rows = await table.toArray();
+      payload[table.name] = table.name === 'appMeta'
+        ? (rows as Array<{ key: string }>).filter((row) => !EXCLUDED_APP_META_KEYS.has(row.key))
+        : rows;
     }
 
     return {
       exportedAt: new Date().toISOString(),
       schemaVersion: APP_SCHEMA_VERSION,
       data: payload,
+      localState: readLocalState(),
     };
   },
 };

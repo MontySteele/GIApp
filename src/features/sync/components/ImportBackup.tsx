@@ -413,6 +413,12 @@ export default function ImportBackup({ onImportComplete }: ImportBackupProps) {
                   </span>
                 </div>
               ))}
+              {importResult.localStateKeys.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Wishlist and settings:</span>
+                  <span className="text-slate-300">{importResult.localStateKeys.length} restored</span>
+                </div>
+              )}
             </div>
           </details>
 

@@ -19,6 +19,7 @@ vi.mock('../services/importService', async (importOriginal) => {
 function createImportResult(): ImportResult {
   return {
     success: true,
+    localStateKeys: [],
     warnings: [],
     errors: [],
     stats: {
@@ -54,6 +55,7 @@ describe('ImportBackup', () => {
     vi.mocked(validateBackup).mockReturnValue({
       valid: true,
       errors: [],
+      localStateKeys: [],
       warnings: [],
       backupInfo: {
         exportedAt: '2026-05-01T00:00:00.000Z',
