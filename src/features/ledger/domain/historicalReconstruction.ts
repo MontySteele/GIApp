@@ -676,12 +676,6 @@ export interface IncomeRateDataPoint {
 }
 
 /**
- * Account start date for income estimation when no snapshots exist
- * This is used to estimate minimum income from wish history
- */
-export const ACCOUNT_START_DATE = '2025-10-29';
-
-/**
  * Cumulative "earned" function anchored at a snapshot. Invariant:
  *   earned(t) = snapshotTotal(t) + pullsBefore(t)*160 + |cosmeticBefore(t)| - purchasesBefore(t)
  * Because `snapshotTotal` already reflects the impact of wishes (fates consumed),
@@ -826,20 +820,16 @@ export function calculateIncomeRateTrend(
   const sortedPurchases = purchaseTimes.map(p => p.item);
   const purchaseTimeMap = new Map(purchaseTimes.map(p => [p.item, p.time]));
 
-  // Determine date range
-  const accountStart = parseISO(ACCOUNT_START_DATE);
+  // The trend starts at the user's earliest wish or snapshot (pre-parsed times)
   const now = new Date();
-
-  // Find earliest date from wishes or snapshots (use pre-parsed times)
   const firstWishDate = sortedAllWishes[0] ? new Date(allWishTimeMap.get(sortedAllWishes[0])!) : null;
   const firstSnapshotDate = sortedSnapshots[0] ? new Date(snapshotTimeMap.get(sortedSnapshots[0])!) : null;
 
-  let startDate = accountStart;
-  if (firstWishDate && isBefore(firstWishDate, startDate)) {
-    startDate = firstWishDate;
-  }
-  if (firstSnapshotDate && isBefore(firstSnapshotDate, startDate)) {
-    startDate = firstSnapshotDate;
+  const startDate = firstWishDate && firstSnapshotDate
+    ? (isBefore(firstWishDate, firstSnapshotDate) ? firstWishDate : firstSnapshotDate)
+    : firstWishDate ?? firstSnapshotDate;
+  if (!startDate) {
+    return [];
   }
 
   // Precompute the cumulative earned function anchored at each snapshot.

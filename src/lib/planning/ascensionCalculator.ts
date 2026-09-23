@@ -13,8 +13,13 @@ import {
   CHARACTER_EXP_REQUIREMENTS,
   MORA_PER_CHARACTER_EXP,
   RESIN_COSTS,
+  RESIN_REGEN,
   DOMAIN_DROPS_PER_RUN,
+  BOSS_DROPS_PER_RUN,
+  DISCOUNTED_WEEKLY_BOSSES_PER_WEEK,
+  LEY_LINE_REWARDS,
   MATERIAL_CONVERSION_RATE,
+  domainRunsForTiers,
 } from './materialConstants';
 import { getCharacterMaterials } from '@/lib/services/genshinDbService';
 import { findInventoryKey } from '@/lib/utils/materialNormalization';
@@ -246,16 +251,16 @@ export function estimateResinCost(summary: {
 }): number {
   let resin = 0;
 
-  // World boss runs (40 resin each, ~2-3 mats per run)
-  resin += Math.ceil(summary.bossMat / 2.5) * RESIN_COSTS.worldBoss;
+  // World boss runs (40 resin each)
+  resin += Math.ceil(summary.bossMat / BOSS_DROPS_PER_RUN.worldBossMat) * RESIN_COSTS.worldBoss;
 
   // Talent domain runs
   resin += summary.talentDomainRuns * RESIN_COSTS.domainRun;
 
-  // EXP ley lines (average ~4.5 Hero's Wit per run)
+  // EXP ley lines
   resin += summary.expLeyLines * RESIN_COSTS.leyLine;
 
-  // Mora ley lines (average ~60k per run)
+  // Mora ley lines
   resin += summary.moraLeyLines * RESIN_COSTS.leyLine;
 
   return resin;
@@ -590,38 +595,29 @@ export async function calculateAscensionSummary(
   // Add API-sourced materials
   materials.push(...apiMaterials);
 
-  // Estimate resin - broken down by category
-  // For talent domains: each run gives ALL tiers of books, so we need to find the bottleneck
-  // Convert everything to "purple equivalent" using 3:1 craft ratio
-  const books0 = talentMats.books[0] ?? 0; // green (teachings)
-  const books1 = talentMats.books[1] ?? 0; // blue (guides)
-  const books2 = talentMats.books[2] ?? 0; // purple (philosophies)
+  // Estimate resin from what's still missing. Each talent domain run drops all
+  // book tiers, so deficits are compared in crafting-equivalent units.
+  const deficitFor = (category: MaterialCategory, tier?: number) =>
+    materials
+      .filter((m) => m.category === category && (tier === undefined || m.tier === tier))
+      .reduce((sum, m) => sum + m.deficit, 0);
 
-  // Convert to purple equivalent (9 green = 3 blue = 1 purple via crafting)
-  const purpleEquivNeeded =
-    (books0 / 9) + // green → purple (2 crafting steps)
-    (books1 / 3) + // blue → purple (1 crafting step)
-    books2;        // purple
+  const talentDomainRuns = domainRunsForTiers(
+    [deficitFor('talent', 1), deficitFor('talent', 2), deficitFor('talent', 3)],
+    [
+      DOMAIN_DROPS_PER_RUN.talentBooks.green,
+      DOMAIN_DROPS_PER_RUN.talentBooks.blue,
+      DOMAIN_DROPS_PER_RUN.talentBooks.purple,
+    ]
+  );
 
-  // Purple equivalent per run at AR55+ level 90 domains
-  const purpleEquivPerRun =
-    (DOMAIN_DROPS_PER_RUN.talentBooks.green / 9) +
-    (DOMAIN_DROPS_PER_RUN.talentBooks.blue / 3) +
-    DOMAIN_DROPS_PER_RUN.talentBooks.purple;
+  const adjustedExpLeyLines = Math.max(0, Math.ceil(expDeficit / LEY_LINE_REWARDS.expPerRun));
+  const moraLeyLines = Math.ceil(Math.max(0, totalMora - ownedMora) / LEY_LINE_REWARDS.moraPerRun);
 
-  const talentDomainRuns = Math.ceil(purpleEquivNeeded / purpleEquivPerRun);
-
-  // Calculate ley line runs needed based on EXP deficit (accounting for all book types)
-  // Average ~4.5 Hero's Wit equivalent per run (90,000 EXP)
-  const expPerLeyLineRun = 4.5 * EXP_BOOK_VALUES.herosWit; // 90,000 EXP per run
-  const adjustedExpLeyLines = Math.max(0, Math.ceil(expDeficit / expPerLeyLineRun));
-  const moraLeyLines = Math.ceil(Math.max(0, totalMora - ownedMora) / 60000);
+  const worldBossRuns = Math.ceil(deficitFor('boss') / BOSS_DROPS_PER_RUN.worldBossMat);
+  const weeklyBossRuns = Math.ceil(deficitFor('weekly') / BOSS_DROPS_PER_RUN.weeklySpecificMat);
 
   // Calculate resin breakdown
-  // Talents/Boss: talent domain runs + world boss runs + weekly boss runs
-  const worldBossRuns = Math.ceil(ascensionMats.bossMat / 2.5);
-  const weeklyBossRuns = Math.ceil(talentMats.weeklyBoss / 2.5); // ~2-3 mats per weekly boss
-
   const talentBossResin =
     (talentDomainRuns * RESIN_COSTS.domainRun) +
     (worldBossRuns * RESIN_COSTS.worldBoss) +
@@ -639,7 +635,11 @@ export async function calculateAscensionSummary(
     total: estimatedResin,
   };
 
-  const estimatedDays = Math.ceil(estimatedResin / 180); // 180 resin per day
+  // Weekly bosses are capped at 3 discounted claims per week
+  const estimatedDays = Math.max(
+    Math.ceil(estimatedResin / RESIN_REGEN.perDay),
+    Math.ceil(weeklyBossRuns / DISCOUNTED_WEEKLY_BOSSES_PER_WEEK) * 7
+  );
 
   // Check if can ascend (all deficits are 0)
   const canAscend = materials.every((m) => m.deficit === 0);

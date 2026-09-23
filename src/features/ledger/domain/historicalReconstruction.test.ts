@@ -43,6 +43,18 @@ function makeWish(timestamp: string, bannerType: BannerType = 'character', id?: 
 }
 
 describe('calculateIncomeRateTrend', () => {
+  it("starts at the user's earliest data instead of a fixed account date", () => {
+    const first = makeSnapshot({ id: 'first', timestamp: '2026-03-16T00:00:00.000Z', primogems: 1000 });
+    const second = makeSnapshot({ id: 'second', timestamp: '2026-03-25T00:00:00.000Z', primogems: 2000 });
+
+    const result = calculateIncomeRateTrend([first, second], [], [], true);
+
+    expect(result.length).toBeGreaterThan(0);
+    // The first period is the one containing the first snapshot (banner periods are 3 weeks)
+    expect(result[0]!.periodStart >= '2026-02-20').toBe(true);
+    expect(result[0]!.periodStart <= '2026-03-16').toBe(true);
+  });
+
   describe('boundary bracketing', () => {
     it('includes end-of-period wishes even when the nearest snapshot precedes them', () => {
       // Regression guard: before the interpolation refactor, the algorithm picked

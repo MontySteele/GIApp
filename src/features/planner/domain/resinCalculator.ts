@@ -9,6 +9,9 @@ import {
   RESIN_REGEN,
   RESIN_COSTS,
   DOMAIN_DROPS_PER_RUN,
+  BOSS_DROPS_PER_RUN,
+  LEY_LINE_REWARDS,
+  EXP_BOOK_VALUES,
 } from './materialConstants';
 
 export interface FarmingGoal {
@@ -139,7 +142,7 @@ export function createBossGoal(
     name,
     targetAmount: targetDrops,
     currentAmount: currentDrops,
-    dropsPerRun: 2.5, // Average drops per world boss run
+    dropsPerRun: BOSS_DROPS_PER_RUN.worldBossMat,
     resinCost: RESIN_COSTS.worldBoss,
   };
 }
@@ -158,7 +161,7 @@ export function createWeeklyBossGoal(
     name,
     targetAmount: targetDrops,
     currentAmount: currentDrops,
-    dropsPerRun: 1, // Guaranteed 1 selected material per run with dream solvent
+    dropsPerRun: BOSS_DROPS_PER_RUN.weeklySpecificMat,
     resinCost: RESIN_COSTS.weeklyBoss,
   };
 }
@@ -173,7 +176,7 @@ export function createMoraGoal(targetMora: number, currentMora: number): Farming
     name: 'Mora (Ley Line)',
     targetAmount: targetMora,
     currentAmount: currentMora,
-    dropsPerRun: 60000, // Average mora per ley line
+    dropsPerRun: LEY_LINE_REWARDS.moraPerRun,
     resinCost: RESIN_COSTS.leyLine,
   };
 }
@@ -188,7 +191,7 @@ export function createExpGoal(targetExp: number, currentExp: number): FarmingGoa
     name: "EXP (Ley Line)",
     targetAmount: targetExp,
     currentAmount: currentExp,
-    dropsPerRun: 4.5, // Average Hero's Wit per run
+    dropsPerRun: LEY_LINE_REWARDS.expPerRun / EXP_BOOK_VALUES.herosWit, // Hero's Wit equivalents
     resinCost: RESIN_COSTS.leyLine,
   };
 }
