@@ -14,28 +14,14 @@ const runtimeCaching: NonNullable<NonNullable<VitePWAOptions['workbox']>['runtim
         maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
       }
     }
-  },
-  {
-    urlPattern: /^https?:\/\/(?:enka\.network|corsproxy\.io|[^/]*hoyoverse\.com|[^/]*mihoyo\.com)\/.*$/i,
-    handler: 'NetworkFirst',
-    options: {
-      cacheName: 'imports-network-first',
-      networkTimeoutSeconds: 5,
-      cacheableResponse: {
-        statuses: [0, 200]
-      },
-    
-      expiration: {
-        maxEntries: 50,
-        maxAgeSeconds: 60 * 60 * 24 // 24 hours
-      }
-    }
   }
+  // Import APIs (Enka, HoYoverse) are deliberately not cached: responses can
+  // carry authkeys or account data, and imports should always be fresh.
 ]
 
 export const pwaConfig: VitePWAOptions = {
   registerType: 'autoUpdate',
-  includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+  includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon.png', 'mask-icon.svg'],
   manifest: {
     name: 'Genshin Progress Tracker',
     short_name: 'Genshin Tracker',
@@ -53,6 +39,12 @@ export const pwaConfig: VitePWAOptions = {
         src: 'pwa-512x512.png',
         sizes: '512x512',
         type: 'image/png'
+      },
+      {
+        src: 'pwa-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable'
       }
     ]
   },

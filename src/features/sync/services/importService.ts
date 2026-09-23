@@ -18,7 +18,13 @@ import type {
   InventoryWeapon,
   MaterialInventory,
   Campaign,
+  BuildTemplate,
+  AbyssRun,
+  ImportRecord,
 } from '@/types';
+import { useWishlistStore } from '@/stores/wishlistStore';
+import { useUIStore } from '@/stores/uiStore';
+import { restoreLocalState } from '../domain/localState';
 
 // ----- TYPES -----
 
@@ -42,8 +48,13 @@ export interface BackupData {
     inventoryWeapons?: InventoryWeapon[];
     materialInventory?: MaterialInventory[];
     campaigns?: Campaign[];
+    buildTemplates?: BuildTemplate[];
+    abyssRuns?: AbyssRun[];
+    importRecords?: ImportRecord[];
     // Intentionally not importing: externalCache, appMeta
   };
+  // Allowlisted localStorage entries (wishlist, target progress, settings)
+  localState?: Record<string, string>;
 }
 
 export interface ImportResult {
@@ -63,7 +74,11 @@ export interface ImportResult {
     inventoryWeapons: { created: number; updated: number; skipped: number };
     materialInventory: { created: number; updated: number; skipped: number };
     campaigns: { created: number; updated: number; skipped: number };
+    buildTemplates: { created: number; updated: number; skipped: number };
+    abyssRuns: { created: number; updated: number; skipped: number };
+    importRecords: { created: number; updated: number; skipped: number };
   };
+  localStateKeys: string[];
   warnings: string[];
   errors: string[];
 }
@@ -294,7 +309,11 @@ export async function importBackup(
       inventoryWeapons: { created: 0, updated: 0, skipped: 0 },
       materialInventory: { created: 0, updated: 0, skipped: 0 },
       campaigns: { created: 0, updated: 0, skipped: 0 },
+      buildTemplates: { created: 0, updated: 0, skipped: 0 },
+      abyssRuns: { created: 0, updated: 0, skipped: 0 },
+      importRecords: { created: 0, updated: 0, skipped: 0 },
     },
+    localStateKeys: [],
     warnings: [],
     errors: [],
   };
@@ -315,6 +334,9 @@ export async function importBackup(
     'inventoryWeapons',
     'materialInventory',
     'campaigns',
+    'buildTemplates',
+    'abyssRuns',
+    'importRecords',
   ];
   let stageIndex = 0;
 
@@ -441,7 +463,34 @@ export async function importBackup(
         onProgress?.('Importing targets...', (stageIndex / stages.length) * 100);
         result.stats.campaigns = await mergeTable('campaigns', data.campaigns, strategy);
       }
+      stageIndex++;
+
+      // Build Templates
+      if (data.buildTemplates?.length) {
+        onProgress?.('Importing build templates...', (stageIndex / stages.length) * 100);
+        result.stats.buildTemplates = await mergeTable('buildTemplates', data.buildTemplates, strategy);
+      }
+      stageIndex++;
+
+      // Abyss Runs
+      if (data.abyssRuns?.length) {
+        onProgress?.('Importing abyss runs...', (stageIndex / stages.length) * 100);
+        result.stats.abyssRuns = await mergeTable('abyssRuns', data.abyssRuns, strategy);
+      }
+      stageIndex++;
+
+      // Import history
+      if (data.importRecords?.length) {
+        onProgress?.('Importing import history...', (stageIndex / stages.length) * 100);
+        result.stats.importRecords = await mergeTable('importRecords', data.importRecords, strategy);
+      }
     });
+
+    // localStorage isn't transactional, so restore it only after the database commits
+    result.localStateKeys = restoreLocalState(backup.localState, strategy);
+    if (result.localStateKeys.length > 0) {
+      await Promise.all([useWishlistStore.persist.rehydrate(), useUIStore.persist.rehydrate()]);
+    }
 
     onProgress?.('Complete', 100);
   } catch (error) {
