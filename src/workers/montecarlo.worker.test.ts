@@ -140,4 +140,44 @@ describe('montecarlo worker', () => {
       bannerType: 'chronicled',
     });
   });
+
+  describe('weapon banner', () => {
+    const weaponTarget = {
+      id: 'weapon-target',
+      characterKey: 'Signature Weapon',
+      expectedStartDate: '2026-01-01T00:00:00.000Z',
+      expectedEndDate: '2026-01-01T00:00:00.000Z',
+      priority: 1,
+      maxPullBudget: null,
+      isConfirmed: true,
+      notes: '',
+      createdAt: '',
+      updatedAt: '',
+      bannerType: 'weapon' as const,
+      copiesNeeded: 1,
+    };
+
+    // One pull at hard pity, so the result only depends on which 5-star drops
+    const runAtHardPity = (fatePoints: number) =>
+      runSimulation(
+        createBaseInput({
+          startingPulls: 1,
+          targets: [weaponTarget],
+          perTargetStates: [{ pity: 76, guaranteed: false, radiantStreak: 0, fatePoints }],
+          config: { iterations: 4000, seed: 7, chunkSize: 4000 },
+        })
+      );
+
+    it('guarantees the chosen weapon with one fate point', async () => {
+      const result = await runAtHardPity(1);
+
+      expect(result.perCharacter[0]!.constellations[0]!.probability).toBe(1);
+    });
+
+    it('gives the chosen weapon about 37.5% of the time without fate points', async () => {
+      const result = await runAtHardPity(0);
+
+      expect(result.perCharacter[0]!.constellations[0]!.probability).toBeCloseTo(0.375, 1);
+    });
+  });
 });

@@ -15,11 +15,17 @@ export function getPullProbability(pity: number, rules: GachaRules): number {
   return Math.min(1.0, rules.baseRate + softPityPulls * rules.softPityRateIncrease);
 }
 
+// Weapon banner: 75% featured, then 50% that it is the chosen weapon
+export const WEAPON_CHOSEN_PROBABILITY = 0.75 * 0.5;
+
 /**
- * Calculate featured character probability (50/50 or Capturing Radiance)
- * Base rate is 55% (not 50%), with 100% guarantee after 3 consecutive losses
+ * Calculate featured probability for a non-guaranteed 5-star.
+ * Character: 55% (Capturing Radiance), 100% after 3 consecutive losses.
+ * Weapon: 37.5% for the chosen weapon; with 1 max fate point, any miss
+ * makes the next 5-star guaranteed, so callers model fate points as `guaranteed`.
  */
 export function getFeaturedProbability(radiantStreak: number, rules: GachaRules): number {
+  if (rules.hasFatePoints) return WEAPON_CHOSEN_PROBABILITY;
   if (!rules.hasCapturingRadiance) return 0.5;
 
   // Capturing Radiance activates after losing 50/50 three times consecutively
@@ -63,20 +69,20 @@ export function simulatePull(
 
   // Got a 5-star!
   if (isGuaranteed) {
-    // Guaranteed featured
+    // Guaranteed featured. The loss streak only resets on a won 50/50.
     return {
       got5Star: true,
       wasFeatured: true,
       newPity: 0,
       newGuaranteed: false,
-      newRadiantStreak: 0,
+      newRadiantStreak: radiantStreak,
       triggeredRadiance: false,
     };
   }
 
   // 50/50 or Capturing Radiance
   const featuredProb = getFeaturedProbability(radiantStreak, rules);
-  const triggeredRadiance = radiantStreak >= (rules.radianceThreshold || 2);
+  const triggeredRadiance = Boolean(rules.hasCapturingRadiance) && radiantStreak >= (rules.radianceThreshold || 3);
   const wasFeatured = rng() < featuredProb;
 
   return {

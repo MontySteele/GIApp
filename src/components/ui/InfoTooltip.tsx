@@ -155,7 +155,7 @@ export const GACHA_TOOLTIPS = {
   fatePoints: (
     <div className="space-y-1">
       <p className="font-medium text-blue-400">Epitomized Path</p>
-      <p>Choose a featured weapon. Each off-path 5-star weapon gives 1 Fate Point. At 2 points, the next 5-star is guaranteed to be your chosen weapon.</p>
+      <p>Choose a featured weapon. Featured weapons make up 75% of 5-stars. Any 5-star that isn't your chosen weapon gives 1 Fate Point, and at 1 point the next 5-star is guaranteed to be your chosen weapon.</p>
     </div>
   ),
 

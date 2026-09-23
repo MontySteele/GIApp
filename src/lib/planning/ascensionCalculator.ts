@@ -11,6 +11,7 @@ import {
   TALENT_LEVEL_COSTS,
   EXP_BOOK_VALUES,
   CHARACTER_EXP_REQUIREMENTS,
+  MORA_PER_CHARACTER_EXP,
   RESIN_COSTS,
   DOMAIN_DROPS_PER_RUN,
   MATERIAL_CONVERSION_RATE,
@@ -209,8 +210,9 @@ export function calculateTalentMaterials(
  * Calculate EXP books needed between levels
  */
 export function calculateExpNeeded(fromLevel: number, toLevel: number): number {
-  const fromExp = CHARACTER_EXP_REQUIREMENTS[fromLevel] || 0;
-  const toExp = CHARACTER_EXP_REQUIREMENTS[toLevel] || CHARACTER_EXP_REQUIREMENTS[90] || 0;
+  const clampLevel = (level: number) => Math.min(90, Math.max(1, Math.floor(level)));
+  const fromExp = CHARACTER_EXP_REQUIREMENTS[clampLevel(fromLevel)] ?? 0;
+  const toExp = CHARACTER_EXP_REQUIREMENTS[clampLevel(toLevel)] ?? 0;
   return Math.max(0, toExp - fromExp);
 }
 
@@ -411,27 +413,25 @@ async function buildMaterialsWithApiData(
     }
   });
 
-  // Add talent common materials (if different from ascension)
-  if (characterData?.talentMaterials?.common?.baseName) {
-    const talentCommon = characterData.talentMaterials.common;
-    const tiers = [talentCommon.byTier?.gray ?? 0, talentCommon.byTier?.green ?? 0, talentCommon.byTier?.blue ?? 0];
-
-    tiers.forEach((amt, tier) => {
-      const tierInfo = commonTierInfo[tier];
-      if (amt > 0 && tierInfo) {
-        // Use actual tier names from API data if available (with defensive checks)
-        const actualName = talentCommon.tierNames?.[tierInfo.key];
-        const materialName = actualName || `${talentCommon.baseName} (${tierInfo.label})`;
-        addMaterial(
-          materialName,
-          materialName,
-          'common',
-          amt,
-          tier + 1
-        );
-      }
-    });
-  }
+  // Add talent common materials for the requested talent levels. The API's
+  // byTier counts are full 1->10 totals, so only its names are used here.
+  const talentCommon = characterData?.talentMaterials?.common;
+  const ascensionCommon = characterData?.ascensionMaterials?.common;
+  talentMats.commonMat.forEach((amt, tier) => {
+    const tierInfo = commonTierInfo[tier];
+    if (amt > 0 && tierInfo) {
+      const actualName = talentCommon?.tierNames?.[tierInfo.key] ?? ascensionCommon?.tierNames?.[tierInfo.key];
+      const fallbackName = talentCommon?.baseName || ascensionCommon?.baseName || 'Common Material';
+      const materialName = actualName || `${fallbackName} (${tierInfo.label})`;
+      addMaterial(
+        materialName,
+        materialName,
+        'common',
+        amt,
+        tier + 1
+      );
+    }
+  });
 
   // Add weekly boss material
   if (talentMats.weeklyBoss > 0) {
@@ -528,7 +528,7 @@ export async function calculateAscensionSummary(
   const herosWitDeficit = Math.ceil(expDeficit / EXP_BOOK_VALUES.herosWit);
 
   // Total mora (ascension + talents + leveling)
-  const levelingMora = Math.round(expNeeded * 0.1); // ~10% of EXP value in mora
+  const levelingMora = Math.round(expNeeded * MORA_PER_CHARACTER_EXP);
   const totalMora = ascensionMats.mora + talentMats.mora + levelingMora;
 
   // Build materials list with API data

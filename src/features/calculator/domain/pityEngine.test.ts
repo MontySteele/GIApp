@@ -76,9 +76,13 @@ describe('pityEngine', () => {
     });
 
     it('should return 0.5 for banners without Capturing Radiance', () => {
-      const weaponRules = GACHA_RULES.weapon;
-      const prob = getFeaturedProbability(5, weaponRules);
-      expect(prob).toBe(0.5); // Weapon banner doesn't have Capturing Radiance
+      const prob = getFeaturedProbability(5, GACHA_RULES.chronicled);
+      expect(prob).toBe(0.5);
+    });
+
+    it('should return 37.5% for the chosen weapon (75/25, then 50/50)', () => {
+      const prob = getFeaturedProbability(0, GACHA_RULES.weapon);
+      expect(prob).toBe(0.375);
     });
   });
 
@@ -114,6 +118,15 @@ describe('pityEngine', () => {
       expect(result.wasFeatured).toBe(true);
       expect(result.newGuaranteed).toBe(false);
       expect(result.newRadiantStreak).toBe(0);
+    });
+
+    it('keeps the lost-50/50 streak through a guaranteed win', () => {
+      const mockRng = () => 0.001;
+
+      const result = simulatePull(0, true, 2, characterRules, mockRng);
+
+      expect(result.wasFeatured).toBe(true);
+      expect(result.newRadiantStreak).toBe(2);
     });
 
     it('should handle 50/50 win', () => {

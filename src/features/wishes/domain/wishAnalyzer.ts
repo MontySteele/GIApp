@@ -114,7 +114,7 @@ function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): 
       const isFeatured = wish.isFeatured;
       const resolvedFeatured = isFeatured ?? wasGuaranteed ?? true;
       const triggeredRadiance =
-        rules.hasCapturingRadiance && radiantStreak >= (rules.radianceThreshold || 2);
+        rules.hasCapturingRadiance && radiantStreak >= (rules.radianceThreshold || 3);
 
       fiveStarPulls.push({
         ...wish,
@@ -127,7 +127,8 @@ function replayWishHistory(history: WishHistoryItem[], bannerType: BannerType): 
       if (bannerType === 'character' || bannerType === 'chronicled') {
         if (resolvedFeatured) {
           guaranteed = false;
-          radiantStreak = 0;
+          // A guaranteed win doesn't break the lost-50/50 streak
+          if (!wasGuaranteed) radiantStreak = 0;
         } else {
           guaranteed = true;
           if (rules.hasCapturingRadiance) {

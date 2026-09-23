@@ -25,17 +25,17 @@ describe('target wizard preview', () => {
     expect(preview).toMatchObject({
       canCreate: true,
       title: 'Get Furina',
-      summary: '58% hard-pity coverage',
+      summary: '29% hard-pity coverage',
       desiredCopies: 1,
-      pullShortfall: 38,
-      pullsPerDay: 1.3,
-      readinessPercent: 58,
+      pullShortfall: 128,
+      pullsPerDay: 4.3,
+      readinessPercent: 29,
       createHref: '/campaigns?type=character-acquisition&character=Furina&buildGoal=comfortable&copies=1&deadline=2026-06-10&pullPlan=1',
     });
     expect(preview.calculatorHref).toContain('/pulls/calculator?');
     expect(preview.adviceRows).toEqual([
-      'Worst case: you need 38 more pulls before the banner target.',
-      '1.3 pulls/day until your deadline.',
+      'Worst case: you need 128 more pulls before the banner target.',
+      '4.3 pulls/day until your deadline.',
       'Manual mode is enough to start; importing wish history can refine the odds later.',
     ]);
   });
@@ -74,7 +74,7 @@ describe('target wizard preview', () => {
     });
 
     expect(preview.desiredCopies).toBe(2);
-    expect(preview.pullShortfall).toBe(155);
+    expect(preview.pullShortfall).toBe(335);
     expect(preview.adviceRows).toContain('Budget warning: 80 pulls is below the current hard-pity shortfall.');
   });
 

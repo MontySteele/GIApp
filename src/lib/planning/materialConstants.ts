@@ -25,27 +25,36 @@ export const RESIN_REGEN = {
   fragileResin: 60, // Resin gained per fragile resin
 } as const;
 
-// Character EXP requirements per level
-export const CHARACTER_EXP_REQUIREMENTS: Record<number, number> = {
-  1: 0,
-  20: 120175,
-  40: 578325,
-  50: 1195925,
-  60: 2092530,
-  70: 3423125,
-  80: 5189400,
-  90: 8362650,
-};
+// Cumulative character EXP needed to reach each level from level 1
+// (index 0 = level 1). Source: AvatarLevelExcelConfigData.
+const CUMULATIVE_CHARACTER_EXP = [
+  0, 1000, 2325, 4025, 6175, 8800, 11950, 15675, 20025, 25025,
+  30725, 37175, 44400, 52450, 61375, 71200, 81950, 93675, 106400, 120175,
+  135050, 151850, 169850, 189100, 209650, 231525, 254775, 279425, 305525, 333100,
+  362200, 392850, 425100, 458975, 494525, 531775, 570750, 611500, 654075, 698500,
+  744800, 795425, 848125, 902900, 959800, 1018875, 1080150, 1143675, 1209475, 1277600,
+  1348075, 1424575, 1503625, 1585275, 1669550, 1756500, 1846150, 1938550, 2033725, 2131725,
+  2232600, 2341550, 2453600, 2568775, 2687100, 2808625, 2933400, 3061475, 3192875, 3327650,
+  3465825, 3614525, 3766900, 3922975, 4082800, 4246400, 4413825, 4585125, 4760350, 4939525,
+  5122700, 5338925, 5581950, 5855050, 6161850, 6506450, 6893400, 7327825, 7815450, 8362650,
+] as const;
 
-// Character ascension material costs (cumulative from level 1)
+export const CHARACTER_EXP_REQUIREMENTS: Record<number, number> = Object.fromEntries(
+  CUMULATIVE_CHARACTER_EXP.map((exp, index) => [index + 1, exp])
+);
+
+// Leveling costs 1 Mora per 5 character EXP
+export const MORA_PER_CHARACTER_EXP = 0.2;
+
+// Character ascension material costs per phase (A0->A1 is index 0)
 // Format: [level cap, mora, boss drops, local specialty, common enemy mats (by tier), gems (by tier)]
 export const CHARACTER_ASCENSION_COSTS = [
   { level: 20, mora: 20000, bossMat: 0, localSpecialty: 3, commonMat: [3, 0, 0], gem: [1, 0, 0, 0] },
-  { level: 40, mora: 40000, bossMat: 2, localSpecialty: 10, commonMat: [15, 0, 0], gem: [3, 0, 0, 0] },
-  { level: 50, mora: 60000, bossMat: 4, localSpecialty: 20, commonMat: [15, 12, 0], gem: [6, 3, 0, 0] },
-  { level: 60, mora: 80000, bossMat: 8, localSpecialty: 30, commonMat: [15, 18, 0], gem: [6, 6, 0, 0] },
-  { level: 70, mora: 100000, bossMat: 12, localSpecialty: 45, commonMat: [15, 18, 12], gem: [6, 9, 0, 0] },
-  { level: 80, mora: 120000, bossMat: 20, localSpecialty: 60, commonMat: [15, 18, 24], gem: [6, 9, 6, 0] },
+  { level: 40, mora: 40000, bossMat: 2, localSpecialty: 10, commonMat: [15, 0, 0], gem: [0, 3, 0, 0] },
+  { level: 50, mora: 60000, bossMat: 4, localSpecialty: 20, commonMat: [0, 12, 0], gem: [0, 6, 0, 0] },
+  { level: 60, mora: 80000, bossMat: 8, localSpecialty: 30, commonMat: [0, 18, 0], gem: [0, 0, 3, 0] },
+  { level: 70, mora: 100000, bossMat: 12, localSpecialty: 45, commonMat: [0, 0, 12], gem: [0, 0, 6, 0] },
+  { level: 80, mora: 120000, bossMat: 20, localSpecialty: 60, commonMat: [0, 0, 24], gem: [0, 0, 0, 6] },
   { level: 90, mora: 0, bossMat: 0, localSpecialty: 0, commonMat: [0, 0, 0], gem: [0, 0, 0, 0] }, // No ascension at 90
 ];
 

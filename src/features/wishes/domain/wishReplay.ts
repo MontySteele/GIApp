@@ -114,7 +114,7 @@ function handleWeaponWish(
   chartedWeapon: string | null
 ) {
   const pityCount = state.weapon.pity + 1;
-  const maxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 2;
+  const maxFatePoints = GACHA_RULES.weapon?.maxFatePoints ?? 1;
   const wasGuaranteed = state.weapon.fatePoints >= maxFatePoints;
 
   state.weapon.chartedWeapon = chartedWeapon;

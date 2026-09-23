@@ -38,7 +38,7 @@ export const GACHA_RULES: Record<string, GachaRules> = {
     softPityRateIncrease: 0.07,
     hasCapturingRadiance: false,
     hasFatePoints: true,
-    maxFatePoints: 2,
+    maxFatePoints: 1, // Epitomized Path needs 1 point since 5.0
   },
   standard: {
     version: '1.0+',

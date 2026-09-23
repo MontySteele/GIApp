@@ -233,8 +233,8 @@ export function MultiTargetCalculator() {
       if (target.bannerType === 'character' && (target.radiantStreak < 0 || target.radiantStreak > 3)) {
         newErrors.set(`radiant-${target.id}`, 'Radiant streak should be 0-2');
       }
-      if (target.bannerType === 'weapon' && (target.fatePoints < 0 || target.fatePoints > 2)) {
-        newErrors.set(`fatePoints-${target.id}`, 'Fate points should be 0-2');
+      if (target.bannerType === 'weapon' && (target.fatePoints < 0 || target.fatePoints > 1)) {
+        newErrors.set(`fatePoints-${target.id}`, 'Fate points should be 0-1');
       }
       if (target.constellation < 0 || target.constellation > 6) {
         newErrors.set(`constellation-${target.id}`, 'Constellation must be C0-C6');
