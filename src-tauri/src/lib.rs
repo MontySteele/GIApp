@@ -1,3 +1,4 @@
+mod hoyolab_fetcher;
 mod log_parser;
 mod wish_fetcher;
 
@@ -27,6 +28,16 @@ async fn fetch_wish_history(
     fetch_all_wishes(&url, selected_banners).await
 }
 
+/// Fetch full character details from the HoYoLAB Battle Chronicle API
+#[tauri::command]
+async fn fetch_hoyolab_characters(
+    uid: String,
+    server: String,
+    cookie: String,
+) -> Result<serde_json::Value, String> {
+    hoyolab_fetcher::fetch_characters(&uid, &server, &cookie).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -45,6 +56,7 @@ pub fn run() {
         extract_wish_url,
         get_log_file_path,
         fetch_wish_history,
+        fetch_hoyolab_characters,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

@@ -1,10 +1,10 @@
 import { lazy, Suspense, useCallback, useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, Download, Edit3, Eye, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Cloud, Download, Edit3, Eye, type LucideIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import type { Character } from '@/types';
 
-export type AddModalView = 'options' | 'manual' | 'enka' | 'good' | 'irminsul';
+export type AddModalView = 'options' | 'manual' | 'enka' | 'good' | 'irminsul' | 'hoyolab';
 
 interface AddCharacterModalProps {
   isOpen: boolean;
@@ -20,12 +20,14 @@ const VIEW_TITLES: Record<AddModalView, string> = {
   enka: 'Import from Enka.network',
   good: 'Import GOOD Format',
   irminsul: 'Import from Irminsul',
+  hoyolab: 'Sync from HoYoLAB',
 };
 
 const CharacterForm = lazy(() => import('./CharacterForm'));
 const GOODImport = lazy(() => import('./GOODImport'));
 const IrminsulImport = lazy(() => import('./IrminsulImport'));
 const EnkaImport = lazy(() => import('./EnkaImport'));
+const HoyolabImport = lazy(() => import('./HoyolabImport'));
 
 const ADD_OPTIONS: Array<{
   id: AddModalView;
@@ -46,6 +48,12 @@ const ADD_OPTIONS: Array<{
     title: 'Import GOOD Format',
     description: 'Use a GOOD JSON export from compatible community tools for full account planning data.',
     icon: CheckCircle2,
+  },
+  {
+    id: 'hoyolab',
+    title: 'Sync from HoYoLAB',
+    description: 'Full roster with equipped gear from your HoYoLAB account. Great for console players — no game client needed.',
+    icon: Cloud,
   },
   {
     id: 'enka',
@@ -181,6 +189,15 @@ export default function AddCharacterModal({
           <BackButton />
           <Suspense fallback={<ImportViewFallback label="Loading GOOD import tools..." />}>
             <GOODImport onSuccess={handleSuccess} onCancel={handleClose} />
+          </Suspense>
+        </div>
+      )}
+
+      {view === 'hoyolab' && (
+        <div>
+          <BackButton />
+          <Suspense fallback={<ImportViewFallback label="Loading HoYoLAB sync tools..." />}>
+            <HoyolabImport onSuccess={handleSuccess} onCancel={handleClose} />
           </Suspense>
         </div>
       )}

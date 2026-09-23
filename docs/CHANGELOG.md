@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### HoYoLAB Roster Sync
+- Added a HoYoLAB Battle Chronicle importer: syncs the full roster (levels, constellations, talents, weapons, and equipped artifacts with substats) from HoYoverse servers using a HoYoLAB login cookie — no game client or scanner run needed, which makes routine refreshes possible for console players.
+- New `hoyolab` import view in the Add Character modal (`/roster?import=hoyolab`) with UID + cookie entry, optional on-device credential storage for one-click refreshes, and a HoYoLAB roster sync card in the Import Hub.
+- Refreshes preserve locally set notes, character priority, and team assignments, and reconcile legacy spaced Enka character keys ("Kamisato Ayaka") with GOOD keys ("KamisatoAyaka") instead of duplicating. The Traveler is keyed per element ("TravelerDendro"), and a higher local ascension is kept when the level hasn't changed, since HoYoLAB reports level only.
+- Network calls run through a new Tauri command (`fetch_hoyolab_characters`) that handles the HoYoLAB dynamic-secret header; the browser build explains that the desktop app is required since browsers cannot send the HoYoLAB cookie cross-site.
+- Stat keys are resolved from the response's own `property_map` when present, with a static FIGHT_PROP id table as fallback; equipped-only limitation (no unequipped inventory or materials) is called out in the UI.
+
 ### First Target Setup
 - Added a reusable first-target setup state and card that guides new users through roster import, pull/resource setup, target selection, and target review.
 - Dashboard now shows the guided setup card only while no campaign, planned banner, or wishlist target exists.
