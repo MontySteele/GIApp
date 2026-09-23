@@ -214,13 +214,6 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Whopperflower Nectar', 'Shimmering Nectar', 'Energy Nectar'],
     weeklyBoss: 'Shard of a Foul Legacy',
   },
-  HuTao: {
-    element: 'Pyro', gem: GEMS.Pyro!, boss: 'Juvenile Jade', localSpecialty: 'Silk Flower',
-    commonAscension: ['Whopperflower Nectar', 'Shimmering Nectar', 'Energy Nectar'],
-    talentBook: 'Diligence', talentBookRegion: 'Liyue',
-    commonTalent: ['Whopperflower Nectar', 'Shimmering Nectar', 'Energy Nectar'],
-    weeklyBoss: 'Shard of a Foul Legacy',
-  },
   Keqing: {
     element: 'Electro', gem: GEMS.Electro!, boss: 'Lightning Prism', localSpecialty: 'Cor Lapis',
     commonAscension: ['Whopperflower Nectar', 'Shimmering Nectar', 'Energy Nectar'],
@@ -335,21 +328,7 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
     weeklyBoss: 'Bloodjade Branch',
   },
-  KamisatoAyaka: {
-    element: 'Cryo', gem: GEMS.Cryo!, boss: 'Perpetual Heart', localSpecialty: 'Sakura Bloom',
-    commonAscension: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
-    talentBook: 'Elegance', talentBookRegion: 'Inazuma',
-    commonTalent: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
-    weeklyBoss: 'Bloodjade Branch',
-  },
   Ayato: {
-    element: 'Hydro', gem: GEMS.Hydro!, boss: 'Dew of Repudiation', localSpecialty: 'Sakura Bloom',
-    commonAscension: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
-    talentBook: 'Elegance', talentBookRegion: 'Inazuma',
-    commonTalent: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
-    weeklyBoss: 'Mudra of the Malefic General',
-  },
-  KamisatoAyato: {
     element: 'Hydro', gem: GEMS.Hydro!, boss: 'Dew of Repudiation', localSpecialty: 'Sakura Bloom',
     commonAscension: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
     talentBook: 'Elegance', talentBookRegion: 'Inazuma',
@@ -781,13 +760,6 @@ const CHARACTER_MATERIALS: Record<string, StaticMaterialEntry> = {
     commonTalent: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
     weeklyBoss: 'Tail of Boreas',
   },
-  'Lan Yan': {
-    element: 'Anemo', gem: GEMS.Anemo!, boss: 'Cloudseam Scale', localSpecialty: 'Clearwater Jade',
-    commonAscension: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
-    talentBook: 'Gold', talentBookRegion: 'Liyue',
-    commonTalent: ['Divining Scroll', 'Sealed Scroll', 'Forbidden Curse Scroll'],
-    weeklyBoss: 'Tail of Boreas',
-  },
   Mizuki: {
     element: 'Anemo', gem: GEMS.Anemo!, boss: 'Cloudseam Scale', localSpecialty: 'Fluorescent Fungus',
     commonAscension: ['Old Handguard', 'Kageuchi Handguard', 'Famed Handguard'],
@@ -983,6 +955,8 @@ const NORMALIZED_MATERIAL_KEY_TO_KEY = Object.keys(CHARACTER_MATERIALS).reduce<R
 const CHARACTER_MATERIAL_ALIASES: Record<string, string> = {
   aether: 'TravelerAnemo',
   itto: 'Arataki Itto',
+  kamisatoayaka: 'Ayaka',
+  kamisatoayato: 'Ayato',
   kazuha: 'KaedeharaKazuha',
   lumine: 'TravelerAnemo',
   mizuki: 'Mizuki',

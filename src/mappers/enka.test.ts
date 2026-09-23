@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { db } from '@/db/schema';
-import { fetchEnkaData, fromEnka, type EnkaResponse } from './enka';
+import { fetchEnkaData, fromEnka, CHARACTER_ID_MAP, type EnkaResponse } from './enka';
+import { getAvatarIdFromKey } from '@/lib/characterData';
 
 describe('Enka Mapper', () => {
   const mockEnkaResponse: EnkaResponse = {
@@ -446,5 +447,16 @@ describe('Enka Mapper', () => {
 
       await expect(fetchEnkaData(uid)).rejects.toThrow('UID not found');
     });
+  });
+});
+
+describe('CHARACTER_ID_MAP', () => {
+  it('agrees with the avatarIds in characterData', () => {
+    const mismatches = Object.entries(CHARACTER_ID_MAP)
+      .filter(([, key]) => key !== 'Traveler')
+      .filter(([id, key]) => getAvatarIdFromKey(key) !== Number(id))
+      .map(([id, key]) => `${id}: ${key} (characterData has ${getAvatarIdFromKey(key)})`);
+
+    expect(mismatches).toEqual([]);
   });
 });

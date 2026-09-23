@@ -10,7 +10,7 @@ import {
   calculateWeaponAscensionSummary,
   createWeaponGoal,
   type WeaponAscensionGoal,
-} from './weaponCalculator';
+} from '@/lib/planning/weaponCalculator';
 
 // Mock the genshin-db service
 vi.mock('@/lib/services/genshinDbService', () => ({

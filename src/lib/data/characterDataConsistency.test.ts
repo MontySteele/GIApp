@@ -23,23 +23,9 @@ const TRAVELER_ELEMENT_KEYS = new Set([
   'TravelerPyro',
 ]);
 
-const EXPECTED_CHARACTER_LIST_METADATA_GAPS = new Set([
-  // characterList stores the player character by element, while metadata stores
-  // Aether/Lumine as generic roster identities.
-  ...TRAVELER_ELEMENT_KEYS,
-]);
-
-const EXPECTED_METADATA_ONLY_KEYS = new Set([
-  // Generic or internal avatar identities, not wishlist/planner targets.
-  'Aether',
-  'Lumine',
-  'Manekin',
-  'Manekina',
-  // Tracked as metadata only until they are added to planning/wishlist flows.
-  'Avero',
-  'Iljane',
-  'Olorun',
-]);
+// Roster metadata is derived from characterList, so these should stay empty
+const EXPECTED_CHARACTER_LIST_METADATA_GAPS = new Set<string>();
+const EXPECTED_METADATA_ONLY_KEYS = new Set<string>();
 
 const EXPECTED_CHARACTER_LIST_AVATAR_GAPS = new Set([
   // Element-specific Traveler rows intentionally resolve to the generic

@@ -34,7 +34,7 @@ describe('characterMaterialMap', () => {
     });
 
     it('returns material data for display-name aliases', () => {
-      expect(getStaticCharacterMaterials('Kamisato Ayaka')?.characterKey).toBe('KamisatoAyaka');
+      expect(getStaticCharacterMaterials('Kamisato Ayaka')?.characterKey).toBe('Ayaka');
       expect(getStaticCharacterMaterials('Raiden Shogun')?.characterKey).toBe('RaidenShogun');
       expect(getStaticCharacterMaterials('Sangonomiya Kokomi')?.characterKey).toBe('Kokomi');
       expect(getStaticCharacterMaterials('Yumemizuki Mizuki')?.characterKey).toBe('Mizuki');
@@ -120,13 +120,8 @@ describe('characterMaterialMap', () => {
       expect(findStaticMaterialCoverageGaps(plannerKeys)).toEqual([]);
     });
 
-    it('scans released roster metadata while documenting metadata-only placeholders', () => {
-      const metadataOnlyPlaceholders = new Set(['Avero', 'Iljane', 'Manekin', 'Manekina']);
-      const releasedOrResolvableKeys = CHARACTER_METADATA
-        .map((character) => character.key)
-        .filter((key) => !metadataOnlyPlaceholders.has(key));
-
-      expect(findStaticMaterialCoverageGaps(releasedOrResolvableKeys)).toEqual([]);
+    it('scans roster metadata for fallback material gaps', () => {
+      expect(findStaticMaterialCoverageGaps(CHARACTER_METADATA.map((character) => character.key))).toEqual([]);
     });
 
     it('reports missing static data with a machine-readable reason', () => {

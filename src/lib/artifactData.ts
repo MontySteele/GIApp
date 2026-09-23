@@ -1,8 +1,11 @@
+import { toPascalCase } from '@/lib/utils/pascalCase';
+
 // Artifact Set Name Mappings
 // Maps setKey IDs to readable names
 // Includes both game IDs and Enka.Network text map hashes
 export const ARTIFACT_SET_NAMES: Record<string, string> = {
-  // Game IDs (from game files)
+  // Game IDs (from game files). Unmapped keys, including display names,
+  // pass through unchanged.
   // Mondstadt
   '14001': 'Gladiator\'s Finale',
   '14002': 'Wanderer\'s Troupe',
@@ -122,48 +125,6 @@ export const ARTIFACT_SET_NAMES: Record<string, string> = {
   '3626268211': 'Echoes of an Offering',
   '147298547': 'Wanderer\'s Troupe',
   '1212345779': 'Gladiator\'s Finale',
-
-  // Also support direct string names (for test data and GOOD format)
-  'Gladiator\'s Finale': 'Gladiator\'s Finale',
-  'Wanderer\'s Troupe': 'Wanderer\'s Troupe',
-  'Noblesse Oblige': 'Noblesse Oblige',
-  'Bloodstained Chivalry': 'Bloodstained Chivalry',
-  'Maiden Beloved': 'Maiden Beloved',
-  'Viridescent Venerer': 'Viridescent Venerer',
-  'Crimson Witch of Flames': 'Crimson Witch of Flames',
-  'Lavawalker': 'Lavawalker',
-  'Thundering Fury': 'Thundering Fury',
-  'Thundersoother': 'Thundersoother',
-  'Blizzard Strayer': 'Blizzard Strayer',
-  'Heart of Depth': 'Heart of Depth',
-  'Archaic Petra': 'Archaic Petra',
-  'Retracing Bolide': 'Retracing Bolide',
-  'Pale Flame': 'Pale Flame',
-  'Tenacity of the Millelith': 'Tenacity of the Millelith',
-  'Shimenawa\'s Reminiscence': 'Shimenawa\'s Reminiscence',
-  'Emblem of Severed Fate': 'Emblem of Severed Fate',
-  'Husk of Opulent Dreams': 'Husk of Opulent Dreams',
-  'Ocean-Hued Clam': 'Ocean-Hued Clam',
-  'Vermillion Hereafter': 'Vermillion Hereafter',
-  'Echoes of an Offering': 'Echoes of an Offering',
-  'Deepwood Memories': 'Deepwood Memories',
-  'Gilded Dreams': 'Gilded Dreams',
-  'Desert Pavilion Chronicle': 'Desert Pavilion Chronicle',
-  'Flower of Paradise Lost': 'Flower of Paradise Lost',
-  'Nymph\'s Dream': 'Nymph\'s Dream',
-  'Vourukasha\'s Glow': 'Vourukasha\'s Glow',
-  'Marechaussee Hunter': 'Marechaussee Hunter',
-  'Golden Troupe': 'Golden Troupe',
-  'Song of Days Past': 'Song of Days Past',
-  'Nighttime Whispers in the Echoing Woods': 'Nighttime Whispers in the Echoing Woods',
-  'Fragment of Harmonic Whimsy': 'Fragment of Harmonic Whimsy',
-  'Unfinished Reverie': 'Unfinished Reverie',
-  'Scroll of the Hero of Cinder City': 'Scroll of the Hero of Cinder City',
-  'Obsidian Codex': 'Obsidian Codex',
-  'Celestial Gift': 'Celestial Gift',
-  'Disenchantment in Deep Shadow': 'Disenchantment in Deep Shadow',
-  'Scarlet Proof': 'Scarlet Proof',
-  'Heart of the Furnace': 'Heart of the Furnace',
 };
 
 /**
@@ -189,14 +150,3 @@ export function toGoodArtifactSetKey(setKey: string): string {
   return displayName;
 }
 
-// Shared utility for PascalCase conversion
-function toPascalCase(value: string): string {
-  return value
-    .replace(/['']s\b/g, 's')
-    .replace(/[^A-Za-z0-9]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
-}
