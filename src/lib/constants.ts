@@ -13,11 +13,13 @@ export const PULLS_FROM_STARGLITTER = 5; // Cost in shop
 // Ascension 0: 20, 1: 40, 2: 50, 3: 60, 4: 70, 5: 80, 6: 90
 export const MAX_LEVEL_BY_ASCENSION = [20, 40, 50, 60, 70, 80, 90] as const;
 
-// Income benchmarks (approximate primos/day)
-export const INCOME_F2P = 60; // Commissions only
-export const INCOME_WELKIN = 150; // Commissions + Welkin
-export const INCOME_WELKIN_BP = 170; // + Battle Pass amortized
-export const INCOME_WITH_EVENTS = 200; // Realistic active player
+// Income benchmarks (approximate primos/day, averaged over a 42-day patch).
+// F2P counts commissions (60), Abyss, Imaginarium Theater, events, codes and
+// Stardust shop fates, but not one-off exploration rewards.
+export const INCOME_F2P = 210;
+export const INCOME_WELKIN = INCOME_F2P + 90;
+// Gnostic Hymn: 680 primos + 4 fates (640) per ~42-day season
+export const INCOME_WELKIN_BP = INCOME_WELKIN + 31;
 
 // Gacha Rules by Banner Type
 export const GACHA_RULES: Record<string, GachaRules> = {

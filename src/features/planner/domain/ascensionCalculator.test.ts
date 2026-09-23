@@ -6,7 +6,7 @@ import {
   calculateExpNeeded,
   type AscensionGoal,
 } from './ascensionCalculator';
-import { TOTAL_ASCENSION_MATS, TOTAL_TALENT_MATS } from '@/lib/planning/materialConstants';
+import { TOTAL_ASCENSION_MATS, TOTAL_TALENT_MATS, domainRunsForTiers } from '@/lib/planning/materialConstants';
 
 // Mock the genshin-db service
 vi.mock('@/lib/services/genshinDbService', () => ({
@@ -63,6 +63,15 @@ describe('calculateAscensionMaterials', () => {
     expect(result.localSpecialty).toBe(TOTAL_ASCENSION_MATS.localSpecialty);
     expect(result.commonMat).toEqual([18, 30, 36]);
     expect(result.gem).toEqual([1, 9, 9, 6]);
+  });
+});
+
+describe('domainRunsForTiers', () => {
+  it('compares tiers in 3:1 crafting-equivalent units', () => {
+    // 1 purple = 9 green; drops of 9 green-equivalent per run -> 1 run
+    expect(domainRunsForTiers([0, 0, 1], [9, 0, 0])).toBe(1);
+    expect(domainRunsForTiers([0, 0, 2], [0, 3, 0])).toBe(2);
+    expect(domainRunsForTiers([0, 0, 0], [2.2, 1.97, 0.23])).toBe(0);
   });
 });
 
@@ -143,6 +152,45 @@ describe('calculateAscensionSummary', () => {
     expect(common).toEqual([
       expect.objectContaining({ name: 'Slime Concentrate', tier: 3, required: 36 }),
     ]);
+  });
+
+  it('caps weekly boss progress at 3 discounted runs per week', async () => {
+    const goal: AscensionGoal = {
+      characterKey: 'Venti',
+      currentLevel: 90,
+      targetLevel: 90,
+      currentAscension: 6,
+      targetAscension: 6,
+      currentTalents: { auto: 9, skill: 9, burst: 9 },
+      targetTalents: { auto: 10, skill: 10, burst: 10 },
+    };
+
+    const summary = await calculateAscensionSummary(goal, { Mora: 10_000_000, 'Philosophies of Ballad': 999 });
+
+    // 6 weekly materials at ~0.8 per run = 8 runs = 3 weeks, longer than the resin needs
+    expect(summary.estimatedDays).toBe(21);
+  });
+
+  it('only estimates resin for materials that are still missing', async () => {
+    const goal: AscensionGoal = {
+      characterKey: 'Venti',
+      currentLevel: 90,
+      targetLevel: 90,
+      currentAscension: 6,
+      targetAscension: 6,
+      currentTalents: { auto: 8, skill: 8, burst: 8 },
+      targetTalents: { auto: 9, skill: 9, burst: 9 },
+    };
+    const fullyStocked = {
+      Mora: 10_000_000,
+      'Philosophies of Ballad': 999,
+      'Slime Concentrate': 999,
+      'Tail of Boreas': 999,
+    };
+
+    const summary = await calculateAscensionSummary(goal, fullyStocked);
+
+    expect(summary.estimatedResin).toBe(0);
   });
 
   it('charges 1 Mora per 5 EXP for leveling', async () => {

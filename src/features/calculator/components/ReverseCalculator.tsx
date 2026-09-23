@@ -319,7 +319,7 @@ export function ReverseCalculator() {
             min={0}
           />
           <p className="text-sm text-slate-400">
-            Defaults to ~{INCOME_F2P} primos/day (commissions). Welkin ≈ {INCOME_WELKIN} and Welkin + BP ≈{' '}
+            Defaults to ~{INCOME_F2P} primos/day (free-to-play average: commissions, Abyss, Theater, events, codes). Welkin ≈ {INCOME_WELKIN} and Welkin + BP ≈{' '}
             {INCOME_WELKIN_BP}. {PRIMOS_PER_PULL} primogems = 1 pull.
           </p>
 
@@ -451,13 +451,13 @@ export function ReverseCalculator() {
             {/* Help text */}
             <div className="text-sm text-slate-400 space-y-2 pt-4 border-t border-slate-700">
               <p>
-                <strong className="text-slate-300">Easy:</strong> Achievable with F2P income (daily commissions, events)
+                <strong className="text-slate-300">Easy:</strong> Achievable with F2P income (~{INCOME_F2P} primos/day)
               </p>
               <p>
-                <strong className="text-slate-300">Possible:</strong> Requires Welkin Moon or equivalent
+                <strong className="text-slate-300">Possible:</strong> Needs Welkin Moon, possibly with the Battle Pass (~{INCOME_WELKIN_BP}/day)
               </p>
               <p>
-                <strong className="text-slate-300">Difficult:</strong> Requires Welkin + BP or high spending
+                <strong className="text-slate-300">Difficult:</strong> Needs up to 1.5× Welkin + BP income, or saving well ahead
               </p>
               <p>
                 <strong className="text-slate-300">Unlikely:</strong> Requires significant spending beyond Welkin + BP

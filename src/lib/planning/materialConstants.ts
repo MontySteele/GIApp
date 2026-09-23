@@ -153,24 +153,51 @@ export const DOMAIN_SCHEDULE: Record<string, string[]> = {
   'Glory': ['Wednesday', 'Saturday', 'Sunday'],
 };
 
-// Estimated domain runs for materials (average drops at AR55+ level 90 domains)
+// Average drops per run at World Level 8 / max domain tier. Community-collected
+// figures (Fandom "Loot System/Material Drop Distribution"); treat as estimates.
 export const DOMAIN_DROPS_PER_RUN = {
   talentBooks: {
-    green: 2.5,  // Average green books per run
-    blue: 1.5,   // Average blue books per run
-    purple: 2.2, // Average purple books per run at level 90 domains
+    green: 2.2,  // Teachings
+    blue: 1.97,  // Guide
+    purple: 0.23, // Philosophies
   },
   weaponMats: {
-    green: 2.5,
-    blue: 1.5,
-    purple: 2.2,
-    orange: 0.6, // Gold weapon mats are rarer
+    green: 2.2,
+    blue: 2.4,
+    purple: 0.64,
+    orange: 0.07,
   },
   artifacts: {
     fiveStar: 1.07,
     fourStar: 2.5,
   },
 };
+
+export const BOSS_DROPS_PER_RUN = {
+  worldBossMat: 2.5,
+  // ~2.39 talent materials per weekly boss, split across its 3 materials
+  weeklySpecificMat: 2.39 / 3,
+};
+
+// Only the first 3 weekly boss claims each week are discounted
+export const DISCOUNTED_WEEKLY_BOSSES_PER_WEEK = 3;
+
+export const LEY_LINE_REWARDS = {
+  expPerRun: 122500,
+  moraPerRun: 60000,
+};
+
+/**
+ * Domain runs needed for tiered materials, assuming 3:1 crafting up.
+ * `needed` and `dropsPerRun` are ordered lowest tier first.
+ */
+export function domainRunsForTiers(needed: number[], dropsPerRun: number[]): number {
+  const toBaseTier = (amounts: number[]) =>
+    amounts.reduce((sum, amount, tier) => sum + amount * Math.pow(MATERIAL_CONVERSION_RATE, tier), 0);
+  const perRun = toBaseTier(dropsPerRun);
+  const total = toBaseTier(needed);
+  return total > 0 && perRun > 0 ? Math.ceil(total / perRun) : 0;
+}
 
 // Material tier conversion rates (3 lower = 1 higher)
 export const MATERIAL_CONVERSION_RATE = 3;

@@ -9,6 +9,10 @@ import {
   WEAPON_ASCENSION_COSTS_5STAR,
   WEAPON_ASCENSION_COSTS_4STAR,
   RESIN_COSTS,
+  RESIN_REGEN,
+  DOMAIN_DROPS_PER_RUN,
+  LEY_LINE_REWARDS,
+  domainRunsForTiers,
 } from './materialConstants';
 import { getWeaponMaterials } from '@/lib/services/genshinDbService';
 import { findInventoryKey } from '@/lib/utils/materialNormalization';
@@ -234,18 +238,23 @@ export async function calculateWeaponAscensionSummary(
   materials.push(...apiMaterials);
 
   // Estimate resin
-  // Domain materials: ~20 resin per run, ~2-3 drops per run average
-  const domainTotal = ascensionMats.domainMat.reduce((sum, amt, tier) => sum + amt * (tier + 1), 0);
-  const domainRuns = Math.ceil(domainTotal / 2.5);
+  // Domain materials: each run drops all tiers, compared in crafting-equivalent units
+  const domainDeficit = [1, 2, 3, 4].map((tier) =>
+    materials
+      .filter((m) => m.category === 'domain' && m.tier === tier)
+      .reduce((sum, m) => sum + m.deficit, 0)
+  );
+  const { green, blue, purple, orange } = DOMAIN_DROPS_PER_RUN.weaponMats;
+  const domainRuns = domainRunsForTiers(domainDeficit, [green, blue, purple, orange]);
   const domainResin = domainRuns * RESIN_COSTS.domainRun;
 
   // Mora ley lines for remaining mora
   const moraDef = Math.max(0, ascensionMats.mora - ownedMora);
-  const moraLeyLines = Math.ceil(moraDef / 60000);
+  const moraLeyLines = Math.ceil(moraDef / LEY_LINE_REWARDS.moraPerRun);
   const moraResin = moraLeyLines * RESIN_COSTS.leyLine;
 
   const estimatedResin = domainResin + moraResin;
-  const estimatedDays = Math.ceil(estimatedResin / 180);
+  const estimatedDays = Math.ceil(estimatedResin / RESIN_REGEN.perDay);
 
   // Check if can ascend
   const canAscend = materials.every((m) => m.deficit === 0);

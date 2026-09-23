@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { INCOME_F2P } from '@/lib/constants';
 import { ReverseCalculator } from './ReverseCalculator';
 import { primogemEntryRepo } from '@/features/ledger/repo/primogemEntryRepo';
 import { fateEntryRepo } from '@/features/ledger/repo/fateEntryRepo';
@@ -42,7 +43,7 @@ describe('ReverseCalculator', () => {
       expect(screen.getByLabelText(/days available/i)).toHaveValue(42);
       expect(screen.getByLabelText(/current pity/i)).toHaveValue(0);
       expect(screen.getByLabelText(/current pulls/i)).toHaveValue(0);
-      expect(screen.getByLabelText(/custom daily primogem income/i)).toHaveValue(60);
+      expect(screen.getByLabelText(/custom daily primogem income/i)).toHaveValue(INCOME_F2P);
     });
   });
 
@@ -239,7 +240,7 @@ describe('ReverseCalculator', () => {
 
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
-      expect(screen.getByText(/easy/i)).toBeInTheDocument();
+      expect(screen.getByText(/^easy$/i)).toBeInTheDocument();
     });
 
     it('should show "Unlikely" for very difficult goals', async () => {
@@ -258,8 +259,8 @@ describe('ReverseCalculator', () => {
 
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
-      // With these settings, should show a difficult/unlikely feasibility (multiple matches due to help text)
-      expect(screen.getAllByText(/unlikely|difficult/i).length).toBeGreaterThan(0);
+      // With these settings, should show a difficult/unlikely feasibility 
+      expect(screen.getAllByText(/^(unlikely|difficult)$/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -271,7 +272,7 @@ describe('ReverseCalculator', () => {
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       // Get the feasibility element by looking for capitalized feasibility value
-      const feasibilityElements = screen.getAllByText(/easy|possible|difficult|unlikely/i);
+      const feasibilityElements = screen.getAllByText(/^(easy|possible|difficult|unlikely)$/i);
       // At least one should have styling classes
       const hasStyledElement = feasibilityElements.some(el => el.className.includes('text-'));
       expect(hasStyledElement).toBe(true);
@@ -385,7 +386,7 @@ describe('ReverseCalculator', () => {
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       // Should show high daily requirement - look for feasibility in results section
-      expect(screen.getAllByText(/unlikely|difficult/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/^(unlikely|difficult)$/i).length).toBeGreaterThan(0);
     });
 
     it('should handle very long time periods', async () => {
@@ -398,7 +399,7 @@ describe('ReverseCalculator', () => {
       await user.click(screen.getByRole('button', { name: /calculate/i }));
 
       // Should show low daily requirement - easy or possible in results section
-      expect(screen.getAllByText(/easy|possible/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/^(easy|possible)$/i).length).toBeGreaterThan(0);
     });
 
     it('should handle 100% probability target', async () => {

@@ -137,7 +137,7 @@ export function calculateRequiredIncome(
     feasibility = 'easy';
   } else if (effectiveDailyRequirement <= INCOME_F2P) {
     feasibility = 'easy';
-  } else if (effectiveDailyRequirement <= INCOME_WELKIN) {
+  } else if (effectiveDailyRequirement <= INCOME_WELKIN_BP) {
     feasibility = 'possible';
   } else if (effectiveDailyRequirement <= INCOME_WELKIN_BP * 1.5) {
     feasibility = 'difficult';
