@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { db } from '@/db/schema';
-import { fetchEnkaData, fromEnka, CHARACTER_ID_MAP, type EnkaResponse } from './enka';
+import { fetchEnkaData, fromEnka, mapEnkaTalents, resolveEnkaCharacterKey, type EnkaResponse } from './enka';
+import { ENKA_CHARACTERS } from '@/lib/data/enkaData.generated';
 import { getAvatarIdFromKey } from '@/lib/characterData';
 
 describe('Enka Mapper', () => {
@@ -36,7 +37,7 @@ describe('Enka Mapper', () => {
         equipList: [
           // Weapon
           {
-            itemId: 11511, // Splendor of Tranquil Waters
+            itemId: 11513, // Splendor of Tranquil Waters
             flat: {
               nameTextMapHash: '1234567890',
               rankLevel: 5,
@@ -115,10 +116,10 @@ describe('Enka Mapper', () => {
       });
     });
 
-    it('should map weapon ID to weapon name', () => {
+    it('should map weapon ID to a GOOD weapon key', () => {
       const result = fromEnka(mockEnkaResponse);
 
-      expect(result[0].weapon.key).toBe('Splendor of Tranquil Waters'); // ID 11511
+      expect(result[0].weapon.key).toBe('SplendorOfTranquilWaters'); // ID 11513
       expect(result[0].weapon.level).toBe(90);
       expect(result[0].weapon.ascension).toBe(6);
       expect(result[0].weapon.refinement).toBe(1); // affixMap 0 + 1
@@ -303,11 +304,16 @@ describe('Enka Mapper', () => {
 
     it('should map weapon IDs correctly for popular weapons', () => {
       const testCases = [
-        { id: 11511, expected: 'Splendor of Tranquil Waters' },
-        { id: 11426, expected: 'Fleuve Cendre Ferryman' },
-        { id: 13501, expected: 'Staff of Homa' },
-        { id: 15508, expected: 'Aqua Simulacra' },
-        { id: 14509, expected: 'A Thousand Floating Dreams' },
+        { id: 11501, expected: 'AquilaFavonia' },
+        { id: 11509, expected: 'MistsplitterReforged' },
+        { id: 11426, expected: 'FleuveCendreFerryman' },
+        { id: 13501, expected: 'StaffOfHoma' },
+        { id: 13507, expected: 'CalamityQueller' },
+        { id: 13415, expected: 'TheCatch' },
+        { id: 12426, expected: 'UltimateOverlordsMegaMagicSword' },
+        { id: 14511, expected: 'AThousandFloatingDreams' },
+        { id: 15502, expected: 'AmosBow' },
+        { id: 15508, expected: 'AquaSimulacra' },
       ];
 
       for (const testCase of testCases) {
@@ -450,13 +456,58 @@ describe('Enka Mapper', () => {
   });
 });
 
-describe('CHARACTER_ID_MAP', () => {
-  it('agrees with the avatarIds in characterData', () => {
-    const mismatches = Object.entries(CHARACTER_ID_MAP)
-      .filter(([, key]) => key !== 'Traveler')
-      .filter(([id, key]) => getAvatarIdFromKey(key) !== Number(id))
-      .map(([id, key]) => `${id}: ${key} (characterData has ${getAvatarIdFromKey(key)})`);
+describe('Enka key resolution', () => {
+  it('emits the GOOD keys other importers store', () => {
+    expect(resolveEnkaCharacterKey(10000002)).toBe('KamisatoAyaka');
+    expect(resolveEnkaCharacterKey(10000046)).toBe('HuTao');
+    expect(resolveEnkaCharacterKey(10000059)).toBe('ShikanoinHeizou');
+    expect(resolveEnkaCharacterKey(10000133)).toBe('Sandrone');
+    expect(resolveEnkaCharacterKey(10000150)).toBe('Odette');
+  });
+
+  it('keys the Traveler by the element of their skill depot', () => {
+    expect(resolveEnkaCharacterKey(10000007, 704)).toBe('TravelerAnemo');
+    expect(resolveEnkaCharacterKey(10000005, 508)).toBe('TravelerDendro');
+    expect(resolveEnkaCharacterKey(10000005)).toBe('Traveler');
+  });
+
+  it('resolves every Enka character to the avatarId characterData uses', () => {
+    const mismatches = Object.keys(ENKA_CHARACTERS)
+      .map(Number)
+      .filter((id) => id !== 10000005 && id !== 10000007)
+      .map((id) => ({ id, key: resolveEnkaCharacterKey(id) }))
+      .filter(({ id, key }) => getAvatarIdFromKey(key) !== id)
+      .map(({ id, key }) => `${id}: ${key} (characterData has ${getAvatarIdFromKey(key)})`);
 
     expect(mismatches).toEqual([]);
+  });
+});
+
+describe('mapEnkaTalents', () => {
+  it('reads talents in skill order rather than map order', () => {
+    // Ayaka's map includes her dash (10013) ahead of her combat talents
+    expect(
+      mapEnkaTalents({
+        avatarId: 10000002,
+        skillDepotId: 201,
+        skillLevelMap: { '10013': 1, '10018': 8, '10019': 10, '10024': 6 },
+      })
+    ).toEqual({ auto: 6, skill: 8, burst: 10 });
+  });
+
+  it('uses the Traveler depot for elemental talents', () => {
+    expect(
+      mapEnkaTalents({
+        avatarId: 10000007,
+        skillDepotId: 708,
+        skillLevelMap: { '100557': 4, '10117': 9, '10118': 7 },
+      })
+    ).toEqual({ auto: 4, skill: 9, burst: 7 });
+  });
+
+  it('falls back to map order for characters newer than the generated data', () => {
+    expect(
+      mapEnkaTalents({ avatarId: 10009999, skillDepotId: 1, skillLevelMap: { '1': 3, '2': 4, '3': 5 } })
+    ).toEqual({ auto: 3, skill: 4, burst: 5 });
   });
 });

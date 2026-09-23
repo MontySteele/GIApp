@@ -238,6 +238,25 @@ describe('Character Repository', () => {
     });
   });
 
+  describe('bulkUpsert', () => {
+    it('updates an entry stored under a legacy display-name key', async () => {
+      const id = await characterRepo.create({ ...mockCharacterData, key: 'Hu Tao', teamIds: ['team-1'] });
+
+      const result = await characterRepo.bulkUpsert([{ ...mockCharacterData, key: 'HuTao', level: 80 }]);
+
+      expect(result).toEqual({ created: 0, updated: 1 });
+      const all = await characterRepo.getAll();
+      expect(all).toHaveLength(1);
+      expect(all[0]).toMatchObject({ id, key: 'HuTao', level: 80, teamIds: ['team-1'] });
+    });
+
+    it('creates characters that have no match', async () => {
+      const result = await characterRepo.bulkUpsert([{ ...mockCharacterData, key: 'Nahida' }]);
+
+      expect(result).toEqual({ created: 1, updated: 0 });
+    });
+  });
+
   describe('bulkCreate', () => {
     it('should create multiple characters', async () => {
       const characters = [

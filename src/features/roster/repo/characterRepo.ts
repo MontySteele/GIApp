@@ -2,6 +2,8 @@ import { db } from '@/db/schema';
 import type { Character } from '@/types';
 import { getAvatarIdFromKey } from '@/lib/characterData';
 
+const looseKey = (key: string) => key.toLowerCase().replace(/[^a-z0-9]/g, '');
+
 export const characterRepo = {
   async getAll(): Promise<Character[]> {
     return db.characters.toArray();
@@ -99,8 +101,17 @@ export const characterRepo = {
     let created = 0;
     let updated = 0;
 
+    // Older imports stored display-name keys ("Hu Tao"); match those so a
+    // re-import updates the entry (and its key) instead of duplicating it.
+    let byLooseKey: Map<string, Character> | undefined;
+    const findLoose = async (key: string) => {
+      byLooseKey ??= new Map((await db.characters.toArray()).map((c) => [looseKey(c.key), c]));
+      return byLooseKey.get(looseKey(key));
+    };
+
     for (const char of characters) {
-      const existing = await db.characters.where('key').equals(char.key).first();
+      const existing =
+        (await db.characters.where('key').equals(char.key).first()) ?? (await findLoose(char.key));
 
       if (existing) {
         // Update existing character, preserving teamIds and other user data

@@ -60,7 +60,7 @@ For each version in order, collect:
 | New weekly/world bosses | Fandom | name, material drop name, required level |
 | Standard pool changes | HoYo announcement | additions/removals (rare, but happens) |
 
-For character keys, **prefer the key HoYo uses internally** — usually matches Enka's `CHARACTER_ICON_NAMES`. When in doubt, check existing entries in `src/lib/characterData.ts` for the pattern (e.g., "RaidenShogun" not "Raiden Shogun", "KaedeharaKazuha" not "Kazuha").
+For character keys, **prefer the key HoYo uses internally** — usually matches the Enka icon names in `src/lib/data/enkaData.generated.ts`. When in doubt, check existing entries in `src/lib/characterData.ts` for the pattern (e.g., "RaidenShogun" not "Raiden Shogun", "KaedeharaKazuha" not "Kazuha").
 
 ---
 
@@ -72,11 +72,11 @@ Apply these edits. All paths are relative to repo root.
 
 **`src/lib/constants/characterList.ts`** — append to `ALL_CHARACTERS`. Place 5-stars in the 5-star block, 4-stars in the 4-star block. Alphabetical within each block unless existing ordering looks intentional (it's usually a rough alpha).
 
-**`src/lib/characterData.ts`** — two additions:
-- Add `avatarId: 'IconName'` to `CHARACTER_ICON_NAMES`. Source priority:
-  1. `https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/characters.json` — authoritative when up to date.
-  2. If the docs repo lags (common for very fresh patches — it's been days behind in practice), **verify the CDN has the side icon** by probing `https://enka.network/ui/UI_AvatarIcon_Side_{Name}.png` for HTTP 200, then extrapolate the `avatarId` from the existing sequential pattern in the file (each new 5★ is typically the next integer after the previous entry). Flag the extrapolation as "best-guess" in the PR body; the next run corrects it if wrong.
-- Add lowercase-key entries to `CHARACTER_KEY_TO_ID` under the appropriate region section. Include all common aliases the community uses (e.g. `'hu tao'` and `'hutao'`, `'raiden'` and `'raidenshogun'`).
+**Enka data** — run `node scripts/generate-enka-data.mjs`. It regenerates `src/lib/data/enkaData.generated.ts` from Enka.Network's data store: avatarIds, English names, side-icon names (portraits), talent skill order, and weapon IDs. Commit the regenerated file as-is; never hand-edit it.
+
+**`src/lib/characterData.ts`** — add lowercase-key entries to `CHARACTER_KEY_TO_ID` using the avatarIds from the generated file. Include all common aliases the community uses (e.g. `'hu tao'` and `'hutao'`, `'raiden'` and `'raidenshogun'`). `src/mappers/enka.test.ts` fails if an Enka character resolves to a different avatarId here.
+
+If Enka's store doesn't include a new character yet (it can lag a patch by days), **leave their avatarId unmapped**: add the key to `EXPECTED_CHARACTER_LIST_AVATAR_GAPS` in `characterDataConsistency.test.ts` and note it in the PR body. Do not extrapolate IDs from the sequential pattern: the 6.6 extrapolation shuffled Lohen, Linnea, and Nicole.
 
 No icon asset files are bundled — character portraits load from Enka's CDN at runtime via `getCharacterPortraitUrl`. So you do **not** need to download images; you only need the `avatarId → iconName` mapping and the icon name to match what the CDN serves.
 
@@ -132,7 +132,7 @@ Manually verify (or add assertions for):
 
 - [ ] Every 5-star key in `ALL_5_STAR_CHARACTERS` (bannerHistory.ts) exists in `ALL_CHARACTERS` (characterList.ts).
 - [ ] Every character key in `ALL_CHARACTERS` has a corresponding `CHARACTER_KEY_TO_ID` entry (lowercased) in `characterData.ts`.
-- [ ] Every `avatarId` in `CHARACTER_ICON_NAMES` is referenced by at least one entry in `CHARACTER_KEY_TO_ID`.
+- [ ] `node scripts/generate-enka-data.mjs` was run and `src/mappers/enka.test.ts` passes.
 - [ ] Every featured character key in any recent `BANNER_HISTORY` entry exists in `ALL_CHARACTERS`.
 - [ ] Every series in `DOMAIN_SCHEDULE` appears under exactly one region in `TALENT_BOOK_REGIONS`.
 - [ ] `CURRENT_PATCH` in `patchVersion.ts` matches the comment in `characterList.ts` and the latest version in `BANNER_HISTORY`.
@@ -185,7 +185,7 @@ if (seriesWithoutRegion.length) throw new Error(`DOMAIN_SCHEDULE series missing 
 - **Do not** guess material assignments for a character. If Fandom's page is missing data, skip that character's `characterMaterialMap` entry and note it in the PR body — a partial entry is worse than none because it silently misleads planners.
 - **Do not** "clean up" unrelated code while you're here. If you spot a bug, file it as a TODO in the PR body; don't mix unrelated changes into a data-update commit.
 - **Do not** rename existing keys even if HoYo's preferred romanization changes. Renames break saved user data. Add an alias in `CHARACTER_KEY_TO_ID` instead.
-- **Do not** fabricate avatarIds with no basis. If Enka's docs repo lags, you may extrapolate from the existing sequential pattern in `CHARACTER_ICON_NAMES` provided (a) you verified the side-icon URL returns HTTP 200 on Enka's CDN, and (b) you flag it as "best-guess" in the PR body. Never skip the CDN probe.
+- **Do not** guess avatarIds. Take them only from the generated Enka data; if Enka's store lags, leave the character unmapped until the next run.
 
 ---
 

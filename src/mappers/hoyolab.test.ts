@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   deriveAscensionFromLevel,
   deriveServerFromUid,
@@ -315,12 +315,15 @@ describe('HoYoLAB Mapper', () => {
     });
 
     it('skips entries without names and keeps the rest', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const result: HoyolabFetchResult = {
         list: [{ level: 90 }, furinaEntry],
       };
       const characters = fromHoyolab(result);
       expect(characters).toHaveLength(1);
       expect(characters[0].key).toBe('Furina');
+      expect(warn).toHaveBeenCalledWith('Skipping HoYoLAB character without a name', { level: 90 });
+      warn.mockRestore();
     });
 
     it('drops artifacts with unknown slots but keeps the character', () => {
